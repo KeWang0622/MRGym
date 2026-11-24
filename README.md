@@ -80,6 +80,10 @@ obs, reward, terminated, truncated, info = env.step({"name": "scan", "arguments"
 `reset`, `step` and `state` belong to whoever runs the episode. The agent sees tools only: `scanner_info`, `plan`,
 `scan`, `read_regions`, `view`, and one terminal tool. No tool resets the world or reads it.
 
+<p align="center">
+  <img src="assets/loop.png" width="92%" alt="The loop: the agent sends tool calls to the virtual scanner; the console prices the protocol, the engine images the hidden world; the scanner log and the truth go to the verifier, which pays the reward at the end">
+</p>
+
 ## What is on the scanner?
 
 | Call | Cost | Returns |
@@ -94,6 +98,10 @@ recovery, balanced SSFP and single-shot EPI, on one slice at 1.5 or 3 T. Three p
 a head, an abdomen and a QA phantom with vials. Images are formed in k-space, so field of view, matrix, bandwidth
 and phase direction act where they act on a scanner. The object, the transmit and receive fields, the off-resonance
 and the noise level are hidden. The [scanner manual](docs/scanner.md) is everything the agent is told.
+
+<p align="center">
+  <img src="assets/hidden_vs_received.png" width="100%" alt="Above: the hidden world of one session, tissue classes, T1, off-resonance and transmit field. Below: one scan request and everything it returns, an image, the header line and region read-outs">
+</p>
 
 <p align="center">
   <img src="assets/gallery_sequences.png" width="100%" alt="One procedural brain phantom imaged with each sequence of the virtual scanner, with the console header of every scan">

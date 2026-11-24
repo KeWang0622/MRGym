@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MR Gym episode viewer</title>
+<style>
+:root { color-scheme: light;
+  --surface:#fcfcfb; --page:#f6f5f2; --panel:#f0efea; --ink:#0b0b0b; --ink2:#4a4946; --muted:#807e78; --grid:#e1e0d9; --axis:#c3c2b7;
+  --s1:#2a78d6; --s2:#d9591c; --track:#cde2fb; --good:#0b7d0b; --critical:#c62f2f; --border:rgba(11,11,11,0.12); --mapbg:#e9e8e2; }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) { color-scheme: dark;
+  --surface:#1a1a19; --page:#0d0d0d; --panel:#262625; --ink:#f0efec; --ink2:#c3c2b7; --muted:#908e87; --grid:#2c2c2a; --axis:#383835;
+  --s1:#4a94ec; --s2:#f0834a; --track:#173f73; --good:#35b535; --critical:#ee6b6b; --border:rgba(255,255,255,0.12); --mapbg:#2c2c2a; } }
+:root[data-theme="dark"] { color-scheme: dark;
+  --surface:#1a1a19; --page:#0d0d0d; --panel:#262625; --ink:#f0efec; --ink2:#c3c2b7; --muted:#908e87; --grid:#2c2c2a; --axis:#383835;
+  --s1:#4a94ec; --s2:#f0834a; --track:#173f73; --good:#35b535; --critical:#ee6b6b; --border:rgba(255,255,255,0.12); --mapbg:#2c2c2a; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--page); color:var(--ink); font:14px/1.45 system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; }
+header { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; padding:10px 16px; background:var(--surface); border-bottom:1px solid var(--border); }
+header h1 { font-size:16px; margin:0 8px 0 0; }
+button, select, .filebtn { font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; }
+select { max-width:min(60vw, 520px); }
+button:hover, .filebtn:hover { border-color:var(--s1); }
+button:focus-visible, select:focus-visible, li:focus-visible, .filebtn:focus-within { outline:2px solid var(--s1); outline-offset:1px; }
+.filebtn input { position:absolute; opacity:0; width:1px; height:1px; }
+.spacer { flex:1; }
+.facts { display:flex; flex-wrap:wrap; gap:6px 24px; padding:10px 16px; background:var(--surface); border-bottom:1px solid var(--border); }
+.fact .k { font-size:11px; color:var(--muted); }
+.fact .v { font-size:14px; }
+main { display:grid; grid-template-columns: 340px minmax(0,1fr); gap:14px; padding:14px 16px; max-width:1500px; margin:0 auto; }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px; min-width:0; }
+.card h2 { font-size:13px; margin:0 0 8px; color:var(--ink2); font-weight:600; }
+.card h3 { font-size:12px; margin:12px 0 6px; color:var(--ink2); font-weight:600; }
+ol.timeline { list-style:none; margin:0; padding:0; max-height:62vh; overflow:auto; }
+ol.timeline li { display:grid; grid-template-columns: 22px auto 1fr auto; gap:6px; align-items:center; padding:5px 6px; border-radius:6px; cursor:pointer; font-size:13px; }
+ol.timeline li:hover { background:var(--panel); }
+ol.timeline li.cur { background:var(--panel); box-shadow: inset 3px 0 0 var(--s1); }
+ol.timeline li.future { color:var(--muted); }
+ol.timeline .n { color:var(--muted); font-variant-numeric:tabular-nums; font-size:12px; }
+ol.timeline .what { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chip { display:inline-block; font-size:11px; padding:1px 7px; border-radius:10px; background:var(--panel); border:1px solid var(--border); color:var(--ink2); text-align:center; white-space:nowrap; }
+.chip.scan { background:var(--s1); color:#fff; border-color:transparent; }
+.chip.refused { background:var(--critical); color:#fff; border-color:transparent; }
+.chip.final { background:var(--ink); color:var(--surface); border-color:transparent; }
+.cost { font-variant-numeric:tabular-nums; color:var(--ink2); font-size:12px; white-space:nowrap; }
+.controls { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+.meter { height:26px; background:var(--track); border-radius:6px; display:flex; overflow:hidden; }
+.meter .seg { background:var(--s1); color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; border-right:2px solid var(--surface); white-space:nowrap; overflow:hidden; }
+.meterline { display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; gap:10px; flex-wrap:wrap; }
+.meterline .r { color:var(--ink2); }
+.cols { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:14px; }
+@media (max-width: 1100px) { .cols { grid-template-columns: 1fr; } }
+pre { margin:0; font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; background:var(--panel); border-radius:6px; padding:8px 10px; overflow:auto; max-height:360px; white-space:pre; }
+pre.wrap { white-space:pre-wrap; word-break:break-word; }
+table { border-collapse:collapse; font-size:12.5px; }
+th { text-align:right; font-weight:500; color:var(--muted); padding:3px 8px; border-bottom:1px solid var(--axis); }
+td { text-align:right; white-space:nowrap; padding:3px 8px; border-bottom:1px solid var(--grid); font-variant-numeric:tabular-nums; }
+th:first-child, td:first-child { text-align:left; }
+.images { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start; }
+figure { margin:0; }
+figure canvas { display:block; background:#000; border-radius:4px; image-rendering:pixelated; }
+figure canvas.map { background:var(--mapbg); }
+figcaption { font-size:12px; color:var(--ink2); margin-top:4px; max-width:340px; min-height:2.9em; }
+.tools { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; margin:0 0 10px; font-size:13px; color:var(--ink2); }
+.badge { display:inline-block; padding:2px 10px; border-radius:10px; color:#fff; font-weight:600; font-size:12px; }
+.badge.pass { background:var(--good); } .badge.fail { background:var(--critical); } .badge.none { background:var(--muted); }
+.gates { display:flex; flex-direction:column; gap:5px; margin:8px 0 12px; font-size:13px; }
+.kv { display:grid; grid-template-columns:max-content 1fr; gap:2px 14px; font-size:13px; }
+.kv .k { color:var(--muted); }
+.kv span { overflow-wrap:anywhere; }
+.stack { display:flex; flex-direction:column; gap:14px; min-width:0; }
+.note { font-size:12px; color:var(--muted); margin:8px 0 0; }
+.legend { display:flex; gap:6px; align-items:center; font-size:11px; color:var(--ink2); margin-top:4px; }
+.legend canvas { width:120px; height:8px; border-radius:2px; background:none; }
+.msg { border-left:3px solid var(--s2); padding:2px 0 2px 10px; margin:0 0 10px; }
+.msg .role { font-size:11px; color:var(--muted); margin-bottom:3px; }
+.big { font-size:17px; margin:0 0 6px; }
+.header-line { font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:var(--ink2); margin:0 0 10px; overflow-wrap:anywhere; }
+.key { display:flex; flex-wrap:wrap; gap:4px 16px; font-size:12px; color:var(--ink2); margin:0 0 10px; }
+.key i { display:inline-block; width:18px; height:0; border-top:2px solid; vertical-align:middle; margin-right:5px; }
+.key i.dash { border-top-style:dashed; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MR Gym episode viewer</h1>
+  <label for="episode" class="note" style="margin:0">episode</label>
+  <select id="episode" aria-label="episode"></select>
+  <label class="filebtn">Open bundle<input type="file" id="file" accept=".json,application/json"></label>
+  <span class="spacer"></span>
+  <button id="theme" aria-label="switch between the light and the dark theme">Theme</button>
+</header>
+<div class="facts" id="facts"></div>
+<main>
+  <div class="stack">
+    <div class="card">
+      <h2>Session</h2>
+      <div class="controls">
+        <button id="first" aria-label="first step">First</button><button id="prev" aria-label="previous step">Prev</button>
+        <button id="play" aria-label="play">Play</button><button id="next" aria-label="next step">Next</button>
+        <button id="last" aria-label="last step">Last</button>
+      </div>
+      <ol class="timeline" id="timeline"></ol>
+      <p class="note">Arrow keys step through the session. The score, the gates and the hidden world appear at the last step only.</p>
+    </div>
+  </div>
+  <div class="stack">
+    <div class="card" id="budget"></div>
+    <div id="detail" class="stack"></div>
+  </div>
+</main>
+<script id="episodes" type="application/json">__EPISODES__</script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("episodes").textContent);
+let ep = null, cur = 0, timer = null;
+const view = { mode: "magnitude", win: 1.0, overlays: true };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const isNum = (x) => typeof x === "number" && Number.isFinite(x);
+const fmt = (x, d = 1) => isNum(x) ? x.toFixed(d) : "-";
+const sig = (x, n = 4) => isNum(x) ? String(Number(x.toPrecision(n))) : "-";
+const INK = { region: "#ffd23f", fov: "#ff7a45", extent: "#35c2ff" };
+
+function f32(b64) {
+  const s = atob(b64), u = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+  return new Float32Array(u.buffer);
+}
+function ramp(stops) {
+  const rgb = stops.map((h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)));
+  return (v) => {
+    const x = Math.min(1, Math.max(0, v)) * (rgb.length - 1), i = Math.min(rgb.length - 2, Math.floor(x)), f = x - i;
+    return [0, 1, 2].map((k) => Math.round(rgb[i][k] + f * (rgb[i + 1][k] - rgb[i][k])));
+  };
+}
+const SEQ = ramp(["#f4f0d8", "#c9dc9a", "#7fc4a0", "#3e9fb3", "#2a6fb0", "#27408b", "#1d1b4f"]);
+const DIV = ramp(["#104281", "#3987e5", "#9ec5f4", "#f0efec", "#f2a6a5", "#e34948", "#8f1f1f"]);
+const GRAY = (v) => { const g = Math.round(255 * Math.min(1, Math.max(0, v))); return [g, g, g]; };
+
+function percentile(arr, q) {
+  const a = Array.from(arr).filter(Number.isFinite).sort((x, y) => x - y);
+  if (!a.length) return 0;
+  return a[Math.min(a.length - 1, Math.max(0, Math.round(q * (a.length - 1))))];
+}
+
+// Draw one image [ny, nx] with a field of view (fy, fx) in mm. geo.centre is true for scanner images, whose pixel i
+// is centred at (i - floor(n / 2)) * fov / n, and false for hidden maps, whose blocks tile the extent edge to edge.
+function paint(canvas, arr, ny, nx, colour, geo, marks) {
+  const longest = 300, scale = longest / Math.max(geo.fy, geo.fx);
+  const cssW = Math.round(geo.fx * scale), cssH = Math.round(geo.fy * scale), k = 2;
+  canvas.width = cssW * k; canvas.height = cssH * k;
+  canvas.style.width = cssW + "px"; canvas.style.height = cssH + "px";
+  const off = document.createElement("canvas"); off.width = nx; off.height = ny;
+  const octx = off.getContext("2d"), img = octx.createImageData(nx, ny);
+  for (let i = 0; i < nx * ny; i++) {
+    const v = arr[i];
+    if (Number.isNaN(v)) { img.data[4 * i + 3] = 0; continue; }
+    const c = colour(v);
+    img.data[4 * i] = c[0]; img.data[4 * i + 1] = c[1]; img.data[4 * i + 2] = c[2]; img.data[4 * i + 3] = 255;
+  }
+  octx.putImageData(img, 0, 0);
+  const ctx = canvas.getContext("2d"), W = canvas.width, H = canvas.height;
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(off, 0, 0, W, H);
+  const half = geo.centre ? 0.5 : 0;
+  const X = (mm) => (mm / geo.fx + (geo.centre ? Math.floor(nx / 2) / nx : 0.5) + half / nx) * W;
+  const Y = (mm) => (mm / geo.fy + (geo.centre ? Math.floor(ny / 2) / ny : 0.5) + half / ny) * H;
+  if (!marks) return;
+  ctx.lineWidth = 2 * k; ctx.font = `${11 * k}px system-ui, sans-serif`;
+  for (const r of marks.circles || []) {
+    ctx.strokeStyle = INK.region; ctx.fillStyle = INK.region; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.ellipse(X(r.x_mm), Y(r.y_mm), r.radius_mm / geo.fx * W, r.radius_mm / geo.fy * H, 0, 0, 2 * Math.PI); ctx.stroke();
+    if (r.id !== undefined) ctx.fillText(String(r.id), X(r.x_mm) + r.radius_mm / geo.fx * W + 2, Y(r.y_mm) - r.radius_mm / geo.fy * H + 2);
+  }
+  for (const b of marks.boxes || []) {
+    ctx.strokeStyle = b.colour; ctx.setLineDash(b.dash ? [6 * k, 4 * k] : []);
+    ctx.strokeRect(X(b.x[0]), Y(b.y[0]), X(b.x[1]) - X(b.x[0]), Y(b.y[1]) - Y(b.y[0]));
+  }
+  ctx.setLineDash([]);
+}
+function probe(canvas, arr, ny, nx, geo, cap, unit, base) {
+  canvas.addEventListener("mousemove", (e) => {
+    const b = canvas.getBoundingClientRect();
+    const j = Math.min(nx - 1, Math.max(0, Math.floor((e.clientX - b.left) / b.width * nx)));
+    const i = Math.min(ny - 1, Math.max(0, Math.floor((e.clientY - b.top) / b.height * ny)));
+    const v = arr[i * nx + j];
+    const x = geo.centre ? (j - Math.floor(nx / 2)) * geo.fx / nx : (j + 0.5 - nx / 2) * geo.fx / nx;
+    const y = geo.centre ? (i - Math.floor(ny / 2)) * geo.fy / ny : (i + 0.5 - ny / 2) * geo.fy / ny;
+    cap.textContent = `${base} | x ${x.toFixed(0)} mm, y ${y.toFixed(0)} mm: ` + (Number.isNaN(v) ? "outside the object" : `${sig(v)} ${unit}`);
+  });
+  canvas.addEventListener("mouseleave", () => { cap.textContent = base; });
+}
+
+// ------------------------------------------------------------------ the episode as steps
+const steps = () => ep.steps;
+const isLast = (i) => i === ep.steps.length - 1;
+function toolSpec(name) { return (ep.task.tools || []).find((t) => t.name === name) || {}; }
+function protoText(p) {
+  if (!p || typeof p !== "object") return "";
+  const parts = [p.sequence || "?"];
+  for (const [k, label, unit] of [["tr_ms", "TR", ""], ["te_ms", "TE", ""], ["ti_ms", "TI", ""], ["flip_deg", "FA", ""], ["fov_mm", "FOV", ""], ["matrix", "matrix", ""]])
+    if (p[k] !== undefined) parts.push(`${label} ${p[k]}${unit}`);
+  if (p.averages > 1) parts.push(`x${p.averages}`);
+  return parts.join(", ");
+}
+function describe(s) {
+  if (!s.call) return ["reset", "task statement", ""];
+  const name = s.call.name || "malformed", a = s.call.arguments || {}, spec = toolSpec(name);
+  if (s.is_error) return [name, "refused", "0 s"];
+  if (spec.terminal) return [name, "the deliverable", "ends"];
+  if (name === "scan") return ["scan", protoText(a.protocol), `${fmt(s.data.cost_s)} s`];
+  if (name === "plan") return ["plan", protoText(a.protocol) + (isNum(s.data.scan_s) ? ` (${fmt(s.data.scan_s)} s)` : ""), "free"];
+  if (name === "view") return ["view", `scan ${a.scan}` + (a.kind ? `, ${a.kind}` : ""), "free"];
+  if (name === "read_regions") return ["read_regions", `scan ${a.scan}, ${(a.regions || []).length} regions`, "free"];
+  if (name === "scanner_info") return ["scanner_info", a.topic || "overview", "free"];
+  return [name, "", spec.cost === "scan_time" ? "scan time" : "free"];
+}
+function scanOfStep(s) {
+  if (!s.call || s.is_error) return null;
+  const a = s.call.arguments || {};
+  const k = s.call.name === "scan" ? s.data.scan_index : (a.scan !== undefined ? a.scan : null);
+  if (k === null || k === undefined) return null;
+  return ep.scans.find((q) => q.index === k) || null;
+}
+function lastScan() { return ep.scans.length ? ep.scans[ep.scans.length - 1] : null; }
+
+function renderFacts() {
+  const e = ep.env, a = ep.agent, t = ep.task;
+  const items = [["environment", `${e.id}, level ${e.level}`], ["agent", `${a.name} (${a.kind || "agent"})`],
+    ["budget", `${fmt(t.budget_s, 0)} s of scan time, ${t.max_requests} scanner requests, ${e.max_steps} tool calls`],
+    ["scanner", `${fmt(t.field_t, 1)} T, ${ep.package.engine}`], ["package", `${ep.package.name} ${ep.package.version}`],
+    ["episode", `${ep.episode.id}`], ["observations", e.obs]];
+  $("facts").innerHTML = items.map(([k, v]) => `<div class="fact"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+}
+function renderTimeline() {
+  $("timeline").innerHTML = steps().map((s, i) => {
+    const [chip, text, cost] = describe(s);
+    const cls = s.is_error ? "refused" : chip === "scan" ? "scan" : isLast(i) && s.call ? "final" : "";
+    return `<li tabindex="0" data-i="${i}" class="${i === cur ? "cur" : i > cur ? "future" : ""}"><span class="n">${i}</span>` +
+      `<span class="chip ${cls}">${esc(chip)}</span><span class="what" title="${esc(text)}">${esc(text)}</span><span class="cost">${esc(cost)}</span></li>`;
+  }).join("");
+  for (const li of $("timeline").children) {
+    li.onclick = () => { stop(); go(+li.dataset.i); };
+    li.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); stop(); go(+li.dataset.i); } };
+  }
+}
+function renderBudget() {
+  const st = steps()[cur].status || {}, total = ep.task.budget_s, used = st.scan_time_used_s || 0, segs = [];
+  for (let k = 0; k <= cur; k++) {
+    const s = steps()[k];
+    if (s.call && s.call.name === "scan" && !s.is_error && isNum(s.data.cost_s)) segs.push({ label: `scan ${s.data.scan_index}`, cost: s.data.cost_s });
+  }
+  $("budget").innerHTML = `<div class="meterline"><span><b>Scan-time budget</b>: ${fmt(used)} of ${fmt(total, 0)} s used</span>` +
+    `<span class="r">${fmt(total - used)} s left | scanner requests ${st.scanner_requests ?? 0} of ${st.max_scanner_requests ?? ep.task.max_requests} | ` +
+    `tool calls ${st.tool_calls ?? 0} of ${st.max_tool_calls ?? ep.env.max_steps} | the session cannot be reset</span></div>` +
+    `<div class="meter" role="img" aria-label="${fmt(used)} of ${fmt(total, 0)} seconds of scan time used">` +
+    segs.map((s) => `<div class="seg" style="width:${100 * s.cost / total}%" title="${esc(s.label)}: ${fmt(s.cost)} s">${100 * s.cost / total > 12 ? esc(s.label) + ": " + fmt(s.cost) + " s" : ""}</div>`).join("") + `</div>`;
+}
+function kv(obj) {
+  return `<div class="kv">` + Object.entries(obj).map(([k, v]) =>
+    `<span class="k">${esc(k)}</span><span>${esc(v !== null && typeof v === "object" ? JSON.stringify(v) : isNum(v) && !Number.isInteger(v) ? sig(v, 5) : v)}</span>`).join("") + `</div>`;
+}
+function eventsCard(i) {
+  const evs = (ep.agent_events || []).filter((e) => (isNum(e.step) ? e.step === i : i === 0));
+  if (!evs.length) return "";
+  const body = evs.map((e) => {
+    const content = typeof e.content === "string" ? e.content : e.content === undefined || e.content === null ? "" : JSON.stringify(e.content, null, 1);
+    const calls = Array.isArray(e.tool_calls) && e.tool_calls.length ? `<pre class="wrap" style="margin-top:6px">${esc(JSON.stringify(e.tool_calls, null, 1))}</pre>` : "";
+    return `<div class="msg"><div class="role">${esc(e.role || "message")}${e.name ? " | " + esc(e.name) : ""}${isNum(e.step) ? "" : " | not tied to a step"}</div>` +
+      (content ? `<pre class="wrap">${esc(content)}</pre>` : "") + calls + `</div>`;
+  }).join("");
+  return `<div class="card"><h2>Agent messages (${esc(ep.agent.name)})</h2>${body}</div>`;
+}
+
+function renderDetail() {
+  const s = steps()[cur], d = $("detail");
+  let html = eventsCard(cur);
+  if (!s.call) {
+    html += `<div class="card"><h2>Reset: the task statement the agent reads</h2><pre class="wrap">${esc(s.text)}</pre></div>`;
+  } else {
+    const name = s.call.name || "malformed call", args = s.call.arguments !== undefined ? s.call.arguments : s.call.raw;
+    const spec = toolSpec(name);
+    const tag = s.is_error ? `<span class="badge fail">refused, nothing charged</span>` : spec.terminal ? `<span class="badge none">ends the episode</span>` :
+      spec.cost === "scan_time" ? `<span class="badge none">charged ${fmt(s.data.cost_s, 2)} s</span>` : `<span class="badge none">free</span>`;
+    html += `<div class="cols"><div class="card"><h2>Request: ${esc(name)} ${tag}</h2><pre class="wrap">${esc(JSON.stringify(args, null, 1))}</pre></div>` +
+      `<div class="card"><h2>Console reply</h2><pre>${esc(s.text)}</pre></div></div>`;
+  }
+  const sc = scanOfStep(s) || (isLast(cur) ? lastScan() : null);
+  if (sc) html += `<div class="card" id="scancard"></div>`;
+  if (isLast(cur)) html += `<div class="card" id="verdict"></div><div class="card" id="hidden"></div>`;
+  d.innerHTML = html;
+  if (sc) renderScan(sc, s);
+  if (isLast(cur)) { renderVerdict(); renderHidden(); }
+}
+
+function deliveredBox() {
+  const dv = ep.result && ep.result.delivered;
+  if (!dv || !dv.fov_yx_mm) return null;
+  const [fy, fx] = dv.fov_yx_mm, r = dv.realised || {};
+  // pixel i of an n-point axis is centred at (i - n / 2) * fov / n: the image spans -fov / 2 - px / 2 .. fov / 2 - px / 2
+  const py = r.pe_dir === "y" ? fy / (r.matrix_pe || 1) : fy / (r.matrix || 1), px = r.pe_dir === "y" ? fx / (r.matrix || 1) : fx / (r.matrix_pe || 1);
+  return { y: [-fy / 2 - py / 2, fy / 2 - py / 2], x: [-fx / 2 - px / 2, fx / 2 - px / 2], colour: INK.fov };
+}
+
+function renderScan(sc, s) {
+  const [ni, ny, nx] = sc.shape, geo = { fy: sc.fov_yx_mm[0], fx: sc.fov_yx_mm[1], centre: true };
+  const mag = f32(sc.magnitude_f32_b64), ph = f32(sc.phase_f32_b64), top = percentile(mag, 0.995) || 1;
+  const header = (steps().find((q) => q.call && q.call.name === "scan" && !q.is_error && q.data.scan_index === sc.index) || { data: {} }).data.header || "";
+  const circles = [].concat(ep.task.regions || []);
+  const reqRegions = s.call && s.call.arguments && Array.isArray(s.call.arguments.regions) ? s.call.arguments.regions : [];
+  for (const r of reqRegions) if (isNum(r.x_mm) && isNum(r.y_mm) && isNum(r.radius_mm)) circles.push(r);
+  const box = isLast(cur) ? deliveredBox() : null;
+  const keys = (circles.length ? `<span><i style="border-color:${INK.region}"></i>regions</span>` : "") +
+    (box ? `<span><i style="border-color:${INK.fov}"></i>delivered field of view</span>` : "");
+  $("scancard").innerHTML = `<h2>Scan ${sc.index}: ${ni} image${ni > 1 ? "s" : ""}, ${ny} x ${nx} (y, x), field of view ${sig(geo.fy)} x ${sig(geo.fx)} mm` +
+    (scanOfStep(s) ? "" : " (the last stored scan)") + `</h2><p class="header-line">${esc(header)}</p>` +
+    `<div class="tools"><label><input type="radio" name="mode" value="magnitude" ${view.mode === "magnitude" ? "checked" : ""}> magnitude</label>` +
+    `<label><input type="radio" name="mode" value="phase" ${view.mode === "phase" ? "checked" : ""}> phase</label>` +
+    `<label>window <input type="range" id="win" min="0.1" max="2" step="0.05" value="${view.win}" aria-label="grey-scale window"></label>` +
+    `<label><input type="checkbox" id="ovl" ${view.overlays ? "checked" : ""}> overlays</label></div>` +
+    (keys ? `<div class="key">${keys}</div>` : "") + `<div class="images" id="imgs"></div>` +
+    `<p class="note">Drawn in the browser from the float32 data the scanner returned. Magnitude: 0 to the 99.5th percentile times the window. Phase: -pi to pi.</p>`;
+  const draw = () => {
+    const boxEl = $("imgs"); boxEl.innerHTML = "";
+    for (let k = 0; k < ni; k++) {
+      const fig = document.createElement("figure"), cv = document.createElement("canvas"), cap = document.createElement("figcaption");
+      const arr = (view.mode === "magnitude" ? mag : ph).subarray(k * ny * nx, (k + 1) * ny * nx);
+      const colour = view.mode === "magnitude" ? (v) => GRAY(v / (top * view.win)) : (v) => GRAY((v + Math.PI) / (2 * Math.PI));
+      paint(cv, arr, ny, nx, colour, geo, view.overlays ? { circles, boxes: box ? [box] : [] } : null);
+      const base = `image ${k}, ${view.mode}`;
+      cap.textContent = base;
+      probe(cv, arr, ny, nx, geo, cap, view.mode === "phase" ? "rad" : "", base);
+      fig.append(cv, cap); boxEl.append(fig);
+    }
+  };
+  draw();
+  for (const el of document.getElementsByName("mode")) el.onchange = () => { view.mode = el.value; draw(); };
+  $("win").oninput = (e) => { view.win = +e.target.value; draw(); };
+  $("ovl").onchange = (e) => { view.overlays = e.target.checked; draw(); };
+}
+
+function renderVerdict() {
+  const r = ep.result, sc = r.score || {}, rp = r.replay || null;
+  const passed = sc.passed;
+  const badge = passed === true ? `<span class="badge pass">pass</span>` : passed === false ? `<span class="badge fail">not passed</span>` :
+    `<span class="badge none">${r.truncated ? "truncated" : "no pass or fail"}</span>`;
+  const gates = Object.entries(sc).filter(([k, v]) => k.startsWith("gate_") && typeof v === "boolean").map(([k, v]) =>
+    `<span><span class="badge ${v ? "pass" : "fail"}">${v ? "ok" : "failed"}</span> ${esc(k.slice(5).replace(/_/g, " "))}</span>`).join("");
+  const rest = Object.fromEntries(Object.entries(sc).filter(([k]) => !k.startsWith("gate_") && !["reward", "passed"].includes(k)));
+  $("verdict").innerHTML = `<h2>Verifier: reward and gates</h2><p class="big">${badge} reward ${fmt(r.reward, 3)}` +
+    (r.truncated ? ` | truncated${r.reason ? ": " + esc(r.reason) : ""}` : "") + `</p>` +
+    (r.policy_error ? `<p><span class="badge fail">policy error</span> ${esc(r.policy_error)}</p>` : "") +
+    (gates ? `<div class="gates">${gates}</div>` : "") +
+    (Object.keys(rest).length ? `<h3>Score</h3>${kv(rest)}` : "") +
+    (rp ? `<h3>Replay of the scanner log</h3>${kv({ ok: rp.ok, mode: rp.mode, events: rp.events, scans: rp.scans, "scan time used (s)": rp.used_s, "budget (s)": rp.budget_s, "over budget": rp.over_budget, problems: (rp.problems || []).join("; ") || "none" })}` : "") +
+    (r.answer !== null && r.answer !== undefined ? `<h3>Delivered</h3><pre class="wrap">${esc(JSON.stringify(r.answer, null, 1))}</pre>` : "") +
+    (r.delivered ? `<p class="header-line" style="margin-top:8px">${esc(r.delivered.header)}</p>` : "");
+}
+
+function renderHidden() {
+  const h = ep.hidden, el = $("hidden");
+  if (!h || !h.maps) { el.innerHTML = `<h2>The hidden world</h2><p class="note">This bundle holds no hidden block.</p>`; return; }
+  const m = h.maps, [ny, nx] = m.shape, geo = { fy: m.extent_mm, fx: m.extent_mm, centre: false };
+  const ext = h.object_extent_mm, box = deliveredBox();
+  const boxes = [];
+  if (ext) boxes.push({ y: ext.y, x: ext.x, colour: INK.extent, dash: true });
+  if (box) boxes.push(box);
+  const circles = (h.regions || []).filter((r) => isNum(r.x_mm));
+  const keys = (ext ? `<span><i class="dash" style="border-color:${INK.extent}"></i>true extent of the object</span>` : "") +
+    (box ? `<span><i style="border-color:${INK.fov}"></i>delivered field of view</span>` : "") +
+    (circles.length ? `<span><i style="border-color:${INK.region}"></i>regions</span>` : "");
+  // a deliverable that holds one number per region (for example {"t1_ms": {"R1": 812, ...}}) is shown beside the truth
+  const answer = ep.result.answer && typeof ep.result.answer === "object" ? ep.result.answer : {};
+  const del = Object.entries(answer).find(([, v]) => v && typeof v === "object" && circles.some((r) => isNum(v[r.id])));
+  const delHead = del ? `<th>delivered ${esc(del[0])}</th><th>relative error</th>` : "";
+  const delCells = (r) => {
+    if (!del) return "";
+    const v = del[1][r.id], t = r[del[0]];
+    return `<td>${sig(v, 5)}</td><td>${isNum(v) && isNum(t) && t !== 0 ? (100 * (v / t - 1)).toFixed(1) + " %" : "-"}</td>`;
+  };
+  const regionRows = circles.length ? `<h3>Region truth</h3><div style="overflow-x:auto"><table><thead><tr><th>region</th><th>class</th><th>T1 (ms)</th><th>T2 (ms)</th><th>PD</th><th>B1+</th><th>fat</th>${delHead}</tr></thead><tbody>` +
+    circles.map((r) => `<tr><td>${esc(r.id)}</td><td>${esc(r.cls ?? "-")}</td><td>${fmt(r.t1_ms, 0)}</td><td>${fmt(r.t2_ms, 0)}</td><td>${fmt(r.pd, 2)}</td><td>${fmt(r.b1, 3)}</td><td>${r.fat ? "yes" : "no"}</td>${delCells(r)}</tr>`).join("") +
+    `</tbody></table></div>` : "";
+  el.innerHTML = `<h2>The hidden world (never shown to the agent)</h2><p class="note" style="margin:0 0 8px">${esc(h.note || "")}</p>` +
+    (keys ? `<div class="key">${keys}</div>` : "") + `<div class="images" id="maps"></div>` +
+    (h.system ? `<h3>System state of the session</h3>${kv(h.system)}` : "") + regionRows;
+  const holder = $("maps");
+  const add = (arr, n1, n2, g, colour, title, unit, cls, legend, marks) => {
+    const fig = document.createElement("figure"), cv = document.createElement("canvas"), cap = document.createElement("figcaption");
+    if (cls) cv.className = cls;
+    paint(cv, arr, n1, n2, colour, g, marks);
+    cap.textContent = title; probe(cv, arr, n1, n2, g, cap, unit, title);
+    fig.append(cv, cap);
+    if (legend) {
+      const lg = document.createElement("div"); lg.className = "legend";
+      const bar = document.createElement("canvas"); bar.width = 120; bar.height = 1;
+      const bctx = bar.getContext("2d"), bi = bctx.createImageData(120, 1);
+      for (let i = 0; i < 120; i++) { const c = legend.ramp(i / 119); bi.data.set([c[0], c[1], c[2], 255], 4 * i); }
+      bctx.putImageData(bi, 0, 0);
+      lg.append(legend.lo, bar, legend.hi);
+      fig.append(lg);
+    }
+    holder.append(fig);
+  };
+  if (h.rescan) {
+    const q = h.rescan, a = f32(q.magnitude_f32_b64).subarray(0, q.shape[1] * q.shape[2]), top = percentile(a, 0.995) || 1;
+    add(a, q.shape[1], q.shape[2], { fy: q.fov_yx_mm[0], fx: q.fov_yx_mm[1], centre: true }, (v) => GRAY(v / top),
+      `noise-free re-scan of the delivered protocol, ${sig(q.fov_yx_mm[0])} x ${sig(q.fov_yx_mm[1])} mm`, "", "", null, null);
+  }
+  const marks = { boxes, circles };
+  const range = (arr) => { let lo = Infinity, hi = -Infinity; for (const v of arr) if (Number.isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; } return [lo, hi]; };
+  const specs = [["pd", "proton density of the object", "a.u.", "grey"], ["t1_ms", "T1 (ms)", "ms", "seq"], ["t2_ms", "T2 (ms)", "ms", "seq"],
+    ["b1", "B1+: actual / nominal flip angle", "", "div1"], ["b0_hz", "off-resonance (Hz)", "Hz", "div0"]];
+  for (const [key, title, unit, kind] of specs) {
+    if (!m[key + "_f32_b64"]) continue;
+    const arr = f32(m[key + "_f32_b64"]), [lo, hi] = range(arr);
+    let colour, legend;
+    if (kind === "grey") { colour = (v) => GRAY(v / (hi || 1)); legend = { ramp: GRAY, lo: "0", hi: sig(hi, 3) }; }
+    else if (kind === "seq") { const a = Math.log(Math.max(lo, 1)), b = Math.log(Math.max(hi, 2)); colour = (v) => SEQ((Math.log(Math.max(v, 1)) - a) / Math.max(b - a, 1e-9)); legend = { ramp: SEQ, lo: sig(lo, 3), hi: sig(hi, 3) + " (log scale)" }; }
+    else { const c = kind === "div1" ? 1 : 0, w = Math.max(Math.abs(lo - c), Math.abs(hi - c), kind === "div1" ? 0.02 : 1); colour = (v) => DIV((v - c + w) / (2 * w)); legend = { ramp: DIV, lo: sig(c - w, 3), hi: sig(c + w, 3) }; }
+    add(arr, ny, nx, geo, colour, title, unit, kind === "grey" ? "" : "map", legend, marks);
+  }
+}
+
+function go(i) {
+  if (!ep) return;
+  cur = Math.min(steps().length - 1, Math.max(0, i));
+  renderTimeline(); renderBudget(); renderDetail();
+  const li = $("timeline").children[cur]; if (li && li.scrollIntoView) li.scrollIntoView({ block: "nearest" });
+}
+function stop() { if (timer) { clearInterval(timer); timer = null; $("play").textContent = "Play"; } }
+function load(k) { stop(); ep = DATA[k]; renderFacts(); go(0); }
+function label(b) {
+  return `${b.env.id} level ${b.env.level} | ${b.agent.name} (${b.agent.kind || "agent"}) | ${b.episode.id}`;
+}
+function fillSelect() { $("episode").innerHTML = DATA.map((b, k) => `<option value="${k}">${esc(label(b))}</option>`).join(""); }
+$("episode").onchange = (e) => load(+e.target.value);
+$("first").onclick = () => { stop(); go(0); };
+$("prev").onclick = () => { stop(); go(cur - 1); };
+$("next").onclick = () => { stop(); go(cur + 1); };
+$("last").onclick = () => { stop(); go(steps().length - 1); };
+$("play").onclick = () => {
+  if (timer) return stop();
+  if (cur >= steps().length - 1) go(0);
+  $("play").textContent = "Pause";
+  timer = setInterval(() => { if (cur >= steps().length - 1) stop(); else go(cur + 1); }, 1800);
+};
+document.addEventListener("keydown", (e) => {
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
+  if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); stop(); go(cur + 1); }
+  if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); stop(); go(cur - 1); }
+});
+$("theme").onclick = () => {
+  const root = document.documentElement, dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+};
+$("file").onchange = (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const b = JSON.parse(rd.result);
+      if (!b.format || !String(b.format).startsWith("mrgym-episode-bundle/")) throw new Error("not an episode bundle");
+      DATA.push(b); fillSelect(); $("episode").value = DATA.length - 1; load(DATA.length - 1);
+    } catch (err) { alert("Could not open this file: " + err.message); }
+  };
+  rd.readAsText(f);
+};
+if (DATA.length) {
+  fillSelect();
+  const h = new URLSearchParams(location.hash.slice(1));
+  const k = Math.min(DATA.length - 1, Math.max(0, parseInt(h.get("episode") || "0", 10) || 0));
+  $("episode").value = k; load(k);
+  if (h.get("step") === "last") go(steps().length - 1);
+  else if (h.get("step")) go(parseInt(h.get("step"), 10) || 0);
+  if (h.get("theme")) document.documentElement.dataset.theme = h.get("theme");
+} else {
+  $("detail").innerHTML = `<div class="card"><h2>No episode embedded</h2><p>Use Open bundle to load an episode_bundle.json from disk. The file is read locally.</p></div>`;
+}
+</script>
+</body>
+</html>
