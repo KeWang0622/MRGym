@@ -1,3 +1,10 @@
+<h1 align="center">MR Gym</h1>
+
+<p align="center">
+  <b>A virtual MRI scanner for AI agents.</b><br>
+  An open reinforcement-learning environment: the agent runs scans, the scanner scores what it delivers.
+</p>
+
 <p align="center">
   <img src="assets/hero.png" width="100%" alt="A scripted session on the MR Gym virtual scanner: five requests in the scanner's own words, the brain images that came back, and the scan-time budget being spent">
 </p>
