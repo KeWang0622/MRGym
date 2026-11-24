@@ -189,7 +189,13 @@ class Env:
             obs = Observation(tool=name, is_error=True, text=f"error: invalid_tool_call: {e}\nnothing was charged",
                               data={"error": {"type": "invalid_tool_call", "message": str(e)}})
         else:
-            obs = self._call(name, args)
+            try:
+                obs = self._call(name, args)
+            except (TypeError, ValueError, IndexError, KeyError, OverflowError, ZeroDivisionError) as e:
+                # a call that passed the schema and still cannot be executed is the caller's error, not a crash of the episode
+                obs = Observation(tool=name, is_error=True,
+                                  text=f"error: invalid_request: the scanner could not execute this call ({type(e).__name__}: {e})",
+                                  data={"error": {"type": "invalid_request", "message": f"{type(e).__name__}: {e}"}})
             obs.tool = name
         truncated = False
         if not ep["done"] and ep["steps"] >= self.max_steps:

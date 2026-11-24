@@ -339,3 +339,30 @@ def test_step_never_raises_on_malformed_numbers_or_shapes():
             assert obs.is_error and not terminated, (env_id, call, obs.text[:100])
             obs, *_ = env.step({"name": "plan", "arguments": {"protocol": proto}})     # the episode is still usable
             assert not obs.is_error or "rejected" in obs.text, (env_id, obs.text[:100])
+
+
+def test_step_survives_hostile_calls_after_a_scan():
+    """Integer-valued floats are integers; calls that cannot be executed come back as errors."""
+    import mrgym
+
+    proto = {"sequence": "spgr", "tr_ms": 10, "flip_deg": 10, "fov_mm": 288, "matrix": 160, "averages": 2}
+    hostile = [
+        {"name": "view", "arguments": {"scan": 0, "image": 0.0}}, {"name": "view", "arguments": {"scan": 0, "size": 32.0}},
+        {"name": "view", "arguments": {"scan": 0.0}}, {"name": "view", "arguments": {"scan": 99}},
+        {"name": "view", "arguments": {"scan": 0, "image": 7}}, {"name": "view", "arguments": {"scan": 0, "size": 100000}},
+        {"name": "read_regions", "arguments": {"scan": 0, "regions": [{"y_mm": 9e5, "x_mm": 0, "radius_mm": 5}]}},
+        {"name": "plan", "arguments": {"protocol": dict(proto, matrix=160.0, averages=2.0)}},
+        {"name": "", "arguments": {}}, {"name": "plan", "arguments": [1, 2]}, "plan", None,
+    ]
+    for env_id in ("Scanner/NoWrap-v0", "Scanner/Explore-v0"):
+        for call in hostile:
+            env = mrgym.make(env_id, level=1, seed=0)
+            env.reset()
+            env.step({"name": "scan", "arguments": {"protocol": proto}})
+            obs, reward, terminated, truncated, info = env.step(call)          # must not raise
+            assert not terminated and reward == 0.0, (env_id, call)
+    env = mrgym.make("Scanner/NoWrap-v0", level=1, seed=0)
+    env.reset()
+    env.step({"name": "scan", "arguments": {"protocol": proto}})
+    obs, *_ = env.step({"name": "view", "arguments": {"scan": 0, "image": 0.0}})
+    assert not obs.is_error, obs.text[:120]

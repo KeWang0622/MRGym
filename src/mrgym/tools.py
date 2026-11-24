@@ -140,6 +140,8 @@ def normalise(value, schema: dict):
         if not ok:
             return value
         value = parsed
+    if t == "integer" and isinstance(value, float) and math.isfinite(value) and value == int(value):
+        return int(value)                                   # 32.0 where an integer is declared: JSON has one number type
     if t == "object" and isinstance(value, dict):
         props = schema.get("properties", {})
         extra = schema.get("additionalProperties", True)
