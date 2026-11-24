@@ -105,7 +105,15 @@ class ScannerEnv(Env):
         self._cfg = self.make_instance(seed_hex, task_id)
         if self._session:
             self._session.close()
-        log_dir = os.path.join(self._log_dir, self._episode["id"]) if self._log_dir else None
+        log_dir = None
+        if self._log_dir:                                                # one directory per episode: a second play of the same
+            base, n = os.path.join(self._log_dir, self._episode["id"]), 1   # instance must not inherit the first one's scans
+            while log_dir is None:
+                try:
+                    os.makedirs(base if n == 1 else f"{base}.{n}")       # atomic, so parallel workers get distinct directories
+                    log_dir = base if n == 1 else f"{base}.{n}"
+                except FileExistsError:
+                    n += 1
         self._session = session.ScannerSession(self._cfg, log_dir=log_dir)
         self._scanner = session.LocalScanner(self._session)
         self._regions = self._cfg.get("task", {}).get("regions", [])

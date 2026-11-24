@@ -366,3 +366,23 @@ def test_step_survives_hostile_calls_after_a_scan():
     env.step({"name": "scan", "arguments": {"protocol": proto}})
     obs, *_ = env.step({"name": "view", "arguments": {"scan": 0, "image": 0.0}})
     assert not obs.is_error, obs.text[:120]
+
+
+def test_replaying_an_instance_with_a_log_dir_starts_a_fresh_episode(tmp_path):
+    """The log directory is per episode, not per instance: no inherited scans, budget or 'measured' gate."""
+    import os
+
+    import mrgym
+
+    proto = {"sequence": "spgr", "tr_ms": 10, "flip_deg": 10, "fov_mm": 288, "matrix": 160, "averages": 2}
+    spent = []
+    for _ in range(3):
+        env = mrgym.make("Scanner/NoWrap-v0", level=1, seed=7, log_dir=str(tmp_path))
+        env.reset()
+        assert env._session.n_scans == 0 and env._session.used == 0.0
+        env.step({"name": "scan", "arguments": {"protocol": proto}})
+        spent.append(env._session.used)
+        env.reset()                                                      # the same object, played again
+        assert env._session.n_scans == 0 and env._session.used == 0.0
+    assert len(set(spent)) == 1 and spent[0] > 0
+    assert len(os.listdir(tmp_path)) == 6
