@@ -1,0 +1,63 @@
+{
+ "schema": "mrgym-episode/1",
+ "agent": "kimi-k3",
+ "agent_kind": "model",
+ "model": "kimi-k3",
+ "params_sent": {},
+ "params_dropped": [],
+ "settings": {
+  "max_turns": 12,
+  "calc": true,
+  "temperature": null,
+  "max_tokens": null,
+  "max_calls_per_turn": 12,
+  "session_note_sha256": "76239f16bc66"
+ },
+ "env_id": "Scanner/T1Transmit-v0",
+ "level": 3,
+ "seed": 7,
+ "split": "train",
+ "episode": 0,
+ "task_id": "t1transmit-fa1ee76d529b",
+ "admitted": false,
+ "engine": "mrgym-engine-0.1.0",
+ "package_version": "0.1.0.dev0",
+ "status": "completed",
+ "stop_reason": "submitted",
+ "reward": 0.8582402037656911,
+ "passed": false,
+ "error": 0.11368805035589016,
+ "gates": {
+  "log": true,
+  "measured": true,
+  "deliverable": true
+ },
+ "diagnostic": "ok",
+ "tolerance": 0.08425983395146228,
+ "scans": 4,
+ "scan_s_used": 38.85,
+ "scan_s_budget": 46.0,
+ "scanner_requests": 8,
+ "turns": 9,
+ "tool_calls": 17,
+ "env_tool_calls": 13,
+ "invalid_calls": 1,
+ "by_tool": {
+  "scanner_info": 4,
+  "plan": 4,
+  "scan": 4,
+  "calc": 4,
+  "submit": 1
+ },
+ "tokens_in": 111945,
+ "tokens_out": 15615,
+ "tokens_estimated": false,
+ "log": {
+  "events": 8,
+  "head": "e0483db5583787ee60e52cbcf039921b261731e90a6a01fd32787ee509dd87f1",
+  "replays": true,
+  "mode": "bit-exact"
+ },
+ "wall_s": 290.33,
+ "utc": "2026-11-24T10:22:08Z"
+}

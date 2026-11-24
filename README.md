@@ -155,15 +155,15 @@ mrgym view runs/demo/episode_bundle.json --out runs/demo/viewer.html
 ## Current results
 
 <!-- RESULTS:START -->
-1200 episodes, played 2026-11-24 (UTC) on engine `mrgym-engine-0.1.0`, package 0.1.0.dev0; public train split, seeds 0-23; every agent plays the same instances. Cells are episodes passed. Scripted policies only: no language model has been run.
+1400 episodes, played 2026-11-24 (UTC) on engine `mrgym-engine-0.1.0`, package 0.1.0.dev0; public train split, seeds 0-23; every agent plays the same instances. Cells are episodes passed. Models: claude-haiku-5-5, claude-sonnet-5-5, gemini-3.8-flash, kimi-k3.
 
-| Environment | Level | Instances (admitted by the gate) | Reference policy | Best constant recipe | Blind sweep | No-scan answer |
-|---|---:|---:|---:|---:|---:|---:|
-| `Scanner/NoWrap-v0` | 1 | 24 (13) | 24/24 (100%) | 6/24 (25%) | 0/24 (0%) | 0/24 (0%) |
-| `Scanner/NoWrap-v0` | 2 | 24 (15) | 24/24 (100%) | 5/24 (21%) | 3/24 (12%) | 0/24 (0%) |
-| `Scanner/T1Transmit-v0` | 1 | 24 (0) | 24/24 (100%) | 24/24 (100%) | 0/24 (0%) | 0/24 (0%) |
-| `Scanner/T1Transmit-v0` | 2 | 24 (0) | 24/24 (100%) | 23/24 (96%) | 0/24 (0%) | 0/24 (0%) |
-| `Scanner/T1Transmit-v0` | 3 | 24 (0) | 24/24 (100%) | 24/24 (100%) | 0/24 (0%) | 0/24 (0%) |
+| Environment | Level | Instances (admitted by the gate) | Reference policy | Best constant recipe | Blind sweep | No-scan answer | claude-haiku-5-5 | claude-sonnet-5-5 | gemini-3.8-flash | kimi-k3 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `Scanner/NoWrap-v0` | 1 | 24 (13) | 24/24 (100%) | 6/24 (25%) | 0/24 (0%) | 0/24 (0%) | 6/10 (60%) | 3/10 (30%) | 0/10 (0%) | 4/10 (40%) |
+| `Scanner/NoWrap-v0` | 2 | 24 (15) | 24/24 (100%) | 5/24 (21%) | 3/24 (12%) | 0/24 (0%) | 5/10 (50%) | 8/10 (80%) | 0/10 (0%) | 5/10 (50%) |
+| `Scanner/T1Transmit-v0` | 1 | 24 (0) | 24/24 (100%) | 24/24 (100%) | 0/24 (0%) | 0/24 (0%) | 0/10 (0%) | 0/10 (0%) | 0/10 (0%) | 1/10 (10%) |
+| `Scanner/T1Transmit-v0` | 2 | 24 (0) | 24/24 (100%) | 23/24 (96%) | 0/24 (0%) | 0/24 (0%) | 0/10 (0%) | 1/10 (10%) | 0/10 (0%) | 0/10 (0%) |
+| `Scanner/T1Transmit-v0` | 3 | 24 (0) | 24/24 (100%) | 24/24 (100%) | 0/24 (0%) | 0/24 (0%) | 0/10 (0%) | 0/10 (0%) | 0/10 (0%) | 3/10 (30%) |
 <!-- RESULTS:END -->
 
 The least favourable reading: on `Scanner/T1Transmit-v0` the best constant recipe passes about as often as the

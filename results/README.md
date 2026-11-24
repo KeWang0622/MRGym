@@ -5,9 +5,9 @@ Nothing between the two markers is typed by hand, and `mrgym results --check` fa
 [`results.json`](results.json) no longer matches the records.
 
 <!-- RESULTS:START -->
-1200 episodes, played 2026-11-24 (UTC) on engine `mrgym-engine-0.1.0`, package version `0.1.0.dev0`. Environments: `Scanner/NoWrap-v0` levels 1, 2; `Scanner/T1Transmit-v0` levels 1, 2, 3. Instances: public train split, seeds 0-23. Agents: scripted control policies only, no language model.
+1400 episodes, played 2026-11-24 (UTC) on engine `mrgym-engine-0.1.0`, package version `0.1.0.dev0`. Environments: `Scanner/NoWrap-v0` levels 1, 2; `Scanner/T1Transmit-v0` levels 1, 2, 3. Instances: public train split, seeds 0-23. Agents: scripted control policies and 4 language models (claude-haiku-5-5, claude-sonnet-5-5, gemini-3.8-flash, kimi-k3).
 
-These rows are scripted control policies only. No language model has been run on these instances yet.
+Rows of kind `scripted` are control policies of the environment; rows of kind `model` are language models (4 so far), played on the same instances.
 
 **`Scanner/NoWrap-v0`, level 1** (24 instances; the admission gate admits 13 of them)
 
@@ -23,6 +23,10 @@ These rows are scripted control policies only. No language model has been run on
 | seed_attacker | scripted | 24 | 6/24 (25%) | 12-45 % | 0.250 | -2.9 % | 1 | 34 % | - | - | 0 |
 | size_only | scripted | 24 | 10/24 (42%) | 24-61 % | 0.417 | -2.7 % | 1 | 34 % | - | - | 0 |
 | wrong_units | scripted | 24 | 0/24 (0%) | 0-14 % | 0.000 | - | 1 | 34 % | - | - | 0 |
+| claude-haiku-5-5 | model | 10 | 6/10 (60%) | 31-83 % | 0.882 | 6.0 % | 1 | 38 % | 8 | 93.9k / 8.6k | 0 |
+| claude-sonnet-5-5 | model | 10 | 3/10 (30%) | 11-60 % | 0.954 | 12.5 % | 1 | 29 % | 4 | 27.1k / 0.7k | 0 |
+| gemini-3.8-flash | model | 10 | 0/10 (0%) | 0-28 % | 0.128 | - | 1 | 11 % | 12 | 93.1k / 11.7k | 0 |
+| kimi-k3 | model | 10 | 4/10 (40%) | 17-69 % | 0.742 | 10.9 % | 3 | 71 % | 12 | 114.5k / 17.3k | 0 |
 
 **`Scanner/NoWrap-v0`, level 2** (24 instances; the admission gate admits 15 of them)
 
@@ -38,6 +42,10 @@ These rows are scripted control policies only. No language model has been run on
 | seed_attacker | scripted | 24 | 1/24 (4%) | 1-20 % | 0.042 | -23.9 % | 1 | 34 % | - | - | 0 |
 | size_only | scripted | 24 | 0/24 (0%) | 0-14 % | 0.000 | -11.8 % | 1 | 34 % | - | - | 0 |
 | wrong_units | scripted | 24 | 0/24 (0%) | 0-14 % | 0.000 | - | 1 | 34 % | - | - | 0 |
+| claude-haiku-5-5 | model | 10 | 5/10 (50%) | 24-76 % | 0.657 | 2.3 % | 2 | 83 % | 7 | 93.4k / 10.5k | 0 |
+| claude-sonnet-5-5 | model | 10 | 8/10 (80%) | 49-94 % | 0.993 | 6.7 % | 1 | 29 % | 4 | 28.1k / 0.8k | 0 |
+| gemini-3.8-flash | model | 10 | 0/10 (0%) | 0-28 % | 0.118 | - | 1 | 18 % | 12 | 99.8k / 4.2k | 0 |
+| kimi-k3 | model | 10 | 5/10 (50%) | 24-76 % | 0.575 | 3.1 % | 2.5 | 66 % | 12 | 127.3k / 24.2k | 0 |
 
 **`Scanner/T1Transmit-v0`, level 1** (24 instances; the admission gate admits 0 of them)
 
@@ -53,6 +61,10 @@ These rows are scripted control policies only. No language model has been run on
 | seed_attacker | scripted | 24 | 0/24 (0%) | 0-14 % | 0.019 | 122.8 % | 1 | 9 % | - | - | 0 |
 | short_tr_ideal | scripted | 24 | 0/24 (0%) | 0-14 % | 0.668 | 10.2 % | 3 | 99 % | - | - | 0 |
 | wrong_units | scripted | 24 | 0/24 (0%) | 0-14 % | 0.000 | - | 3 | 99 % | - | - | 0 |
+| claude-haiku-5-5 | model | 10 | 0/10 (0%) | 0-28 % | 0.127 | 48.4 % | 2 | 36 % | 12 | 165.0k / 13.5k | 0 |
+| claude-sonnet-5-5 | model | 10 | 0/10 (0%) | 0-28 % | 0.459 | 13.1 % | 3 | 40 % | 5.5 | 47.3k / 2.2k | 0 |
+| gemini-3.8-flash | model | 10 | 0/10 (0%) | 0-28 % | 0.219 | 39.8 % | 1 | 15 % | 12 | 128.2k / 11.2k | 0 |
+| kimi-k3 | model | 10 | 1/10 (10%) | 2-40 % | 0.430 | 23.2 % | 4 | 78 % | 12 | 153.0k / 23.5k | 0 |
 
 **`Scanner/T1Transmit-v0`, level 2** (24 instances; the admission gate admits 0 of them)
 
@@ -68,6 +80,10 @@ These rows are scripted control policies only. No language model has been run on
 | seed_attacker | scripted | 24 | 0/24 (0%) | 0-14 % | 0.014 | 88.7 % | 1 | 9 % | - | - | 0 |
 | short_tr_ideal | scripted | 24 | 0/24 (0%) | 0-14 % | 0.645 | 10.3 % | 3 | 99 % | - | - | 0 |
 | wrong_units | scripted | 24 | 0/24 (0%) | 0-14 % | 0.000 | - | 3 | 98 % | - | - | 0 |
+| claude-haiku-5-5 | model | 10 | 0/10 (0%) | 0-28 % | 0.199 | 70.2 % | 2 | 40 % | 12 | 179.0k / 11.9k | 0 |
+| claude-sonnet-5-5 | model | 10 | 1/10 (10%) | 2-40 % | 0.486 | 18.1 % | 3 | 40 % | 6.5 | 62.2k / 2.3k | 0 |
+| gemini-3.8-flash | model | 10 | 0/10 (0%) | 0-28 % | 0.099 | - | 1 | 20 % | 12 | 127.8k / 4.1k | 0 |
+| kimi-k3 | model | 10 | 0/10 (0%) | 0-28 % | 0.453 | 15.6 % | 4 | 71 % | 12 | 157.3k / 22.6k | 0 |
 
 **`Scanner/T1Transmit-v0`, level 3** (24 instances; the admission gate admits 0 of them)
 
@@ -83,6 +99,12 @@ These rows are scripted control policies only. No language model has been run on
 | seed_attacker | scripted | 24 | 0/24 (0%) | 0-14 % | 0.011 | 105.7 % | 1 | 14 % | - | - | 0 |
 | short_tr_ideal | scripted | 24 | 1/24 (4%) | 1-20 % | 0.699 | 11.5 % | 3 | 99 % | - | - | 0 |
 | wrong_units | scripted | 24 | 0/24 (0%) | 0-14 % | 0.000 | - | 3 | 98 % | - | - | 0 |
+| claude-haiku-5-5 | model | 10 | 0/10 (0%) | 0-28 % | 0.177 | 47.3 % | 2 | 59 % | 12 | 158.3k / 12.6k | 0 |
+| claude-sonnet-5-5 | model | 10 | 0/10 (0%) | 0-28 % | 0.551 | 13.6 % | 3 | 62 % | 6 | 51.3k / 2.4k | 0 |
+| gemini-3.8-flash | model | 10 | 0/10 (0%) | 0-28 % | 0.243 | 85.5 % | 1 | 23 % | 12 | 132.2k / 6.7k | 0 |
+| kimi-k3 | model | 10 | 3/10 (30%) | 11-60 % | 0.726 | 10.8 % | 4 | 92 % | 11.5 | 137.1k / 23.2k | 0 |
+
+Settings of `claude-haiku-5-5`, `claude-sonnet-5-5`, `gemini-3.8-flash`, `kimi-k3`: at most 12 turns per episode, session `calc` tool on, temperature -, max tokens - (`-` = not sent, the endpoint's default).
 
 Passed: episodes that meet the pass rule of the environment, as `k/N (p%)`, with the Wilson 95 % interval. N counts every started episode except those that ended in an endpoint or runner failure; these are not agent results and stand under Infra errors. An episode without a delivery has reward 0. The rows cover every instance, admitted or not: on an instance the admission gate rejects, a shortcut policy can pass, and that is why the gate rejects it (`results.json` also counts the passes on admitted instances). Median error: the error measure of the environment (`mrgym card <id>`), in percent; an episode without a valid deliverable counts as infinite, and `-` means the median is infinite. Median budget used: scan seconds used over the scan-time budget. Turns and tokens are per episode and exist for models only; `(est.)` marks counts estimated from characters because the endpoint reported no usage. Agents are in alphabetical order within kind; the table does not rank.
 <!-- RESULTS:END -->
