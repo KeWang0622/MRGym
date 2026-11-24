@@ -24,7 +24,7 @@ physics checks, environments), [envs/index.json](envs/index.json) (environments,
 | Worlds | Procedural head, abdomen and QA phantom; a tissue table with a source tag per number; hidden fields and system state | `src/mrgym/scanner/{anatomy,tissue,world}.py` |
 | Environments | One sandbox, one practice task, one task with admitted instances | `src/mrgym/envs/`, [envs/](envs/) |
 | Control policies | A reference and the shortcut policies of each scored environment; the stored gate results | `src/mrgym/envs/*/controls.py`, `src/mrgym/envs/results/` |
-| Episode records | Scripted policies only, so far | [results/](results/) |
+| Episode records | Scripted policies (seeds 0-23) and four language models (seeds 0-9, one episode per instance) | [results/](results/) |
 
 Every world is simulated. No patient data, no scanner data and no data from another dataset are included.
 
@@ -39,7 +39,8 @@ Every world is simulated. No patient data, no scanner data and no data from anot
   error rate of the scoring rule and does not prove that no shortcut exists.
 - The generator is public and training seeds are public, so no level is secret. A held-out split exists only for
   an operator who sets `MRGYM_SECRET`.
-- No language model has been run on any environment yet, and no model has been trained.
+- No model has been trained on any environment. Four language models were run once for evaluation, 10 episodes per cell;
+  that is too few to rank them.
 
 ## Distribution and use
 

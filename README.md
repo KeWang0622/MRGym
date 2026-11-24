@@ -162,7 +162,7 @@ mrgym view runs/demo/episode_bundle.json --out runs/demo/viewer.html
 ## Current results
 
 <!-- RESULTS:START -->
-1400 episodes, played 2026-11-24 (UTC) on engine `mrgym-engine-0.1.0`, package 0.1.0.dev0; public train split, seeds 0-23; every agent plays the same instances. Cells are episodes passed. Models: claude-haiku-5-5, claude-sonnet-5-5, gemini-3.8-flash, kimi-k3.
+1400 episodes, played 2026-11-24 (UTC) on engine `mrgym-engine-0.1.0`, package 0.1.0.dev0; public train split, seeds 0-23 (a column with a smaller denominator played a subset of them). Cells are episodes passed. Models: claude-haiku-5-5, claude-sonnet-5-5, gemini-3.8-flash, kimi-k3.
 
 | Environment | Level | Instances (admitted by the gate) | Reference policy | Best constant recipe | Blind sweep | No-scan answer | claude-haiku-5-5 | claude-sonnet-5-5 | gemini-3.8-flash | kimi-k3 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -177,8 +177,9 @@ The least favourable reading: on `Scanner/T1Transmit-v0` the best constant recip
 reference policy, which is why its gate rejects it. On `Scanner/NoWrap-v0` a constant geometry passes on some
 instances, and the gate does not admit those.
 
-No language model has been run yet: every row is a scripted policy. These are maintainer-run results on simulated
-objects. The generator is public, so no level is secret. No environment has had independent expert review. A pass
+The model columns are single maintainer runs through an API gateway: seeds 0-9 only (the scripted rows cover seeds
+0-23), one episode per instance, 10 episodes per cell. At that size the columns do not rank the models. No model has
+been trained on these environments. All results are on simulated objects. The generator is public, so no level is secret. No environment has had independent expert review. A pass
 here does not establish that an agent can operate a real scanner. Model rows are added by `mrgym run-agent` into the
 same folder; [results/](results/) gives the command, the per-episode records and the denominators.
 

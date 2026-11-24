@@ -145,7 +145,7 @@ def results_block():
     played = r["played_utc"] if isinstance(r["played_utc"], list) else [r["played_utc"]]
     played = played[0] if played[0] == played[-1] else f"{played[0]} to {played[-1]}"
     out = [f"{r['completed']} episodes, played {played} (UTC) on engine `{', '.join(r['engines'])}`, package "
-           f"{', '.join(r['package_versions'])}; public train split, seeds {r['seeds']}; every agent plays the same instances. "
+           f"{', '.join(r['package_versions'])}; public train split, seeds {r['seeds']} (a column with a smaller denominator played a subset of them). "
            "Cells are episodes passed. " + ("Models: " + ", ".join(models) + "." if models else "Scripted policies only: no language model has been run."), "",
            "| Environment | Level | Instances (admitted by the gate) | " + " | ".join(t for _, t in scripted) + "".join(f" | {m}" for m in models) + " |",
            "|---|---:|---:|" + "---:|" * (len(scripted) + len(models))]

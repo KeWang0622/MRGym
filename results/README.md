@@ -119,7 +119,9 @@ mrgym results
 - **Scripted policies, no model.** Each row is a control policy of the environment (`mrgym card <id>` describes
   them), played through the same tools, budget and scoring an agent gets. `reference` is the policy that is meant to
   pass. The others are shortcuts and diagnostic variants; the card says which of them must fail for an instance to
-  be admitted. No language model was called to make this folder.
+  be admitted.
+- **Model rows.** A language model behind a chat-completions endpoint, played by `mrgym run-agent` on seeds 0-9, one
+  episode per instance (10 episodes per cell). They are single runs and do not rank the models.
 - **One episode per instance.** An instance is an environment, a level and an integer seed of the public train
   split. The environment is deterministic, so a scripted policy plays each instance once. The admission run
   (`mrgym check <id> --admission`) plays the same policies over many noise draws; its numbers are on the environment
