@@ -1,4 +1,12 @@
 __pycache__/
-*.pyc
-tasks/
+*.py[cod]
 *.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
+docs/_build/
+# episode logs, recordings and scans written by the command line
+/runs/
+/mrgym_out/

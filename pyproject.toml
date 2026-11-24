@@ -1,15 +1,119 @@
 [build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
 
 [project]
-name = "mrfrl"
-version = "0.2.0"
-description = "MR Gym: physics-application RL environments for LLM agents in MRI"
+name = "mrgym"
+version = "0.1.0.dev0"
+description = "MR Gym: a virtual MRI scanner you can drop an AI agent into"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "Apache-2.0" }
-dependencies = ["numpy>=1.26", "scipy>=1.11"]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Ke Wang" }]
+keywords = [
+    "MRI", "magnetic resonance", "virtual scanner", "simulation", "Bloch", "EPG",
+    "reinforcement learning", "environment", "LLM agents",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+# The core is the scanner, its physics, the environments, the recorder, the viewer and the model runner. It needs
+# numpy and scipy and nothing else: no web framework (the service uses http.server), no agent framework, no model
+# SDK (the runner speaks the OpenAI-compatible chat API over urllib). Adapters live under integrations/.
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+]
 
-[tool.setuptools.packages.find]
-include = ["mrfrl*"]
+[project.optional-dependencies]
+# Figures (tools/figures, the results plot). The episode viewer does not need it.
+viz = ["matplotlib>=3.7"]
+all = ["mrgym[viz]"]
+
+[project.scripts]
+mrgym = "mrgym.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/KeWang0622/MRGym"
+"Companion skill library" = "https://github.com/KeWang0622/MRFoundry"
+"Held-out evaluation" = "https://github.com/KeWang0622/MRIAgentBench"
+Repository = "https://github.com/KeWang0622/MRGym"
+Issues = "https://github.com/KeWang0622/MRGym/issues"
+Changelog = "https://github.com/KeWang0622/MRGym/blob/main/CHANGELOG.md"
+
+# Development dependencies are PEP 735 groups, not extras: they never reach a user's install.
+#   uv sync --group dev          or          pip install -e . --group dev      (pip >= 25.1)
+[dependency-groups]
+test = ["pytest>=8"]
+lint = ["ruff>=0.15"]
+build = ["build>=1.2", "twine>=6.1"]
+dev = [
+    { include-group = "test" },
+    { include-group = "lint" },
+    { include-group = "build" },
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mrgym"]       # includes the package data: scanner/datasheet.md, envs/results/*.json, viewer template
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/docs",
+    "/envs",
+    "/examples",
+    "/results",
+    "/tools",
+    "/CHANGELOG.md",
+    "/CITATION.cff",
+    "/CONTRIBUTING.md",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib"]
+filterwarnings = ["error::DeprecationWarning:mrgym.*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "tests"]
+extend-exclude = ["extras"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # import order
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "NPY",  # numpy legacy API (random state, deprecated aliases)
+]
+ignore = [
+    "E501",  # line length is handled by the formatter where it matters; physics formulas stay on one line
+    "E702",  # short `a; b` statements in command-line parsers
+    "E741",  # single-letter names follow the physics notation
+    "B905",  # zip(strict=) is not wanted where lengths are equal by construction
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mrgym"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011", "B023"]
+"extras/*" = ["E", "F", "W", "I", "B", "UP", "NPY"]
