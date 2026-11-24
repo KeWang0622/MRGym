@@ -3,7 +3,7 @@
 Three methods that share no code with ``closed`` or ``epg``:
 A. Matrix steady state under ideal spoiling. Every sequence is a periodic chain of affine maps M -> A M + b on
    (Mx, My, Mz): hard-pulse rotation, relaxation, ideal spoiler (Mx = My = 0), inversion. The periodic state solves
-   (I - A_cycle) M = b_cycle. (Ported from the 2026-11-24 audit, work/audit20/check_world_physics.py.)
+   (I - A_cycle) M = b_cycle.
 B. Isochromat ensemble of RF-spoiled gradient echo: N spins with dephasing angles 2 pi m / N per raster interval,
    real 3 x 3 rotations about the pulse axis, quadratic pulse phase, time stepping from equilibrium.
 C. Plain time-stepping EPG in the laboratory frame (explicit pulse phases), the textbook 30-line version.

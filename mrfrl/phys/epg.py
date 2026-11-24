@@ -6,7 +6,7 @@ Sequence model
 - Every raster interval carries the same spoiler moment: one unit of dephasing (>= one cycle across the voxel).
 - ``pattern = (1,)`` is ordinary spoiled gradient echo. ``pattern = (1, 1, 0, ..., 0)`` of length n + 1 is actual
   flip-angle imaging with TR2 = n * TR1 and spoiler moments and RF phase increments in the ratio TR1 : TR2
-  (the equidistant "virtual pulse" scheme; Nehrke 2009, cited from memory).
+  (the equidistant "virtual pulse" scheme; Nehrke 2009).
 - Relaxation T1, T2 during every interval. Optional isotropic diffusion through ``bd`` = D * dk^2 * TR
   (dimensionless; dk = spoiler moment in rad/m). No T2': a static off-resonance distribution multiplies the state
   of order k by a factor that is 1 for k = 0 at the pulse, so it only enters as exp(-TE / T2') at the echo. For the

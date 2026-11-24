@@ -5,7 +5,7 @@ budget, deliverable). The agent delivers ``answer.json``:
 
     {"units": "ms", "t1_ms": {"R1": 812.0, "R2": 1530.0, ...}}
 
-Reward (memo 17 / 19): hard gates, then a continuous score of the final relative T1 error.
+Reward: hard gates, then a continuous score of the final relative T1 error.
     gates   log replays from the seed and stays within budget; at least one accepted scan; deliverable valid (JSON
             object, units "ms", exactly the region ids, finite values inside the physical range)
     error   E = sqrt(mean over regions of (T1_delivered / T1_true - 1)^2)

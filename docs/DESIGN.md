@@ -6,19 +6,6 @@ A physics-application episode: the agent faces a hidden *system + tissue* world 
 too small for search, and must deliver a quantity or a protocol that is wrong unless a specific physical confounder is
 recognised and handled. Reward is the error of what was delivered, measured on the world.
 
-## What a simpler definition gets wrong
-
-An earlier working definition was "hidden world + virtual scanner with a scan-time budget + reward computed from the world".
-Each part is insufficient on its own:
-
-| Assumption | What we found |
-|---|---|
-| A hidden world forces physics | With scan time free, one fixed six-inversion-time recipe measures T1 within 10 % on 98–100 % of random worlds. The time-optimal design for "T1 with unknown B1" never maps B1 |
-| A budget rewards good experimental design | Design quality is worth little: ten uniform flip angles cost about 1.4× in T1 precision against the optimal pair. The confounder discriminates: ignoring a B1 of 0.8–1.2 biases T1 by −36 % to +45 % |
-| Reward computed by physics is safe | The cheapest regime (short-TR spoiled gradient echo) is exactly where the ideal-spoiling formula fails; an optimiser goes where the simulator is wrong |
-| The world is hidden | With an open generator and a small seed space, one scan plus a few seconds of enumeration recovers the world |
-| Scan time is the cost | Noise that ignores bandwidth and voxel size, a steady state that costs nothing, and an echo time not tied to the readout make cheap scans a free escape |
-
 ## Architecture
 
 1. **Scanner service.** One process per episode, a 128-bit secret seed that appears in no agent-visible file, owner of the world,
@@ -40,9 +27,9 @@ Each part is insufficient on its own:
 
 ## Why `t1_transmit` is rejected
 
-One constant protocol — a B1 map, two flip angles and a joint fit, tuned on other worlds — passes 0.96–1.00 of instances at
-every level. The family forces a correct procedure but no decision that depends on the instance, so a policy can memorise it.
-The next family, `diagnose`, hides which deviation is active so that the right procedure differs between instances.
+One constant protocol — a B1 map, two flip angles and a joint fit, tuned on other worlds — passes nearly every instance, so the
+admission rule admits none (`python3 -m mrfrl.t1_transmit selfcheck` prints the table). The family forces a correct procedure
+but no decision that depends on the instance.
 
 ## Splits and contamination
 

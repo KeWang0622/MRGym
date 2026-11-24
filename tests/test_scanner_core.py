@@ -110,7 +110,7 @@ def test_noise_law_small_matrices_are_not_free():
     assert abs(sd[(48, 300.0, 1)] / ref - 0.5 ** 1.5) < 0.03 and abs(sd[(192, 300.0, 1)] / ref - 2 ** 1.5) < 0.1
     assert abs(sd[(96, 1200.0, 1)] / ref - 2.0) < 0.06 and abs(sd[(96, 300.0, 4)] / ref - 0.5) < 0.02
     # region mean of a fixed physical circle: SD ~ matrix^0.5, acquisition time ~ matrix. In the uncommitted draft the
-    # region-mean SD did not depend on the matrix at all (memo 17, section 2.5).
+    # region-mean SD did not depend on the matrix at all.
     roi_sd = {n: sd[(n, 300.0, 1)] / np.sqrt(np.pi * (0.048 * n) ** 2) for n in (48, 96, 192)}
     assert 1.3 < roi_sd[96] / roi_sd[48] < 1.5 and 1.3 < roi_sd[192] / roi_sd[96] < 1.6
 
