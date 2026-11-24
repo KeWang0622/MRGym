@@ -85,6 +85,36 @@ def parse_tool_call(call) -> tuple[str, dict, str | None]:
 _TYPES = {"object": dict, "array": list, "string": str, "boolean": bool}
 
 
+def unsafe_values(value, schema: dict | None = None, path: str = "arguments") -> list[str]:
+    """Problems that would make a tool call unusable before any tool sees it: numbers that are not finite or absurdly
+    large (JSON text may carry NaN, Infinity or a 300-digit integer), and a list or an object where the schema declares
+    a single value. An environment must answer these with an error, never with an exception."""
+    bad: list[str] = []
+    t = (schema or {}).get("type")
+    props = (schema or {}).get("properties", {})
+    if isinstance(value, bool) or value is None or isinstance(value, str):
+        return bad
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            bad.append(f"{path}: not a finite number")
+    elif isinstance(value, int):
+        if abs(value) > 10 ** 12:
+            bad.append(f"{path}: number out of range")
+    elif isinstance(value, dict):
+        if t in ("number", "integer", "string", "boolean"):
+            return [f"{path}: expected a single {t}, not an object"]
+        for k, v in value.items():
+            bad += unsafe_values(v, props.get(k), f"{path}.{k}")
+    elif isinstance(value, list):
+        if t in ("number", "integer", "string", "boolean"):
+            return [f"{path}: expected a single {t}, not a list"]
+        for i, v in enumerate(value):
+            bad += unsafe_values(v, (schema or {}).get("items"), f"{path}[{i}]")
+    else:
+        bad.append(f"{path}: not a JSON value")
+    return bad
+
+
 def normalise(value, schema: dict):
     """Undo the string encoding some tool-call formats apply to typed arguments, where the schema says what was meant.
 

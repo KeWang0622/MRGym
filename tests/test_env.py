@@ -313,3 +313,29 @@ def test_typed_arguments_may_arrive_as_strings():
         env.reset()
         obs, *_ = env.step({"name": "plan", "arguments": args})
         assert obs.is_error and ("invalid_tool_call" in obs.text or "plan: rejected" in obs.text), obs.text[:120]
+
+
+def test_step_never_raises_on_malformed_numbers_or_shapes():
+    """NaN, Infinity, a 320-digit integer, or a list where a single value belongs: an error observation, not an exception."""
+    import mrgym
+
+    proto = {"sequence": "spgr", "tr_ms": 10, "flip_deg": 10, "fov_mm": 288, "matrix": 160, "averages": 2}
+    calls = [
+        {"name": "plan", "arguments": {"protocol": dict(proto, tr_ms=float("nan"))}},
+        {"name": "scan", "arguments": {"protocol": dict(proto, fov_mm=float("inf"))}},
+        {"name": "plan", "arguments": '{"protocol": {"sequence": "spgr", "tr_ms": NaN}}'},
+        {"name": "plan", "arguments": '{"protocol": {"sequence": "spgr", "tr_ms": Infinity}}'},
+        {"name": "plan", "arguments": {"protocol": dict(proto, matrix=int("9" * 320))}},
+        {"name": "plan", "arguments": {"protocol": dict(proto, sequence=["spgr"])}},
+        {"name": "scan", "arguments": {"protocol": dict(proto, sequence={"a": 1})}},
+        {"name": "plan", "arguments": {"protocol": dict(proto, tr_ms=[10])}},
+        {"name": "scan", "arguments": {"protocol": proto, "regions": [{"y_mm": float("nan"), "x_mm": 0, "radius_mm": 5}]}},
+    ]
+    for env_id in ("Scanner/NoWrap-v0", "Scanner/T1Transmit-v0", "Scanner/Explore-v0"):
+        for call in calls:
+            env = mrgym.make(env_id, level=1, seed=0)
+            env.reset()
+            obs, reward, terminated, truncated, info = env.step(call)
+            assert obs.is_error and not terminated, (env_id, call, obs.text[:100])
+            obs, *_ = env.step({"name": "plan", "arguments": {"protocol": proto}})     # the episode is still usable
+            assert not obs.is_error or "rejected" in obs.text, (env_id, obs.text[:100])

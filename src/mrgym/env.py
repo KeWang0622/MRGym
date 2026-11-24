@@ -179,6 +179,9 @@ class Env:
                 raise ValueError(f"unknown tool {name!r}; available: {sorted(specs)}")
             schema = getattr(self, "_shallow_schemas", {}).get(name, specs[name].parameters)
             args = T.normalise(args, specs[name].parameters)     # the full schema knows the type of every field
+            unsafe = T.unsafe_values(args, specs[name].parameters)
+            if unsafe:
+                raise ValueError("; ".join(unsafe[:4]))
             problems = T.validate(args, schema)
             if problems:
                 raise ValueError("; ".join(problems[:4]))
