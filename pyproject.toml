@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mrfrl"
+version = "0.2.0"
+description = "MR Gym: physics-application RL environments for LLM agents in MRI"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+dependencies = ["numpy>=1.26", "scipy>=1.11"]
+
+[tool.setuptools.packages.find]
+include = ["mrfrl*"]
