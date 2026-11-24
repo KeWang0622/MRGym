@@ -120,6 +120,11 @@ class ScannerEnv(Env):
         return Observation(text=text, data=dict(task=c.get("task", {}), budget_s=c["budget_s"], max_requests=c["max_requests"],
                                                 level=self.level, env_id=self.spec.id))
 
+    def _info(self):
+        """``admitted``: True / False when this instance is in the stored control-policy run, None otherwise."""
+        stored = admission.stored_instance(self.spec.id, self._cfg["task_id"]) if self.spec.family else None
+        return dict(task_id=self._cfg["task_id"], admitted=stored["admitted"] if stored else None)
+
     def _tool_specs(self):
         return scanner_tools(self.obs_mode) + [self.terminal_tool()]
 

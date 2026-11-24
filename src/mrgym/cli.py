@@ -14,6 +14,7 @@
     mrgym run-agent ...                     run a language model on an environment through an OpenAI-compatible endpoint
     mrgym results [--check]                 rebuild (or check) the results table from the saved episode records
     mrgym serve ...                         the scanner as an HTTP service, one process per episode
+    mrgym verify ...                        replay the log of a served episode and score the deliverable
 """
 from __future__ import annotations
 
@@ -308,8 +309,39 @@ def cmd_serve(a):
         env.reset()
         cfg = env.episode_config()
         env.close()
+        if a.config_out:
+            fd = os.open(a.config_out, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
+                json.dump(cfg, f)
     service.serve(cfg, a.log_dir, a.host, a.port, a.port_file)
     return 0
+
+
+def cmd_verify(a):
+    """Replay the scanner log of an episode played against the HTTP service and score the deliverable."""
+    import importlib
+
+    from .scanner import session as core
+    cfg = core.load_config(a.config)
+    with open(a.answer, encoding="utf-8") as f:
+        answer = json.load(f)
+    family = {"nowrap": "mrgym.envs.nowrap", "t1_transmit": "mrgym.envs.t1_transmit"}.get(cfg.get("family"))
+    if not family:
+        raise SystemExit(f"no scoring rule for family {cfg.get('family')!r}")
+    task, controls = importlib.import_module(family + ".task"), importlib.import_module(family + ".controls")
+    if cfg["family"] == "t1_transmit":                                  # the pass tolerance: the reference over other noise draws
+        errs = []
+        for d in range(1, 33):
+            ans, sess, _ = controls.run_policy(cfg, controls.reference, d)
+            e = task.score(cfg, ans, 1.0, sess.n_scans)["error"]
+            errs.append(10.0 if e is None else e)
+        rep = core.replay(cfg, core.read_log(os.path.join(a.log_dir, core.LOG_NAME)))
+        out = task.score(cfg, answer, controls.tolerance_from(errs), rep["scans"], rep["ok"] and not rep["over_budget"])
+        out["replay"] = rep
+    else:
+        out = task.verify(cfg, a.log_dir, answer)
+    print(json.dumps(out, indent=1))
+    return 0 if out["replay"]["ok"] else 1
 
 
 def main(argv=None) -> int:
@@ -377,7 +409,13 @@ def main(argv=None) -> int:
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8000)
     p.add_argument("--port-file", default=None)
+    p.add_argument("--config-out", default=None, help="also write the hidden episode config here (for `mrgym verify`); keep it from the agent")
     p.set_defaults(fn=cmd_serve)
+    p = sub.add_parser("verify", help="replay a service log and score a deliverable")
+    p.add_argument("--config", required=True, help="hidden episode config JSON")
+    p.add_argument("--log-dir", required=True)
+    p.add_argument("--answer", required=True, help="JSON file with the deliverable")
+    p.set_defaults(fn=cmd_verify)
 
     from . import record, results, viewer
     from .agents import runner

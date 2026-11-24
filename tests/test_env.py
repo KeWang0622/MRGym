@@ -237,6 +237,16 @@ def test_card_is_complete_and_renders(env_id):
     assert md.startswith("<!-- Generated") and f"`{env_id}`" in md and card["status"] in md
 
 
+def test_reset_says_whether_the_instance_is_admitted():
+    seeds = admission.admitted_seeds(NOWRAP, 2)
+    assert seeds and set(seeds) < set(range(24))
+    rejected = sorted(set(range(24)) - set(seeds))[0]
+    assert mrgym.make(NOWRAP, level=2, seed=seeds[0]).reset()[1]["admitted"] is True
+    assert mrgym.make(NOWRAP, level=2, seed=rejected).reset()[1]["admitted"] is False
+    assert mrgym.make(NOWRAP, level=2, seed=10_000).reset()[1]["admitted"] is None
+    assert admission.admitted_seeds(T1, 1) == [] and "admitted" in mrgym.make(EXPLORE).reset()[1]
+
+
 def test_an_id_listed_as_admitted_has_admitted_instances_on_this_engine():
     """The gate for publishing an id. ``kind`` in the registry is a claim; the stored control-policy run is the
     evidence. An environment the gate rejects must be listed as practice."""
@@ -262,3 +272,24 @@ def test_check_passes_for_every_registered_id(env_id):
     res = check.check_env(env_id)
     assert not [(name, detail) for name, ok, detail in res if not ok]
     assert len(res) >= 16
+
+
+def test_verify_command_scores_a_served_episode(tmp_path, capsys):
+    """The service path end to end without HTTP: the same session class writes the log that ``mrgym verify`` replays."""
+    import importlib
+
+    from mrgym import cli
+    from mrgym.scanner import session
+    env = mrgym.make(NOWRAP, level=1, seed=5)
+    env.reset()
+    cfg = env.episode_config()
+    controls = importlib.import_module("mrgym.envs.nowrap.controls")
+    s = session.ScannerSession(cfg, log_dir=str(tmp_path / "log"))
+    answer = controls.reference(session.LocalScanner(s))
+    s.close()
+    (tmp_path / "hidden.json").write_text(json.dumps(cfg))
+    (tmp_path / "answer.json").write_text(json.dumps(answer))
+    assert cli.main(["verify", "--config", str(tmp_path / "hidden.json"), "--log-dir", str(tmp_path / "log"),
+                     "--answer", str(tmp_path / "answer.json")]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["reward"] == 1.0 and out["replay"]["ok"] and out["replay"]["mode"] == "bit-exact"

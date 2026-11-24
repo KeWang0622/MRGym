@@ -83,14 +83,15 @@ In process, the hidden world is out of reach of a tool-calling model but not of 
 An agent with a shell needs the scanner behind a process boundary:
 
 ```bash
-mrgym serve --id Scanner/NoWrap-v0 --level 1 --seed 0 --port 8000 --log-dir runs/scanner_log
+mrgym serve --id Scanner/NoWrap-v0 --level 1 --seed 0 --port 8000 --log-dir runs/scanner_log --config-out runs/hidden.json
 python src/mrgym/scanner/client.py --url http://127.0.0.1:8000 info
+mrgym verify --config runs/hidden.json --log-dir runs/scanner_log --answer answer.json
 ```
 
 `src/mrgym/scanner/client.py` is one file with no import from the package; copy it into the agent's workspace. The
 service has four routes (`info`, `budget`, `plan`, `scan`) and none that resets the session or returns the truth.
-The verifier replays the hash-chained log with `mrgym.scanner.session.replay(config, events)` and scores the
-deliverable with the environment's `task.score`. The log written by the service and the log of an in-process episode
+`mrgym verify` replays the hash-chained log from the hidden config and scores the deliverable; the config holds the
+seed and stays with whoever runs the episode. The log written by the service and the log of an in-process episode
 with the same calls are identical link by link; `tests/test_scanner.py` asserts it.
 
 ## 7. Check what you changed

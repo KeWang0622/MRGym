@@ -55,6 +55,14 @@ def stored_instance(env_id: str, task_id: str) -> dict | None:
     return None
 
 
+def admitted_seeds(env_id: str, level: int) -> list[int]:
+    """Public training seeds of ``level`` that the stored control-policy run admits (empty when none is stored)."""
+    m = load(env_id)
+    if not m or str(level) not in m["levels"]:
+        return []
+    return [i["seed"] for i in m["levels"][str(level)]["instance_list"] if i["admitted"]]
+
+
 def counts(measured: dict | None) -> tuple[int, int]:
     """(admitted instances, instances) over all levels of a stored result."""
     if not measured:

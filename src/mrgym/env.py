@@ -136,6 +136,9 @@ class Env:
     def _status(self):                   # -> dict shown with every observation
         return {}
 
+    def _info(self):                     # -> extra keys of the info dict returned by reset (trainer side)
+        return {}
+
     # ------------------------------------------------------------------ lifecycle
     def reset(self, *, seed=None, options: dict | None = None) -> tuple[Observation, dict]:
         """Start a new episode: new hidden world, full budget, empty log. Returns (observation, info)."""
@@ -152,6 +155,7 @@ class Env:
         obs.text = obs.text.rstrip() + "\n" + self._status_line(obs.status)
         info = dict(env_id=self.spec.id, level=self.level, split=self.split, episode_id=self._episode["id"],
                     obs=self.obs_mode, max_steps=self.max_steps, tools=[t.name for t in self._tool_specs()])
+        info.update(self._info())
         self._log.append(dict(step=0, call=None, observation=obs, reward=0.0))
         return obs, info
 
