@@ -9,6 +9,7 @@ from __future__ import annotations
 import importlib
 
 from .env import Env, StepResult
+from .registry import Error
 from .scanner import session
 
 ERRORS = {c.type: c for c in (session.InvalidRequest, session.BudgetExhausted, session.RequestLimit)}
@@ -55,8 +56,9 @@ def controls_of(env_or_spec):
 
 
 def policy_names(env_or_spec) -> list[str]:
+    """Control policies of an environment that play on its own budget (the ones ``run`` accepts by name)."""
     c = controls_of(env_or_spec)
-    return list(c.policies()) if c else []
+    return [name for name, (_, scale) in c.policies().items() if scale == 1.0] if c else []
 
 
 def run(env: Env, policy, seed=None, recipe=None) -> StepResult:
@@ -67,7 +69,11 @@ def run(env: Env, policy, seed=None, recipe=None) -> StepResult:
     (never dropped)."""
     c = controls_of(env)
     if isinstance(policy, str):
-        policy = c.policies(recipe)[policy][0]
+        fn, budget_scale = c.policies(recipe)[policy]
+        if budget_scale != 1.0:
+            raise Error(f"{policy} plays with {budget_scale:g} times the budget; an environment cannot grant that. "
+                        "It runs only inside the admission gate.")
+        policy = fn
     env.reset(seed=seed)
     sc, error = ToolScanner(env), None
     terminal = next(t.name for t in env._tool_specs() if t.terminal)

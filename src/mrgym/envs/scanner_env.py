@@ -66,7 +66,8 @@ def scanner_tools(obs_mode: str = "text") -> list[ToolSpec]:
                   "properties": {"scan": {"type": "integer", "minimum": 0, "description": "scan index"},
                                  "regions": {"type": "array", "maxItems": session.MAX_ROIS, "items": _CIRCLE}}}),
         ToolSpec("view", f"Look at one stored image of an earlier scan: {view_kind}, plus the extent in mm of the pixels "
-                 "brighter than 20 % of the image maximum and whether they touch the image border. Free; not counted.",
+                 "brighter than 20 % of the image's 99.5th percentile (isolated pixels ignored) and whether they touch the "
+                 "image border. Free; not counted.",
                  {"type": "object", "additionalProperties": False, "required": ["scan"],
                   "properties": {"scan": {"type": "integer", "minimum": 0, "description": "scan index"},
                                  "image": {"type": "integer", "minimum": 0, "description": "image index within the scan (default 0)"},
@@ -158,6 +159,16 @@ class ScannerEnv(Env):
         """The scanner's hash-chained log of this episode."""
         return list(self._session.events)
 
+    def stored_scans(self) -> dict:
+        """Trainer side: the scans of this episode, {scan index: {"magnitude", "phase" (float32 [n_images, ny, nx]),
+        "realised", "fov_yx_mm"}}. What a viewer or a recorder needs."""
+        return dict(self._scanner.scans)
+
+    def hidden_world(self) -> dict:
+        """Trainer side: the hidden world of this episode (arrays on the master grid, tissue values, fields, system
+        state). For figures, recorders and verifiers; never for the agent."""
+        return self._session.world
+
     # ------------------------------------------------------------------ tools
     def _tool_scanner_info(self, a):
         card, topic = self._session.info(), a.get("topic", "overview")
@@ -231,7 +242,7 @@ class ScannerEnv(Env):
         v = self._scanner.view(a["scan"], a.get("image", 0), a.get("kind", "magnitude"))
         img, fov, box = v.pop("array"), tuple(v["fov_yx_mm"]), v["bounding_box"]
         cap = f"scan {v['scan']} ({v['sequence']}), image {v['image']}, {v['kind']}, {img.shape[0]}x{img.shape[1]} (y, x), FOV {fov[0]:g} x {fov[1]:g} mm"
-        ruler = ("extent of pixels above 20 % of the maximum: y {:.1f} .. {:.1f} mm, x {:.1f} .. {:.1f} mm{}".format(
+        ruler = ("extent of pixels above 20 % of the 99.5th percentile: y {:.1f} .. {:.1f} mm, x {:.1f} .. {:.1f} mm{}".format(
             *box["y_mm"], *box["x_mm"], "; they touch the image border" if box["touches_edge"] else "") if box else "the image is empty")
         if self.obs_mode == "vision":
             png, rng = R.image_png(img, v["kind"], circles=self._regions, fov_yx_mm=fov)

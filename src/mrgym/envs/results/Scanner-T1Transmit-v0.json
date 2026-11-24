@@ -19,12 +19,12 @@
    "rejection_reasons": {
     "fixed_recipe passes": 24
    },
-   "seconds_per_instance": 7.37,
+   "seconds_per_instance": 7.42,
    "controls": {
     "reference": {
      "pass_rate": 0.988,
      "instances_passed_at_least_once": 24,
-     "reward_mean": 0.999,
+     "reward_mean": 1.0,
      "error_median": 0.0181,
      "scan_s_median": 80.0
     },
@@ -38,12 +38,12 @@
     "blind_vfa": {
      "pass_rate": 0.0,
      "instances_passed_at_least_once": 0,
-     "reward_mean": 0.26,
+     "reward_mean": 0.261,
      "error_median": 0.3697,
      "scan_s_median": 79.3
     },
     "fixed_recipe": {
-     "pass_rate": 0.99,
+     "pass_rate": 0.995,
      "instances_passed_at_least_once": 24,
      "reward_mean": 0.999,
      "error_median": 0.019,
@@ -52,7 +52,7 @@
     "brute_force": {
      "pass_rate": 0.0,
      "instances_passed_at_least_once": 0,
-     "reward_mean": 0.201,
+     "reward_mean": 0.202,
      "error_median": 0.4044,
      "scan_s_median": 76.1
     },
@@ -78,7 +78,7 @@
      "scan_s_median": 7.5
     },
     "open_loop": {
-     "pass_rate": 1.0,
+     "pass_rate": 0.995,
      "instances_passed_at_least_once": 24,
      "reward_mean": 1.0,
      "error_median": 0.0166,
@@ -87,7 +87,7 @@
     "short_tr_ideal": {
      "pass_rate": 0.0,
      "instances_passed_at_least_once": 0,
-     "reward_mean": 0.672,
+     "reward_mean": 0.674,
      "error_median": 0.1035,
      "scan_s_median": 79.9
     },
@@ -110,7 +110,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.02665023203132378
+     "tolerance": 0.027458472614592812
     },
     {
      "seed": 1,
@@ -155,7 +155,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.044270389255644874
+     "tolerance": 0.046872356976368976
     },
     {
      "seed": 6,
@@ -200,7 +200,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.04306591055241768
+     "tolerance": 0.04238193467773373
     },
     {
      "seed": 11,
@@ -227,7 +227,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.030172728040864613
+     "tolerance": 0.03084966063437576
     },
     {
      "seed": 14,
@@ -272,7 +272,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.05405477310587304
+     "tolerance": 0.054768177451389385
     },
     {
      "seed": 19,
@@ -281,7 +281,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.030849399363814686
+     "tolerance": 0.03401926538017164
     },
     {
      "seed": 20,
@@ -299,7 +299,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.03458214668797424
+     "tolerance": 0.034350542041143316
     },
     {
      "seed": 22,
@@ -308,7 +308,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.02982861410194507
+     "tolerance": 0.029607869613228845
     },
     {
      "seed": 23,
@@ -337,13 +337,13 @@
    "rejection_reasons": {
     "fixed_recipe passes": 24
    },
-   "seconds_per_instance": 7.92,
+   "seconds_per_instance": 8.05,
    "controls": {
     "reference": {
-     "pass_rate": 0.999,
+     "pass_rate": 0.997,
      "instances_passed_at_least_once": 24,
      "reward_mean": 1.0,
-     "error_median": 0.0171,
+     "error_median": 0.017,
      "scan_s_median": 80.0
     },
     "prior": {
@@ -370,7 +370,7 @@
     "brute_force": {
      "pass_rate": 0.0,
      "instances_passed_at_least_once": 0,
-     "reward_mean": 0.252,
+     "reward_mean": 0.253,
      "error_median": 0.3213,
      "scan_s_median": 80.6
     },
@@ -473,7 +473,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.0455495816130104
+     "tolerance": 0.04087912632591509
     },
     {
      "seed": 6,
@@ -554,7 +554,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.047576839470201894
+     "tolerance": 0.04975894653170014
     },
     {
      "seed": 15,
@@ -563,7 +563,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.01997288544396783
+     "tolerance": 0.01972442782237601
     },
     {
      "seed": 16,
@@ -590,7 +590,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.037165393122352265
+     "tolerance": 0.03965590323607257
     },
     {
      "seed": 19,
@@ -626,7 +626,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.03297687805242157
+     "tolerance": 0.0331905270547026
     },
     {
      "seed": 23,
@@ -635,7 +635,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.01920668133707656
+     "tolerance": 0.018909399405369957
     }
    ],
    "fixed_recipe": {
@@ -655,13 +655,13 @@
    "rejection_reasons": {
     "fixed_recipe passes": 24
    },
-   "seconds_per_instance": 7.46,
+   "seconds_per_instance": 7.53,
    "controls": {
     "reference": {
-     "pass_rate": 0.986,
+     "pass_rate": 0.987,
      "instances_passed_at_least_once": 24,
      "reward_mean": 0.999,
-     "error_median": 0.0221,
+     "error_median": 0.0223,
      "scan_s_median": 51.9
     },
     "prior": {
@@ -674,7 +674,7 @@
     "blind_vfa": {
      "pass_rate": 0.0,
      "instances_passed_at_least_once": 0,
-     "reward_mean": 0.256,
+     "reward_mean": 0.255,
      "error_median": 0.3921,
      "scan_s_median": 51.1
     },
@@ -755,7 +755,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.032012327768136915
+     "tolerance": 0.034545158553092994
     },
     {
      "seed": 2,
@@ -854,7 +854,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.06130320273707422
+     "tolerance": 0.05952270022930768
     },
     {
      "seed": 13,
@@ -881,7 +881,7 @@
      "reasons": [
       "fixed_recipe passes"
      ],
-     "tolerance": 0.05708960203218742
+     "tolerance": 0.05766227345683871
     },
     {
      "seed": 16,
@@ -968,5 +968,5 @@
    }
   }
  },
- "wall_seconds": 232.2
+ "wall_seconds": 190.0
 }

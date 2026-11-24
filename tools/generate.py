@@ -132,11 +132,31 @@ def demo():
 
 
 def results_block():
-    try:
-        from mrgym import results
-        return results.dateline(os.path.join(ROOT, "results")) + "\n\n" + results.table_markdown(os.path.join(ROOT, "results"))
-    except Exception as e:  # noqa: BLE001
-        return f"Results table not available: {type(e).__name__}: {e}"
+    """A compact view of results/results.json for the README: one row per environment and level; scripted reference
+    rows first, then every model. The full table with intervals and effort columns is results/README.md."""
+    raw = _read("results/results.json")
+    if not raw:
+        return "No results have been generated yet: `mrgym run-agent` writes episode records, `mrgym results` builds the table."
+    r = json.loads(raw)
+    rows = r["rows"]
+    models = sorted({x["agent"] for x in rows if x["kind"] != "scripted"})
+    scripted = [("reference", "Reference policy"), ("fixed_recipe", "Best constant recipe"), ("brute_force", "Blind sweep"), ("prior", "No-scan answer")]
+    cell = lambda x: "-" if x is None else f"{x['passed']}/{x['episodes']} ({100 * x['passed'] / x['episodes']:.0f}%)"   # noqa: E731
+    played = r["played_utc"] if isinstance(r["played_utc"], list) else [r["played_utc"]]
+    played = played[0] if played[0] == played[-1] else f"{played[0]} to {played[-1]}"
+    out = [f"{r['completed']} episodes, played {played} (UTC) on engine `{', '.join(r['engines'])}`, package "
+           f"{', '.join(r['package_versions'])}; public train split, seeds {r['seeds']}; every agent plays the same instances. "
+           "Cells are episodes passed. " + ("Models: " + ", ".join(models) + "." if models else "Scripted policies only: no language model has been run."), "",
+           "| Environment | Level | Instances (admitted by the gate) | " + " | ".join(t for _, t in scripted) + "".join(f" | {m}" for m in models) + " |",
+           "|---|---:|---:|" + "---:|" * (len(scripted) + len(models))]
+    keys = sorted({(x["env_id"], x["level"]) for x in rows})
+    for env_id, level in keys:
+        by = {x["agent"]: x for x in rows if (x["env_id"], x["level"]) == (env_id, level)}
+        ref = by.get("reference")
+        inst = f"{ref['instances']} ({ref['admitted_episodes']})" if ref else "-"
+        out.append(f"| `{env_id}` | {level} | {inst} | " + " | ".join(cell(by.get(k)) for k, _ in scripted)
+                   + "".join(f" | {cell(by.get(m))}" for m in models) + " |")
+    return "\n".join(out)
 
 
 def timing_block():

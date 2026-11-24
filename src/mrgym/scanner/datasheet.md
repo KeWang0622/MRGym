@@ -36,9 +36,11 @@ defaults; use the **realised** values it returns, not the ones you asked for.
 
 The header line is what a console prints above an image, for example
 
-    SE 3.0T | TR 500.0 TE 15.0 FA 90 | FOV 240x180 mm  256x192  SL 5.0 | BW 300 Hz/px  PE A>>P | NEX 1 | TA 1:39.5 | SAR 1 % | WFS 1.4 px (readout) | rel. SNR 0.44
+    SE 3.0T | TR 500.0 TE 15.0 FA 90 | FOV 240x180 mm  256x192  SL 5.0 | BW 300 Hz/px  PE A>>P | NEX 1 | TA 1:39.5 | SAR 1 % | WFS 1.4 px (readout) | rel. SNR 0.54
 
-`TA` is the scan time, `SAR` the RF power as percent of the limit, `WFS` the water-fat shift in pixels and its axis,
+(`sequence=se tr_ms=500 te_ms=15 matrix=256 phase_fov=0.75`).
+`TA` is the scan time, `SAR` the RF power as percent of the limit, `WFS` the shift of the main fat peak (3.4 ppm)
+against water in pixels and its axis (the centroid of the multi-peak fat signal sits at about 3.0 ppm),
 `rel. SNR` the voxel volume times the square root of the sampling time relative to a reference protocol. All of
 them follow from the protocol alone; none depends on the object.
 
@@ -55,7 +57,7 @@ Geometry and receiver, all sequences:
 | `slice_mm` | 1 to 10 | 5 | slice thickness |
 | `bandwidth_hz_per_px` | 50 to 3000 (`epi`: 500 to 3000) | 300 (`epi`: 1500) | receiver bandwidth per pixel; readout duration = 1 / bandwidth |
 | `pe_dir` | `y`, `x` | `y` | phase-encode axis; the readout runs along the other one |
-| `ro_polarity` | 1, -1 | 1 | sign of the readout gradient |
+| `ro_polarity` | 1, -1 | 1 | direction of the readout; it sets the side to which off-resonant spins and fat are displaced (section 5) |
 | `partial_fourier` | 0.55 to 1 | 1 | fraction of phase-encode lines acquired; the rest is zero-filled |
 | `phase_oversampling` | 0 to 1 | 0 | extra phase field of view, acquired and discarded |
 | `averages` | 1 to 64 | 1 | complex averages |
@@ -107,7 +109,8 @@ ring; during the readout the signal decays and spins that are off resonance by �
 by Δf / `bandwidth_hz_per_px` pixels, towards negative positions for positive Δf and positive readout polarity. Fat
 resonates 3.4 ppm below water (about 220 Hz at 1.5 T and 434 Hz at 3 T; a multi-peak spectrum is used), so it is
 displaced relative to water, and its signal beats against water with echo time in gradient echoes. In `epi` the same
-happens along the phase direction with the bandwidth 1 / (`echo_spacing_ms` x lines), which is small.
+happens along the phase direction with the bandwidth 1 / (echo spacing x lines), echo spacing in seconds, which is
+small.
 
 **Gradient echoes** (`spgr`, `afi`, `epi`) carry exp(-TE / T2*) with 1/T2* = 1/T2 + 1/T2', the phase +2π·Δf·TE
 (positive Δf, positive phase), and lose signal where the field changes through the slice, more for thick slices and
@@ -159,7 +162,7 @@ and collapses where Δf = (m + 1/2) / TR for the default phase cycle of 180°: d
 
 **`epi`: single-shot echo-planar imaging.** One excitation per image (Ernst steady state at `tr_ms`), all lines read
 `echo_spacing_ms` apart. Decay and off-resonance act along the phase direction: T2* blurring, displacement by
-Δf x `echo_spacing_ms` x lines pixels, stretching or compression where the field has a gradient along phase, and a
+Δf x echo spacing (in seconds) x lines pixels, stretching or compression where the field has a gradient along phase, and a
 fat image shifted by many pixels unless fat is saturated. A small timing error between gradient and acquisition
 leaves a ghost shifted by half the field of view.
 
@@ -172,8 +175,8 @@ leaves a ghost shifted by half the field of view.
   `mean_magnitude`, `sd_magnitude`, `complex_mean_magnitude`, `complex_mean_phase_rad`, one value per image. The
   magnitude mean has a noise floor (the magnitude of noise is not zero). The complex mean has none, but it loses
   signal when the phase varies across the region, for example at long echo times in a field gradient.
-- `view` gives the extent of the pixels brighter than 20 % of the image maximum, in mm, and says whether they touch
-  the image border.
+- `view` gives the extent, in mm, of the pixels brighter than 20 % of the image's 99.5th percentile (isolated bright
+  pixels are ignored), and says whether they touch the image border.
 
 ## 7. What is hidden, and what is not simulated
 

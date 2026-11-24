@@ -1,10 +1,11 @@
-"""Tissue table of the hidden world: PD, T1, T2, T2*, ADC per tissue at 1.5 T and 3 T, with the source of every number.
+"""Tissue table of the hidden world: PD, T1, T2, T2*, ADC per tissue at 1.5 T and 3 T, with a source tag per row.
 
 How far each number was checked is tagged:
   [A]  the value is stated in the abstract of the cited paper
   [T]  the value is attributed to a table of the cited paper and was not re-checked against the full text for this
        release; treat it as "of the right size", not as a citation-grade number
   [C]  chosen by the authors of this package inside a plausible range; there is no source
+A number without a tag in its row is [C]; that includes every diffusion coefficient and most proton densities.
 Times in ms. PD relative to water = 1. T2' is derived: 1/T2' = 1/T2* - 1/T2. Fat rows carry the chemical shift.
 
 Sources (full records in docs/physics/references.md)

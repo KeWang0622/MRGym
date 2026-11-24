@@ -115,6 +115,8 @@ def test_protocol_schema_covers_every_parameter_and_the_datasheet_names_them():
     sheet = importlib.resources.files("mrgym.scanner").joinpath("datasheet.md").read_text(encoding="utf-8")
     assert not [n for n in names if f"`{n}`" not in sheet]
     assert all(s in sheet for s in ("## 5.", "## 6.", "## 7."))
+    example = console.plan(dict(sequence="se", tr_ms=500, te_ms=15, matrix=256, phase_fov=0.75))["header"]
+    assert example in sheet                                             # the header shown in the datasheet is a real one
 
 
 # ------------------------------------------------------------------ engine

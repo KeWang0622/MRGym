@@ -405,7 +405,7 @@ def admit(cfg, recipe=None, n_cal=32, n_test=32, n_ctrl=8):
             out.append(task.score(cfg, answer, 1.0, session.n_scans, world=world)["error"])
         return out
 
-    cal = errors("reference", range(n_cal))
+    cal = errors("reference", range(1, n_cal + 1))                     # draw 0 is the one an episode plays on
     rep = dict(task_id=cfg["task_id"], level=cfg["level"], budget_s=cfg["budget_s"], regions=len(cfg["task"]["regions"]),
                reasons=[], controls={})
     if any(e is None for e in cal):
@@ -429,7 +429,7 @@ def admit(cfg, recipe=None, n_cal=32, n_test=32, n_ctrl=8):
                     gate_fail=[s["diagnostic"] for s in res if not s["gate_deliverable"]][:1]
                     + (["no scan in the log"] if not all(s["gate_measured"] for s in res) else []))
 
-    ref = evaluate("reference", range(n_cal, n_cal + n_test))
+    ref = evaluate("reference", range(n_cal + 1, n_cal + 1 + n_test))
     rep["controls"]["reference"] = ref
     if tol >= 0.5 * e_prior:
         rep["reasons"].append("tolerance is not well below the prior policy's error")

@@ -8,8 +8,9 @@ the square root of the sampling time, a function of the protocol alone.
 
 Timing model
   readout       duration 1 / bandwidth_hz_per_px; amplitude G = bandwidth * matrix / (gamma * FOV)
-  lobes         prephaser (half the readout area), phase encode, spoiler: time-optimal trapezoids at ``derate`` of
-                the gradient and slew limits
+  lobes         prephaser (half the readout area) and spoiler: time-optimal trapezoids at ``derate`` of the gradient
+                and slew limits. Phase encoding and slice selection are given no time of their own (they are taken
+                to overlap the prephaser), and the prephaser area ignores the readout ramp.
   gradient echo TE >= rf / 2 + prephaser + ramp + readout / 2;  TR >= rf + last TE + readout / 2 + ramp + spoiler
   spin echo     TE >= 2 max(rf90 / 2 + prephaser + crusher + rf180 / 2, rf180 / 2 + crusher + ramp + readout / 2)
   bSSFP         TR >= rf + 2 (prephaser + ramp) + readout, TE = TR / 2
@@ -65,7 +66,7 @@ PARAMETER_UNITS = dict(
     fov_mm="mm, along the readout direction", phase_fov="fraction of fov_mm along the phase-encode direction",
     matrix="pixels along the readout (even); phase-encode lines follow from phase_fov", slice_mm="mm",
     bandwidth_hz_per_px="Hz per pixel", pe_dir="phase-encode axis: y (rows) or x (columns)",
-    ro_polarity="sign of the readout gradient", partial_fourier="fraction of phase-encode lines acquired",
+    ro_polarity="direction of the readout: with 1 a spin off resonance by df appears -df / bandwidth pixels along the readout", partial_fourier="fraction of phase-encode lines acquired",
     phase_oversampling="fraction of extra phase field of view, acquired and discarded", averages="count",
     fat_sat="spectral fat saturation before every excitation", te_ms="ms", flip_deg="degrees (nominal)",
     spoiler_mt_ms_per_m="mT*ms/m per repetition", rf_phase_increment_deg="degrees", tr_ms="ms", n_echoes="count",

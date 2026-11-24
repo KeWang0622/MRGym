@@ -47,7 +47,7 @@ Scanner/NoWrap-v0 · level 1 · seed 0 · policy reference (scripted, no languag
       no regions requested
   agent -> view {"scan":0,"image":0,"kind":"magnitude"}
       scan 0 (spgr), image 0, magnitude, 160x160 (y, x), FOV 288 x 288 mm
-      extent of pixels above 20 % of the maximum: y -89.1 .. 87.3 mm, x -67.5 .. 62.1 mm
+      extent of pixels above 20 % of the 99.5th percentile: y -89.1 .. 87.3 mm, x -67.5 .. 62.1 mm
       32x32 block means, one digit per 9.0 x 9.0 mm block (y, x), 0-9 spans 0..0.3425; row = y (top = -144 mm), column = x (left = -144 mm)
   agent -> submit {"pe_dir":"x","fov_mm":184.0,"phase_fov":0.76087,"matrix":92,"phase_oversampling":0.0}
       geometry received; the episode is over
@@ -156,42 +156,20 @@ mrgym view runs/demo/episode_bundle.json --out runs/demo/viewer.html
 ## Current results
 
 <!-- RESULTS:START -->
-324 episodes played 2026-11-24 (UTC) on engine `mrgym-engine-0.1.0`, package version `0.1.0.dev0`: `Scanner/NoWrap-v0` levels 1, 2; public train split, seeds 0-23; 10 scripted control policies, 0 language model(s).
+1200 episodes, played 2026-11-24 (UTC) on engine `mrgym-engine-0.1.0`, package 0.1.0.dev0; public train split, seeds 0-23; every agent plays the same instances. Cells are episodes passed. Scripted policies only: no language model has been run.
 
-These rows are scripted control policies only. No language model has been run on these instances yet.
-
-**`Scanner/NoWrap-v0`, level 1** (24 instances)
-
-| Agent | Kind | Episodes | Passed | 95 % interval | Mean reward | Median error | Median scans | Median budget used | Median turns | Tokens in / out | Infra errors |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| brute_force | scripted | 24 | 0/24 (0%) | 0-14 % | 0.528 | 49.3 % | 3 | 76 % | - | - | 0 |
-| console_default | scripted | 24 | 0/24 (0%) | 0-14 % | 0.145 | 84.1 % | 1 | 34 % | - | - | 0 |
-| fixed_recipe | scripted | 24 | 6/24 (25%) | 12-45 % | 0.250 | 0.0 % | 1 | 34 % | - | - | 0 |
-| no_swap | scripted | 24 | 13/24 (54%) | 35-72 % | 0.852 | 7.3 % | 1 | 34 % | - | - | 0 |
-| prior | scripted | 24 | 0/24 (0%) | 0-14 % | 0.000 | 98.6 % | 0 | 0 % | - | - | 0 |
-| reference | scripted | 24 | 24/24 (100%) | 86-100 % | 1.000 | 0.0 % | 1 | 34 % | - | - | 0 |
-| safe_max | scripted | 24 | 0/24 (0%) | 0-14 % | 0.000 | 98.6 % | 1 | 34 % | - | - | 0 |
-| seed_attacker | scripted | 24 | 6/24 (25%) | 12-45 % | 0.250 | -2.9 % | 1 | 34 % | - | - | 0 |
-| size_only | scripted | 24 | 10/24 (42%) | 24-61 % | 0.417 | -2.7 % | 1 | 34 % | - | - | 0 |
-| wrong_units | scripted | 24 | 0/24 (0%) | 0-14 % | 0.000 | - | 1 | 34 % | - | - | 0 |
-
-**`Scanner/NoWrap-v0`, level 2** (9 instances)
-
-| Agent | Kind | Episodes | Passed | 95 % interval | Mean reward | Median error | Median scans | Median budget used | Median turns | Tokens in / out | Infra errors |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| brute_force | scripted | 8 | 0/8 (0%) | 0-32 % | 0.531 | 36.3 % | 3 | 76 % | - | - | 0 |
-| console_default | scripted | 8 | 0/8 (0%) | 0-32 % | 0.274 | 55.1 % | 1 | 34 % | - | - | 1 |
-| fixed_recipe | scripted | 8 | 2/8 (25%) | 7-59 % | 0.639 | 11.1 % | 1 | 34 % | - | - | 1 |
-| no_swap | scripted | 8 | 3/8 (38%) | 14-69 % | 0.835 | 12.9 % | 1 | 34 % | - | - | 0 |
-| prior | scripted | 9 | 0/9 (0%) | 0-30 % | 0.000 | 61.2 % | 0 | 0 % | - | - | 0 |
-| reference | scripted | 9 | 9/9 (100%) | 70-100 % | 1.000 | 0.0 % | 1 | 34 % | - | - | 0 |
-| safe_max | scripted | 8 | 0/8 (0%) | 0-32 % | 0.000 | 67.3 % | 1 | 34 % | - | - | 0 |
-| seed_attacker | scripted | 8 | 1/8 (12%) | 2-47 % | 0.125 | -18.2 % | 1 | 34 % | - | - | 0 |
-| size_only | scripted | 8 | 0/8 (0%) | 0-32 % | 0.000 | -11.1 % | 1 | 34 % | - | - | 0 |
-| wrong_units | scripted | 8 | 0/8 (0%) | 0-32 % | 0.000 | - | 1 | 34 % | - | - | 0 |
-
-Passed: episodes that meet the pass rule of the environment, as `k/N (p%)`, with the Wilson 95 % interval. N counts every started episode except those that ended in an endpoint or runner failure; these are not agent results and stand under Infra errors. An episode without a delivery has reward 0. Median error: the error measure of the environment (`mrgym card <id>`), in percent; an episode without a valid deliverable counts as infinite, and `-` means the median is infinite. Median budget used: scan seconds used over the scan-time budget. Turns and tokens are per episode and exist for models only; `(est.)` marks counts estimated from characters because the endpoint reported no usage. Agents are in alphabetical order within kind; the table does not rank.
+| Environment | Level | Instances (admitted by the gate) | Reference policy | Best constant recipe | Blind sweep | No-scan answer |
+|---|---:|---:|---:|---:|---:|---:|
+| `Scanner/NoWrap-v0` | 1 | 24 (13) | 24/24 (100%) | 6/24 (25%) | 0/24 (0%) | 0/24 (0%) |
+| `Scanner/NoWrap-v0` | 2 | 24 (15) | 24/24 (100%) | 5/24 (21%) | 3/24 (12%) | 0/24 (0%) |
+| `Scanner/T1Transmit-v0` | 1 | 24 (0) | 24/24 (100%) | 24/24 (100%) | 0/24 (0%) | 0/24 (0%) |
+| `Scanner/T1Transmit-v0` | 2 | 24 (0) | 24/24 (100%) | 23/24 (96%) | 0/24 (0%) | 0/24 (0%) |
+| `Scanner/T1Transmit-v0` | 3 | 24 (0) | 24/24 (100%) | 24/24 (100%) | 0/24 (0%) | 0/24 (0%) |
 <!-- RESULTS:END -->
+
+The least favourable reading: on `Scanner/T1Transmit-v0` the best constant recipe passes about as often as the
+reference policy, which is why its gate rejects it. On `Scanner/NoWrap-v0` a constant geometry passes on some
+instances, and the gate does not admit those.
 
 No language model has been run yet: every row is a scripted policy. These are maintainer-run results on simulated
 objects. The generator is public, so no level is secret. No environment has had independent expert review. A pass
@@ -220,14 +198,14 @@ Seconds of computation per scan on the brain phantom (one thread; regenerate wit
 | Sequence | matrix 64 | matrix 128 | matrix 256 |
 |---|---:|---:|---:|
 | spgr | 0.21 | 0.22 | 0.26 |
-| spgr, 4 echoes | 0.54 | 0.62 | 0.76 |
-| afi | 0.36 | 0.39 | 0.47 |
-| se | 0.20 | 0.22 | 0.28 |
-| ir | 0.21 | 0.23 | 0.27 |
-| bssfp | 0.22 | 0.24 | 0.30 |
-| epi | 0.24 | 0.28 | refused |
+| spgr, 4 echoes | 0.54 | 0.60 | 0.74 |
+| afi | 0.37 | 0.40 | 0.48 |
+| se | 0.19 | 0.21 | 0.26 |
+| ir | 0.19 | 0.21 | 0.26 |
+| bssfp | 0.21 | 0.23 | 0.28 |
+| epi | 0.23 | 0.26 | refused |
 
-world generation, once per episode: brain 0.66 s, abdomen 0.65 s, qa 0.07 s
+world generation, once per episode: brain 0.66 s, abdomen 0.66 s, qa 0.07 s
 brain phantom at 3 T, one thread, median of 3, noise-free data not cached; a repeated protocol reuses it
 <!-- TIMING:END -->
 

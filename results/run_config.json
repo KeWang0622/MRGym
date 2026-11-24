@@ -1,0 +1,222 @@
+{
+ "schema": "mrgym-run/1",
+ "created_utc": "2026-11-24T07:40:04Z",
+ "invocations": [
+  {
+   "utc": "2026-11-24T07:40:04Z",
+   "command": "mrgym run-agent --env Scanner/NoWrap-v0,Scanner/T1Transmit-v0 --seeds 0-23 --policy all --records-only --workers 2 --out results",
+   "package_version": "0.1.0.dev0",
+   "engine": "mrgym-engine-0.1.0",
+   "python": "3.10.12",
+   "numpy": "2.2.6",
+   "split": "train",
+   "seeds": "0-23",
+   "episodes_per_instance": 1,
+   "environments": {
+    "Scanner/NoWrap-v0": {
+     "levels": [
+      1,
+      2
+     ],
+     "policies": [
+      "reference",
+      "prior",
+      "console_default",
+      "fixed_recipe",
+      "brute_force",
+      "wrong_units",
+      "seed_attacker",
+      "no_swap",
+      "size_only",
+      "safe_max"
+     ],
+     "recipes": {
+      "1": {
+       "pe_dir": "y",
+       "h_pe": 62.0,
+       "tuned_pass_rate": 0.3333333333333333,
+       "tuned_mean_reward": 0.3333333333333333
+      },
+      "2": {
+       "pe_dir": "x",
+       "h_pe": 84.0,
+       "tuned_pass_rate": 0.25,
+       "tuned_mean_reward": 0.5995260927621368
+      }
+     }
+    },
+    "Scanner/T1Transmit-v0": {
+     "levels": [
+      1,
+      2,
+      3
+     ],
+     "policies": [
+      "reference",
+      "prior",
+      "blind_vfa",
+      "fixed_recipe",
+      "brute_force",
+      "ir_only",
+      "wrong_units",
+      "seed_attacker",
+      "open_loop",
+      "short_tr_ideal"
+     ],
+     "recipes": {
+      "1": {
+       "afi_flip": 80.0,
+       "flips": [
+        4.0,
+        20.0
+       ],
+       "share": 0.6,
+       "min_budget": 60.0,
+       "tuned_median_error": 0.0180336192904939
+      },
+      "2": {
+       "afi_flip": 80.0,
+       "flips": [
+        3.0,
+        22.0
+       ],
+       "share": 0.6,
+       "min_budget": 60.0,
+       "tuned_median_error": 0.015407043502107831
+      },
+      "3": {
+       "afi_flip": 80.0,
+       "flips": [
+        3.0,
+        15.0
+       ],
+       "share": 0.45,
+       "min_budget": 45.0,
+       "tuned_median_error": 0.024435115451800642
+      }
+     }
+    }
+   },
+   "policies_not_played": {
+    "Scanner/T1Transmit-v0": {
+     "ir_unpriced": "needs 40 times the budget of the environment"
+    }
+   },
+   "models": [],
+   "base_url": null,
+   "settings": null,
+   "records_only": true,
+   "workers": 2,
+   "episodes_started": 1200,
+   "episodes_already_finished": 0
+  },
+  {
+   "utc": "2026-11-24T07:54:05Z",
+   "command": "mrgym run-agent --env Scanner/NoWrap-v0,Scanner/T1Transmit-v0 --seeds 0-23 --policy all --records-only --workers 4 --out results",
+   "package_version": "0.1.0.dev0",
+   "engine": "mrgym-engine-0.1.0",
+   "python": "3.10.12",
+   "numpy": "2.2.6",
+   "split": "train",
+   "seeds": "0-23",
+   "episodes_per_instance": 1,
+   "environments": {
+    "Scanner/NoWrap-v0": {
+     "levels": [
+      1,
+      2
+     ],
+     "policies": [
+      "reference",
+      "prior",
+      "console_default",
+      "fixed_recipe",
+      "brute_force",
+      "wrong_units",
+      "seed_attacker",
+      "no_swap",
+      "size_only",
+      "safe_max"
+     ],
+     "recipes": {
+      "1": {
+       "pe_dir": "y",
+       "h_pe": 62.0,
+       "tuned_pass_rate": 0.3333333333333333,
+       "tuned_mean_reward": 0.3333333333333333
+      },
+      "2": {
+       "pe_dir": "x",
+       "h_pe": 84.0,
+       "tuned_pass_rate": 0.25,
+       "tuned_mean_reward": 0.5995260927621368
+      }
+     }
+    },
+    "Scanner/T1Transmit-v0": {
+     "levels": [
+      1,
+      2,
+      3
+     ],
+     "policies": [
+      "reference",
+      "prior",
+      "blind_vfa",
+      "fixed_recipe",
+      "brute_force",
+      "ir_only",
+      "wrong_units",
+      "seed_attacker",
+      "open_loop",
+      "short_tr_ideal"
+     ],
+     "recipes": {
+      "1": {
+       "afi_flip": 80.0,
+       "flips": [
+        4.0,
+        20.0
+       ],
+       "share": 0.6,
+       "min_budget": 60.0,
+       "tuned_median_error": 0.0180336192904939
+      },
+      "2": {
+       "afi_flip": 80.0,
+       "flips": [
+        3.0,
+        22.0
+       ],
+       "share": 0.6,
+       "min_budget": 60.0,
+       "tuned_median_error": 0.015407043502107831
+      },
+      "3": {
+       "afi_flip": 80.0,
+       "flips": [
+        3.0,
+        15.0
+       ],
+       "share": 0.45,
+       "min_budget": 45.0,
+       "tuned_median_error": 0.024435115451800642
+      }
+     }
+    }
+   },
+   "policies_not_played": {
+    "Scanner/T1Transmit-v0": {
+     "ir_unpriced": "needs 40 times the budget of the environment"
+    }
+   },
+   "models": [],
+   "base_url": null,
+   "settings": null,
+   "records_only": true,
+   "workers": 4,
+   "episodes_started": 720,
+   "episodes_already_finished": 480
+  }
+ ]
+}
