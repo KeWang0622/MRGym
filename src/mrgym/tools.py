@@ -85,6 +85,41 @@ def parse_tool_call(call) -> tuple[str, dict, str | None]:
 _TYPES = {"object": dict, "array": list, "string": str, "boolean": bool}
 
 
+def normalise(value, schema: dict):
+    """Undo the string encoding some tool-call formats apply to typed arguments, where the schema says what was meant.
+
+    Models whose native tool-call format is XML-like write every parameter as text, so a nested object arrives as a JSON
+    string and a number as "10". Only strict JSON of the declared type is accepted; anything else is returned unchanged and
+    then fails validation as before. No field is added, renamed or defaulted here.
+    """
+    if "anyOf" in schema:
+        for s in schema["anyOf"]:
+            v = normalise(value, s)
+            if not validate(v, s):
+                return v
+        return value
+    t = schema.get("type")
+    if isinstance(value, str) and t in ("object", "array", "number", "integer", "boolean"):
+        try:
+            parsed = json.loads(value)
+        except ValueError:
+            return value
+        ok = {"object": isinstance(parsed, dict), "array": isinstance(parsed, list), "boolean": isinstance(parsed, bool),
+              "number": isinstance(parsed, (int, float)) and not isinstance(parsed, bool),
+              "integer": isinstance(parsed, (int, float)) and not isinstance(parsed, bool)}[t]
+        if not ok:
+            return value
+        value = parsed
+    if t == "object" and isinstance(value, dict):
+        props = schema.get("properties", {})
+        extra = schema.get("additionalProperties", True)
+        return {k: normalise(v, props[k]) if k in props else (normalise(v, extra) if isinstance(extra, dict) else v)
+                for k, v in value.items()}
+    if t == "array" and isinstance(value, list) and "items" in schema:
+        return [normalise(v, schema["items"]) for v in value]
+    return value
+
+
 def validate(value, schema: dict, path: str = "arguments") -> list[str]:
     """Return a list of human-readable problems (empty = valid). Covers exactly the subset used by the tool schemas."""
     bad = []

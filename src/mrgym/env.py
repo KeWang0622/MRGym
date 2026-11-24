@@ -177,7 +177,9 @@ class Env:
             name, args, _ = T.parse_tool_call(tool_call)
             if name not in specs:
                 raise ValueError(f"unknown tool {name!r}; available: {sorted(specs)}")
-            problems = T.validate(args, getattr(self, "_shallow_schemas", {}).get(name, specs[name].parameters))
+            schema = getattr(self, "_shallow_schemas", {}).get(name, specs[name].parameters)
+            args = T.normalise(args, specs[name].parameters)     # the full schema knows the type of every field
+            problems = T.validate(args, schema)
             if problems:
                 raise ValueError("; ".join(problems[:4]))
         except ValueError as e:

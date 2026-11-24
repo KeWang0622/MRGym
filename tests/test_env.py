@@ -293,3 +293,23 @@ def test_verify_command_scores_a_served_episode(tmp_path, capsys):
                      "--answer", str(tmp_path / "answer.json")]) == 0
     out = json.loads(capsys.readouterr().out)
     assert out["reward"] == 1.0 and out["replay"]["ok"] and out["replay"]["mode"] == "bit-exact"
+
+
+def test_typed_arguments_may_arrive_as_strings():
+    """Tool-call formats that write every parameter as text must reach the scanner; malformed text must still be refused."""
+    import json
+
+    import mrgym
+
+    proto = {"sequence": "spgr", "tr_ms": 10, "flip_deg": 10, "fov_mm": 288, "matrix": 160, "averages": 2}
+    as_text = dict(proto, tr_ms="10", matrix="160")
+    for args in ({"protocol": json.dumps(proto)}, {"protocol": as_text}, {"protocol": json.dumps(as_text)}):
+        env = mrgym.make("Scanner/NoWrap-v0", level=1, seed=0)
+        env.reset()
+        obs, *_ = env.step({"name": "plan", "arguments": args})
+        assert not obs.is_error and obs.text.startswith("plan: accepted"), obs.text[:120]
+    for args in ({"protocol": "{'sequence': 'spgr'}"}, {"protocol": "spgr"}, {"protocol": dict(proto, tr_ms="ten")}):
+        env = mrgym.make("Scanner/NoWrap-v0", level=1, seed=0)
+        env.reset()
+        obs, *_ = env.step({"name": "plan", "arguments": args})
+        assert obs.is_error and ("invalid_tool_call" in obs.text or "plan: rejected" in obs.text), obs.text[:120]
