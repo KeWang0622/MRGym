@@ -3,7 +3,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/KeWang0622/MRGym/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/KeWang0622/MRGym/actions/workflows/tests.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="Code: Apache-2.0" src="https://img.shields.io/badge/code-Apache--2.0-0e7490"></a>
 </p>
 
