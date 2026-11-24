@@ -1,0 +1,41 @@
+[
+ {
+  "id": "Scanner/Explore-v0",
+  "folder": "scanner-explore-v0",
+  "kind": "sandbox",
+  "levels": [
+   1
+  ],
+  "title": "The scanner, nothing asked",
+  "status": "SANDBOX: no reward",
+  "admitted_instances": 0,
+  "instances": 0
+ },
+ {
+  "id": "Scanner/NoWrap-v0",
+  "folder": "scanner-nowrap-v0",
+  "kind": "admitted",
+  "levels": [
+   1,
+   2
+  ],
+  "title": "The fastest geometry without wrap-around",
+  "status": "ADMITTED: 28 of 48 instances pass the gate",
+  "admitted_instances": 28,
+  "instances": 48
+ },
+ {
+  "id": "Scanner/T1Transmit-v0",
+  "folder": "scanner-t1transmit-v0",
+  "kind": "practice",
+  "levels": [
+   1,
+   2,
+   3
+  ],
+  "title": "T1 in marked regions with an uncalibrated transmit field",
+  "status": "PRACTICE: its own gate rejects it (0 of 72 instances admitted; most frequent reason: fixed_recipe passes)",
+  "admitted_instances": 0,
+  "instances": 72
+ }
+]

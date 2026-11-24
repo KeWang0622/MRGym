@@ -455,6 +455,7 @@ class LocalScanner:
         img = s[kind][image]
         box = render.bounding_box(s["magnitude"][image], s["fov_yx_mm"])
         if box:
-            box = dict(y_mm=[round(v, 2) for v in box["y"]], x_mm=[round(v, 2) for v in box["x"]], touches_edge=box["touches_edge"])
+            box = dict(y_mm=[round(float(v), 2) for v in box["y"]], x_mm=[round(float(v), 2) for v in box["x"]],
+                       touches_edge=box["touches_edge"])
         return dict(scan=scan, image=image, kind=kind, shape=list(img.shape), fov_yx_mm=list(s["fov_yx_mm"]),
                     sequence=s["realised"]["sequence"], bounding_box=box, array=img)

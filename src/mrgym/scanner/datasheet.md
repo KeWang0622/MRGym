@@ -73,7 +73,7 @@ Per sequence:
 | `spgr` | `n_echoes`, `echo_spacing_ms` | 1 to 8; at least the minimum | 1; minimum | monopolar multi-echo readout |
 | `afi` | `tr_ratio` | 2 to 10, integer | 5 | TR2 = `tr_ratio` x TR1 |
 | `se` | `tr_ms` | 50 to 20000 | required | 90° and 180° nominal |
-| `ir` | `tr_ms`, `ti_ms` | 200 to 20000; 20 to 19000 | required | TI from the centre of the inversion to the centre of the excitation; spin-echo readout |
+| `ir` | `tr_ms`, `ti_ms` | 200 to 20000; 5 to 19000, at least the minimum | required | TI from the centre of the inversion to the centre of the excitation; spin-echo readout |
 | `bssfp` | `tr_ms`, `flip_deg` | 2 to 50; 1 to 90 | required | |
 | | `phase_cycle_deg` | 0 to 360 | 180 | RF phase advance per TR |
 | `epi` | `tr_ms`, `flip_deg` | 50 to 20000; 1 to 90 | required; 90 | one excitation per image |

@@ -85,6 +85,7 @@ include = [
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
+pythonpath = ["tests"]          # for the shared helpers in tests/conftest.py; never the repository root or src
 addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib"]
 filterwarnings = ["error::DeprecationWarning:mrgym.*"]
 

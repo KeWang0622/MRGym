@@ -53,7 +53,7 @@ SEQUENCES = dict(
     afi={**_GEOM, **_TE, **_GRE, "tr_ms": (5.0, 200.0, "f", None), "tr_ratio": (2, 10, "i", 5),
          "spoiler_mt_ms_per_m": (10.0, 600.0, "f", 300.0)},
     se={**_GEOM, **_TE, **_FS, "tr_ms": (50.0, 20000.0, "f", None)},
-    ir={**_GEOM, **_TE, **_FS, "tr_ms": (200.0, 20000.0, "f", None), "ti_ms": (20.0, 19000.0, "f", None)},
+    ir={**_GEOM, **_TE, **_FS, "tr_ms": (200.0, 20000.0, "f", None), "ti_ms": (5.0, 19000.0, "f", None)},
     bssfp={**_GEOM, "tr_ms": (2.0, 50.0, "f", None), "flip_deg": (1.0, 90.0, "f", None),
            "phase_cycle_deg": (0.0, 360.0, "f", 180.0)},
     epi={**_GEOM, **_TE, "matrix": (32, 192, "i", 96), "bandwidth_hz_per_px": (500.0, 3000.0, "f", 1500.0),

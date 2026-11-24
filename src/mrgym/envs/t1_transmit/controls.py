@@ -334,8 +334,9 @@ def seed_attacker(sc, candidates=None, diagnostics=None):
     return _answer(ids, other) if other else _prior_answer(card)
 
 
-def tune_recipe(cfgs, candidates, draws=(0, 1)):
+def tune_recipe(cfgs, candidates=None, draws=(0, 1)):
     """"Tuned on other worlds": the candidate with the smallest median error over the tuning instances."""
+    candidates = candidates or recipe_candidates(task.LEVELS[cfgs[0]["level"]]["budget_s"][0])
     worlds = [W.make_world(c["seed"], c["world_spec"]) for c in cfgs]
     engines = [kspace.Engine(w) for w in worlds]
     best = None

@@ -112,7 +112,7 @@ def _compact(env, max_lines=3):
         out.append(f"  agent -> {name} {args if len(args) < 150 else args[:147] + '...'}")
         lines = [ln for ln in e["text"].splitlines() if ln and not ln.startswith("[") and not ln.isdigit()]
         keep = lines[:max_lines] if name not in ("scanner_info",) else [f"(instrument card, {len(e['text'])} characters)"]
-        out += ["      " + (ln if len(ln) < 170 else ln[:167] + "...") for ln in keep]
+        out += ["      " + (ln if len(ln) < 170 or ln.startswith("reward") else ln[:167] + "...") for ln in keep]
     return "\n".join(out)
 
 
@@ -122,13 +122,12 @@ def cmd_demo(a):
     spec = mrgym.spec(a.id)
     level = a.level or spec.default_level
     env = mrgym.make(a.id, level=level, seed=a.seed, reveal_score=True)
-    t0 = time.time()
     r = policies.run(env, a.policy)
     b = env.state()
     print(f"{a.id} · level {level} · seed {a.seed} · policy {a.policy} (scripted, no language model)")
     print(_compact(env))
     print(f"  reward {r.reward:.3f} · {b['scans']} scan(s), {b['scan_time_used_s']:.1f} of {b['scan_time_budget_s']:.0f} s of scan time · "
-          f"log replays: {r.info['replay']['ok']} ({r.info['replay']['mode']}) · {time.time() - t0:.1f} s wall")
+          f"scanner log replays: {r.info['replay']['ok']}")
     if r.info.get("policy_error"):
         print("  policy error:", r.info["policy_error"])
     others = [p for p in policies.policy_names(spec) if p not in (a.policy, "seed_attacker") and not a.only]

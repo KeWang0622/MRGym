@@ -1,0 +1,578 @@
+{
+ "schema": "mrgym-admission/1",
+ "env_id": "Scanner/NoWrap-v0",
+ "engine": "mrgym-engine-0.1.0",
+ "package_version": "0.1.0.dev0",
+ "date_utc": "2026-11-24",
+ "command": "mrgym check Scanner/NoWrap-v0 --admission --n 24 --write",
+ "seeds": "train split, public key, seeds 0..23 per level",
+ "noise_draws": {
+  "calibration": 32,
+  "held_out": 32,
+  "per_control": 8
+ },
+ "tuning_instances": 12,
+ "levels": {
+  "1": {
+   "instances": 24,
+   "admitted": 13,
+   "rejection_reasons": {
+    "seed_attacker passes": 6,
+    "fixed_recipe passes": 6
+   },
+   "seconds_per_instance": 3.79,
+   "controls": {
+    "reference": {
+     "pass_rate": 1.0,
+     "instances_passed_at_least_once": 24,
+     "reward_mean": 1.0,
+     "error_median": 0.0,
+     "scan_s_median": 10.2
+    },
+    "prior": {
+     "pass_rate": 0.0,
+     "instances_passed_at_least_once": 0,
+     "reward_mean": 0.0,
+     "error_median": 0.9855,
+     "scan_s_median": 0.0
+    },
+    "console_default": {
+     "pass_rate": 0.0,
+     "instances_passed_at_least_once": 0,
+     "reward_mean": 0.145,
+     "error_median": 0.8406,
+     "scan_s_median": 10.2
+    },
+    "fixed_recipe": {
+     "pass_rate": 0.25,
+     "instances_passed_at_least_once": 6,
+     "reward_mean": 0.25,
+     "error_median": 0.0,
+     "scan_s_median": 10.2
+    },
+    "brute_force": {
+     "pass_rate": 0.0,
+     "instances_passed_at_least_once": 0,
+     "reward_mean": 0.528,
+     "error_median": 0.4928,
+     "scan_s_median": 22.9
+    },
+    "wrong_units": {
+     "pass_rate": 0.0,
+     "instances_passed_at_least_once": 0,
+     "reward_mean": 0.0,
+     "error_median": null,
+     "scan_s_median": 10.2
+    },
+    "seed_attacker": {
+     "pass_rate": 0.25,
+     "instances_passed_at_least_once": 6,
+     "reward_mean": 0.25,
+     "error_median": -0.029,
+     "scan_s_median": 10.2
+    },
+    "no_swap": {
+     "pass_rate": 0.542,
+     "instances_passed_at_least_once": 13,
+     "reward_mean": 0.851,
+     "error_median": 0.0785,
+     "scan_s_median": 10.2
+    },
+    "size_only": {
+     "pass_rate": 0.432,
+     "instances_passed_at_least_once": 12,
+     "reward_mean": 0.432,
+     "error_median": -0.0274,
+     "scan_s_median": 10.2
+    },
+    "safe_max": {
+     "pass_rate": 0.0,
+     "instances_passed_at_least_once": 0,
+     "reward_mean": 0.0,
+     "error_median": 0.9855,
+     "scan_s_median": 10.2
+    }
+   },
+   "tolerance_median": 1.1,
+   "reward_prior_after_one_scan_max": 0.0,
+   "instance_list": [
+    {
+     "seed": 0,
+     "task_id": "nowrap-efcda2432501",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 1,
+     "task_id": "nowrap-1cc1febb6ce7",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 2,
+     "task_id": "nowrap-a93d80d407ed",
+     "admitted": false,
+     "reasons": [
+      "seed_attacker passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 3,
+     "task_id": "nowrap-6cd71f7e7a7b",
+     "admitted": false,
+     "reasons": [
+      "fixed_recipe passes",
+      "seed_attacker passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 4,
+     "task_id": "nowrap-6076b6b24062",
+     "admitted": false,
+     "reasons": [
+      "seed_attacker passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 5,
+     "task_id": "nowrap-e43371cb3d72",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 6,
+     "task_id": "nowrap-d2c5dd138d3c",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 7,
+     "task_id": "nowrap-bfd3e379d997",
+     "admitted": false,
+     "reasons": [
+      "seed_attacker passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 8,
+     "task_id": "nowrap-7033ff41d8a6",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 9,
+     "task_id": "nowrap-646ba06d4deb",
+     "admitted": false,
+     "reasons": [
+      "fixed_recipe passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 10,
+     "task_id": "nowrap-b7867b3c733a",
+     "admitted": false,
+     "reasons": [
+      "fixed_recipe passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 11,
+     "task_id": "nowrap-86fe297401bd",
+     "admitted": false,
+     "reasons": [
+      "fixed_recipe passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 12,
+     "task_id": "nowrap-156f871569c7",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 13,
+     "task_id": "nowrap-68e4f7a713ba",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 14,
+     "task_id": "nowrap-f9c824574a91",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 15,
+     "task_id": "nowrap-35c01b195dc0",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 16,
+     "task_id": "nowrap-d2a411306c36",
+     "admitted": false,
+     "reasons": [
+      "seed_attacker passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 17,
+     "task_id": "nowrap-0f198aa9b8d3",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 18,
+     "task_id": "nowrap-cf455af96d9d",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 19,
+     "task_id": "nowrap-181285d39eb1",
+     "admitted": false,
+     "reasons": [
+      "fixed_recipe passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 20,
+     "task_id": "nowrap-312072c69e30",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 21,
+     "task_id": "nowrap-6c330c02483a",
+     "admitted": false,
+     "reasons": [
+      "fixed_recipe passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 22,
+     "task_id": "nowrap-cd231eb65fba",
+     "admitted": false,
+     "reasons": [
+      "seed_attacker passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 23,
+     "task_id": "nowrap-6241cd7085ab",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    }
+   ],
+   "fixed_recipe": {
+    "pe_dir": "y",
+    "h_pe": 62.0,
+    "tuned_pass_rate": 0.3333333333333333,
+    "tuned_mean_reward": 0.3333333333333333
+   }
+  },
+  "2": {
+   "instances": 24,
+   "admitted": 15,
+   "rejection_reasons": {
+    "fixed_recipe passes": 5,
+    "brute_force passes": 3,
+    "seed_attacker passes": 1
+   },
+   "seconds_per_instance": 3.81,
+   "controls": {
+    "reference": {
+     "pass_rate": 1.0,
+     "instances_passed_at_least_once": 24,
+     "reward_mean": 1.0,
+     "error_median": 0.0,
+     "scan_s_median": 10.2
+    },
+    "prior": {
+     "pass_rate": 0.0,
+     "instances_passed_at_least_once": 0,
+     "reward_mean": 0.0,
+     "error_median": 0.557,
+     "scan_s_median": 0.0
+    },
+    "console_default": {
+     "pass_rate": 0.0,
+     "instances_passed_at_least_once": 0,
+     "reward_mean": 0.269,
+     "error_median": 0.4434,
+     "scan_s_median": 10.2
+    },
+    "fixed_recipe": {
+     "pass_rate": 0.208,
+     "instances_passed_at_least_once": 5,
+     "reward_mean": 0.411,
+     "error_median": 0.0342,
+     "scan_s_median": 10.2
+    },
+    "brute_force": {
+     "pass_rate": 0.125,
+     "instances_passed_at_least_once": 3,
+     "reward_mean": 0.649,
+     "error_median": 0.2242,
+     "scan_s_median": 22.9
+    },
+    "wrong_units": {
+     "pass_rate": 0.0,
+     "instances_passed_at_least_once": 0,
+     "reward_mean": 0.0,
+     "error_median": null,
+     "scan_s_median": 10.2
+    },
+    "seed_attacker": {
+     "pass_rate": 0.042,
+     "instances_passed_at_least_once": 1,
+     "reward_mean": 0.042,
+     "error_median": -0.2385,
+     "scan_s_median": 10.2
+    },
+    "no_swap": {
+     "pass_rate": 0.667,
+     "instances_passed_at_least_once": 16,
+     "reward_mean": 0.932,
+     "error_median": 0.0281,
+     "scan_s_median": 10.2
+    },
+    "size_only": {
+     "pass_rate": 0.0,
+     "instances_passed_at_least_once": 0,
+     "reward_mean": 0.0,
+     "error_median": -0.1179,
+     "scan_s_median": 10.2
+    },
+    "safe_max": {
+     "pass_rate": 0.0,
+     "instances_passed_at_least_once": 0,
+     "reward_mean": 0.0,
+     "error_median": 0.557,
+     "scan_s_median": 10.2
+    }
+   },
+   "tolerance_median": 1.1,
+   "reward_prior_after_one_scan_max": 0.0,
+   "instance_list": [
+    {
+     "seed": 0,
+     "task_id": "nowrap-e3c63f6b6fd8",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 1,
+     "task_id": "nowrap-2ec35c7f5ad6",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 2,
+     "task_id": "nowrap-5a58f4a79d92",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 3,
+     "task_id": "nowrap-c7ecc493f1e8",
+     "admitted": false,
+     "reasons": [
+      "fixed_recipe passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 4,
+     "task_id": "nowrap-6cd6d698752f",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 5,
+     "task_id": "nowrap-02b54d20cbf0",
+     "admitted": false,
+     "reasons": [
+      "fixed_recipe passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 6,
+     "task_id": "nowrap-3b648dfe90ad",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 7,
+     "task_id": "nowrap-5e329bdd96a4",
+     "admitted": false,
+     "reasons": [
+      "seed_attacker passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 8,
+     "task_id": "nowrap-823c18c7bd67",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 9,
+     "task_id": "nowrap-b5e8e0fa0f12",
+     "admitted": false,
+     "reasons": [
+      "fixed_recipe passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 10,
+     "task_id": "nowrap-b3c7850a848b",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 11,
+     "task_id": "nowrap-a371f8a5aff2",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 12,
+     "task_id": "nowrap-946dea36038e",
+     "admitted": false,
+     "reasons": [
+      "brute_force passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 13,
+     "task_id": "nowrap-2978feecde3f",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 14,
+     "task_id": "nowrap-01934672f4f4",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 15,
+     "task_id": "nowrap-3854e4af1e66",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 16,
+     "task_id": "nowrap-833176b46e41",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 17,
+     "task_id": "nowrap-3e5ce52b2345",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 18,
+     "task_id": "nowrap-e1d9519ad30a",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 19,
+     "task_id": "nowrap-34c54caf58e3",
+     "admitted": false,
+     "reasons": [
+      "fixed_recipe passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 20,
+     "task_id": "nowrap-784f72aa0998",
+     "admitted": true,
+     "reasons": [],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 21,
+     "task_id": "nowrap-e1be8585c64a",
+     "admitted": false,
+     "reasons": [
+      "brute_force passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 22,
+     "task_id": "nowrap-f654bdb0a56c",
+     "admitted": false,
+     "reasons": [
+      "brute_force passes"
+     ],
+     "tolerance": 1.1
+    },
+    {
+     "seed": 23,
+     "task_id": "nowrap-53dd477fa02a",
+     "admitted": false,
+     "reasons": [
+      "fixed_recipe passes"
+     ],
+     "tolerance": 1.1
+    }
+   ],
+   "fixed_recipe": {
+    "pe_dir": "x",
+    "h_pe": 84.0,
+    "tuned_pass_rate": 0.25,
+    "tuned_mean_reward": 0.5995260927621368
+   }
+  }
+ },
+ "wall_seconds": 256.7
+}

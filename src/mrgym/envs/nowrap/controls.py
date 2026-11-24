@@ -42,7 +42,7 @@ def _geometry(h_pe, h_ro, pe_dir, px):
     """Smallest centred geometry that reaches ``h_pe`` / ``h_ro`` mm from the isocentre at pixel ``px``."""
     n_pe = 2 * math.ceil(h_pe / px)
     n_ro = max(2 * math.ceil(h_ro / px), n_pe, 32)
-    return dict(pe_dir=pe_dir, fov_mm=round(n_ro * px, 6), phase_fov=n_pe / n_ro, matrix=n_ro, phase_oversampling=0.0)
+    return dict(pe_dir=pe_dir, fov_mm=round(n_ro * px, 6), phase_fov=round(n_pe / n_ro, 6), matrix=n_ro, phase_oversampling=0.0)
 
 
 def _safe(card):
@@ -86,7 +86,7 @@ def console_default(sc):
 
 
 def recipe_candidates():
-    return [dict(pe_dir=d, h_pe=float(h)) for d in ("y", "x") for h in range(56, 132, 4)]
+    return [dict(pe_dir=d, h_pe=float(h)) for d in ("y", "x") for h in range(52, 132, 2)]
 
 
 def fixed_recipe(recipe):
@@ -196,7 +196,7 @@ DESCRIPTIONS = dict(
     fixed_recipe="one constant geometry tuned on other worlds, applied blindly",
     brute_force="shrinks a square field of view scan by scan until the object touches the border",
     wrong_units="the reference's geometry with the field of view in centimetres",
-    seed_attacker="rebuilds worlds from guessable seeds with the public generator",
+    seed_attacker="rebuilds worlds from guessable seeds with the public generator; failing that, replays the fastest geometry of another instance",
     no_swap="measures like the reference but always phase-encodes along y",
     size_only="uses the object's size and ignores that it is off-centre",
     safe_max="one scan, then the safe geometry",
@@ -211,20 +211,21 @@ def policies(recipe=None):
 
 
 def tune_recipe(cfgs, candidates=None, draws=(0,)):
-    """"Tuned on other worlds": the constant geometry with the highest mean reward over the tuning instances."""
+    """"Tuned on other worlds": the constant geometry that passes the most tuning instances (ties: the highest mean
+    reward). This is the strongest constant a shortcut could use."""
     worlds = [W.make_world(c["seed"], c["world_spec"]) for c in cfgs]
     engines = [kspace.Engine(w) for w in worlds]
     best = None
     for cand in candidates or recipe_candidates():
-        rewards = []
+        scores = []
         for cfg, w, eng in zip(cfgs, worlds, engines):
             for d in draws:
                 answer, session, _ = run_policy(cfg, fixed_recipe(cand), d, eng)
-                rewards.append(task.score(cfg, answer, session.n_scans, world=w, engine=eng)["reward"])
-        m = float(np.mean(rewards))
-        if best is None or m > best[0]:
-            best = (m, cand)
-    return dict(best[1], tuned_mean_reward=best[0])
+                scores.append(task.score(cfg, answer, session.n_scans, world=w, engine=eng))
+        key = (float(np.mean([s["passed"] for s in scores])), float(np.mean([s["reward"] for s in scores])))
+        if best is None or key > best[0]:
+            best = (key, cand)
+    return dict(best[1], tuned_pass_rate=best[0][0], tuned_mean_reward=best[0][1])
 
 
 def admit(cfg, recipe=None, n_cal=0, n_test=8, n_ctrl=4):
