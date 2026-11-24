@@ -1,0 +1,14 @@
+{
+ "sycomore_version": "unknown",
+ "engine": "mrgym-engine-0.1.0",
+ "date_utc": "2026-11-24",
+ "cases": 13,
+ "max_abs_diff_no_diffusion": 2.8219093728409916e-13,
+ "max_abs_diff_with_diffusion": 3.587357980117112e-10,
+ "bounds": [
+  1e-10,
+  1e-07
+ ],
+ "passed": true,
+ "command": "pip install sycomore && python tools/external/compare_sycomore.py --write"
+}

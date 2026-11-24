@@ -1,4 +1,4 @@
-"""Checks for the recon-repair family. Run: python3 tests/test_recon_repair.py  (no test framework needed)."""
+"""Checks of the recon-repair task set. Run from this folder: python -m pytest -q   (or: python tests/test_recon_repair.py)."""
 import hashlib
 import os
 import sys
@@ -7,7 +7,8 @@ import tempfile
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from mrfrl.recon_repair import alt, cartesian as cart, task  # noqa: E402
+from recon_repair import alt, task  # noqa: E402
+from recon_repair import cartesian as cart  # noqa: E402
 
 
 def tree_hash(root):
@@ -75,6 +76,15 @@ def test_answer_key_is_not_in_the_agent_image():
     seen = {os.path.relpath(os.path.join(b, f), root) for b, _, fs in os.walk(os.path.join(root, "environment")) for f in fs}
     assert seen == {"environment/Dockerfile", "environment/app/recon.py", "environment/app/FORMAT.md",
                     "environment/app/data/scan_1.npz", "environment/app/data/scan_2.npz"}, seen   # level 3: no scout
+
+
+def test_task_closes_the_network():
+    """The reference solution follows from FORMAT.md and this generator, so a task must not give the agent a network."""
+    out = tempfile.mkdtemp()
+    root = task.write(task.build(1, 1, "train"), out)
+    toml = open(os.path.join(root, "task.toml")).read()
+    assert '[environment]\nnetwork_mode = "no-network"\n' in toml
+    assert 'name = "mrgym-extras/recon-repair-train-l1-s00001"' in toml
 
 
 if __name__ == "__main__":

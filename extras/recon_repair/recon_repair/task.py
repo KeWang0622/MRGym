@@ -12,10 +12,12 @@ import warnings
 
 import numpy as np
 
-from .. import sim
-from . import alt, cartesian as cart
+from . import alt, sim
+from . import cartesian as cart
 
 FAMILY, VERSION = "recon-repair", "0.2"
+ORGANISATION = "mrgym-extras"
+NETWORK_MODE = "no-network"     # the reference solution can be regenerated from FORMAT.md by anyone who can install this folder
 SPLITS = {"train": 11, "dev": 12, "heldout_mechanism": 13}        # seed namespaces; no two splits share a stream
 LEVEL_FAULTS = {1: 1, 2: 2, 3: 3}
 N_PUBLIC, N_HIDDEN = 2, 3
@@ -29,7 +31,7 @@ def threshold(e_ref):
 
 def run_source(src, npz):
     """Run reconstruction source text on one scan (dict of arrays) in this process. Returns the image or None."""
-    work = tempfile.mkdtemp(prefix="mrfrl_gate_")
+    work = tempfile.mkdtemp(prefix="recon_repair_gate_")
     try:
         np.savez(os.path.join(work, "scan.npz"), **npz)
         ns = {"__name__": "recon"}
@@ -207,13 +209,13 @@ def write(inst, out_root):
     _text(os.path.join(root, "solution", "recon.py"), cart.recon_source(d))
     _text(os.path.join(root, "solution", "solve.sh"), SOLVE_SH, 0o755)
     _text(os.path.join(root, "tests", "test.sh"), TEST_SH, 0o755)
-    shutil.copy(os.path.join(os.path.dirname(os.path.dirname(__file__)), "verify.py"),
+    shutil.copy(os.path.join(os.path.dirname(__file__), "verify.py"),
                 os.path.join(root, "tests", "verify.py"))
     _text(os.path.join(root, "task.toml"), f'''schema_version = "1.4"
 artifacts = ["/app/recon.py"]
 
 [task]
-name = "mrfoundry-rl/{task_name(inst)}"
+name = "{ORGANISATION}/{task_name(inst)}"
 
 [metadata]
 family = "{FAMILY}"
@@ -233,6 +235,7 @@ timeout_sec = 3600.0
 user = "agent"
 
 [environment]
+network_mode = "{NETWORK_MODE}"
 cpus = 2
 memory_mb = 4096
 ''')

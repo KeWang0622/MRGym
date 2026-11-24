@@ -66,6 +66,7 @@ def cmd_list(a):
 
 def cmd_card(a):
     import mrgym
+
     from . import cards
     c = mrgym.card(a.id)
     if a.json:
@@ -88,6 +89,7 @@ def cmd_tools(a):
 
 def cmd_check(a):
     import mrgym
+
     from . import admission, check
     if a.admission:
         result = admission.run(a.id, n=a.n, levels=[a.level] if a.level else None, workers=a.workers)
@@ -118,6 +120,7 @@ def _compact(env, max_lines=3):
 
 def cmd_demo(a):
     import mrgym
+
     from . import policies
     spec = mrgym.spec(a.id)
     level = a.level or spec.default_level
@@ -130,13 +133,15 @@ def cmd_demo(a):
           f"scanner log replays: {r.info['replay']['ok']}")
     if r.info.get("policy_error"):
         print("  policy error:", r.info["policy_error"])
-    others = [p for p in policies.policy_names(spec) if p not in (a.policy, "seed_attacker") and not a.only]
+    table = policies.controls_of(spec).policies()
+    others = [p for p in table if p not in (a.policy, "seed_attacker") and table[p][1] == 1.0 and not a.only]
     if others:
         print("the same hidden world, other scripted policies:")
         for p in others:
             rr = policies.run(mrgym.make(a.id, level=level, seed=a.seed, reveal_score=True), p)
             s = rr.info["score"]
-            why = "passed" if s.get("passed") else (s.get("diagnostic") if s.get("diagnostic") not in (None, "ok") else "not within tolerance")
+            why = ("passed" if s.get("passed") else "no scan in the log" if not s.get("gate_measured", True)
+                   else s.get("diagnostic") if s.get("diagnostic") not in (None, "ok") else "not within tolerance")
             print(f"  {p:16s} reward {rr.reward:.3f}   {why}")
     return 0
 

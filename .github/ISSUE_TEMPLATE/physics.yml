@@ -1,0 +1,55 @@
+name: Scanner physics report
+description: The virtual scanner returns something a real scanner, or its own datasheet, would not
+title: "[Physics] "
+labels: ["physics"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A wrong signal, cost or limit is a defect even if every test passes.
+        Please make the report checkable: a protocol, the value you got, the value you expected and why.
+        The datasheet is `docs/scanner.md`; `mrgym validate` prints the checks the engine already passes.
+  - type: textarea
+    id: protocol
+    attributes:
+      label: Protocol and call
+      description: >-
+        The exact `plan` or `scan` request (JSON) and the realised protocol the console returned. From the command
+        line, `mrgym scan sequence=... tr_ms=...` with the phantom and the seed.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed
+      description: Numbers with units (signal ratio, scan time in seconds, limit in percent, noise SD).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected, and the source
+      description: A formula with its assumptions, an independent simulation, a measurement, or a reference (author, year, equation).
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - Signal model (steady state, relaxation, spoiling, off-resonance, transmit, receive)
+        - Timing, scan time or hardware limits
+        - Noise
+        - Image formation or geometry (k-space, wrap-around, chemical shift, distortion)
+        - The datasheet says one thing, the scanner does another
+        - A missing effect that changes a decision an agent has to make
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Output of `mrgym --version`
+      placeholder: "mrgym 0.1.0.dev0 (engine mrgym-engine-0.1.0)"
+    validations:
+      required: true

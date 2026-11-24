@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a way to get reward without the measurement
+    url: https://github.com/KeWang0622/MRGym/security/advisories/new
+    about: Leaks of the seed or the hidden world, budget resets and altered logs are handled privately first. See SECURITY.md.

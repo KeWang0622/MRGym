@@ -8,8 +8,8 @@ import time
 
 import numpy as np
 import pytest
-from conftest import SEED, episode_cfg
 
+from conftest import SEED, episode_cfg
 from mrgym import validate
 from mrgym.scanner import client, console, kspace, session
 from mrgym.scanner import world as W

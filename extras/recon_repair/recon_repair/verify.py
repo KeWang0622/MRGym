@@ -29,7 +29,7 @@ def nrmse(img, truth):
 
 def run_submission(sub_dir, scan_path, timeout):
     """Run recon.py on one hidden scan in a scratch directory. Returns (image or None, reason)."""
-    work = tempfile.mkdtemp(prefix="mrfrl_run_")
+    work = tempfile.mkdtemp(prefix="recon_repair_run_")
     try:
         for name in os.listdir(sub_dir):                 # the submission's own Python files only
             if name.endswith(".py") and os.path.isfile(os.path.join(sub_dir, name)):

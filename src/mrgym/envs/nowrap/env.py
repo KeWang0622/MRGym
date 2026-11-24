@@ -69,7 +69,7 @@ def card() -> dict:
                                                   "phase_oversampling": "<fraction, optional>"}},
         reward=dict(range=[0.0, 1.0], when="only at submit; 0 on every other step",
                     gates=["the scanner log replays and is within budget", "at least one accepted scan",
-                           "the console accepts the geometry", f"pixel <= the required size",
+                           "the console accepts the geometry", "pixel <= the required size",
                            "the whole object lies inside the image (hidden extent, 0.5 mm slack)",
                            f"wrap-around energy of a noise-free re-scan <= {task.WRAP_LIMIT:g} of the image"],
                     error="T / T_opt - 1: scan time of the delivered geometry over the fastest valid one found by the verifier",

@@ -1,0 +1,47 @@
+name: Bug report
+description: Something in the package, the command line or the scanner service does not work as documented
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, what you got.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: >-
+        Commands or a script. If an episode is involved, give the environment id, the level and the seed, and attach
+        the bundle written by `mrgym record` if you have one. Never paste a held-out seed or an episode config.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Output of `mrgym --version`
+      placeholder: "mrgym 0.1.0.dev0 (engine mrgym-engine-0.1.0)"
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Python, numpy, scipy, operating system
+      placeholder: "Python 3.12.7, numpy 2.2.6, scipy 1.15.3, Ubuntu 24.04"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How was it installed
+      options:
+        - pip install -e . (from a checkout)
+        - a wheel built from a checkout
+        - through an integration (OpenEnv)
+        - other
+    validations:
+      required: true

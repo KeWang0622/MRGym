@@ -9,7 +9,7 @@ import json
 
 import numpy as np
 
-from .. import sim
+from . import sim
 
 # variant -> (mechanism group, scan features that must be present for the fault to show, dialect requirements)
 VARIANTS = {

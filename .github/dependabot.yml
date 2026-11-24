@@ -1,0 +1,12 @@
+# Actions in the workflows are pinned to commit hashes, so they only move through a pull request.
+# One grouped pull request per week keeps that reviewable. Python dependencies are ranges in pyproject.toml
+# (numpy and scipy only) and are exercised by the test matrix, so they have no entry here.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

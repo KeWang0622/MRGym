@@ -1,4 +1,4 @@
-"""Physics shared by the environment families: objects, coils, Cartesian signal synthesis.
+"""Signal synthesis for the recon-repair tasks: objects, coils, Cartesian signal synthesis.
 
 Conventions used everywhere in this package
 - Positions are in units of the prescribed field of view (FOV = 1). An array index ``i`` along an axis of

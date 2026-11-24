@@ -1,10 +1,10 @@
-"""Command line for the MRFoundry-RL environment families.
+"""Command line of the recon-repair task set.
 
-    python -m mrfrl make  --seed 0 --level 1 --split train --out tasks/        write one task directory
-    python -m mrfrl batch --seeds 0:50 --level 1 --split train --out tasks/    write many, print admission statistics
-    python -m mrfrl workspace --task tasks/<name> --to /tmp/ws                 copy what the agent sees (local runs)
-    python -m mrfrl verify --task tasks/<name> --submission /tmp/ws            grade a workspace against hidden scans
-    python -m mrfrl selfcheck --n 12                                           build instances and run the controls
+    python -m recon_repair make  --seed 0 --level 1 --split train --out tasks/        write one task directory
+    python -m recon_repair batch --seeds 0:50 --level 1 --split train --out tasks/    write many, print admission statistics
+    python -m recon_repair workspace --task tasks/<name> --to /tmp/ws                 copy what the agent sees (local runs)
+    python -m recon_repair verify --task tasks/<name> --submission /tmp/ws            grade a workspace against hidden scans
+    python -m recon_repair selfcheck --n 12                                           build instances and run the controls
 """
 import argparse
 import collections
@@ -16,11 +16,12 @@ import sys
 import tempfile
 import time
 
-from .recon_repair import cartesian as cart, task
+from . import cartesian as cart
+from . import task
 
 
 def _verify(task_dir, submission):
-    out = tempfile.mkdtemp(prefix="mrfrl_verify_")
+    out = tempfile.mkdtemp(prefix="recon_repair_verify_")
     try:
         subprocess.run([sys.executable, os.path.join(task_dir, "tests", "verify.py"), "--submission", submission,
                         "--hidden", os.path.join(task_dir, "tests", "hidden"), "--out", os.path.join(out, "reward.json"),
@@ -31,7 +32,7 @@ def _verify(task_dir, submission):
 
 
 def _with_recon(source_text):
-    d = tempfile.mkdtemp(prefix="mrfrl_sub_")
+    d = tempfile.mkdtemp(prefix="recon_repair_sub_")
     with open(os.path.join(d, "recon.py"), "w") as fh:
         fh.write(source_text)
     return d
@@ -71,7 +72,7 @@ def cmd_verify(a):
 
 def cmd_selfcheck(a):
     """End-to-end controls through the real verifier subprocess, on freshly built instances."""
-    root = tempfile.mkdtemp(prefix="mrfrl_selfcheck_")
+    root = tempfile.mkdtemp(prefix="recon_repair_selfcheck_")
     totals = collections.Counter()
     try:
         for seed in range(a.n):
@@ -102,7 +103,7 @@ def cmd_selfcheck(a):
 
 
 def main():
-    ap = argparse.ArgumentParser(prog="mrfrl", description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    ap = argparse.ArgumentParser(prog="recon_repair", description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("make", "batch"):
         p = sub.add_parser(name)

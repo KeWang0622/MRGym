@@ -19,7 +19,7 @@ used here.
 [Results](results/) · [Limits](docs/physics/limits.md) · [Design](docs/DESIGN.md)
 
 <!-- COUNTS:START -->
-| 6 sequences | 3 phantoms | 2 field strengths | 25 tissue rows with sources | 36 physics checks | 3 environments (admitted, practice, sandbox) |
+| 6 sequences | 3 phantoms | 2 field strengths | 25 tissue rows with sources | 38 physics checks | 3 environments (admitted, practice, sandbox) |
 |---|---|---|---|---|---|
 <!-- COUNTS:END -->
 
@@ -148,9 +148,41 @@ mrgym view runs/demo/episode_bundle.json --out runs/demo/viewer.html
 ## Current results
 
 <!-- RESULTS:START -->
-No episode records yet.
+324 episodes played 2026-11-24 (UTC) on engine `mrgym-engine-0.1.0`, package version `0.1.0.dev0`: `Scanner/NoWrap-v0` levels 1, 2; public train split, seeds 0-23; 10 scripted control policies, 0 language model(s).
 
-No episode records yet.
+These rows are scripted control policies only. No language model has been run on these instances yet.
+
+**`Scanner/NoWrap-v0`, level 1** (24 instances)
+
+| Agent | Kind | Episodes | Passed | 95 % interval | Mean reward | Median error | Median scans | Median budget used | Median turns | Tokens in / out | Infra errors |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| brute_force | scripted | 24 | 0/24 (0%) | 0-14 % | 0.528 | 49.3 % | 3 | 76 % | - | - | 0 |
+| console_default | scripted | 24 | 0/24 (0%) | 0-14 % | 0.145 | 84.1 % | 1 | 34 % | - | - | 0 |
+| fixed_recipe | scripted | 24 | 6/24 (25%) | 12-45 % | 0.250 | 0.0 % | 1 | 34 % | - | - | 0 |
+| no_swap | scripted | 24 | 13/24 (54%) | 35-72 % | 0.852 | 7.3 % | 1 | 34 % | - | - | 0 |
+| prior | scripted | 24 | 0/24 (0%) | 0-14 % | 0.000 | 98.6 % | 0 | 0 % | - | - | 0 |
+| reference | scripted | 24 | 24/24 (100%) | 86-100 % | 1.000 | 0.0 % | 1 | 34 % | - | - | 0 |
+| safe_max | scripted | 24 | 0/24 (0%) | 0-14 % | 0.000 | 98.6 % | 1 | 34 % | - | - | 0 |
+| seed_attacker | scripted | 24 | 6/24 (25%) | 12-45 % | 0.250 | -2.9 % | 1 | 34 % | - | - | 0 |
+| size_only | scripted | 24 | 10/24 (42%) | 24-61 % | 0.417 | -2.7 % | 1 | 34 % | - | - | 0 |
+| wrong_units | scripted | 24 | 0/24 (0%) | 0-14 % | 0.000 | - | 1 | 34 % | - | - | 0 |
+
+**`Scanner/NoWrap-v0`, level 2** (9 instances)
+
+| Agent | Kind | Episodes | Passed | 95 % interval | Mean reward | Median error | Median scans | Median budget used | Median turns | Tokens in / out | Infra errors |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| brute_force | scripted | 8 | 0/8 (0%) | 0-32 % | 0.531 | 36.3 % | 3 | 76 % | - | - | 0 |
+| console_default | scripted | 8 | 0/8 (0%) | 0-32 % | 0.274 | 55.1 % | 1 | 34 % | - | - | 1 |
+| fixed_recipe | scripted | 8 | 2/8 (25%) | 7-59 % | 0.639 | 11.1 % | 1 | 34 % | - | - | 1 |
+| no_swap | scripted | 8 | 3/8 (38%) | 14-69 % | 0.835 | 12.9 % | 1 | 34 % | - | - | 0 |
+| prior | scripted | 9 | 0/9 (0%) | 0-30 % | 0.000 | 61.2 % | 0 | 0 % | - | - | 0 |
+| reference | scripted | 9 | 9/9 (100%) | 70-100 % | 1.000 | 0.0 % | 1 | 34 % | - | - | 0 |
+| safe_max | scripted | 8 | 0/8 (0%) | 0-32 % | 0.000 | 67.3 % | 1 | 34 % | - | - | 0 |
+| seed_attacker | scripted | 8 | 1/8 (12%) | 2-47 % | 0.125 | -18.2 % | 1 | 34 % | - | - | 0 |
+| size_only | scripted | 8 | 0/8 (0%) | 0-32 % | 0.000 | -11.1 % | 1 | 34 % | - | - | 0 |
+| wrong_units | scripted | 8 | 0/8 (0%) | 0-32 % | 0.000 | - | 1 | 34 % | - | - | 0 |
+
+Passed: episodes that meet the pass rule of the environment, as `k/N (p%)`, with the Wilson 95 % interval. N counts every started episode except those that ended in an endpoint or runner failure; these are not agent results and stand under Infra errors. An episode without a delivery has reward 0. Median error: the error measure of the environment (`mrgym card <id>`), in percent; an episode without a valid deliverable counts as infinite, and `-` means the median is infinite. Median budget used: scan seconds used over the scan-time budget. Turns and tokens are per episode and exist for models only; `(est.)` marks counts estimated from characters because the endpoint reported no usage. Agents are in alphabetical order within kind; the table does not rank.
 <!-- RESULTS:END -->
 
 No language model has been run yet: every row is a scripted policy. These are maintainer-run results on simulated

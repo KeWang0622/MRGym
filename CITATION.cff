@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use MR Gym, please cite it using the metadata in this file."
+type: software
+title: "MR Gym: a virtual MRI scanner you can drop an AI agent into"
+abstract: >-
+  MR Gym is a virtual MRI scanner that an AI agent operates through tool calls: it plans and runs priced scans of a
+  hidden simulated object and is scored on what it delivers. An environment counts as admitted only when a reference
+  policy passes it and every shortcut policy fails. Research preview; expert review remains pending.
+authors:
+  - family-names: Wang
+    given-names: Ke
+repository-code: "https://github.com/KeWang0622/MRGym"
+url: "https://github.com/KeWang0622/MRGym"
+license: Apache-2.0
+version: 0.1.0.dev0
+keywords:
+  - magnetic resonance imaging
+  - virtual scanner
+  - simulation
+  - reinforcement learning
+  - AI agents

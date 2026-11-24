@@ -77,9 +77,15 @@ include = [
     "/examples",
     "/results",
     "/tools",
+    "/integrations",
+    "/extras",
+    "/assets",
+    "/AGENTS.md",
     "/CHANGELOG.md",
     "/CITATION.cff",
     "/CONTRIBUTING.md",
+    "/Makefile",
+    "/SECURITY.md",
 ]
 
 [tool.pytest.ini_options]

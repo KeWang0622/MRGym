@@ -99,7 +99,20 @@ def validation():
     for g, title in groups.items():
         out += [f"## {title}", "", validate.markdown_table([r for r in rows if r["group"] == g]), ""]
     out += ["The measured column is from the machine that generated this page; values at rounding level differ between "
-            "machines, the bounds do not."]
+            "machines, the bounds do not.", ""]
+    ext = _read("docs/physics/external_sycomore.json")
+    out += ["## Another group's simulator (optional, not in the test suite)", ""]
+    if ext:
+        e = json.loads(ext)
+        out += [f"The RF-spoiled steady state of the engine against [sycomore](https://github.com/lamyj/sycomore), an extended "
+                f"phase graph simulator in C++ that is not a dependency of this package: {e['cases']} cases, largest difference "
+                f"{e['max_abs_diff_no_diffusion']:.1e} of M0 without diffusion and {e['max_abs_diff_with_diffusion']:.1e} with "
+                f"diffusion (bounds {e['bounds'][0]:g} and {e['bounds'][1]:g}), on engine `{e['engine']}`, {e['date_utc']}. With "
+                "diffusion both codes use the same b-factor formula, so this checks the implementation, not the diffusion model.",
+                "", f"Regenerate: `{e['command']}`."]
+    else:
+        out += ["Not run. `pip install sycomore && python tools/external/compare_sycomore.py --write` compares the RF-spoiled "
+                "steady state with sycomore and stores the result."]
     return "\n".join(out) + "\n", rows
 
 

@@ -1,0 +1,69 @@
+name: Environment proposal or problem
+description: Propose a new environment on the scanner, or report a problem with an existing one
+title: "[Environment] "
+labels: ["environment"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read "Add an environment" in CONTRIBUTING.md first. An environment is admitted on evidence:
+        a reference policy passes and every shortcut policy fails, on fresh instances.
+        A shortcut that reads the seed or the hidden world goes to a private advisory instead (SECURITY.md).
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - New environment or level
+        - The task statement is wrong or unclear
+        - The score accepts a wrong result
+        - The score rejects a correct result
+        - A physical shortcut passes (one constant recipe, a blind sweep)
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment id, level and seed (for an existing environment)
+      placeholder: "Scanner/NoWrap-v0, level 2, seed 17"
+  - type: textarea
+    id: deliverable
+    attributes:
+      label: Deliverable
+      description: What the agent hands in (a quantity with units, a protocol, a decision) and how its error is measured on the hidden world.
+    validations:
+      required: true
+  - type: textarea
+    id: confounder
+    attributes:
+      label: What is hidden, and why one recipe cannot work
+      description: What differs between instances so that the right answer depends on a measurement, and what makes the textbook procedure give a wrong answer.
+    validations:
+      required: true
+  - type: textarea
+    id: budget
+    attributes:
+      label: Budget and decision
+      description: What the scan-time budget forces the agent to choose between. Why a blind sweep within the budget fails.
+  - type: textarea
+    id: controls
+    attributes:
+      label: Control policies
+      description: >-
+        The reference policy and the shortcut policies expected to fail: no-scan prior, best constant recipe tuned on
+        other worlds, blind sweep, wrong units, seed attack, and the environment's own confounder-blind policies.
+        For a problem report: the policy and its pass rate.
+    validations:
+      required: true
+  - type: textarea
+    id: engine
+    attributes:
+      label: Scanner changes needed
+      description: New sequences, parameters or physics the engine would need, or "none".
+  - type: checkboxes
+    id: who
+    attributes:
+      label: Contribution
+      options:
+        - label: I intend to implement this
+        - label: I can review the physics

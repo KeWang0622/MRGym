@@ -11,7 +11,7 @@ import json
 import numpy as np
 from scipy.ndimage import map_coordinates
 
-from .. import sim
+from . import sim
 from .cartesian import KIND_BITS
 
 

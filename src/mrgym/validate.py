@@ -203,6 +203,27 @@ def check_bssfp():
                  "closed form (Freeman & Hill 1971; Scheffler & Lehnhardt 2003) against Bloch time stepping", worst, 1e-4)]
 
 
+def check_node_interpolation():
+    """The engine evaluates the EPG on a few Chebyshev nodes of the flip angle per tissue and interpolates."""
+    w = W.make_world("5b" * 16, dict(kind="qa", b1_shape_amp=(0.2, 0.24)))
+    eng = kspace.Engine(w)
+    worst = 0.0
+    for prot in (dict(sequence="spgr", tr_ms=8.0, flip_deg=30.0, spoiler_mt_ms_per_m=60.0, matrix=64),
+                 dict(sequence="afi", tr_ms=20.0, flip_deg=60.0, matrix=64)):
+        rp = console.plan(prot, w["console"])["realised"]
+        for c, name in enumerate(w["names"]):
+            cls, sup = w["tissues"][name], eng.sup[c]
+            idx = np.flatnonzero(w["weights"][c][sup] > 0.5)[::997][:12]
+            a = np.deg2rad(rp["flip_deg"]) * eng.b1[sup][idx]
+            bd = kspace.diffusion_bd(cls["adc_um2_ms"], rp["spoiler_mt_ms_per_m"], rp["tr_ms"])
+            pattern = (1,) if rp["sequence"] == "spgr" else (1, 1) + (0,) * (rp["tr_ratio"] - 1)
+            direct = np.array([epg.steady_state(float(x), rp["tr_ms"], cls["t1_ms"], cls["t2_ms"], rp["rf_phase_increment_deg"], pattern, bd) for x in a]).T
+            fast = [v[idx] / (w["weights"][c][sup][idx] * cls["pd"]) for v in eng.amplitudes(rp, c)]
+            worst = max(worst, max(float(np.max(np.abs(f - d)) / np.max(np.abs(d))) for f, d in zip(fast, direct)))
+    return [_row("S15", "signal", "per-tissue EPG interpolated over the flip angle (5 to 10 Chebyshev nodes), strong B1 pattern",
+                 "the EPG solved at the flip angle of every sampled voxel", worst, 1e-4, f"{worst:.1e} relative")]
+
+
 # ================================================================================================== encoding
 def check_numerics():
     rng = np.random.default_rng(1)
@@ -464,6 +485,23 @@ def check_positions():
                  "world coordinates (pixel i at (i - n // 2) x FOV / n)", worst, 0.15, f"max error {worst:.2f} mm")]
 
 
+def check_field_map():
+    ph = W.shapes_phantom([("wm", _disc(60))])
+    w = W.flat_world(ph, cf_offset_hz=12.0)
+    n, d = ph["n"], ph["extent_mm"] / ph["n"]
+    x = np.broadcast_to((np.arange(n) - n // 2) * d, (n, n))
+    w["fields"]["b0_hz"] = 0.4 * x                                        # Hz, rising with x
+    r = kspace.Engine(w, tier=1).scan(dict(sequence="spgr", tr_ms=60.0, flip_deg=20.0, n_echoes=2, echo_spacing_ms=5.0, matrix=128,
+                                           fov_mm=256.0, bandwidth_hz_per_px=600.0))
+    te = r["plan"]["realised"]["echo_times_ms"]
+    fmap = np.angle(r["images"][1] * np.conj(r["images"][0])) / (2 * np.pi * (te[1] - te[0]) * 1e-3)
+    xs = (np.arange(128) - 64) * 2.0
+    sel = np.abs(xs) < 40
+    err = np.abs(fmap[64, sel] - (12.0 + 0.4 * xs[sel])).max()
+    return [_row("K20", "encoding", "field map from the phase of two gradient echoes (12 Hz offset plus 0.4 Hz/mm)",
+                 "phase = +2 pi x off-resonance x TE: faster spins gain positive phase", err, 0.5, f"max error {err:.2f} Hz")]
+
+
 # ================================================================================================== console
 def check_console():
     b1 = console._b1_ut(10.0, 1.0)
@@ -483,9 +521,9 @@ def check_console():
     ]
 
 
-CHECKS = (check_closed_forms, check_ernst_angle, check_epg, check_spin_echo, check_bssfp, check_numerics, check_fat_shift,
-          check_wrap, check_gibbs, check_t2star_blur, check_bssfp_bands, check_epi, check_interference, check_noise,
-          check_in_opposed, check_positions, check_console)
+CHECKS = (check_closed_forms, check_ernst_angle, check_epg, check_spin_echo, check_bssfp, check_node_interpolation,
+          check_numerics, check_fat_shift, check_wrap, check_gibbs, check_t2star_blur, check_bssfp_bands, check_epi,
+          check_interference, check_noise, check_in_opposed, check_positions, check_field_map, check_console)
 
 
 def run(groups=None):
