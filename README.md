@@ -19,7 +19,7 @@ used here.
 [Results](results/) · [Limits](docs/physics/limits.md) · [Design](docs/DESIGN.md)
 
 <!-- COUNTS:START -->
-| 6 sequences | 3 phantoms | 2 field strengths | 25 tissue rows with sources | 38 physics checks | 3 environments (admitted, practice, sandbox) |
+| 6 sequences | 3 phantoms | 2 field strengths | 25 tissue rows, each with a source tag | 38 physics checks | 3 environments (admitted, practice, sandbox) |
 |---|---|---|---|---|---|
 <!-- COUNTS:END -->
 

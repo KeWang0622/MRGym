@@ -122,7 +122,7 @@ def counts(rows):
     from mrgym.scanner import world as W
     kinds = {mrgym.spec(i).kind for i in mrgym.list_envs()}
     n_env = len(mrgym.list_envs())
-    return (f"| {len(console.SEQUENCES)} sequences | {len(W.KINDS)} phantoms | 2 field strengths | {len(tissue.NAMES)} tissue rows with sources "
+    return (f"| {len(console.SEQUENCES)} sequences | {len(W.KINDS)} phantoms | 2 field strengths | {len(tissue.NAMES)} tissue rows, each with a source tag "
             f"| {len(rows)} physics checks | {n_env} environments ({', '.join(sorted(kinds))}) |\n|---|---|---|---|---|---|")
 
 
