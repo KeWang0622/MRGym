@@ -10,8 +10,8 @@ FOLDER = pathlib.Path(__file__).resolve().parents[1] / "examples" / "textbook"
 SCRIPTS = sorted(FOLDER.glob("[0-9][0-9]_*.py"))
 
 
-def test_all_twelve_examples_are_present():
-    assert [p.name[:2] for p in SCRIPTS] == [f"{i:02d}" for i in range(1, 13)]
+def test_all_thirteen_examples_are_present():
+    assert [p.name[:2] for p in SCRIPTS] == [f"{i:02d}" for i in range(1, 14)]
 
 
 def test_readme_lists_every_example():

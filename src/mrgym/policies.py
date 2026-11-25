@@ -12,20 +12,35 @@ from .env import Env, StepResult
 from .registry import Error
 from .scanner import session
 
-ERRORS = {c.type: c for c in (session.InvalidRequest, session.BudgetExhausted, session.RequestLimit)}
+ERRORS = {"budget": session.BudgetExhausted}                           # every other refusal is an InvalidRequest
+PLAN_REFUSALS = ("console_limit", "invalid_value", "unknown_parameter", "not_applicable")
 
 
 class ToolScanner:
+    """The scanner interface of the control policies (``info, budget, plan, scan(protocol, rois), read_regions, view,
+    profile``) on top of ``env.step``. Every call is a tool call of the episode: it is counted, logged and charged
+    like an agent's.
+
+    One thing is not a tool. ``view`` hands a scripted policy the image array and the extent of its bright pixels
+    (``bounding_box``), as ``LocalScanner.view`` does in process. Both are read on the trainer's side from the stored
+    scan after the ``view`` tool was called; the tool itself returns neither. A language model has ``profile``.
+    """
+
     def __init__(self, env: Env):
         self.env = env
+
+    def _readouts(self, rois) -> dict:
+        """The circles of a policy as tool arguments: these circles and none of the task's marked regions."""
+        marked = any("regions" in t.parameters.get("properties", {}) for t in self.env._tool_specs() if t.name == "scan")
+        return dict(regions=[], circles=list(rois or [])) if marked else dict(circles=list(rois or []))
 
     def _step(self, name, **arguments):
         obs = self.env.step({"name": name, "arguments": arguments})[0]
         if obs.is_error:
-            if name == "plan" and "violations" in obs.data:
-                return obs
             err = obs.data.get("error", {})
-            raise ERRORS.get(err.get("type"), session.ScannerError)(err.get("message", obs.text))
+            if name == "plan" and err.get("type") in PLAN_REFUSALS:
+                return obs
+            raise ERRORS.get(err.get("type"), session.InvalidRequest)(err.get("message", obs.text), error=err)
         return obs
 
     def info(self) -> dict:
@@ -36,17 +51,33 @@ class ToolScanner:
         return {"budget_s": s["scan_time_budget_s"], "used_s": s["scan_time_used_s"], "remaining_s": s["scan_time_left_s"],
                 "scans": s["scans"], "requests": s["scanner_requests"], "max_requests": s["max_scanner_requests"]}
 
+    @staticmethod
+    def _flat(protocol) -> dict:
+        return dict(protocol) if isinstance(protocol, dict) and all(isinstance(k, str) for k in protocol) else {"protocol": protocol}
+
     def plan(self, protocol) -> dict:
-        return self._step("plan", protocol=protocol).data
+        obs = self._step("plan", **self._flat(protocol))
+        if obs.is_error:                                                 # the console's answer to a protocol it cannot realise
+            problems = obs.data["error"]["problems"]
+            return dict(accept=False, sequence=protocol.get("sequence") if isinstance(protocol, dict) else None, error=obs.data["error"],
+                        violations=[dict(code=p.get("code", p["type"].upper()), parameter=p.get("parameter"), message=p["message"]) for p in problems])
+        return obs.data
 
     def scan(self, protocol, rois=None, out=None) -> dict:
-        return self._step("scan", protocol=protocol, regions=rois or []).data
+        return self._step("scan", **self._flat(protocol), **self._readouts(rois)).data
 
     def read_regions(self, scan, rois) -> list:
-        return self._step("read_regions", scan=scan, regions=rois).data["roi_readouts"]
+        return self._step("read_regions", scan_index=scan, **self._readouts(rois)).data["roi_readouts"]
 
     def view(self, scan, image=0, kind="magnitude") -> dict:
-        return self._step("view", scan=scan, image=image, kind=kind).data
+        data = self._step("view", scan_index=scan, image_index=image, kind=kind).data
+        stored = self.env.stored_scans()[scan]                           # trainer side, in process
+        return dict(data, scan=scan, image=image, rotation_deg=stored.get("rotation_deg", 0.0), array=stored[kind][image],
+                    bounding_box=session.image_extent(stored, image))
+
+    def profile(self, scan, axis, image=0, kind="magnitude", **options) -> dict:
+        return self._step("profile", scan_index=scan, axis=axis, image_index=image, kind=kind,
+                          **{k: v for k, v in options.items() if v is not None}).data
 
 
 def controls_of(env_or_spec):
@@ -56,9 +87,9 @@ def controls_of(env_or_spec):
 
 
 def policy_names(env_or_spec) -> list[str]:
-    """Control policies of an environment that play on its own budget (the ones ``run`` accepts by name)."""
+    """Control policies of an environment (the ones ``run`` accepts by name)."""
     c = controls_of(env_or_spec)
-    return [name for name, (_, scale) in c.policies().items() if scale == 1.0] if c else []
+    return list(c.policies()) if c else []
 
 
 def run(env: Env, policy, seed=None, recipe=None) -> StepResult:
@@ -69,11 +100,10 @@ def run(env: Env, policy, seed=None, recipe=None) -> StepResult:
     (never dropped)."""
     c = controls_of(env)
     if isinstance(policy, str):
-        fn, budget_scale = c.policies(recipe)[policy]
-        if budget_scale != 1.0:
-            raise Error(f"{policy} plays with {budget_scale:g} times the budget; an environment cannot grant that. "
-                        "It runs only inside the admission gate.")
-        policy = fn
+        table = c.policies(recipe)
+        if policy not in table:
+            raise Error(f"{env.spec.id} has no control policy {policy!r}; policies: {', '.join(table)}")
+        policy = table[policy]
     env.reset(seed=seed)
     sc, error = ToolScanner(env), None
     terminal = next(t.name for t in env._tool_specs() if t.terminal)
@@ -85,5 +115,12 @@ def run(env: Env, policy, seed=None, recipe=None) -> StepResult:
             raise
         answer = c.prior(sc)
     result = env.step({"name": terminal, "arguments": answer})
+    if not result.done:                                                  # the deliverable was refused: a failed episode
+        refusal = result.observation.text.splitlines()[0]
+        budget = sc.budget()
+        result = StepResult((result.observation, 0.0, False, True, dict(
+            submitted=False, refused=refusal, budget=budget, reason="deliverable_refused",
+            score=dict(passed=False, reward=0.0, error=None, diagnostic=refusal,
+                       checks=dict(deliverable_valid=False, measured=budget["scans"] > 0)))))
     result.info["policy_error"] = error
     return result

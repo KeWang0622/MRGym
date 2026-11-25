@@ -50,7 +50,7 @@ To repeat the check for one entry: `curl -s https://api.crossref.org/works/10.10
 |---|---|---|---|
 | Wright 2008 | P. J. Wright, O. E. Mougin, J. J. Totman, A. M. Peters, M. J. Brookes, R. Coxon, P. E. Morris, M. Clemence, S. T. Francis, R. W. Bowtell, P. A. Gowland. Water proton T1 measurements in brain tissue at 7, 3, and 1.5 T using IR-EPI, IR-TSE, and MPRAGE: results and optimization. *Magnetic Resonance Materials in Physics, Biology and Medicine* 21(1-2):121-130, 2008. doi:10.1007/s10334-008-0104-8 | T1 of white matter, grey matter, putamen and caudate at 1.5 and 3 T | abstract |
 | Rooney 2007 | W. D. Rooney, G. Johnson, X. Li, E. R. Cohen, S.-G. Kim, K. Ugurbil, C. S. Springer. Magnetic field and tissue dependencies of human brain longitudinal 1H2O relaxation in vivo. *Magnetic Resonance in Medicine* 57(2):308-318, 2007. doi:10.1002/mrm.21122 | T1 of cerebrospinal fluid | abstract |
-| Wansapura 1999 | J. P. Wansapura, S. K. Holland, R. S. Dunn, W. S. Ball. NMR relaxation times in the human brain at 3.0 tesla. *Journal of Magnetic Resonance Imaging* 9(4):531-538, 1999. doi:`10.1002/(SICI)1522-2586(199904)9:4<531::AID-JMRI4>3.0.CO;2-L` | T2 of grey and white matter at 3 T | abstract |
+| Wansapura 1999 | J. P. Wansapura, S. K. Holland, R. S. Dunn, W. S. Ball. NMR relaxation times in the human brain at 3.0 tesla. *Journal of Magnetic Resonance Imaging* 9(4):531-538, 1999. doi:`10.1002/(SICI)1522-2586(199904)9:4<531::AID-JMRI4>3.0.CO;2-L` | named for the T2 of grey and white matter at 3 T | not used as a source since engine 0.2.0: a review of this release reported that the abstract prints grey 80 / white 110 ms, the opposite assignment to the table's 95 / 75 ms; the two values are tagged [C]. The abstract was not re-read for this change |
 | Peters 2007 | A. M. Peters, M. J. Brookes, F. G. Hoogenraad, P. A. Gowland, S. T. Francis, P. G. Morris, R. Bowtell. T2* measurements in human brain at 1.5, 3 and 7 T. *Magnetic Resonance Imaging* 25(6):748-753, 2007. doi:10.1016/j.mri.2007.02.014 | T2* of grey and white matter | table, not re-checked |
 | Stanisz 2005 | G. J. Stanisz, E. E. Odrobina, J. Pun, M. Escaravage, S. J. Graham, M. J. Bronskill, R. M. Henkelman. T1, T2 relaxation and magnetization transfer in tissue at 3T. *Magnetic Resonance in Medicine* 54(3):507-512, 2005. doi:10.1002/mrm.20605 | T1 and T2 of muscle, blood and spinal cord | table, not re-checked |
 | de Bazelaire 2004 | C. M. J. de Bazelaire, G. D. Duhamel, N. M. Rofsky, D. C. Alsop. MR imaging relaxation times of abdominal and pelvic tissues measured in vivo at 3.0 T: preliminary results. *Radiology* 230(3):652-659, 2004. doi:10.1148/radiol.2303021331 | T1 and T2 of abdominal organs, fat and marrow | 3 T values: abstract; 1.5 T values: table, not re-checked |
@@ -62,6 +62,38 @@ DOI and every volume and page written in the source code agrees with its Crossre
 Values tagged [C] in the tissue table have no source: T2 and T2* of deep grey matter, skull, skin, bowel fluid,
 T2* of abdominal tissue and all lesion classes. Some numbers carry no tag: the diffusion coefficients and most
 proton densities. Treat them as [C]. [limits.md](limits.md), block 14, says what that means.
+
+## Added with engine 0.2.0: records not fetched
+
+The papers below are named in the source since engine 0.2.0 (slice selection, motion, the perturbation table, the
+external ladder). **Their bibliographic records were not fetched from Crossref and no body was read for this
+release.** What the package takes from each is a statement or a number quoted from its abstract in the design notes
+of the release; treat every row as "to be verified" until the check at the top of this page is repeated for it.
+
+| Reference | What is known of the record | Used in | What is taken from it |
+|---|---|---|---|
+| Pauly 1991 | J. Pauly, P. Le Roux, D. Nishimura, A. Macovski. Parameter relations for the Shinnar-Le Roux selective excitation pulse design algorithm. *IEEE Transactions on Medical Imaging*, 1991. doi:10.1109/42.75611 (not fetched) | `scanner/rf.py` (hard-pulse cascade as Cayley-Klein parameters) | the forward transform; written down by the authors of this package and checked numerically by R1, R2, L1.2 |
+| Malik 2011 | S. J. Malik and others, 2011 (journal, volume and DOI not recorded) | `scanner/rf.py`, `perturb.py` | the statement that actual flip-angle imaging with 2D encoding has systematic errors from the slice profile |
+| Dieringer 2014 | M. A. Dieringer and others, 2014 (journal, volume and DOI not recorded) | `validate.py` (R12), `tools/external/run_all.py` (L3.5), example 13 | the bias of uncorrected 2D variable-flip-angle T1, (-63 +- 1.5) % |
+| Svedin & Parker 2017 | B. T. Svedin, D. L. Parker, 2017 (journal, volume and DOI not recorded) | the same places | 40 to 80 % underestimation of T1 without profile correction |
+| Zaitsev 2015 | M. Zaitsev, J. Maclaren, M. Herbst. Motion artifacts in MRI: a complex problem with many partial solutions. *Journal of Magnetic Resonance Imaging*, 2015 (PMC4517972; DOI not recorded) | `validate.py` (K25), `perturb.py` | periodic modulation of k-space lines gives coherent ghosts; the spacing lines x f x TR x averages is derived in `validate.py` and checked there |
+| Newcombe 1998 | R. G. Newcombe, *Statistics in Medicine*, 1998 (volume, pages and DOI not recorded) | `perturb.py` (`paired_difference`) | the interval for a difference of paired proportions built from Wilson intervals; the formula is written down by the authors of this package and its coverage is checked by a simulation in `tests/test_validity.py` |
+| Yarnykh 2010 | V. L. Yarnykh, *Magnetic Resonance in Medicine* 63:1610, 2010 (DOI not recorded) | `tools/external/run_all.py` (L3.1 to L3.4) | the operating points and the statement "below 2 %" of its abstract |
+| Stupic 2021 | K. F. Stupic and others, 2021 (PMC8252537; journal and DOI not recorded) | `tools/external/run_all.py` (rung L4, not built) | named as the standard object a later rung needs |
+
+## Reference objects and the examined outline
+
+Documents that were opened and read for the phantom worlds (`anatomy.acr`, `anatomy.nist_t1`), the QA command
+(`mrgym/qa.py`) and the competency map (`mrgym/coverage.py`), on 2026-11-24 and 2026-11-25. Unlike the rows above,
+these were read in the body: each number taken from them carries a tag and a section in the source file, and what
+they do not give is tagged as declared. What was drawn from them and what was not: [phantoms.md](phantoms.md).
+
+| Reference | Record | Used in | Checked against |
+|---|---|---|---|
+| ACR phantom guidance | American College of Radiology. *Large and Medium Phantom Test Guidance for the ACR MRI Accreditation Program*. The version dated 10.19.2022 (42 pages), linked from the accreditation support article "Large/Medium Phantom Testing: MRI (Revised 2-6-26)", accreditationsupport.acr.org, article 11000061035 | `scanner/anatomy.py` (`ACR`: dimensions, hole sizes, contrasts), `qa.py` (`SERIES`, `LIMITS`, the definitions of the measurements, the causes of failure named per fault) | **the document, read in full**; tag [G] with the section or table. The relaxation times of the solution, the layout inside a section and the bandwidth are not in it (tag [D]) |
+| Stupic 2021 | K. F. Stupic and others. A standard system phantom for magnetic resonance imaging. *Magnetic Resonance in Medicine* 86(3):1194-1211, 2021. doi:10.1002/mrm.28779 (PMC8252537) | `scanner/anatomy.py` (`NIST_T1`: shell and sphere diameters, the arrangement of the 14 spheres, T1 and T2 of the Ni-12 solution at 3 T) | **the article body** (PMC full text). The supporting Tables S1 to S3 (positions, 1.5 T values, T2 of every sphere) were not opened |
+| ISMRM reproducibility challenge, analysis code | `rrsg2020/analysis` on GitHub, file `src/nist.py`: reference T1 of the NiCl2 array at 20 degrees C for phantoms with serial number below 0043 (the file names its source as a document of the phantom's maker) | `scanner/anatomy.py` (`NIST_T1["t1_ms"]`) | **the file**. Its twelfth value (44.53 ms) is the Ni-12 value of Stupic 2021 at 3 T; the maker's document itself was not opened |
+| ARRT content specification | American Registry of Radiologic Technologists. *Examination Content Specifications: Magnetic Resonance Imaging*. Board approved January 2024, implementation date February 1, 2025. Image Production: 1.C, 1.D, 2.A, 2.C | `coverage.py` (the rows of the competency map) | **the document**: the names and the numbering of the items. Used as a map of topics; no examination item is reproduced |
 
 ## Not cited in the source
 

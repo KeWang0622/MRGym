@@ -40,6 +40,10 @@ dependencies = [
 [project.optional-dependencies]
 # Figures (tools/figures, the results plot). The episode viewer does not need it.
 viz = ["matplotlib>=3.7"]
+# Adapters. `mrgym.compat.gymnasium` needs gymnasium; `integrations/inspect/` needs inspect-ai. The versions are the ones
+# the adapters were run with (see integrations/README.md). Neither is part of `all`.
+gymnasium = ["gymnasium>=1.4"]
+inspect = ["inspect-ai>=0.3.292; python_version >= '3.11'"]      # inspect-ai needs Python 3.11
 all = ["mrgym[viz]"]
 
 [project.scripts]
@@ -59,6 +63,11 @@ Changelog = "https://github.com/KeWang0622/MRGym/blob/main/CHANGELOG.md"
 test = ["pytest>=8"]
 lint = ["ruff>=0.15"]
 build = ["build>=1.2", "twine>=6.1"]
+# what `make audit` needs (tools/ci/requirements-audit.txt pins the versions of the last audit)
+audit = [
+    "pytest>=8", "ruff>=0.15", "hypothesis>=6.100", "hypothesis-jsonschema>=0.23", "mutmut>=3.8,<4", "coverage>=7.6",
+    "mypy>=1.13", "build>=1.2", "twine>=6.1", "check-wheel-contents>=0.6", "threadpoolctl>=3.5",
+]
 dev = [
     { include-group = "test" },
     { include-group = "lint" },
@@ -78,14 +87,18 @@ include = [
     "/results",
     "/tools",
     "/integrations",
+    "/datasets",
+    "/conformance",
     "/extras",
     "/assets",
     "/AGENTS.md",
     "/CHANGELOG.md",
     "/CITATION.cff",
     "/CONTRIBUTING.md",
+    "/DATASHEET.md",
     "/Makefile",
     "/SECURITY.md",
+    "/.pre-commit-config.yaml",
 ]
 
 [tool.pytest.ini_options]
@@ -94,6 +107,9 @@ testpaths = ["tests"]
 pythonpath = ["tests"]          # for the shared helpers in tests/conftest.py; never the repository root or src
 addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib"]
 filterwarnings = ["error::DeprecationWarning:mrgym.*"]
+markers = [
+    "hard_pulse: a metamorphic relation that assumes an instantaneous excitation (re-derive it when the engine gets a slice profile)",
+]
 
 [tool.ruff]
 line-length = 120
@@ -124,3 +140,52 @@ known-first-party = ["mrgym"]
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["B011", "B023"]
 "extras/*" = ["E", "F", "W", "I", "B", "UP", "NPY"]
+
+# ---- mutation gate (tools/audit/mutation.py; `make mutation`). Scope: the code that decides a reward or a gate verdict.
+# mutmut mutates code inside functions only: module-level constants are pinned by tests/golden/scoring_constants.json
+# and by tools/audit/hand_mutants.py.
+[tool.mutmut]
+source_paths = ["src/"]
+only_mutate = [
+    "src/mrgym/envs/family.py",
+    "src/mrgym/gate.py",
+    "src/mrgym/envs/*/task.py",
+]
+pytest_add_cli_args_test_selection = [
+    "tests/test_family_contract.py",
+    "tests/test_gate.py",
+    "tests/test_scoring_table.py",
+    "tests/test_null_tissue.py",
+    "tests/test_task_snapshots.py",
+]
+pytest_add_cli_args = ["-p", "no:cacheprovider", "-q"]
+also_copy = ["tests/"]
+
+# ---- coverage (make coverage): total >= 90 %, the scoring scope >= 95 %
+[tool.coverage.run]
+source = ["mrgym"]
+parallel = true
+concurrency = ["multiprocessing"]
+patch = ["subprocess"]
+sigterm = true                     # a service a test stops with terminate() still writes its data
+
+[tool.coverage.report]
+exclude_also = ["if __name__ == .__main__.:", "raise NotImplementedError"]
+
+# ---- types (python tools/audit/typecheck.py): the public surface and the scoring code, against a ratchet baseline
+[tool.mypy]
+python_version = "3.10"
+files = [
+    "src/mrgym/env.py", "src/mrgym/tools.py", "src/mrgym/registry.py", "src/mrgym/gate.py", "src/mrgym/keys.py",
+    "src/mrgym/envs/family.py", "src/mrgym/envs/null_tissue/task.py",
+]
+follow_imports = "silent"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+# ---- wheel contents (check-wheel-contents dist/*.whl)
+[tool.check-wheel-contents]
+toplevel = ["mrgym"]
+package = ["src/mrgym"]

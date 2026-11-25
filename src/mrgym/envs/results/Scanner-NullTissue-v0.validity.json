@@ -1,0 +1,554 @@
+{
+ "schema": "mrgym-validity/1",
+ "env_id": "Scanner/NullTissue-v0",
+ "level": 2,
+ "engine": "mrgym-engine-0.2.0",
+ "package_version": "0.1.0.dev0",
+ "date_utc": "2026-11-25",
+ "command": "mrgym validate --perturb Scanner/NullTissue-v0 --level 2 --n 30 --draws 2 --write",
+ "seeds": "validity:0..validity:29",
+ "draws": 2,
+ "instances": 60,
+ "reference": "reference",
+ "default": {
+  "passed": 60,
+  "pass": 1.0,
+  "ci95": [
+   0.9398,
+   1.0
+  ]
+ },
+ "rows": [
+  {
+   "name": "rf_fast",
+   "what": "excitation pulse",
+   "size": "time-bandwidth 2 instead of the console's",
+   "kind": "engine",
+   "source": "Malik 2011; Svedin & Parker 2017",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": 0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "rf_sharp",
+   "what": "excitation pulse",
+   "size": "time-bandwidth 8",
+   "kind": "engine",
+   "source": "Malik 2011; Svedin & Parker 2017",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": -0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "rf_hamming",
+   "what": "excitation pulse",
+   "size": "Hamming instead of Hann window",
+   "kind": "engine",
+   "source": "Malik 2011; Svedin & Parker 2017",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": -0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "rf_rect",
+   "what": "excitation pulse",
+   "size": "ideal rectangular slice profile (the engine of 0.1.0)",
+   "kind": "engine",
+   "source": "the hard-pulse model",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": -0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "ideal_spoiling",
+   "what": "steady state of spgr / afi",
+   "size": "ideal spoiling instead of the EPG",
+   "kind": "engine",
+   "source": "tier 1 of the engine",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": 0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "fat_singlepeak",
+   "what": "fat spectrum",
+   "size": "one line at -3.4 ppm instead of six",
+   "kind": "engine",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": 0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "noise_x0.5",
+   "what": "receiver noise",
+   "size": "x 0.5",
+   "kind": "world",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": 0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "noise_x2",
+   "what": "receiver noise",
+   "size": "x 2",
+   "kind": "world",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": 0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "magnitude_only",
+   "what": "what a region read-out returns",
+   "size": "no complex mean (magnitude data only)",
+   "kind": "readout",
+   "source": "Gudbjartsson & Patz 1995",
+   "passed": 0,
+   "n": 60,
+   "pass": 0.0,
+   "delta": -1.0,
+   "ci95": [
+    -1.0,
+    -0.9149
+   ],
+   "shift_in_tolerances": null,
+   "answer_moved": 0.0,
+   "class": "flips",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": [
+    "KeyError: 'complex_mean_magnitude'"
+   ]
+  },
+  {
+   "name": "tx_gain_x2",
+   "what": "transmit-gain error",
+   "size": "x 2",
+   "kind": "world",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": -0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "b1_strong",
+   "what": "B1+ pattern",
+   "size": "amplitude 0.35 to 0.45 (QA phantom) / x 3 (anatomy)",
+   "kind": "world_spec",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": -0.004,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "b0_x5",
+   "what": "off-resonance field and its through-slice gradient",
+   "size": "x 5",
+   "kind": "world",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": -0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "cf_x5",
+   "what": "centre-frequency error",
+   "size": "x 5",
+   "kind": "world",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": 0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "rx_surface",
+   "what": "receive profile",
+   "size": "x exp(-(y - y_top) / 70 mm): a surface coil",
+   "kind": "world",
+   "source": "choice",
+   "passed": 57,
+   "n": 60,
+   "pass": 0.95,
+   "delta": -0.05,
+   "ci95": [
+    -0.137,
+    0.0186
+   ],
+   "shift_in_tolerances": 0.134,
+   "answer_moved": 0.0,
+   "class": "noise-like",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "edge_sharp",
+   "what": "soft boundaries of the object",
+   "size": "half-width 0.05 mm instead of 0.5 mm",
+   "kind": "world_spec",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": 0.001,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "edge_soft",
+   "what": "soft boundaries of the object",
+   "size": "half-width 2.0 mm",
+   "kind": "world_spec",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": -0.023,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "adc_low",
+   "what": "diffusion coefficient",
+   "size": "0.05 um^2/ms in every material (oil-like)",
+   "kind": "world",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": 0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "relax_shift",
+   "what": "relaxation times",
+   "size": "T1 x 1.2, T2 x 0.8 in every material",
+   "kind": "world",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": -0.014,
+   "answer_moved": 0.9833,
+   "class": "flips",
+   "follows": true,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "inv_weak",
+   "what": "inversion efficiency",
+   "size": "0.80",
+   "kind": "world",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": -0.032,
+   "answer_moved": 1.0,
+   "class": "flips",
+   "follows": true,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "fatsat_weak",
+   "what": "fat-saturation efficiency",
+   "size": "0.75",
+   "kind": "world",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": 0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "fatsat_off",
+   "what": "centre frequency of the fat-saturation pulse",
+   "size": "+60 Hz at 3 T",
+   "kind": "world",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": 0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "grad_delay_x5",
+   "what": "residual gradient delay (EPI ghost)",
+   "size": "x 5",
+   "kind": "world",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": 0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "gnl",
+   "what": "gradient non-linearity",
+   "size": "positions scaled by 1 - 0.03 (r / 250 mm)^2",
+   "kind": "world_spec",
+   "source": "choice",
+   "passed": 60,
+   "n": 60,
+   "pass": 1.0,
+   "delta": 0.0,
+   "ci95": [
+    -0.0602,
+    0.0602
+   ],
+   "shift_in_tolerances": 0.0,
+   "answer_moved": 0.0,
+   "class": "robust",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  },
+  {
+   "name": "motion_ghost",
+   "what": "periodic motion",
+   "size": "every line x (1 + 0.1 cos(2 pi 0.25 Hz t))",
+   "kind": "world",
+   "source": "Zaitsev 2015",
+   "passed": 15,
+   "n": 60,
+   "pass": 0.25,
+   "delta": -0.75,
+   "ci95": [
+    -0.8422,
+    -0.6137
+   ],
+   "shift_in_tolerances": 1.541,
+   "answer_moved": 0.0667,
+   "class": "flips",
+   "follows": false,
+   "handled_by": null,
+   "policy_errors": []
+  }
+ ],
+ "claim": null,
+ "not_claimed": [],
+ "not_run": {
+  "transient": "needs the approach to steady state in the engine; the engine serves the periodic state",
+  "array8_sos": "needs a receive array with root-sum-of-squares combination; the engine has one channel",
+  "spoiler_lobe": "needs the b-factor of a spoiler lobe instead of a gradient that is constant over TR",
+  "afi_phase_per_pulse": "needs an RF phase counted per pulse in the EPG (the engine counts raster positions)",
+  "fov_free": "a verifier-side row of the NoWrap family (optimum with free centre and rotation); not a physics perturbation"
+ },
+ "not_applicable": [
+  "tissue_brainweb"
+ ],
+ "untestable": [
+  "magnetisation transfer and exchange",
+  "restricted or anisotropic diffusion",
+  "flow, perfusion and physiological motion beyond one periodic line-modulation model",
+  "eddy currents, concomitant fields, gradient impulse response",
+  "SAR in W/kg, local SAR, nerve stimulation",
+  "B0 drift and heating",
+  "anything through the slice beyond independent columns: slice positioning, multi-slice cross-talk, slab wrap of the 3D mode",
+  "parallel transmit",
+  "vendor pulses, filters and distortion correction",
+  "coil loading and receive arrays"
+ ],
+ "wall_seconds": 1983.6
+}

@@ -34,19 +34,22 @@ obs, reward, terminated, truncated, info = env.step({"name": "scanner_info", "ar
 | Tool | Cost | Counts as scanner request | Ends episode |
 |---|---|---|---|
 | `scanner_info` | free | no | no |
+| `status` | free | no | no |
 | `plan` | free | yes | no |
 | `scan` | scan time | yes | no |
 | `read_regions` | free | no | no |
 | `view` | free | no | no |
+| `profile` | free | no | no |
+| `calc` | free | no | no |
 | `finish` | free | no | yes |
 
 Limits: 512 scanner requests and 1024 tool calls per episode.
 
 ## Levels
 
-| Level | Hidden-world prior | Budget (s) |
-|---|---|---|
-| 1 | any subject | 3600 |
+| Level | Covered by the claim | Hidden-world prior | Budget (s) |
+|---|---|---|---|
+| 1 | yes | any subject | 3600 |
 
 ## Deliverable and reward
 
@@ -60,9 +63,8 @@ Limits: 512 scanner requests and 1024 tool calls per episode.
 
 You operate a virtual MR scanner at 3 T through tool calls. A head lies in the field of view. Nothing is asked and nothing is scored: plan and run any protocol, look at the images, read out regions. `finish` ends the session.
 
-Budget: 3600 s of scan time, counted by the scanner. At most 512 scanner requests (plans + scans) and 1024 tool calls.
-Tools: scanner_info (free); plan (free); scan (scan time); read_regions (free); view (free); finish (ends the episode).
-[scan time 0.00/3600 s used · 3600.00 s left · scans 0 · scanner requests 0/512 · tool calls 0/1024]
+Limits. Scan time: 3600 s (only `scan` spends it). Tool calls: 1024 (every executed call counts once). Rejected calls: 8 (a call that is refused for how it is written reaches no tool and costs nothing else), of them at most 3 refused `finish` calls. The episode ends at `finish` or at a limit; without `finish` the score is 0.
+[scan time left 3600.00 of 3600 s · calls 0/1024 · rejected 0/8]
 ~~~
 
 ## Determinism and versions

@@ -5,18 +5,22 @@ be measured.
 
 ## 1. What it is
 
-A single-slice 2D MR scanner. You send a protocol; the scanner charges scan time and returns reconstructed images
-plus read-outs of circular regions you choose. One episode is one session: there is no reset.
+A single-slice MR scanner. You send a protocol; the scanner charges scan time and returns reconstructed images
+plus read-outs of circular regions you choose. One episode is one session: there is no reset. The slice is excited
+by a slice-selective pulse (a 2D scan, the default) or, at a multiple of the scan time, by a hard pulse with 3D
+encoding (`excitation`).
 
 | | |
 |---|---|
 | Field strength | 1.5 T or 3 T, stated by `scanner_info` |
-| Slice | one axial slice through the isocentre, 1 to 10 mm (default 5 mm) |
-| Field of view | 80 to 500 mm along the readout, centred on the isocentre; the phase direction can be shorter (`phase_fov`) |
+| Slice | one axial slice through the isocentre, 1 to 10 mm (default 5 mm); a selective pulse cannot go below 1.47 mm |
+| Field of view | 80 to 500 mm along the readout, centred on the isocentre unless shifted (`centre_y_mm`, `centre_x_mm`) and upright unless turned in the plane (`rotation_deg`); the phase direction can be shorter (`phase_fov`) |
 | Matrix | 32 to 512 along the readout, even; the pixel is square; the smallest pixel is stated by `scanner_info` |
 | Readout | 2x oversampled with a band filter: the readout direction does not wrap; the phase direction does |
 | Gradients | 40 mT/m, 150 T/m/s per axis; lobes are played at 80 % of both |
-| RF | hard excitation pulse 1 ms; spin echo 90° 2 ms and 180° 3 ms; adiabatic inversion 8 ms; fat saturation 8 ms |
+| RF, selective | Hann-windowed sinc, 128 samples: `fast` 1 ms with time-bandwidth product 2, `normal` 2 ms with 4, `sharp` 4 ms with 8, followed by a rephasing lobe of half the selection area; spin echo: 90° of that duration, 180° 1.5 times as long on a slice 1.5 times as thick; peak B1 at most 20 µT (a pulse that would exceed it is lengthened) |
+| RF, nonselective | hard excitation pulse 1 ms; spin echo 90° 2 ms and 180° 3 ms |
+| RF, other | adiabatic inversion 8 ms (not slice-selective); fat saturation 8 ms |
 | RF power limit | B1rms 3.0 µT at 3 T, 6.0 µT at 1.5 T; every plan shows the percentage used |
 | Time raster | 0.01 ms; requested times are rounded up to it |
 | Receive | one channel |
@@ -25,24 +29,41 @@ plus read-outs of circular regions you choose. One episode is one session: there
 
 | Call | Cost | Returns |
 |---|---|---|
-| `scanner_info` | free | this card in machine-readable form, the task card, the budget |
-| `plan` | free, logged, counted as a request | realised protocol, timing, scan seconds, limits as percent, the header line, accept or reject with reasons. Never any signal |
-| `scan` | `scan_s` seconds of budget | header line, cost, region read-outs; the images are stored under a scan index |
-| `read_regions` | free | read-outs of other circles on a stored scan |
-| `view` | free | one stored image as a digit map or a PNG, and the extent of its bright pixels in mm |
+| `scanner_info` | free | one topic of this datasheet per call: `overview` (this card in short and the list of topics), a sequence (its signal model, its parameters, an example call), `geometry` (the parameters every sequence takes), `cost` (section 4), `outputs` (section 6), `physics` (the index of the signal mechanisms: `encoding`, `slice_profile`, `fat`, `motion`, `hidden`), `task`, `presets`; with `parameter`: range, default and meaning of one protocol parameter |
+| `status` | free | every limit of the episode with what is used and what is left, the stored scans, the parameters of the delivering tool |
+| `plan` | free, logged | scan seconds as a scan now and what they leave of the scan time (where the console reuses adjustments, also as a scan of its own); the image the protocol gives (pixels as (y, x), field of view, phase-encode axis and lines), the echo time, the minimum TE and TR the console enforces, the marked regions the image would miss, RF power, fat shift and relative SNR; with `verbose` also the header line, every realised parameter and the timing; or a refusal with the reason and the nearest valid value. Never any signal |
+| `scan` | `scan_s` seconds of budget | scan index, cost, echo time, region read-outs; the images are stored under the scan index (`status` lists the stored scans with their header lines) |
+| `read_regions` | free | read-outs of the task's marked regions or of other circles on a stored scan |
+| `view` | free | one stored image as a digit map (16 blocks along the longer side unless `size` asks for more) or a PNG, with its field of view, matrix and pixel size |
+| `profile` | free | the values along one line through a stored image, as a table of position in mm and value |
+| `calc` | free | a calculator: statements in Python syntax; the names it assigns stay for the rest of the episode |
 
-A refused request costs nothing. Unknown parameters are errors. The scanner snaps times to its raster and fills
-defaults; use the **realised** values it returns, not the ones you asked for.
+"Free" means no scan time; every executed call counts once against the tool-call limit of the episode.
 
-The header line is what a console prints above an image, for example
+The protocol parameters of section 3 are top-level arguments of `plan` and `scan` (`sequence`, `tr_ms`, ...). A scan
+names its read-outs in two arguments: `regions`, the ids of the task's marked regions (default: all of them), and
+`circles`, other circles as `{y_mm, x_mm, radius_mm}`. A circle that carries the id of a marked region is read in its
+place. `read_regions`, `view` and `profile` take the latest scan when no `scan_index` is given.
 
-    SE 3.0T | TR 500.0 TE 15.0 FA 90 | FOV 240x180 mm  256x192  SL 5.0 | BW 300 Hz/px  PE A>>P | NEX 1 | TA 1:39.5 | SAR 1 % | WFS 1.4 px (readout) | rel. SNR 0.54
+Under every answer stands one status line: the tool calls used of the limit, and the scan time left or the rejected
+calls whenever they changed. `status` prints all of it at any time.
+
+A refused call costs no scan time and does not end the episode: the answer names the parameter, what is allowed, the
+nearest valid value and a `fix`. Unknown parameters are errors. The scanner snaps times to its raster and fills
+defaults; use the **realised** values it returns, not the ones you asked for. One value is adjusted for you and
+reported: a `te_ms` below the console minimum for the protocol runs at that minimum. Nothing else is: a repetition
+time, an inversion time or an echo spacing that is too short is refused.
+
+The header line is what a console prints above an image (`plan` with `verbose`, `status`), for example
+
+    SE 3.0T | TR 500.0 TE 15.0 FA 90 | FOV 240x180 mm  256x192  SL 5.0 | BW 300 Hz/px  PE A>>P | NEX 1 | TA 1:39.5 | SAR 4 % | WFS 1.4 px (readout) | rel. SNR 0.54
 
 (`sequence=se tr_ms=500 te_ms=15 matrix=256 phase_fov=0.75`).
 `TA` is the scan time, `SAR` the RF power as percent of the limit, `WFS` the shift of the main fat peak (3.4 ppm)
 against water in pixels and its axis (the centroid of the multi-peak fat signal sits at about 3.0 ppm),
 `rel. SNR` the voxel volume times the square root of the sampling time relative to a reference protocol. All of
-them follow from the protocol alone; none depends on the object.
+them follow from the protocol alone; none depends on the object. A shifted or turned field of view is printed after
+the field of view (`@ y +12 x +0 rot +30`), a 3D scan after the slice thickness (`SL 5.0 3Dx32`).
 
 ## 3. Protocol parameters (names carry their units)
 
@@ -61,8 +82,13 @@ Geometry and receiver, all sequences:
 | `partial_fourier` | 0.55 to 1 | 1 | fraction of phase-encode lines acquired; the rest is zero-filled |
 | `phase_oversampling` | 0 to 1 | 0 | extra phase field of view, acquired and discarded |
 | `averages` | 1 to 64 | 1 | complex averages |
-| `te_ms` | at least the console minimum | minimum | echo time, centre of the excitation to centre of the readout (not `bssfp`: TE = TR / 2) |
+| `centre_y_mm`, `centre_x_mm` | -150 to 150 | 0 | position of the centre of the field of view, mm from the isocentre (off-centre shift) |
+| `rotation_deg` | -90 to 90 | 0 | in-plane rotation of the field of view about its centre: the image rows are turned from +y towards +x (section 6) |
+| `rf_pulse` | `fast`, `normal`, `sharp` | `normal` | the selective excitation pulse (section 1): a sharper slice profile costs a longer pulse and more RF energy |
+| `excitation` | `selective`, `nonselective` | `selective` | `nonselective`: hard pulses and 3D encoding; every voxel sees one flip angle; the acquisition time is multiplied by the number of partitions (section 4) |
+| `te_ms` | a number, or `"min"` | `"min"` | echo time, centre of the excitation to centre of the readout; `"min"` is the shortest the console can realise for the matrix, field of view and bandwidth, and `plan` prints it (not `bssfp`: TE = TR / 2) |
 | `fat_sat` | true, false | false (`epi`: true) | spectral fat saturation before every excitation (`spgr`, `se`, `ir`, `epi`) |
+| `fatsat_offset_hz` | -300 to 300 | 0 | shift of the centre frequency of the fat-saturation pulse from the nominal fat line (the same sequences) |
 
 Per sequence:
 
@@ -88,12 +114,20 @@ Per sequence:
   `lines = matrix x phase_fov x (1 + phase_oversampling) x partial_fourier`. Cycle = `tr_ms` (`afi`:
   `tr_ms x (1 + tr_ratio)`). Overhead 3 s per scan. `spgr`, `afi` and `bssfp` play 4 s of dummy cycles before
   sampling; `se` and `ir` one dummy cycle. `epi`: overhead + `tr_ms` x (averages + 2 dummy shots).
-- **Minimum TE**: gradient echo, half the pulse + prephaser + readout ramp + half the readout; spin echo, twice the
-  longer half (pulses, crushers, prephaser or half the readout). Narrow bandwidth and large matrix lengthen it.
-- **Minimum TR**: everything that has to be played. A large spoiler moment costs repetition time (about 1 ms per
-  32 mT·ms/m); fat saturation costs 10 ms.
+- **3D** (`excitation: nonselective`): the acquisition term is multiplied by `partitions = ceil(160 mm / slice_mm)`
+  (160 mm is the depth of the object along the slice normal, the same for every object; 32 partitions for a 5 mm
+  slice), and the noise falls with the square root of that number. The image returned is the central partition.
+- **Minimum TE**: gradient echo, half the pulse + the longer of prephaser and slice rephaser + readout ramp + half
+  the readout; spin echo, twice the longer half (pulses, crushers, prephaser or half the readout). Narrow bandwidth
+  and large matrix lengthen it; so does a longer pulse (`sharp`) and a thinner slice.
+- **Minimum TR**: everything that has to be played, including the pulse and the ramp of its slice gradient. A large
+  spoiler moment costs repetition time (about 1 ms per 32 mT·ms/m); fat saturation costs 10 ms.
+- **Slice gradient** of a selective pulse: time-bandwidth product / (duration x γ x slice thickness), 9.4 mT/m for a
+  5 mm slice with any of the three pulses. Above 80 % of the gradient limit the scan is refused (`SLICE_TOO_THIN`):
+  the thinnest selective slice is 1.47 mm.
 - **RF power** is the time-averaged B1² as percent of the limit; above 100 % the scan is refused. It is computed from
-  the nominal flip angle.
+  the nominal flip angle. A shaped pulse carries more energy than a hard pulse of the same duration and angle: 1.80,
+  3.11 and 7.16 times for `fast`, `normal` and `sharp`.
 - **Readout gradient** is shown as percent of the limit; bandwidth x matrix / field of view is bounded by it.
 - **Noise** enters at the receiver, sample by sample, with a variance proportional to the receiver bandwidth. What
   that does to an image for a given voxel size, bandwidth, number of lines and averages follows from the
@@ -112,11 +146,30 @@ displaced relative to water, and its signal beats against water with echo time i
 happens along the phase direction with the bandwidth 1 / (echo spacing x lines), echo spacing in seconds, which is
 small.
 
+**Slice selection, all sequences.** With `excitation: selective` the flip angle is not one number per voxel. The
+pulse turns the spins at height z through the slice by an angle θ(z) that falls from a at the slice centre to zero
+outside, over a transition that is wide for `fast` and narrow for `sharp`; the shape of θ(z) changes with a (the
+Bloch equations are not linear in the pulse amplitude), and for large angles the transverse phase varies through
+the slice. What you receive is the integral over z of the sequence's signal at θ(z): every formula below holds for
+one column through the slice, and a 2D image is their sum. For small angles and long TR that sum is close to the
+formula at a. Where the signal is not proportional to the flip angle it is not: the wings of the profile, where
+θ(z) passes the Ernst angle, contribute more than their share, so signal-against-flip-angle curves are flatter and
+shifted, and a method that inverts a formula for the flip angle or for T1 with the nominal angle is biased (two-angle
+T1 mapping reads tens of percent low). The profile can be computed from the pulse given in section 1 (a cascade of
+128 small rotations about the pulse axis, each between two half-steps of precession about z proportional to z);
+the scanner does not correct for it. In `se` and `ir` the 180° pulse has a profile of its own on a slice 1.5 times
+as thick: a spin at height z contributes its transverse magnetisation times the refocusing efficiency at z, and
+its longitudinal magnetisation is inverted only in part, so the echo of a 2D slice is below the ideal value even
+with a perfect transmitter. The inversion pulse of `ir` is not slice-selective. With `excitation: nonselective`
+every voxel sees the same actual flip angle a (the nominal angle times the local transmit factor), without a slice
+profile, and the formulas below are what you receive.
+
 **Gradient echoes** (`spgr`, `afi`, `epi`) carry exp(-TE / T2*) with 1/T2* = 1/T2 + 1/T2', the phase +2π·Δf·TE
 (positive Δf, positive phase), and lose signal where the field changes through the slice, more for thick slices and
-long TE. **Spin echoes** (`se`, `ir`) carry exp(-TE / T2); static dephasing is refocused at the echo centre.
-Images also carry the receive coil's smooth magnitude and phase profile. The image scale is arbitrary but constant
-within a session.
+long TE: with c cycles of phase across the slice thickness at the echo, the factor is sinc(c) x the pulse window at
+c / (time-bandwidth product) for a selective pulse, and nothing is left beyond c = half the time-bandwidth product.
+
+**Spin echoes** (`se`, `ir`) carry exp(-TE / T2); static dephasing is refocused at the echo centre.
 
 **`spgr`: RF-spoiled gradient echo.** Identical pulses every TR; the phase of pulse j is Φ·j(j+1)/2 with Φ =
 `rf_phase_increment_deg`; a spoiler of the requested moment in every TR. With *ideal* spoiling (no transverse
@@ -137,7 +190,10 @@ With ideal spoiling
     S1 = M0 sin a (1 - E2 + (1 - E1) E2 cos a) / (1 - E1 E2 cos² a),   S2: E1 <-> E2,   E1 = E(TR1), E2 = E(TR2)
 
 and for TR1, TR2 much shorter than T1 the ratio r = S2 / S1 ≈ (1 + n cos a) / (n + cos a), n = `tr_ratio`. The same
-spoiling mechanism as for `spgr` applies, and this sequence is the more sensitive of the two.
+spoiling mechanism as for `spgr` applies, and this sequence is the more sensitive of the two. The RF phase advances
+with the position on a raster of period TR1 (the pulse at raster position j has phase Φ·j(j+1)/2, and the long
+interval spans `tr_ratio` positions), not with the pulse count: an increment published for a pulse-counting
+scheme is another number here (a published 39° corresponds to about 46°).
 
 **`se`: spin echo.** Excitation a, refocusing 2a (both scale with the transmit factor), crushers around the
 refocusing pulse, one line per TR. With ideal pulses
@@ -148,7 +204,8 @@ with a transmit error the excitation gives sin a, the refocusing sin²(a) of the
 state changes with both.
 
 **`ir`: inversion recovery.** Adiabatic inversion (insensitive to the transmit factor, efficiency κ slightly below 1),
-delay TI, then the spin echo above. The signal is signed (the sign is in the phase image). For TR much longer than
+delay TI, then the spin echo above. The signal is signed: a negative signal has the phase of a positive signal of
+the same region plus π. A phase value alone gives no sign (section 6, topic `outputs`). For TR much longer than
 T1 and ideal pulses, S = M0 · (1 - (1 + κ) E(TI)) · exp(-TE / T2); at finite TR the magnetisation before the inversion
 has recovered only for TR - TI - TE/2.
 
@@ -160,6 +217,17 @@ phase a spin accumulates per TR, θ = 2π·Δf·TR + `phase_cycle_deg`:
 with E1 = exp(-TR / T1), E2 = exp(-TR / T2), read at TE = TR / 2. The signal is high over a band of off-resonance
 and collapses where Δf = (m + 1/2) / TR for the default phase cycle of 180°: dark bands in an inhomogeneous field.
 
+**Fat saturation.** A spectrally selective pulse before every excitation removes a fraction (the efficiency) of the
+magnetisation within a band around its centre frequency. The centre is meant to sit on the fat line; on a given
+system it can miss it, and where the field is off resonance the fat line itself moves. `fatsat_offset_hz` shifts
+the pulse.
+
+**Motion.** A session can hold material whose signal pulses or whose position shifts periodically (flow,
+respiration). Each phase-encode line then sees the object at the time it is acquired (line by line: lines in
+linear order, the averages of a line in succession, one cycle apart; `epi`: all lines of a shot within the echo
+train), and the periodic change over the lines appears as displaced copies of the moving material along the
+phase-encode direction, whatever the direction of the motion.
+
 **`epi`: single-shot echo-planar imaging.** One excitation per image (Ernst steady state at `tr_ms`), all lines read
 `echo_spacing_ms` apart. Decay and off-resonance act along the phase direction: T2* blurring, displacement by
 Δf x echo spacing (in seconds) x lines pixels, stretching or compression where the field has a gradient along phase, and a
@@ -168,25 +236,45 @@ leaves a ghost shifted by half the field of view.
 
 ## 6. What you get back
 
+- Images carry the receive coil's smooth magnitude and phase profile. The image scale is arbitrary but constant
+  within a session.
 - Images are complex; magnitude and phase are stored as float32 `[n_images, ny, nx]`, row = y, column = x; pixel `i`
-  of an n-point axis is centred at `(i - n // 2) x field of view / n`. `afi` returns two images, `spgr` one per echo.
-  On a displayed image +y points down (posterior for a head) and +x to the right (the patient's left).
+  of an n-point axis is centred at `centre + (i - n // 2) x field of view / n`. `afi` returns two images, `spgr` one
+  per echo. On a displayed image +y points down (posterior for a head) and +x to the right (the patient's left).
+  With `rotation_deg` = r the pixel at (v, u) mm from the centre of the field of view along the image rows and
+  columns shows the patient position centre + (v cos r - u sin r, v sin r + u cos r): the object appears turned by
+  -r. Regions are circles in patient coordinates whatever the field of view; the scanner maps them.
 - Region read-outs for every circle `{id, y_mm, x_mm, radius_mm}` (at most 16 per call): `n_pixels`,
   `mean_magnitude`, `sd_magnitude`, `complex_mean_magnitude`, `complex_mean_phase_rad`, one value per image. The
   magnitude mean has a noise floor (the magnitude of noise is not zero). The complex mean has none, but it loses
-  signal when the phase varies across the region, for example at long echo times in a field gradient.
-- `view` gives the extent, in mm, of the pixels brighter than 20 % of the image's 99.5th percentile (isolated bright
-  pixels are ignored), and says whether they touch the image border.
+  signal when the phase varies across the region, for example at long echo times in a field gradient. The phase
+  (`phase_rad` in the tables) is the angle of the complex mean. It includes the phase of the receive coil at that
+  place, which differs from session to session, and in gradient echoes 2π·Δf·TE: the number and its own sign say
+  nothing about the sign of the signal. Signals of opposite sign differ by π in phase, so a sign is read by comparing
+  with a read-out of the same region whose sign is known.
+- `view` shows one stored image and its geometry. It measures nothing in the image. A digit map carries the y of
+  every row and, below it, the x of its columns (centres of the blocks, in mm).
+- `profile` gives the numbers along one line through a stored image: along y at a chosen x, or along x at a chosen y,
+  over a chosen width and range, at most 128 samples per call (pixels across the width, and along the line when the
+  range holds more pixels than samples, are combined by their mean or their maximum). A range or a width that
+  reaches beyond the image is read up to its edge, and the answer says what was read. Where an edge lies, how far a feature is shifted, how wide it is: read it from
+  these numbers.
+- For a turned field of view (`rotation_deg` = r), positions in `view` and `profile` are along the image rows and
+  columns: a point at (y, x) on the image is the patient position (y cos r - x sin r, y sin r + x cos r), and `profile`
+  prints the patient position of every sample next to its value.
 
 ## 7. What is hidden, and what is not simulated
 
 Hidden: the object (geometry, proton density, T1, T2, T2', diffusion, fat or water), the transmit field (a gain error
 of the adjustment and a smooth spatial pattern that is stronger at 3 T), the off-resonance field and the error of the
-frequency adjustment, the receive profile, the inversion efficiency, the fat-saturation efficiency, the noise level,
-a possible narrow-band interference, a residual gradient delay. The mechanisms above are complete; their magnitudes
-are not given.
+frequency adjustment, the receive profile, the inversion efficiency, the fat-saturation efficiency and the error of
+the fat-saturation pulse's centre frequency, the noise level, a possible narrow-band interference, a residual
+gradient delay, and whether anything in the object pulses or moves. The mechanisms above are complete; their
+magnitudes are not given.
 
-Not simulated: the slice profile (one flip angle per voxel), the approach to steady state (dummy cycles are charged
-and the data are served at the periodic state), motion and flow, more than one slice, more than one receive channel,
-parallel imaging, eddy currents, magnetisation transfer. `docs/physics/limits.md` gives the size of each where it
-was measured.
+Not simulated: the approach to steady state (dummy cycles are charged and the data are served at the periodic
+state), relaxation during a pulse, the slab profile and slab wrap of the 3D mode, motion other than the periodic
+line modulation above (no inflow, nothing through the plane), more than one slice, more than one receive channel,
+parallel imaging, eddy currents, gradient non-linearity, magnetisation transfer. The scanner has never been
+compared with data from a real MR scanner: it computes a stated model. `docs/physics/limits.md` gives the size of
+each simplification where it was measured.

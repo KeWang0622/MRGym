@@ -1,0 +1,8 @@
+{
+ "env_id": "Scanner/NoWrap-v1",
+ "level": 2,
+ "mrgym": "0.1.0.dev0",
+ "engine": "mrgym-engine-0.2.0",
+ "reference_reward": 1.0,
+ "policy": "reference"
+}

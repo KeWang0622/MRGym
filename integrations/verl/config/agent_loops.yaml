@@ -1,0 +1,10 @@
+# Custom agent loops for verl (actor_rollout_ref.rollout.agent.agent_loop_config_path).
+# Keys other than name and _target_ are passed to MRGymAgentLoop.__init__. launch.sh writes a copy of this file with
+# the values of SIGNAL, MAX_TOKENS_PER_TURN and TOOL_CALL_LIMIT for the run; these are the defaults.
+- name: mrgym_agent
+  _target_: mrgym_verl.agent_loop.MRGymAgentLoop
+  signal: pass                    # pass = the environment's paid reward (1 / 0). progress = info["score"]["progress"],
+                                  #   a diagnostic the environment never pays: a run that uses it must say so
+  max_tokens_per_turn: 16384      # cap of one reply, reasoning included; stated in the task text
+  tool_call_limit: null           # null = the environment's own tool-call limit (the only cap on the episode)
+  calc: true                      # the environment's arithmetic tool, as in `mrgym run-agent`

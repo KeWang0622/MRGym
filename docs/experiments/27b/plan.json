@@ -1,0 +1,53 @@
+{
+ "schema": "mrgym-prereg/1",
+ "name": "train-27b-1",
+ "status": "not launched: no calibration of this model on the v1 environments exists, the trainer has not run at this model size, and the launch needs the owner's word",
+ "model": {"id": "Qwen/Qwen3.8-27B", "reasoning": "reasoning_effort=medium (the setting of the calibration; the calibration decides it, see section 2)",
+           "lora_rank": 32, "lora_alpha": 64, "lora_targets": "all linear layers of the language model; the vision tower excluded", "tool_format": "qwen3_coder"},
+ "environments": {
+  "candidates_for_training": ["Scanner/SNRSpec-v0:1,2,3", "Scanner/NoWrap-v1:2,3"],
+  "rule": "train on the (environment, level) cells where the calibration finds a pass rate in [0.20, 0.60] with at least 80 % of the groups of 8 mixed",
+  "train_cells": null,
+  "untrained_environment": {"choice": "the first of this list that is admitted by the stored gate at launch and has a level with a calibrated pass rate in [0.05, 0.80]", "order": ["Scanner/NullTissue-v0", "Scanner/PhantomQA-v0", "Scanner/ProtocolToSpec-v0", "Scanner/ArtefactClinic-v0"], "chosen": null},
+  "practice_levels_never_reported": ["Scanner/NoWrap-v1:0,1", "Scanner/T1Transmit-v1:1,2,3"]
+ },
+ "splits": {"calibration": "public train split, seeds 9000-9031 per level", "train": "public train split, a fresh seed for every group from 10000 (mrgym.curriculum)",
+            "dev": "public dev split, seeds 0-31 per trained cell, 2 episodes each", "test": "secret split test-iid (MRGYM_SECRET_FILE), seeds 0-149 per cell, 2 episodes each, opened once"},
+ "algorithm": {"name": "GRPO over whole episodes, verl pinned 8357f1e, colocated synchronous trainer", "group_size": 8, "groups_per_step": 16, "steps": 60,
+               "lr": 1e-5, "warmup_steps": 5, "clip_low": 0.2, "clip_high": 0.28, "grad_clip": 1.0, "kl": 0, "entropy_bonus": 0, "temperature": 1.0, "top_p": 1.0,
+               "reward": "the environment's paid reward: 1 for a pass, else 0", "groups_without_spread": "advantage 0; counted per step",
+               "max_tokens_per_turn": 16384, "max_prompt_len": 8192, "max_response_len": 24576, "tool_call_limit": "each environment's own",
+               "save_every_steps": 5, "dev_every_steps": 10},
+ "curriculum": {"mode": "bandit", "alpha": 0.5, "tau": 0.5, "floor": 0.10, "first_seed": 10000},
+ "arms": [
+  {"name": "R1", "what": "RL from the base model on the calibrated cells, bandit curriculum, paid reward", "seed": 1, "steps": 60, "core": true},
+  {"name": "R2", "what": "as R1, another seed; started only after R1 has passed stop rule F1", "seed": 2, "steps": 60, "core": false},
+  {"name": "B", "what": "the base model, evaluated through the same agent loop on the same held-out instances", "seed": null, "steps": 0, "core": true}
+ ],
+ "stop_rules": {"no_reward_steps": 4, "no_reward_min": 0.02, "harness_steps": 10, "mixed_min": 0.40, "submit_min": 0.50, "cut_max": 0.20, "window": 5,
+                "collapse_steps": 10, "alpha": 0.05, "looks": 6, "mde": 0.05, "futility_from_step": 30, "mastered": 0.90},
+ "readout": {"gain": 0.15, "lower": 0.05, "harm": 0.05, "min_envs": 2},
+ "evaluation": {"calibration": {"instances": 32, "episodes": 8, "levels": 12},
+                "dev": {"instances": 32, "episodes": 2, "cells_assumed": 4, "every_steps": 10},
+                "test": {"instances": 150, "episodes": 2, "cells_assumed": 6},
+                "smoke": {"episodes": 60}},
+ "hardware": {
+  "gpus_per_node": 8,
+  "cards": [{"name": "H100", "gb": 80}, {"name": "H200", "gb": 141}, {"name": "B200", "gb": 180}],
+  "model_dims": {"weights_gb_bf16": 55.6, "vocab": 248320, "hidden": 5120, "layers": 64, "mlp": 17408,
+                 "source": "config.json of the model repository (vocab, hidden, layers, mlp) and its file sizes on the Hub (55.6 GB), read 2026-11-24"},
+  "rollout": {"tensor_parallel": 4, "replicas": 2, "gpu_memory_utilization": 0.60, "kv_bytes_per_token": 66000,
+              "source": "verl's own launcher for a 27B model of this family (examples/grpo_trainer/run_qwen3_5_27b_fsdp.sh at the pinned commit: GEN_TP=4, 0.6); KV size: estimate from the configuration, never measured by us"},
+  "actor": {"fsdp_size": 8, "reserve_gb": 6, "bytes_per_token": {"layer_inputs": "layers * hidden * 2", "logits_low": "vocab * 2", "logits_high": "3 * vocab * 2", "one_layer": "6 * mlp * 2"},
+            "source": "arithmetic on the dimensions; gradient checkpointing on, bf16 autocast; the logits term is 1 copy when the in-place cross-entropy is available and up to 3 otherwise. Not measured"}
+ },
+ "compute_inputs": {
+  "gpu_s_per_episode_generation": {"value": 96, "source": "measured: Qwen3.8-27B, 768 episodes of 12 tool turns on Scanner/NoWrap-v0, vLLM 0.33 at 2 x TP4 with speculative decoding, 8 x H100 (job s01 of the project record, 2026-11-24). Not measured on the v1 environments, and not with a LoRA adapter loaded"},
+  "lora_serving_slowdown": {"low": 1.0, "high": 2.0, "source": "assumption: the serving script of the project drops speculative decoding when an adapter is loaded; never measured"},
+  "tokens_per_episode_trained": {"value": 32768, "source": "the cap of this plan (max_prompt_len + max_response_len); the 27B's v0 episodes had a median of 40k completion tokens, so most episodes are expected at or near the cap until the calibration says otherwise"},
+  "trained_tokens_per_s_per_node": {"low": 4000, "high": 8000, "source": "8000: a LoRA run of this model in another trainer on 8 x H200 (the project record); 4000: a pessimistic bound for H100. Never measured in this stack"},
+  "completion_tokens_per_reply_elsewhere": {"value": 2350, "source": "measured: this model at reasoning effort medium, 256 code-repair episodes of up to 40 turns (job r02 of the project record, 2026-11-24). Another kind of task; not measured on any v1 environment. Used for scale in the text only, in no table"},
+  "eval_overhead_s_per_launch": {"value": 900, "source": "estimate: loading the 27B into the actor and two rollout replicas"},
+  "preemption_overhead": 0.30
+ }
+}

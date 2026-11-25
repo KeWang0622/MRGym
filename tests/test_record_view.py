@@ -6,10 +6,10 @@ import numpy as np
 import pytest
 
 import mrgym
-from mrgym import cli, policies, record, viewer
+from mrgym import cli, keys, policies, record, viewer
 from mrgym.env import derive_seed
 
-ENV_ID, LEVEL, SEED = "Scanner/NoWrap-v0", 2, 0
+ENV_ID, LEVEL, SEED = "Scanner/NoWrap-v1", 2, 0
 HEX32 = re.compile(r"(?<![0-9a-f])[0-9a-f]{32}(?![0-9a-f])")
 
 
@@ -30,8 +30,9 @@ def _keys(obj):
 
 def test_bundle_layout(bundle):
     assert bundle["format"] == "mrgym-episode-bundle/1"
-    assert set(bundle) == {"format", "package", "env", "episode", "agent", "task", "steps", "scans", "scanner_log",
+    assert set(bundle) == {"format", "canary", "package", "env", "episode", "agent", "task", "steps", "scans", "scanner_log",
                            "result", "agent_events", "hidden"}
+    assert bundle["canary"] == keys.CANARY
     assert bundle["package"] == dict(name="mrgym", version=mrgym.__version__, engine=mrgym.ENGINE_ID)
     assert bundle["env"]["id"] == ENV_ID and bundle["env"]["level"] == LEVEL
     assert bundle["agent"]["kind"] == "scripted" and bundle["agent"]["name"] == "reference"
@@ -47,8 +48,8 @@ def test_bundle_layout(bundle):
     assert r["reward"] == 1.0 and r["terminated"] and not r["truncated"] and r["submitted"]
     assert r["score"]["passed"] and r["replay"]["ok"] and r["answer"] == steps[-1]["call"]["arguments"]
     assert r["delivered"]["fov_yx_mm"] and r["delivered"]["header"].startswith("SE ")
-    assert len(bundle["scanner_log"]) == r["replay"]["events"] == 1
-    assert bundle["scanner_log"][0]["type"] == "scan"
+    assert len(bundle["scanner_log"]) == r["replay"]["events"] == 2     # the scan and the seal that the deliverable sets
+    assert [e["type"] for e in bundle["scanner_log"]] == ["scan", "seal"] and r["replay"]["sealed"]
 
 
 def test_bundle_holds_no_seed(bundle):
@@ -102,8 +103,12 @@ def test_hidden_block(bundle):
     assert np.isfinite(pd).all() and np.isnan(t1).any()                 # T1 is undefined outside the object
     ext = h["object_extent_mm"]
     assert ext["y"][0] < 0 < ext["y"][1] and ext["x"][0] < 0 < ext["x"][1]
-    fy, fx = bundle["result"]["delivered"]["fov_yx_mm"]
-    assert fy / 2 >= max(map(abs, ext["y"])) - 0.5 and fx / 2 >= max(map(abs, ext["x"])) - 0.5   # the reference covers it
+    d = bundle["result"]["delivered"]                                    # the reference moved (and may have turned) the field of view
+    (fy, fx), (cy, cx), rot = d["fov_yx_mm"], d["centre_yx_mm"], np.deg2rad(d["rotation_deg"])
+    my, mx = sum(ext["y"]) / 2, sum(ext["x"]) / 2
+    for y, x in ((ext["y"][0], mx), (ext["y"][1], mx), (my, ext["x"][0]), (my, ext["x"][1])):          # the four ends of the upright object
+        v, u = (y - cy) * np.cos(rot) + (x - cx) * np.sin(rot), -(y - cy) * np.sin(rot) + (x - cx) * np.cos(rot)
+        assert abs(v) <= fy / 2 + 1.5 and abs(u) <= fx / 2 + 1.5         # inside the image: half a pixel of asymmetry, half a millimetre of slack
     rescan = record.decode_f32(h["rescan"]["magnitude_f32_b64"], h["rescan"]["shape"])
     assert rescan.shape[0] == 1 and rescan.max() > 0
     # nothing hidden outside the hidden block and the verifier's result
@@ -169,4 +174,4 @@ def test_cli_record_and_view(tmp_path, capsys):
     assert html.is_file() and str(html) in capsys.readouterr().out
     text = html.read_text(encoding="utf-8")
     assert "http://" not in text and "https://" not in text
-    assert text.count(record.load(str(path))["episode"]["id"]) == 2
+    assert text.count(record.load(str(path))["episode"]["id"]) >= 2     # once per embedded bundle (and in its replay report)

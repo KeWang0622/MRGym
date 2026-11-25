@@ -1,0 +1,40 @@
+# Surviving mutants that cannot change any result, by rule. One rule per line:
+#     function glob | regex on the changed lines | class | reason
+# The changed lines are the "-old" and "+new" lines of `mutmut show`; the regex is searched in them. tools/audit/mutation.py
+# reports every survivor no rule matches as UNCLASSIFIED. Classes: "equivalent" (no input changes any output),
+# "equivalent in range" (no input the task can produce changes any output; the condition is stated),
+# "performance" (same result, other speed), "text" (a printed number rounds to the same digits).
+
+# ---- gate.py
+mrgym.gate.gap_lower_bound | \+.*np\.asarray\((ref|abl), (None)?\) | equivalent | the other operand is converted to float, so the difference is the same float array
+mrgym.gate.gap_lower_bound | \+.*sd = .* if (\(n > 1\) or True|n >= 1) else 0\.0 | equivalent | sd is read only when n > 1 (the return statement tests n again)
+mrgym.gate.gap_lower_bound | \+.*if n > 1 else 1\.0$ | equivalent | sd is read only when n > 1
+mrgym.gate.decide | \+.*\{101 \* (BLIND_MAX|SEP_MIN):\.0f\} | text | the reason prints the threshold without decimals: 10.1 and 25.25 print as 10 and 25
+mrgym.gate.run | \+.*pool\.map\(_play, .*(chunksize=(None|2)\)|\], \))$ | performance | the chunk size of the process pool changes scheduling only
+mrgym.gate._instance | \+.*task_id_for\(spec, seed_hex, \), split\) | equivalent in range | the gate builds instances of public splits only (gate, tune), where the trainer-side label does not depend on the split
+mrgym.gate._tune | \+.*_instance\(spec, level, f"\{k\}:\{i\}", \) | equivalent | "tune" is the default split of _instance
+mrgym.gate.load | \+.*open\(_path\(env_id\), (encoding=(None|"UTF-8"))?\) | equivalent | the stored result is ASCII JSON
+mrgym.gate.write | \+.*open\(path, "w", (encoding=(None|"UTF-8"))?\) | equivalent | json.dump writes ASCII
+
+# ---- envs/family.py
+mrgym.envs.family.noise_free | \+.*engine\.acquire\(realised, \) | equivalent | the second argument defaults to None
+
+# ---- envs/null_tissue/task.py
+mrgym.envs.null_tissue.task.make_instance | \+.*W\.make_world\(seed, lv\["world_spec"\], (layout_only=(None|False))?\) | performance | the full world instead of its layout: the same regions
+mrgym.envs.null_tissue.task.score | \+.*check\(cfg, answer, None\) | equivalent in range | the console card of a QA world differs from the console default only in the RF power limit and the field strength; an inversion-recovery scan at TR >= 1200 ms uses under 15 % of either limit
+mrgym.envs.null_tissue.task.score | \+.*deliverable_valid=None | equivalent | result() converts every check to bool
+mrgym.envs.null_tissue.task.null_ratio | \+.*console\.plan\(.*, (None)?\)\["realised"\] | equivalent in range | as above: the realised protocol does not depend on the RF power limit or the field strength
+mrgym.envs.null_tissue.task.null_ratio | \+.*console\.plan\(dict\(sequence="se" | equivalent | GEOMETRY holds the console defaults (matrix 128, 300 Hz per pixel)
+mrgym.envs.null_tissue.task.null_ratio | \+.*tr_ms=rp\["tr_ms"\], \) | equivalent | without te_ms the console takes its minimum, which is the echo time of the target scan
+mrgym.envs.null_tissue.task.null_ratio | \+.*max\(abs\(s_se\), 1\.0\) | equivalent in range | a guard against division by zero: the spin-echo signal of a vial is above 1 (voxel volume 17.6 mm3 times proton density)
+mrgym.envs.null_tissue.task.true_null_ms | \+.*console\.plan\(target_protocol\(cfg\["task"\], 100\.0\), (None)?\) | equivalent in range | the shortest inversion time and the echo time do not depend on the console card
+mrgym.envs.null_tissue.task.true_null_ms | \+.*target_protocol\(cfg\["task"\], 101\.0\) | equivalent | the plan is read for the shortest inversion time and the echo time, which do not depend on the inversion time asked for
+mrgym.envs.null_tissue.task.true_null_ms | \+.*float\("NAN"\) | equivalent | float() reads "nan" in any case
+mrgym.envs.null_tissue.task.check | \+.*console\.plan\(target_protocol\(cfg\["task"\], answer\["ti_ms"\]\[i\]\), (None)?\) | equivalent in range | as for score: the acceptance of the target scan does not depend on the RF power limit or the field strength at TR >= 1200 ms
+mrgym.envs.null_tissue.task.check | \+.*"XX; XX"\.join | equivalent in range | the deliverable sets one parameter of the target scan, and the console reports one violation for it: the separator is never printed
+mrgym.envs.null_tissue.task.progress | \+.*math\.log\(FAR_RATIO / eps\), 0\.0\), 2\.0\) for v in left | equivalent | a region that is left has ratio > eps, so its closeness is below 1 before the clip
+mrgym.envs.null_tissue.task.card | \+.*learnability=learn\.stored\("(XXScanner/NullTissue-v0XX|scanner/nulltissue-v0|SCANNER/NULLTISSUE-V0)"\) | equivalent in range | no learnability result is stored for the id yet, so a wrong id gives the same empty field; the card snapshot kills it the day one is stored
+mrgym.envs.null_tissue.task.card | \+.*\(n, "(XXreportedXX|REPORTED)"\) for n in controls\.REPORTED | equivalent in range | the family lists no reported policy: the row label is never used
+
+# ---- envs/nowrap/task.py, envs/t1_transmit/task.py (the v1 families): the mutation run has not been made on them yet;
+# their survivors are listed here once it has.

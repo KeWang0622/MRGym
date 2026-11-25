@@ -4,17 +4,24 @@
 This file imports nothing from the scanner package, so it can be copied alone into the agent's workspace.
 
     python3 mrscan.py info
+    python3 mrscan.py task                # the task statement and the schema of the deliverable
     python3 mrscan.py budget
     python3 mrscan.py plan --protocol '{"sequence": "spgr", "tr_ms": 20, "flip_deg": 10}'
     python3 mrscan.py scan --protocol '{"sequence": "spgr", "tr_ms": 20, "flip_deg": 10, "averages": 4}' \\
                            --rois regions.json --out scans/fa10
 
+    python3 mrscan.py submit --answer '{"ti_ms": {"R1": 412.0}}'      # ends the episode; the score is not returned
+
 ``scan`` prints the realised protocol, the cost and the ROI read-outs as JSON and, with --out, writes
 <out>_magnitude.npy and <out>_phase.npy (float32, [n_images, ny, nx]) and <out>.json. Images never go to stdout.
-Exit status: 0 ok, 3 refused (invalid_request / budget_exhausted / request_limit), 4 service unreachable.
+Exit status: 0 ok, 3 refused (invalid_request / invalid_deliverable / budget_exhausted / request_limit / episode_over /
+unauthorized), 4 service unreachable.
+
+The service wants the episode's token on every call: it is read from the file named by MRSCAN_TOKEN_FILE, else from
+MRSCAN_TOKEN, and sent as ``Authorization: Bearer <token>``.
 
     from mrscan import Scanner
-    sc = Scanner()                       # URL from MRSCAN_URL
+    sc = Scanner()                       # URL from MRSCAN_URL, token from MRSCAN_TOKEN_FILE / MRSCAN_TOKEN
     sc.plan({...}); r = sc.scan({...}, rois=[{"id": "R1", "y_mm": 10, "x_mm": -20, "radius_mm": 11.5}], out="scans/a")
 """
 import argparse
@@ -35,8 +42,12 @@ class ScannerError(Exception):
 
 
 class Scanner:
-    def __init__(self, url=None, timeout=300.0):
+    def __init__(self, url=None, timeout=300.0, token=None):
         self.timeout = timeout
+        if token is None and os.environ.get("MRSCAN_TOKEN_FILE"):
+            with open(os.environ["MRSCAN_TOKEN_FILE"], encoding="ascii") as f:
+                token = f.read().strip()
+        self.token = token if token is not None else os.environ.get("MRSCAN_TOKEN")
         self._candidates = [u.strip().rstrip("/") for u in (url or os.environ.get("MRSCAN_URL") or DEFAULT_URLS).split(",")
                             if u.strip()]
         self.url = self._candidates[0] if len(self._candidates) == 1 else None
@@ -58,9 +69,11 @@ class Scanner:
         return self.url
 
     def _call(self, method, path, body=None):
+        headers = {"Content-Type": "application/json"}
+        if self.token:
+            headers["Authorization"] = "Bearer " + self.token
         req = urllib.request.Request(self._resolve() + path, method=method,
-                                     data=None if body is None else json.dumps(body).encode(),
-                                     headers={"Content-Type": "application/json"})
+                                     data=None if body is None else json.dumps(body).encode(), headers=headers)
         try:
             with self._opener.open(req, timeout=self.timeout) as r:
                 return json.load(r)
@@ -76,8 +89,17 @@ class Scanner:
     def info(self):
         return self._call("GET", "/v1/info")
 
+    def task(self):
+        """{"statement": the task text, "submit": JSON Schema of the deliverable}."""
+        return self._call("GET", "/v1/task")
+
     def budget(self):
         return self._call("GET", "/v1/budget")
+
+    def submit(self, answer):
+        """Deliver the result. Ends the episode: {"received": true}. A deliverable the console cannot evaluate is
+        refused (``invalid_deliverable``) and the episode continues. The score stays with the operator."""
+        return self._call("POST", "/v1/submit", answer)
 
     def plan(self, protocol):
         """Free dry run: realised protocol, timing, scan seconds, limits, accept / reject with reasons."""
@@ -118,7 +140,10 @@ def main(argv=None):
     ap.add_argument("--url", default=None, help="scanner URL (default: MRSCAN_URL)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("info")
+    sub.add_parser("task")
     sub.add_parser("budget")
+    sp = sub.add_parser("submit")
+    sp.add_argument("--answer", required=True, help="the deliverable: a JSON object or a file holding one")
     for name in ("plan", "scan"):
         sp = sub.add_parser(name)
         sp.add_argument("--protocol", required=True, help="JSON object or a file holding one, e.g. "
@@ -137,6 +162,8 @@ def main(argv=None):
             out.pop("arrays", None)
         elif a.cmd == "plan":
             out = scanner.plan(_json_arg(a.protocol))
+        elif a.cmd == "submit":
+            out = scanner.submit(_json_arg(a.answer))
         else:
             out = getattr(scanner, a.cmd)()
     except ScannerError as e:

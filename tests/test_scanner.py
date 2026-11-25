@@ -18,7 +18,7 @@ SPGR = dict(sequence="spgr", tr_ms=12.0, flip_deg=10.0, matrix=64)
 ALL_SEQUENCES = (
     dict(sequence="spgr", tr_ms=30.0, flip_deg=20.0, n_echoes=3), dict(sequence="afi", tr_ms=30.0, flip_deg=60.0),
     dict(sequence="se", tr_ms=500.0, te_ms=20.0, phase_fov=0.75, fat_sat=True), dict(sequence="ir", tr_ms=3000.0, ti_ms=800.0),
-    dict(sequence="bssfp", tr_ms=6.0, flip_deg=40.0, phase_cycle_deg=0.0),
+    dict(sequence="bssfp", tr_ms=8.0, flip_deg=40.0, phase_cycle_deg=0.0),
     dict(sequence="epi", tr_ms=2000.0, pe_polarity=-1, partial_fourier=0.75), dict(sequence="se", tr_ms=400.0, pe_dir="x", phase_oversampling=0.5))
 
 
@@ -27,7 +27,7 @@ def test_every_validation_check_passes():
     rows, _ = validate.run()
     failed = [f"{r['id']} {r['check']}: {r['measured']}" for r in rows if not r["ok"]]
     assert not failed, failed
-    assert len(rows) >= 36 and {r["group"] for r in rows} == {"signal", "encoding", "console"}
+    assert len(rows) >= 63 and {r["group"] for r in rows} == set(validate.GROUPS) == {"signal", "rf", "encoding", "console"}
 
 
 # ------------------------------------------------------------------ worlds
@@ -182,16 +182,20 @@ def test_a_repeated_scan_is_a_new_noise_draw_and_noise_draws_are_streams(qa_engi
 
 
 def test_a_restart_cannot_refill_the_budget(tmp_path, qa_engine):
+    """A restart continues from the log only with the receipt of that log (more attacks: tests/test_log_mac.py)."""
     cfg = episode_cfg(budget_s=20.0)
-    s = session.ScannerSession(cfg, log_dir=str(tmp_path), engine=qa_engine)
+    log, state = str(tmp_path / "log"), str(tmp_path / "state")
+    s = session.ScannerSession(cfg, log_dir=log, engine=qa_engine, state_dir=state)
     s.scan({"protocol": SPGR})
-    used, chain = s.used, s.chain
+    used, chain, head = s.used, s.chain, s.head_path
     s.close()
-    r = session.ScannerSession(cfg, log_dir=str(tmp_path), engine=qa_engine)
-    assert r.used == used and r.n_scans == 1 and r.chain == chain
+    with pytest.raises(session.LogTampered):                            # a used directory without its receipt: nothing is served
+        session.ScannerSession(cfg, log_dir=log, engine=qa_engine)
+    r = session.ScannerSession(cfg, log_dir=log, engine=qa_engine, state_dir=state, resume_from=head)
+    assert r.used == used and r.n_scans == 1 and r.restarts == 1 and r.events[0]["chain"] == chain
     r.scan({"protocol": SPGR})
     r.close()
-    assert len(session.read_log(str(tmp_path / session.LOG_NAME))) == 2
+    assert [e["type"] for e in session.read_log(os.path.join(log, session.LOG_NAME))] == ["scan", "restart", "scan"]
 
 
 def _episode(engine, cfg=None):
@@ -206,24 +210,29 @@ def _episode(engine, cfg=None):
 
 def test_replay_is_bit_exact_on_the_same_stack(qa_engine):
     s = _episode(qa_engine)
-    rep = session.replay(s.cfg, s.events)                               # a fresh world and engine from the seed
+    rep = session.replay(s.cfg, s.events, head=s.receipt())             # a fresh world and engine from the seed
     assert rep["ok"] and rep["mode"] == "bit-exact" and rep["scans"] == 2 and rep["refused"] == 1
+    assert rep["integrity"] == "anchored" and not rep["sealed"]         # nothing was delivered yet
+    assert not session.replay(s.cfg, s.events)["ok"]                    # without the head a prefix could not be told apart
     assert rep["used_s"] == pytest.approx(s.used) and not rep["over_budget"] and rep["engine"] == session.ENGINE_ID
     assert json.loads(json.dumps(s.events)) == s.events                 # the log is plain JSON
-    assert SEED not in json.dumps(s.events) and SEED not in json.dumps(s.info())
+    assert SEED not in json.dumps(s.events) and SEED not in json.dumps(s.info()) and SEED not in json.dumps(s.head())
+    assert "task_id" not in s.info()
 
 
 def test_replay_rejects_forged_reordered_and_foreign_logs(qa_engine):
     s = _episode(qa_engine)
+    head = s.receipt()
+    assert session.replay(s.cfg, s.events, engine=qa_engine, head=head)["ok"]
     forged = copy.deepcopy(s.events)
     forged[1]["cost_s"] = 0.1
-    assert not session.replay(s.cfg, forged, engine=qa_engine)["ok"]
+    assert not session.replay(s.cfg, forged, engine=qa_engine, head=head)["ok"]
     swapped = copy.deepcopy(s.events)
     swapped[1], swapped[2] = swapped[2], swapped[1]
-    assert not session.replay(s.cfg, swapped, engine=qa_engine)["ok"]
+    assert not session.replay(s.cfg, swapped, engine=qa_engine, head=head)["ok"]
     dropped = copy.deepcopy(s.events)[1:]
-    assert not session.replay(s.cfg, dropped, engine=qa_engine)["ok"]
-    other = session.replay(dict(s.cfg, seed=SEED[::-1]), s.events)      # the log of this world against another world
+    assert not session.replay(s.cfg, dropped, engine=qa_engine, head=head)["ok"]
+    other = session.replay(dict(s.cfg, seed=SEED[::-1]), s.events, head=head)      # the log of this world against another world
     assert not other["ok"] and "data" in other["problems"][0]
 
 
@@ -241,16 +250,17 @@ def test_replay_tolerates_rounding_but_not_other_data(qa_world, qa_engine):
             img = super().acquire(rp, rng)
             return img * (1 + self.rel * np.cos(np.arange(img.size).reshape(img.shape)))
 
-    close = session.replay(s.cfg, s.events, engine=Perturbed(qa_world, 1e-7))
+    close = session.replay(s.cfg, s.events, engine=Perturbed(qa_world, 1e-7), head=s.receipt())
     assert close["ok"] and close["mode"] == "tolerance" and close["scans_within_tolerance_only"] == 2
-    far = session.replay(s.cfg, s.events, engine=Perturbed(qa_world, 1e-2))
+    far = session.replay(s.cfg, s.events, engine=Perturbed(qa_world, 1e-2), head=s.receipt())
     assert not far["ok"]
 
 
 def test_engine_version_is_part_of_the_chain(qa_engine, monkeypatch):
     s = _episode(qa_engine)
+    head = s.receipt()
     monkeypatch.setattr(session, "ENGINE_ID", "mrgym-engine-0.0.0")
-    assert not session.replay(s.cfg, s.events, engine=qa_engine)["ok"]
+    assert not session.replay(s.cfg, s.events, engine=qa_engine, head=head)["ok"]
 
 
 def test_region_readouts_on_a_rectangular_field_of_view(qa_engine):
@@ -280,25 +290,30 @@ def test_info_card_states_the_public_instrument_only(qa_engine):
 @pytest.fixture()
 def service(tmp_path):
     cfg = episode_cfg(budget_s=40.0)
-    cfg_path, port_file, log_dir = tmp_path / "episode.json", tmp_path / "port", tmp_path / "log"
+    cfg_path, ready_file, log_dir, state_dir = tmp_path / "episode.json", tmp_path / "ready", tmp_path / "log", tmp_path / "state"
     cfg_path.write_text(json.dumps(cfg))
+    cfg_path.chmod(0o600)                                               # the config holds the seed
     proc = subprocess.Popen([sys.executable, "-m", "mrgym.scanner.service", "--config", str(cfg_path), "--log-dir", str(log_dir),
-                             "--port", "0", "--port-file", str(port_file)], env=dict(os.environ, OMP_NUM_THREADS="1"))
+                             "--state-dir", str(state_dir), "--port", "0", "--ready-file", str(ready_file)],
+                            env=dict(os.environ, OMP_NUM_THREADS="1"))
     try:
         for _ in range(200):
-            if port_file.exists():
+            if ready_file.exists():
                 break
             time.sleep(0.05)
-        assert port_file.exists(), "service did not start"
-        yield cfg, f"http://127.0.0.1:{port_file.read_text()}", str(log_dir)
+        assert ready_file.exists(), "service did not start"
+        ready = json.loads(ready_file.read_text())
+        handle = ready["episodes"][0]
+        token = (state_dir / f"{handle}.token").read_text().strip()
+        yield cfg, f"http://127.0.0.1:{ready['port']}", str(log_dir / handle), token, str(state_dir / f"{handle}.head")
     finally:
         proc.terminate()
         proc.wait(timeout=10)
 
 
 def test_http_service_gives_the_same_log_as_in_process(service, qa_engine):
-    cfg, url, log_dir = service
-    sc = client.Scanner(url)
+    cfg, url, log_dir, token, head = service
+    sc = client.Scanner(url, token=token)
     assert sc.info()["budget_s"] == 40.0 and SEED not in json.dumps(sc.info())
     sc.plan(SPGR)
     r = sc.scan(SPGR, [dict(id="c", y_mm=0, x_mm=0, radius_mm=20)])
@@ -313,13 +328,13 @@ def test_http_service_gives_the_same_log_as_in_process(service, qa_engine):
     assert r["data_sha256"] == lr["data_sha256"] and r["roi_readouts"] == lr["roi_readouts"]
     events = session.read_log(os.path.join(log_dir, session.LOG_NAME))
     assert [e["chain"] for e in events] == [e["chain"] for e in local.events]      # the same hash chain, link by link
-    assert session.replay(cfg, events)["ok"]
+    assert session.replay(cfg, events, head=session.read_head(head))["ok"]
 
 
 def test_http_service_has_no_route_to_truth_or_reset(service):
     import urllib.error
     import urllib.request
-    _, url, _ = service
+    _, url, _, _, _ = service
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     for method, path in (("GET", "/v1/truth"), ("GET", "/v1/world"), ("GET", "/v1/seed"), ("POST", "/v1/reset"), ("POST", "/v1/budget"),
                          ("GET", "/"), ("DELETE", "/v1/scan")):

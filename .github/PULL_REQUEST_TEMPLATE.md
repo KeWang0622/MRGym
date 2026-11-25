@@ -18,5 +18,5 @@
 - [ ] `make lint`
 - [ ] `make check` (generated files, results table, `mrgym check` on every id)
 - [ ] `mrgym validate`, if the scanner changed (paste the table)
-- [ ] `mrgym check <id> --admission`, if an environment or its scoring changed (paste the table)
+- [ ] `mrgym gate <id>`, if an environment or its scoring changed (paste the table)
 - [ ] No MRI Agent Bench material, no held-out seed and no episode config in the diff

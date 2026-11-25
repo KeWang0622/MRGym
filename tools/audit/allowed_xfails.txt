@@ -1,0 +1,3 @@
+# Expected failures `make audit` accepts, one fnmatch pattern per line (matched against the test id).
+# Every line names a known defect and who removes it. A missing scoring table or snapshot is NOT accepted here.
+# Empty: `step` is total since interface v1, so the inputs that once raised are plain passing tests.

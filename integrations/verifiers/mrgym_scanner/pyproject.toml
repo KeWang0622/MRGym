@@ -1,0 +1,18 @@
+[project]
+name = "mrgym-scanner"
+version = "0.1.0.dev0"
+description = "MR Gym as a verifiers taskset: operate a virtual MRI scanner through priced tool calls and deliver a measurement or a protocol."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [{ name = "Ke Wang" }]
+tags = ["science", "mri", "tool-use", "multi-turn", "v1"]
+# The adapter adds no physics and no scoring: it pins the exact mrgym it was run with.
+dependencies = ["verifiers>=0.4.1", "mrgym==0.1.0.dev0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mrgym_scanner"]

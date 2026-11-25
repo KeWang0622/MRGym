@@ -45,13 +45,13 @@ def main():
     fold_y = full + read(env, scans["full"], partners("y_mm"))
     fold_x = full_x + np.where([p["x_mm"] != 0 for p in PROBES], read(env, scans["full_x"], partners("x_mm")), 0.0)
     unit = np.abs(full).max()
-    box = C.call(env, "view", scan=scans["full"]["scan_index"])["bounding_box"]
+    box = C.extent(env, scans["full"]["scan_index"])
     truth = W.extent_mm(world)
     print(f"full field of view: object seen at y {box['y_mm'][0]:.1f} .. {box['y_mm'][1]:.1f} mm (true {truth['y'][0]:.1f} .. {truth['y'][1]:.1f}), "
           f"touches the border: {box['touches_edge']}")
     assert not box["touches_edge"] and max(abs(box["y_mm"][i] - truth["y"][i]) for i in (0, 1)) <= 3.75
     half = read(env, scans["half"], PROBES)
-    print(f"phase field of view 120 mm: touches the border: {C.call(env, 'view', scan=scans['half']['scan_index'])['bounding_box']['touches_edge']}; "
+    print(f"phase field of view 120 mm: touches the border: {C.extent(env, scans['half']['scan_index'])['touches_edge']}; "
           f"regions a, b change by {np.abs(half - full)[:2].min() / unit:.2f} to {np.abs(half - full)[:2].max() / unit:.2f} of the largest region signal")
     assert np.abs(half - full)[:2].min() > 0.3 * unit, "the folded copy must be visible in regions a and b"
     C.check("half: largest |folded - (region + region 120 mm away)| / largest signal", np.abs(half - fold_y).max() / unit, 0.0, 0.03)

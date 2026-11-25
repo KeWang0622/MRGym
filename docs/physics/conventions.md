@@ -3,7 +3,7 @@
 Units, signs, axes and definitions of the virtual scanner, each with the place in the code that fixes it.
 Read this page before comparing an MR Gym image, phase or field map with another tool.
 
-Where a statement is checked by a command, the command is named: a row of `mrgym validate` (S, K, C numbers) or a
+Where a statement is checked by a command, the command is named: a row of `mrgym validate` (S, R, K, C numbers) or a
 script in [examples/textbook/](../../examples/textbook/). Simplifications are in [limits.md](limits.md), papers in
 [references.md](references.md).
 
@@ -48,10 +48,20 @@ frequencies in ppm.
 - Arrays are `[image, y, x]`: row = y, column = x.
 - +x is the patient's left. +y is posterior. On a displayed image +x points right and +y points down, the
   radiological view of an axial slice (`anatomy.py`, module docstring).
-- Pixel `i` of an `n`-point axis is centred at `(i - n // 2) x FOV / n` (`session.pixel_positions`). The isocentre
-  is pixel `n // 2`. The image covers `-FOV / 2` to `FOV / 2` minus one pixel. Checked by K19.
-- The field of view is centred on the isocentre and cannot be moved.
-- A region read-out uses the pixels whose centre lies inside the circle (`session.roi_readouts`).
+- Pixel `i` of an `n`-point axis is centred at `centre + (i - n // 2) x FOV / n` (`session.pixel_positions`). With
+  the default centre the isocentre is pixel `n // 2`, and the image covers `-FOV / 2` to `FOV / 2` minus one pixel.
+  Checked by K19.
+- `centre_y_mm`, `centre_x_mm` move the centre of the field of view. The band filter of the readout and the fold
+  of the phase direction follow it: a spin at `y` appears at `((y - centre + FOV / 2) mod FOV) - FOV / 2` from the
+  centre. Checked by K21, K22.
+- `rotation_deg` = r turns the field of view about its centre: the image rows run from +y towards +x. The pixel
+  at `(v, u)` mm from the centre along rows and columns shows the patient position
+  `centre + (v cos r - u sin r, v sin r + u cos r)` (`session.pixel_grid`); the object appears turned by -r. The
+  scanner images the world re-evaluated on the turned grid (`world.turned`), so a turned image has the edges and
+  the sampling of an upright one. `pe_dir` names the image axis (rows or columns), not the patient axis. Checked
+  by K23, K24.
+- Regions are circles in patient coordinates, whatever the field of view. A region read-out uses the pixels whose
+  centre lies inside the circle (`session.roi_readouts`).
 - There is no patient coordinate system and no exporter. If you write DICOM yourself, the axes above are
   x = L, y = P of the LPS frame.
 
@@ -62,8 +72,15 @@ frequencies in ppm.
 - The pixel is square. The phase direction has `matrix x phase_fov` pixels, rounded to an even number.
 - The readout is sampled at twice the matrix and band-filtered, so the readout direction does not fold. The phase
   direction folds. Checked by K6, K7 and example 06.
-- For every sequence except `epi` the order of the phase-encode lines has no effect on the data, because every
-  line is served at the steady state. `epi` with `pe_polarity` = +1 acquires the lines in order of increasing k.
+- For every sequence except `epi` the order of the phase-encode lines has no effect on the data of a static
+  object, because every line is served at the steady state. `epi` with `pe_polarity` = +1 acquires the lines in
+  order of increasing k.
+- When something in the world moves periodically, time enters. Line by line: lines in order of increasing k, the
+  averages of a line in succession, one cycle (`tr_ms`; `afi`: TR1 + TR2) apart, so line `j` of average `a` is
+  acquired at `(j x averages + a) x cycle`. `epi`: line `j` of a shot at `j x echo_spacing_ms`, one shot per
+  average, `tr_ms` apart. The phase of the motion at the first line is a fixed hash of the mover and the realised
+  protocol: the same protocol gives the same ghost, another protocol another phase (`kspace.Engine._motion`).
+  Copies of a pulsing source sit at `+- lines x frac(f x cycle x averages)` pixels along phase. Checked by K25 to K27.
 
 ### Which way things move
 
@@ -149,8 +166,9 @@ the 0.01 ms raster; use the realised values that `plan` and `scan` return.
 | `bssfp` | excitation to excitation | TR / 2, not adjustable | `phase_cycle_deg` = RF phase advance per TR |
 | `epi` | excitation to excitation, one image per TR | centre of the excitation to the line through k = 0 | `echo_spacing_ms` = time between successive lines |
 
-In the signal models every pulse is instantaneous, so "centre" is the instant of the pulse. Pulse durations
-enter only the console's minimum times and the RF power.
+In the signal models every pulse is instantaneous in time: nothing relaxes while it plays, and "centre" is the
+instant of the pulse. Pulse durations enter the console's minimum times and the RF power, and with a selective
+pulse the time-bandwidth product shapes the slice profile (section 8a).
 
 ## 8. B1
 
@@ -159,6 +177,40 @@ one transmit-gain error per session (`kspace.Engine.b1`, `world.b1_at`). It scal
 refocusing pulse: `se` and `ir` play `90 x B1` and `180 x B1` degrees. The adiabatic inversion and the fat
 saturation do not scale with B1; each has one efficiency per session. The console computes RF power from the
 nominal flip angle.
+
+## 8a. Slice selection
+
+- `excitation` = `selective` (default): the excitation is a Hann-windowed sinc of 128 equal time steps whose
+  amplitudes sum to the flip angle at the slice centre (`rf.sinc_pulse`). `rf_pulse` names duration and
+  time-bandwidth product: `fast` 1 ms / 2, `normal` 2 ms / 4, `sharp` 4 ms / 8 (`rf.PULSES`). The bandwidth
+  `tbw / duration` spans one slice thickness: "thickness" is the width of the excited band, close to the full
+  width at half maximum of the profile for `normal` and `sharp`, and narrower than it for `fast`.
+- The rotation at height z is the product of the 128 small rotations about the pulse axis, each between two
+  half-steps of precession about z (`2 pi x tbw x z / thickness / 128` per step), followed by a rephasing lobe of
+  half the selection area (`rf.cayley_klein`; Pauly 1991). Cayley-Klein parameters: a rotation by φ about the unit
+  axis n has `a = cos(φ/2) - i n_z sin(φ/2)`, `b = -i (n_x + i n_y) sin(φ/2)`; from equilibrium `Mxy = 2 conj(a) b`,
+  flip angle `2 asin|b|`. Checked by R1, R2.
+- The signal of a voxel is the integral over z of the sequence's signal at the local flip angle, times the
+  transverse phase factor, per unit thickness: independent columns, no exchange between them. Quadrature:
+  `6 x tbw` points per thickness out to `0.5 + 12 / tbw` thicknesses from the centre (6.5, 3.5 and 2 thicknesses for
+  `fast`, `normal` and `sharp`; `rf.quadrature`), the two sides of the slice added (`kspace.slice_table`). Checked by R3 to R5, R7, R10.
+  A rectangular profile would give the one-angle formula; `flip_deg` x B1 is the angle at the slice centre.
+- `se`, `ir`: the 180 degree pulse is the same shape, 1.5 times as long, on a slice 1.5 times as thick
+  (`rf.REFOCUS_WIDTH`), with crushers. A column contributes `-b² conj(Mxy)` of its transverse magnetisation and
+  keeps `(1 - 2|b|²)` of its longitudinal magnetisation, b being the Cayley-Klein parameter of the refocusing
+  pulse at that height. Transverse magnetisation that the crushers dephase is taken as lost for good: a
+  longitudinal grating stored by an imperfect refocusing pulse is not recalled in the next repetition. The echo
+  is reported positive for ideal pulses. Checked by R9; the size of the grating term is in
+  [external.md](external.md), row L1.4. The inversion pulse of `ir` is not slice-selective.
+- `bssfp`: the closed form at the flip angle of every column, summed; the transverse phase of the profile is kept
+  as a weight, the rotation of each column is taken about the pulse axis.
+- Peak B1 = `rf.peak_factor(tbw)` x the amplitude of a hard pulse of the same duration and angle; energy =
+  `rf.energy_factor(tbw)` x that of the hard pulse. Slice gradient = `tbw / (duration x gamma x thickness)`.
+  Checked by C4 to C6.
+- `excitation` = `nonselective`: hard pulses, one flip angle per voxel, the formulas of the datasheet. The scan
+  is priced as a 3D acquisition of `ceil(160 mm / slice_mm)` partitions (`console.SYSTEM["slab_mm"]`), the noise
+  is that of the 3D reconstruction (1 / sqrt(partitions) of the 2D noise), and the image is one partition. This
+  is the signal model of engine 0.1.0. Checked by R6, C7, C8.
 
 ## 9. T2*
 
@@ -170,9 +222,17 @@ mono-exponential (Lorentzian) decay.
 - Spin echoes (`se`, `ir`) and `bssfp`: `exp(-(TE + τ) / T2) x exp(-|τ| / T2')`. Static dephasing is refocused at
   the echo centre.
 - A field that varies inside a pixel dephases further, because the phase is applied on the master grid.
-- Gradient echoes also lose `exp(-(pi x g x slice_mm x TE)² / (4 ln 2))` where the field has the through-slice
-  gradient `g` in Hz/mm. This is the dephasing of a Gaussian slice profile whose full width at half maximum is
-  `slice_mm` (`kspace.Engine.kspace`). The QA phantom has `g` = 0.
+- Gradient echoes also lose signal where the field has the through-slice gradient `g` in Hz/mm. With
+  `c = g x slice_mm x TE` cycles of phase across the thickness, a selective pulse leaves
+  `sinc(c) x (1 + cos(2 pi c / tbw)) / 2` and nothing beyond `c = tbw / 2`: for a small flip angle the profile is
+  the Fourier transform of the pulse, so the factor is the pulse shape itself (`rf.dephasing_factor`). It can be
+  negative: the phase of the signal then jumps by pi. The hard pulse of the 3D mode keeps the factor of engine
+  0.1.0, `exp(-(pi c)² / (4 ln 2))`, a Gaussian profile whose full width at half maximum is `slice_mm`
+  (`kspace.Engine.kspace`). The QA phantom has `g` = 0. Checked by R11.
+- Fat saturation: the pulse is centred on the main fat line (-3.4 ppm) plus the system's hidden offset
+  (`world["system"]["fatsat_offset_hz"]`) plus the protocol's `fatsat_offset_hz`. A spin is saturated by the
+  session's efficiency when its own frequency lies within half the pulse bandwidth (1.3 ppm in all) of that
+  centre (`kspace.Engine.amplitudes`). Checked by K28.
 
 ## 10. Parameter names against DICOM and BIDS
 
@@ -198,7 +258,9 @@ repository checks them against the standards, and the package ships no exporter.
 | field strength | MagneticFieldStrength (0018,0087), T | MagneticFieldStrength, T | |
 | header `WFS` | | WaterFatShift, pixels | main fat peak |
 | header `SAR` | none: SAR (0018,1316) is W/kg | | percent of a limit on B1rms squared; see limits.md |
-| `phase_oversampling`, `ro_polarity`, `pe_polarity`, `phase_cycle_deg`, `tr_ratio` | no standard attribute | no field | |
+| `excitation` | MRAcquisitionType (0018,0023): 2D for `selective`, 3D for `nonselective` | MRAcquisitionType | |
+| `centre_y_mm`, `centre_x_mm`, `rotation_deg` | ImagePositionPatient (0020,0032), ImageOrientationPatient (0020,0037) | | not exported; x = L, y = P |
+| `phase_oversampling`, `ro_polarity`, `pe_polarity`, `phase_cycle_deg`, `tr_ratio`, `rf_pulse`, `fatsat_offset_hz` | no standard attribute | no field | |
 
 The sequences map onto BIDS quantitative-MRI collections: `spgr` at several flip angles is VFA, multi-echo `spgr`
 is MEGRE, `afi` is TB1AFI, an `ir` series is IRT1.

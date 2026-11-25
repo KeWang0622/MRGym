@@ -1,0 +1,2 @@
+# Lines of src/ that may carry "# pragma: no mutate" (mutmut then skips them). One per line: <path>:<line>  # reason.
+# At most 25. tools/audit/mutation.py fails on a pragma that is not listed here. Empty today: nothing is excluded.

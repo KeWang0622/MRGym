@@ -1,0 +1,6 @@
+{
+ "env_id": "Scanner/FatSuppress-v0",
+ "level": 2,
+ "seed": "f9daae82d01d6e8fb5fb0183820dcd3e",
+ "split": "test-iid"
+}

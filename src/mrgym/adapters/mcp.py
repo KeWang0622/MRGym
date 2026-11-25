@@ -11,7 +11,10 @@ PROTOCOL_VERSION = "2025-06-18"
 
 
 def handle(env, request):
-    rid, method, params = request.get("id"), request.get("method"), request.get("params") or {}
+    if not isinstance(request, dict):
+        return {"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": "a request is a JSON object"}}
+    rid, method, params = request.get("id"), request.get("method"), request.get("params")
+    params = params if isinstance(params, dict) else {}             # tools/call without a name is answered by the environment
 
     def ok(result):
         return {"jsonrpc": "2.0", "id": rid, "result": result}
@@ -23,7 +26,7 @@ def handle(env, request):
         return ok({"tools": env.tools("mcp")})
     if method == "tools/call":
         try:
-            step = env.step({"name": params.get("name"), "arguments": params.get("arguments") or {}})
+            step = env.step({"name": params.get("name"), "arguments": params.get("arguments")})
         except mrgym.ResetNeeded as e:                      # the episode is over: a tool error, not a protocol error
             return ok({"content": [{"type": "text", "text": f"error: {e}"}], "isError": True})
         return ok(step.observation.to_mcp())

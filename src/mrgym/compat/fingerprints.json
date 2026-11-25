@@ -1,0 +1,254 @@
+{
+ "ids": {
+  "Scanner/ArtefactClinic-v0": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "d7bcbc5849e5db520f72e4213570724b0cdd40f476b3aa1646c994f53112d9b3",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "cdda932ec3af35c66e5366f4fe3fa1f6fe0a951a35ef5fd1ab638d74645585a4",
+    "L1.tools": "81c2e4d4f66d52f955f935158bb02debaa71a3bad61c3f476ca86297490aee0d",
+    "L1.transcript": "0b8928bc35e3390eeb0659376eef5a910413a7f37abb70ae8301fb69ad656e71",
+    "L2.statement": "00d20a06649460dbaf17cd1dba6531ff7d91996a5ff3518e1af711887710877c",
+    "L2.tools": "9bb20a97448b3c92c59b4a71375d5b731e7979baecd1cf33b0d0b67a9032e7e9",
+    "L2.transcript": "f0e3240e2e4bff975bcbecd2241295b2d97f2b391d4d82e573db108d54fdd104",
+    "L3.statement": "9e3704451905ab0f18f4306c3b8c89438fa07a866f03fab5bcf94bbf2b250431",
+    "L3.tools": "4d37ade58d5a1846d7765c688f814447e59889db4f5f1b0633a5ae6b5f4d6074",
+    "L3.transcript": "00c13b9027c1a9d20d1a1030cc689276905001623ef6c93d14d5e98aa175aaa5",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "efb6fafb8e1a24b66c098adb52e22312d24a6850a6e74e69a330e09233f85eee",
+    "rules": "bb3912afce9799da179c75f206b04ca60ba5f39354fada79fc41c437dbfb6d93",
+    "scoring_source": "2fbf5703b4c1c295c841f093470904b7a2f94fbbd09f85cfb7499fe9505817e9"
+   }
+  },
+  "Scanner/BandFree-v0": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "248479da34525fe03c0efbcbf5a24b535830c9421bf6d5501ae5228c14e0d6f3",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "e05b6ba5fade38ef6f783749f1f73d96cf3897475255b9f0973d2a74dc782a21",
+    "L1.tools": "c52c129ae5a6b5a11378bd904830d7a8e2cb09fbee035a0539b64f8e3480fd8b",
+    "L1.transcript": "33c99b67dafa560ee76654528f0eabe638609364fe0bf367cbf27a1d69414152",
+    "L2.statement": "7b6a9a9fabb7d35dcbf54b87f5738ff10598b8c00d84bfe685b2c7a684f15481",
+    "L2.tools": "c52c129ae5a6b5a11378bd904830d7a8e2cb09fbee035a0539b64f8e3480fd8b",
+    "L2.transcript": "08ca15834655808b2837fe2fb7302716231607a18cb3373c732db65e48f23cd4",
+    "L3.statement": "1a628c31e17bc72a8d4fc2cc0456768feb39a3f6ee1c8366e3f32de8787f5d02",
+    "L3.tools": "3c576a43318a03d71d1eaf9bbea45368e3800b32bf50793cc50c39003132c9ff",
+    "L3.transcript": "2b2aa0d6658febc9bccdf6a5db30624924b114d9b139105182154fa772ed4433",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "3181a1caff524f9506bcf94151111e154478ed7c3e764dacb4e2e96dc79f0303",
+    "rules": "902ab2bc40e31b6a3650c685898f8a00e8a94a897df130352bea885412926365",
+    "scoring_source": "c47c230fd0be9d80f0c6797140f14aafde5274c21128efe2d217e9f26baed1a1"
+   }
+  },
+  "Scanner/Explore-v0": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "187c90215446162f512d2da72a98d2bc46973a3e50cd0269cd8b0f89f2daa8db",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "1c17ebb25248d15e2711253dc33cb5754331602c49e25a14a726d72d29de8ac7",
+    "L1.tools": "ba2eb0b3e8af5d6022c0bedc25d93c4fd6c42fbc3d5b191f0ceef6f2fdaf3cc0",
+    "L1.transcript": "2a958ea2f5eb0455c7431100f58e5a0b72a0643d5b25a6848f6fa02e6ee0af3d",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "f70cc7267d892345e263a2cb8857b41f250ab1e0d9ced96b3b803642eeffdd79",
+    "rules": "1f75d14fe0e05c424aa9e6f52ffed8098e1498e4261e9be290044a6404287c9f",
+    "scoring_source": "de175ddedadf2f0878c23d3408d57b5dbfd9675389a8d26f92f13c59f88e0153"
+   }
+  },
+  "Scanner/FatSuppress-v0": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "0a6e86a3f29b88ee64749c2836b51a8e44e59e9bcfce7a102c0c54783c0eee75",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "9ce3850ec1f14716dce5dfbad8425cbe50b49f8377d26263c5dbca8576d67faf",
+    "L1.tools": "a03c77bdd7c9d38fd2e880a3f5c5fe89bf654f32e66aa060c7723f950c501d43",
+    "L1.transcript": "4314fc28c168d57d32da4656badb2dabb2add0fe3d62c2316a17cd0d2b34f96c",
+    "L2.statement": "be05e666c95320c9bfa3a92d7f799734e0065a3077fff92538505a593356f816",
+    "L2.tools": "2ed7cba4dd84834094cebf1e49c36c0d6859fb3090ee9403556f29eaca63a4db",
+    "L2.transcript": "c06562a63e2599e300c5368d678363e16a77f1cb61e95d7db1584a4916149ccd",
+    "L3.statement": "cf7bb06eded1e15f5d774a38c2d2dfab08505f8675843c547c4a36002e2b6855",
+    "L3.tools": "a03c77bdd7c9d38fd2e880a3f5c5fe89bf654f32e66aa060c7723f950c501d43",
+    "L3.transcript": "4a0c498fbdde74e88aca695d18879252c4100a860a51d7d68bf10f3bacb661d5",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "3181a1caff524f9506bcf94151111e154478ed7c3e764dacb4e2e96dc79f0303",
+    "rules": "64269dd22d80e22d7d39818cd4dfe22927f655c02ccc5d33607cfe39cd18ee2c",
+    "scoring_source": "6e5db65dbe0c03c25e7df9ce85aa97a8de33c557fab9c0000115446d0017dbb2"
+   }
+  },
+  "Scanner/NoWrap-v0": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "df10f13edab7de8e1c32e734125394e38711fb53e82596e925ee2d2f8cff61ec",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "d38d0a6f6bd01e343292e04da68a2d7cebb0b5e0c92bcf7ec08903c57a28e09f",
+    "L1.tools": "3c178b214f30bcfc5771fdcb93dd53d28d22077c52fb8c9a3e6fef8149a2c66f",
+    "L1.transcript": "80c06be98fc3d1ea82c58ba0d1ed06454c6176eeea31d21888a3b87a36015363",
+    "L2.statement": "d38d0a6f6bd01e343292e04da68a2d7cebb0b5e0c92bcf7ec08903c57a28e09f",
+    "L2.tools": "3c178b214f30bcfc5771fdcb93dd53d28d22077c52fb8c9a3e6fef8149a2c66f",
+    "L2.transcript": "10f50be61099fbb0aa2d61a7f07e56e5e9a985757ba2779e48f0a1b2fa68975c",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "ab1e983be0634b1bf4a6c866b07315a8a0ca8761c5d51b69e535d721595ed9dc",
+    "rules": "228afe1025623bb259935632a5ef458a775c7853ee261d589a6c425fd6f0bfe6",
+    "scoring_source": "4fe1d157ce83e27362ea28db195adc3a7bb6cb6fe957f2f3841a41a606098d9e"
+   }
+  },
+  "Scanner/NoWrap-v1": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "b99c409e1e8ed4c97f962fff3bf0db83d059d3e7b889432aa881514c7f0f80a2",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L0.statement": "988aea7ee81687e981177fe377054bd345a91bff4b3faf881cbd29e0bfef37b1",
+    "L0.tools": "18315a4b9bbf3514febeb159aaf0fe75c28ab4b1ac58de9d7f0b46393d2aae20",
+    "L0.transcript": "a5d74cbc7b2c5893797a18598b24f87faa740003a912d2b480280c5dbf0c3d9f",
+    "L1.statement": "c65ee175a43febb81dfc0279f60f658a556bd2584f03530d909be8430b03bddd",
+    "L1.tools": "18315a4b9bbf3514febeb159aaf0fe75c28ab4b1ac58de9d7f0b46393d2aae20",
+    "L1.transcript": "503adb7af4e8f18a76488443c1cde4112596068f7683610eab787c7020a56547",
+    "L2.statement": "6ba7c1e15f06a1518e3bc78d5cd9380d4f92c9bbceffe38775b5926d189a236c",
+    "L2.tools": "18315a4b9bbf3514febeb159aaf0fe75c28ab4b1ac58de9d7f0b46393d2aae20",
+    "L2.transcript": "d34e4fa204db7773f12b2876aa009e5bb4b9bb8d8c1ff14742e75a93682557c5",
+    "L3.statement": "6ba7c1e15f06a1518e3bc78d5cd9380d4f92c9bbceffe38775b5926d189a236c",
+    "L3.tools": "18315a4b9bbf3514febeb159aaf0fe75c28ab4b1ac58de9d7f0b46393d2aae20",
+    "L3.transcript": "dfe20f8fec2847d982eb7376976737c7ab68cad993a912a78fc105a28f160722",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "cdeceb887e70fa6ca0de59722f5717ea87660e547d0b6adf68a940345eaf1235",
+    "rules": "75ca1bce87d6b47c5fdd607aab172d42483faf6f7a81938b172c37e7358c9c8b",
+    "scoring_source": "1e5ed88249fef80946372df7cf1b5d11edeeab32ca0acf93b9d7ce0cd4481282"
+   }
+  },
+  "Scanner/NullTissue-v0": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "b7d405d82ccb0e76d31b446b6cd00ef6444c839509e13d238f35a539b49ae8cb",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L0.statement": "7cc6eba3cfd00fc6c720684241a25edbc714c2b3248742a2c089377a5d2cea58",
+    "L0.tools": "97ee7d2085fb4c5adee4fddac1d66bad59bc6072b5215deba999f0baff5a90fc",
+    "L0.transcript": "8d9f7cd83af5fe3059f509d0d9b40b00e7c9369ce510aa722cca859933dfa9b2",
+    "L1.statement": "670f431382e7bf8ef50e24f13c695fe6590e8da7629c0ccd6d91efc3e37dfe7a",
+    "L1.tools": "97ee7d2085fb4c5adee4fddac1d66bad59bc6072b5215deba999f0baff5a90fc",
+    "L1.transcript": "70ba417a652de69efeef17919f90751e3df6606860d7886747258399e4fc9e6e",
+    "L2.statement": "bee62d15c3a42a080cfa57a60991d14b1dcbcd9163fd9dc4008b8c6dc2151c3b",
+    "L2.tools": "08932bcf3649aaecf246cea79e98d8dd5a5e37bdd7b09f8c1b6fde28fefac560",
+    "L2.transcript": "3db29f9247522cae4cec93c577ca4298baf3db533ef9ff83f181654c921a413d",
+    "L3.statement": "015afefe98c5233e1d4d90f5f986fc0582665ce41174c812e450c70cb1ad5f22",
+    "L3.tools": "08932bcf3649aaecf246cea79e98d8dd5a5e37bdd7b09f8c1b6fde28fefac560",
+    "L3.transcript": "0ac2c3d5f3289a80a8a4f042126c03b99246a8f51dfcb7488da437a69bcec132",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "2971fe1cd3e220549654559660c38f5a08a1eb30650db0ec0f96fd2d3f6cc00f",
+    "rules": "1414cd162f4bb2ea157c1d611618adc2152feb35ed3275068de50f102b324596",
+    "scoring_source": "c17baebebe6e76a8ad72d837e3b1590935ad20ec9b550d7ebd5d506393bcd155"
+   }
+  },
+  "Scanner/PhantomQA-v0": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "2b893999710c40b9b9c3425ad3eb08eaa8c10e288d60abbe5d9d49c17e1796f9",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "5cdc7eab347de4330b5048632f391c277b70b2432803abfcb50acad5fea592d1",
+    "L1.tools": "0fce7a0dda21fd53b99598e74f23ce1d0cf209cd2591f1cf45eb1e7253a1891a",
+    "L1.transcript": "101bbb40ce6e30b8b76754c7a1f67e5252ba7588a626e836ca664990552823d7",
+    "L2.statement": "155e6c15a45e32f1e64764061feb58e859f5211987a38ec53fbb6b19ee344067",
+    "L2.tools": "0fce7a0dda21fd53b99598e74f23ce1d0cf209cd2591f1cf45eb1e7253a1891a",
+    "L2.transcript": "c69fabe2a4334b0e97f1a53d655ca56372b543c4af824107371f0f2c7e523111",
+    "L3.statement": "3f68dfed9849bb7cb9848c8de058dc8f57feee36b724c759f7559b78a0019f80",
+    "L3.tools": "0fce7a0dda21fd53b99598e74f23ce1d0cf209cd2591f1cf45eb1e7253a1891a",
+    "L3.transcript": "21c1b61774c115b9b14316f69a6595a14e8ffd4dd8637951d4c677f498b3b6bc",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "3181a1caff524f9506bcf94151111e154478ed7c3e764dacb4e2e96dc79f0303",
+    "rules": "6e9d1d2350aab2c3ccdcc703fae1ead84b823473de85c7eaa032692c8cd8e05a",
+    "scoring_source": "3f6996ee36aa8b6140946ba6269f8b9bdf6b5852304d4f63e4c577e653add11a"
+   }
+  },
+  "Scanner/ProtocolToSpec-v0": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "6a79de7d735ad871c3cf6892f2a2d68e06f46c50dc13bbfee515a48f2ce64b39",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "a65c9a56030a2f043f79cd4c8c02301c0b64bef82f13360635c41eedc23b2d3e",
+    "L1.tools": "4dec646e3ef85e15dbce5c13b5c8ed1a8518570ce770b189f2e1b408a0176b7c",
+    "L1.transcript": "65ff4498e4f80102f8c6a945d76d65cfaab9a9ecf6c9394298145168b69975f0",
+    "L2.statement": "a4b86542dbe30bd5bfc23028a4a76a56f0d3c8fe0679f7641acabadf991d93a1",
+    "L2.tools": "8d69ef679e2ca61e0c54c3249f0777ba89c0bd7c6d79e163cca80958dd78ebff",
+    "L2.transcript": "5f10ce6fd709def69ac5e546d14c4ee0eac772d6339d9c78b2b849111d1353eb",
+    "L3.statement": "8844dafc19f711b4cfaf471832a935bce2d76b73688f30dddc6452e249150b65",
+    "L3.tools": "4dec646e3ef85e15dbce5c13b5c8ed1a8518570ce770b189f2e1b408a0176b7c",
+    "L3.transcript": "52b25967bd397d39f57c3abadc64101deb8693c7fc49bc7489ebd360391f7d56",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "dd0e9d63472e0c0906fadfba9222a71e43cbbcd04ecd6fc57193503d928560ec",
+    "rules": "3246468fbcf5d7ec20d4219576439ed9d757c7450ba15954c7311cfc8189fd25",
+    "scoring_source": "840207f7e98786e2e20b4b90ab5b3961842daa702539e565ae28550d49c5e482"
+   }
+  },
+  "Scanner/SNRSpec-v0": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "43c438d054ef1c9b49f14feb84dc3f4b4964fc14f42ae4c725cd665c1d4c9149",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "a45471ff165aae6ac0e84f9999bcc74f38997d7edc8f04dc92e17510ab63794b",
+    "L1.tools": "337b58512a84b4fc8584ed3c72814faa539e6a3a17e50dc6367f3414cbc3159c",
+    "L1.transcript": "4f19b2af3ac1c87b779d45993b0a36c6720f7e0540c0fcae2b4182056fb6c0d6",
+    "L2.statement": "ec77a4fb101075cfe82a896a33907720d110e65af5b76aeff135fcc71bede1b9",
+    "L2.tools": "337b58512a84b4fc8584ed3c72814faa539e6a3a17e50dc6367f3414cbc3159c",
+    "L2.transcript": "fc9e280a8ccb9052f71d312a0448d60ef9d25e416867320ca87dd152e6628175",
+    "L3.statement": "f58be5daaccc058c6b788e55f63985ca451cc8f19256101324e1141f64691068",
+    "L3.tools": "337b58512a84b4fc8584ed3c72814faa539e6a3a17e50dc6367f3414cbc3159c",
+    "L3.transcript": "f1a27a59d2341f2c9878c54d11e2a5bb5883200c32ec50fdaab5e3123ea7cb4e",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "71d6cb13268406534e526ea9ed0fd912c92d371c78599c186ffaf44329eafee5",
+    "rules": "7fb9219b0b9f6866698fc087ce1f7e1cd9f3acd6effa96e79e76ac26616f8079",
+    "scoring_source": "d2514da18643a319d5a29338c737a44b79f1d17c3beb8993eae03c5f05f7918c"
+   }
+  },
+  "Scanner/T1Transmit-v0": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "810cab572c93e3fe3c3dbdf8377f03f7f7c8b39d3a16eeefabab716ada193307",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "c4ae1f628ccd166eb3218eb751da3c8bbebcbe109d9b17a9e8cd70522de93026",
+    "L1.tools": "69b5f8c1fecb10d9b8c07238ad6e34afe6500f990efc6765ec5559bf4a7e98f7",
+    "L1.transcript": "8a906485d849228e862da8bdc8b2c115d8abc7dce0d4ea544bffa6190f549193",
+    "L2.statement": "45e51331e660e6682552d27171020d5e4a1e6bc73f515c428f3e9eec90216762",
+    "L2.tools": "ee387d6d9ca5e26eee9d41f7f230671b45a2aad74d30e9f803a6f0ebc27055de",
+    "L2.transcript": "73f89d509a8dbadad1f7abcc8f81bee996a0d2e1205b90f50e81a5d61f2f68bf",
+    "L3.statement": "df7368acc1b91ced92d5454f3ba7b7b5edd8579156ac8a6093cef971334eb676",
+    "L3.tools": "b62dbaa22dfefa64a420cdab851098404902d49e6222a300638a0d12c05a93c6",
+    "L3.transcript": "a44d8050c270e8f3e182ecad80eb84deadab106c98230460ffc815dd2482a2dd",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "3181a1caff524f9506bcf94151111e154478ed7c3e764dacb4e2e96dc79f0303",
+    "rules": "5e96531cb6d6433ed208d6afeec743210d7f96f8587142cdfd884f59c52933d7",
+    "scoring_source": "310c41f6816b94c7f440111be8a7daff2720aaa36a8dfff7d18da243c177fbe9"
+   }
+  },
+  "Scanner/T1Transmit-v1": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "a7440663656323a1b4429ab3a94788d1e7a69f384685c82a141e74f8ea59f2e3",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "7df62a90f0a485ffbc18241a50a8f14ddac4e5c94802a3f98ebb830a7def3f84",
+    "L1.tools": "c19b5f18063c2ad2e4798270009a5278cc368d984ad4ed7de4cb12233b66a548",
+    "L1.transcript": "e13d0d0de586dc6176de54c243a0b1175badfee823a8ff77ec03bf8c1320525c",
+    "L2.statement": "d7a412b4ca0776f23ef3a71806d42d38cbdda1eb28b5665858850157400ec284",
+    "L2.tools": "c19b5f18063c2ad2e4798270009a5278cc368d984ad4ed7de4cb12233b66a548",
+    "L2.transcript": "ed5414185718d1aee5d756a0e0bca1266043c5961ff0dcbf7b6772ae5571136e",
+    "L3.statement": "07f4f27ec6dc69f4dfa0a9fa3930f246b413ae7e6fc3cef4f5b80d8846f4e4ca",
+    "L3.tools": "c19b5f18063c2ad2e4798270009a5278cc368d984ad4ed7de4cb12233b66a548",
+    "L3.transcript": "ae0d70d21b15c26c84b7941b52fbfc1a50d93defba1617a7b7231b1d66b91229",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "3181a1caff524f9506bcf94151111e154478ed7c3e764dacb4e2e96dc79f0303",
+    "rules": "9063fea2762ce3fa996f1e4ab183079873a692a68b5c0ce36a9df83d2dc07b55",
+    "scoring_source": "844c8837020bbb3abcf683cde22b9b643e27457fb47a217d072a368ce7b0280c"
+   }
+  }
+ },
+ "schema": "mrgym-fingerprint/1"
+}

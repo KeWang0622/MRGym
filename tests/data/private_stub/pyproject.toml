@@ -1,0 +1,13 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mrgym-private-stub"
+version = "0.0.1"
+description = "Stub of a private MR Gym family package (test data)"
+requires-python = ">=3.10"
+dependencies = ["mrgym"]
+
+[project.entry-points."mrgym.envs"]
+private_stub = "mrgym_private_stub.spec"

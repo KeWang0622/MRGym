@@ -1,0 +1,6 @@
+Metadata-Version: 2.1
+Name: mrgym-private-stub
+Version: 0.0.1
+Summary: Stub of a private MR Gym family package (test data)
+Requires-Python: >=3.10
+Requires-Dist: mrgym

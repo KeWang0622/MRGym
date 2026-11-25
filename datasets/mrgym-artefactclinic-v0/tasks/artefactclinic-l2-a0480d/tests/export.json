@@ -1,0 +1,6 @@
+{
+ "engine": "mrgym-engine-0.2.0",
+ "env_id": "Scanner/ArtefactClinic-v0",
+ "level": 2,
+ "mrgym": "0.1.0.dev0"
+}

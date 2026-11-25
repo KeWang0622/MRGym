@@ -7,7 +7,10 @@ bump. The reference numbers below must change only together with ``ENGINE_VERSIO
 revert the change, or bump the version, record the new numbers, and add an "Engine" line to CHANGELOG.md.
 
 Reference case: seed ``000102030405060708090a0b0c0d0e0f``, world spec ``{"kind": "qa"}``, the noise-free image of
-the protocol ``{"sequence": "se", "tr_ms": 500, "matrix": 64}``.
+the protocol ``{"sequence": "se", "tr_ms": 500, "matrix": 64}`` (slice-selective, the default since 0.2.0).
+
+The same protocol with ``excitation: nonselective`` is the hard-pulse model of engine 0.1.0; its three numbers are
+kept below as recorded on 0.1.0 and must not move at all (``mrgym validate`` row R6 asserts the same).
 """
 import numpy as np
 import pytest
@@ -16,15 +19,17 @@ import mrgym
 from mrgym.scanner import kspace
 from mrgym.scanner import world as W
 
-ENGINE_VERSION = "0.1.0"
+ENGINE_VERSION = "0.2.0"
 SEED = "000102030405060708090a0b0c0d0e0f"
 WORLD_SPEC = dict(kind="qa")
 PROTOCOL = dict(sequence="se", tr_ms=500, matrix=64)
 # recorded with ENGINE_VERSION above (numpy 2.2.6, scipy 1.15.3, one thread)
-MEAN_MAGNITUDE = 0.7259219837862718
-MAX_MAGNITUDE = 2.778571927919207
-MAGNITUDE_AT_0_32_32 = 2.3098207026200184
+MEAN_MAGNITUDE = 0.5995635694482917
+MAX_MAGNITUDE = 2.286886738607616
+MAGNITUDE_AT_0_32_32 = 1.8942632136377284
 RTOL = 1e-6
+# recorded with engine 0.1.0: the hard-pulse image, served since 0.2.0 by excitation = nonselective
+HARD_PULSE_0_1_0 = dict(mean=0.7259219837862718, max=2.778571927919207, pixel=2.3098207026200184)
 
 
 @pytest.fixture(scope="module")
@@ -35,7 +40,7 @@ def magnitude():
 
 def test_engine_id_is_the_recorded_one():
     assert mrgym.ENGINE_VERSION == ENGINE_VERSION
-    assert mrgym.ENGINE_ID == "mrgym-engine-" + ENGINE_VERSION == "mrgym-engine-0.1.0"
+    assert mrgym.ENGINE_ID == "mrgym-engine-" + ENGINE_VERSION == "mrgym-engine-0.2.0"
 
 
 def test_reference_image_has_the_recorded_shape(magnitude):
@@ -54,3 +59,11 @@ def test_reference_numbers_of_the_engine(magnitude):
 def test_the_noise_free_scan_is_deterministic(magnitude):
     again = np.abs(kspace.Engine(W.make_world(SEED, WORLD_SPEC)).scan(PROTOCOL)["images"])
     assert np.array_equal(again, magnitude)
+
+
+def test_the_hard_pulse_mode_is_the_engine_of_version_0_1_0():
+    world = W.make_world(SEED, WORLD_SPEC)
+    m = np.abs(kspace.Engine(world).scan(dict(PROTOCOL, excitation="nonselective"))["images"])
+    got = dict(mean=float(m.mean()), max=float(m.max()), pixel=float(m[0, 32, 32]))
+    for key, want in HARD_PULSE_0_1_0.items():
+        assert got[key] == pytest.approx(want, rel=1e-9), key

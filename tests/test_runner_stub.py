@@ -7,11 +7,16 @@ What is shown
     endpoint, and for a model that rejects sampling parameters
   * the no-scan answer earns reward 0
   * malformed arguments, unknown tools, prose, empty replies, call floods and overspending are scored episodes with
-    the right stop reason and reward 0, never a crash
+    the right stop reason and reward 0, never a crash; the runner has no cap of its own: what ends such an episode is
+    a limit of the environment (tool calls, rejected calls) or three replies without a call
   * a dead endpoint gives ``infra_error`` records that are left out of the rates and played again on resume
   * a finished run starts nothing when repeated; other settings in the same folder are refused
   * the world seed is in no saved file and no request
   * ``mrgym results --check`` passes on a fresh build and fails after a record is edited
+
+Changed with the statistics package: the table has one row per environment and agent (levels are strata), every
+rate is printed with the clustered interval of ``mrgym.stats``, small runs are pilot rows, and the stored
+conversation of a model episode carries more than the tools and the messages (see ``tests/test_records.py``).
 """
 import glob
 import json
@@ -22,16 +27,17 @@ import socket
 import pytest
 
 import mrgym
+from mrgym import calc as calc_mod
 from mrgym import cli, results
 from mrgym.agents import chat, runner, stub_server, summarize
 from mrgym.env import derive_seed
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-NOWRAP, T1 = "Scanner/NoWrap-v0", "Scanner/T1Transmit-v0"
+NOWRAP, T1 = "Scanner/NoWrap-v1", "Scanner/T1Transmit-v1"
 SEEDS = [0, 1]
 FAST = dict(backoff_s=0.01, max_retries=3, quiet=True)
-FAILURES = dict(malformed_json="turn_cap", unknown_tool="turn_cap", text_only="no_tool_calls", empty="no_tool_calls",
-                flood="truncated", bad_args="submitted", overspend="submitted")
+FAILURES = dict(malformed_json="rejected_call_limit", unknown_tool="rejected_call_limit", text_only="no_tool_calls", empty="no_tool_calls",
+                flood="truncated", bad_args="rejected_call_limit", overspend="submitted")
 
 
 @pytest.fixture(scope="module")
@@ -74,7 +80,7 @@ def one(out, agent):
     return rec
 
 
-SAME = ("reward", "passed", "error", "scans", "scan_s_used", "scan_s_budget", "scanner_requests", "gates", "task_id", "admitted")
+SAME = ("reward", "passed", "error", "scans", "scan_s_used", "scan_s_budget", "scanner_requests", "gates", "task_id")
 
 
 # ------------------------------------------------------------------ the reference, replayed as tool calls
@@ -92,7 +98,9 @@ def test_reference_replay_reproduces_the_scripted_episode(replay):
             assert got[field] == ref[field], (key, field)
         assert got["log"]["head"] == ref["log"]["head"] and ref["log"]["head"] is not None, key
         assert got["log"]["events"] == ref["log"]["events"] and got["log"]["replays"] and ref["log"]["replays"]
-        assert ref["passed"] and ref["reward"] == 1.0 and ref["scans"] >= 1, key
+        assert ref["scans"] >= 1, key
+        if key[0] == NOWRAP:    # whether an id's reference passes is its gate's business: T1Transmit's does not with a slice profile (engine 0.2.0)
+            assert ref["passed"] and ref["reward"] == 1.0, key
         assert got["turns"] == got["tool_calls"] == ref["tool_calls"] and got["invalid_calls"] == 0
         assert got["tokens_in"] > 0 and got["tokens_out"] > 0 and not got["tokens_estimated"]
         assert ref["turns"] is None and ref["tokens_in"] is None
@@ -106,7 +114,7 @@ def test_prior_answer_earns_nothing(replay):
         for rec in table[agent].values():
             assert rec["status"] == "completed" and rec["stop_reason"] == "submitted"
             assert rec["reward"] == 0.0 and not rec["passed"] and rec["scans"] == 0 and rec["scan_s_used"] == 0
-            assert rec["gates"]["deliverable"] and not rec["gates"]["measured"]
+            assert rec["gates"]["deliverable_valid"] and not rec["gates"]["measured"]
     for key, rec in table["prior"].items():
         assert table["stub:prior"][key]["error"] == rec["error"]
 
@@ -126,7 +134,8 @@ def test_endpoint_habits_do_not_change_the_episode(variants):
     assert split["tokens_estimated"] and split["tokens_in"] > 0
     recover = one(out, "stub:recover+flaky")                    # two bad turns, one HTTP 500, one body that is not JSON
     assert recover["invalid_calls"] == 2 and recover["turns"] == ref["tool_calls"] + 2
-    assert recover["env_tool_calls"] == ref["tool_calls"] + 2
+    assert recover["env_tool_calls"] == ref["tool_calls"]              # a refused call is not an executed one
+    assert recover["interface"]["shape"] + recover["interface"]["vocabulary"] == 2 and recover["interface"]["lost_turns"] == 2
 
 
 def test_rejected_sampling_parameters_are_dropped_and_reported(variants):
@@ -144,28 +153,32 @@ def test_agent_failure_is_a_scored_episode(variants, behaviour):
     rec = one(variants[0], "stub:" + behaviour)
     assert rec["status"] == "completed" and rec["stop_reason"] == FAILURES[behaviour]
     assert rec["reward"] == 0.0 and not rec["passed"]
-    if behaviour in ("malformed_json", "unknown_tool"):
-        assert rec["turns"] == 12 and rec["invalid_calls"] == 12 and rec["scans"] == 0
+    if behaviour in ("malformed_json", "unknown_tool"):               # the environment's limit of rejected calls ends it
+        assert rec["turns"] == 8 and rec["invalid_calls"] == 8 and rec["scans"] == 0 and rec["env_tool_calls"] == 0
+        assert rec["interface"]["lost_turns"] == 8 and rec["interface"]["calls"] == 8
     if behaviour in ("text_only", "empty"):
         assert rec["turns"] == runner.IDLE_TURNS and rec["tool_calls"] == 0
-    if behaviour == "flood":                                    # the environment's own limit of tool calls ends it
-        assert rec["env_tool_calls"] == mrgym.spec(NOWRAP).max_steps and rec["turns"] == 4 and rec["tool_calls"] == 120
-    if behaviour == "bad_args":
-        assert rec["turns"] == 10 and rec["invalid_calls"] == 7 and not rec["gates"]["deliverable"]
+    if behaviour == "flood":                                    # the environment's limit of tool calls (made with max_steps=12) ends it
+        assert rec["env_tool_calls"] == rec["settings"]["max_turns"] == 12 and rec["turns"] == 1 and rec["tool_calls"] == 30
+    if behaviour == "bad_args":                                 # eight calls that cannot be executed: the same limit
+        assert rec["turns"] == 8 and rec["invalid_calls"] == 8 and rec["scans"] == 0
     if behaviour == "overspend":                                # the scanner refused; the budget held
         assert rec["scans"] >= 1 and rec["scan_s_used"] <= rec["scan_s_budget"] and rec["log"]["replays"]
-        assert rec["gates"]["measured"] and rec["gates"]["deliverable"]
+        assert rec["gates"]["measured"] and rec["gates"]["deliverable_valid"]
 
 
-def test_calc_is_arithmetic_only():
-    assert runner.calc("a = [1, 2, 3]; mean(a) * 2; a[-1] ^ 2; max(1, 5)") == [("a", [1.0, 2.0, 3.0]), (None, 4.0), (None, 9.0), (None, 5.0)]
-    for text in ("__import__('os').system('id')", "open('x')", "a.b", "[x for x in [1]]", "'text'", "lambda: 1", "import os"):
+def test_calc_is_a_calculator_and_nothing_else():
+    """The calculator of the environment (its grammar and its bounds: tests/test_calc.py)."""
+    assert calc_mod.calc("a = [1, 2, 3]; mean(a) * 2; a[-1] ^ 2; max(1, 5)") == [(None, 4.0), (None, 9.0), (None, 5.0)]
+    for text in ("__import__('os').system('id')", "open('x')", "a.b", "(1).__class__", "import os", "exec('1')", "1 +"):
         with pytest.raises((ValueError, SyntaxError)):
-            runner.calc(text)
-    text, ok = runner.calc_call('{"expressions": "sqrt(2)"}')
-    assert ok and "1.414214" in text
-    text, ok = runner.calc_call('{"expressions": "sqrt(')
-    assert not ok and text.startswith("error: invalid_tool_call")
+            calc_mod.calc(text)
+    env = mrgym.make(NOWRAP, level=1, seed=0)                    # calc is a tool of the environment, the same in every harness
+    env.reset()
+    ok = env.step({"name": "calc", "arguments": {"expressions": "sqrt(2)"}})
+    assert not ok.observation.is_error and "1.414214" in ok.observation.text and env.state()["tool_calls"] == 1
+    bad = env.step({"name": "calc", "arguments": {"expressions": "__import__('os').system('id')"}}).observation
+    assert bad.is_error and bad.data["error"]["type"] == "invalid_value" and env.state()["tool_calls"] == 1
 
 
 def test_merge_choices_reads_every_choice():
@@ -193,7 +206,7 @@ def test_dead_endpoint_is_an_infra_error_and_is_played_again(stub, tmp_path):
     assert all(r["status"] == "infra_error" and r["stop_reason"] == "endpoint_error" and "reward" not in r for r in dead.values())
     row = next(r for r in summarize.summarise(summarize.load(out))["rows"] if r["agent"] == "stub:reference")
     assert (row["episodes"], row["passed"], row["infra_errors"], row["pass_rate"]) == (0, 0, 2, None)
-    assert "| stub:reference | stub | 0 | 0/0 | - |" in results.table_markdown(out)
+    assert "| stub:reference | stub | 0 | - | - |" in results.table_markdown(out)            # a pilot row without a rate; 2 infra errors
     always_500 = runner.run(out, [NOWRAP], levels=[1], seeds=[0], models=["stub:reference+dead"], base_url=stub,
                             backoff_s=0.01, max_retries=1, quiet=True)
     assert always_500["infra_errors"] == 1 and "HTTP 500" in always_500["records"][0]["infra_error"]
@@ -215,12 +228,16 @@ def test_resume_of_a_finished_run_starts_nothing(replay, stub):
         runner.run(out, [NOWRAP], seeds=[0], policies=["blind_vfa"], quiet=True)
 
 
-def test_scripted_policy_plays_once_per_instance_and_skips_what_the_budget_forbids(tmp_path):
+def test_scripted_policy_plays_once_per_instance_on_the_budget_of_the_environment(tmp_path):
     res = runner.run(str(tmp_path), [T1], levels=[3], seeds=[0], policies=["all"], episodes=3, records_only=True, quiet=True)
     names = {r["agent"] for r in res["records"]}
     assert res["started"] == len(names) == len(res["records"]) and {"reference", "prior", "fixed_recipe"} <= names
-    assert "ir_unpriced" not in names                           # needs 40 times the budget of the environment
-    assert all(r["episode"] == 0 and r["recipe_source"] == "admission" for r in res["records"])
+    from mrgym import policies
+    assert names == set(policies.policy_names(mrgym.spec(T1)))             # every control policy: none needs another budget
+    from mrgym import gate
+    tuned = "gate" if str(3) in (gate.load(T1) or {}).get("levels", {}) else "default"   # a stored gate result carries the tuned recipe
+    assert all(r["episode"] == 0 and "admitted" not in r for r in res["records"])
+    assert all(r["recipe_source"] == tuned for r in res["records"])       # one job, one recipe source: every policy carries it
     files = {os.path.basename(p) for p in glob.glob(os.path.join(str(tmp_path), "episodes", "*", "*", "*", "*", "*", "*"))}
     assert files == {"record.json"}
 
@@ -239,7 +256,7 @@ def test_command_line_runs_a_model_and_a_policy_into_one_folder(stub, tmp_path, 
         f"--api-key-env OPENAI_API_KEY --max-turns 5 --no-calc --record-bundles --workers 1 --out {out}")
     seed_hex = derive_seed(NOWRAP, 1, "train", 0)
     for agent, kind in (("stub_prior", "stub"), ("policy-prior", "scripted")):
-        folder = os.path.join(out, "episodes", agent, "Scanner-NoWrap-v0", "L1", "s0", "e0")
+        folder = os.path.join(out, "episodes", agent, "Scanner-NoWrap-v1", "L1", "s0", "e0")
         rec = runner._read(os.path.join(folder, "record.json"))
         assert rec["agent_kind"] == kind and rec["status"] == "completed" and rec["bundle"] is True and rec["reward"] == 0.0
         bundle = runner._read(os.path.join(folder, "episode_bundle.json"))
@@ -247,9 +264,9 @@ def test_command_line_runs_a_model_and_a_policy_into_one_folder(stub, tmp_path, 
         assert bundle["agent"]["language_model"] is False
         with open(os.path.join(folder, "episode_bundle.json"), encoding="utf-8") as f:
             assert seed_hex not in f.read()
-    saved = runner._read(os.path.join(out, "episodes", "stub_prior", "Scanner-NoWrap-v0", "L1", "s0", "e0", "messages.json"))
+    saved = runner._read(os.path.join(out, "episodes", "stub_prior", "Scanner-NoWrap-v1", "L1", "s0", "e0", "messages.json"))
     assert all(t["function"]["name"] != "calc" for t in saved["tools"]) and "`calc`" not in saved["messages"][0]["content"]
-    events = runner._read(os.path.join(out, "episodes", "stub_prior", "Scanner-NoWrap-v0", "L1", "s0", "e0", "episode_bundle.json"))["agent_events"]
+    events = runner._read(os.path.join(out, "episodes", "stub_prior", "Scanner-NoWrap-v1", "L1", "s0", "e0", "episode_bundle.json"))["agent_events"]
     assert [(e["role"], e["step"]) for e in events] == [("assistant", 1), ("assistant", 2)]
 
 
@@ -273,8 +290,8 @@ def test_world_seed_is_in_no_saved_file(replay, variants):
                 with open(name, encoding="utf-8") as f:
                     assert seed_hex not in f.read()
     assert checked > 60
-    saved = runner._read(os.path.join(replay[0], "episodes", "stub_reference", "Scanner-T1Transmit-v0", "L2", "s0", "e0", "messages.json"))
-    assert set(saved) == {"tools", "messages"} and saved["messages"][-1]["role"] == "tool"
+    saved = runner._read(os.path.join(replay[0], "episodes", "stub_reference", "Scanner-T1Transmit-v1", "L2", "s0", "e0", "messages.json"))
+    assert {"tools", "messages", "turns", "schema", "canary"} <= set(saved) and saved["messages"][-1]["role"] == "tool"
     assert [m["role"] for m in saved["messages"][:3]] == ["system", "user", "assistant"]
 
 
@@ -284,7 +301,7 @@ def test_a_request_that_would_carry_the_seed_is_never_sent(stub, tmp_path, monke
     res = runner.run(str(tmp_path), [NOWRAP], levels=[1], seeds=[0], models=["stub:reference"], base_url=stub, **FAST)
     (rec,) = res["records"]
     assert rec["status"] == "infra_error" and rec["stop_reason"] == "runner_error" and "world seed" in rec["infra_error"]
-    folder = os.path.join(str(tmp_path), "episodes", "stub_reference", "Scanner-NoWrap-v0", "L1", "s0", "e0")
+    folder = os.path.join(str(tmp_path), "episodes", "stub_reference", "Scanner-NoWrap-v1", "L1", "s0", "e0")
     assert sorted(os.listdir(folder)) == ["record.json", "scanner_log.jsonl"]       # the conversation was not saved either
     with open(os.path.join(folder, "record.json"), encoding="utf-8") as f:
         assert derive_seed(NOWRAP, 1, "train", 0) not in f.read()
@@ -299,20 +316,23 @@ def test_dry_run_shows_the_first_request_and_calls_nothing(capsys, tmp_path):
     (item, other) = runner.dry_run([NOWRAP, T1], levels=[2], seeds=[1], model="some-model", max_turns=9)
     req = item["request"]
     assert json.dumps(req, indent=1) in text and set(req) == {"model", "messages", "tools"}
-    assert [m["role"] for m in req["messages"]] == ["system", "user"] and "at most 9 turns" in req["messages"][0]["content"]
-    env = mrgym.make(NOWRAP, level=2, seed=1)
+    assert [m["role"] for m in req["messages"]] == ["system", "user"] and "Tool calls: 9 " in req["messages"][1]["content"]
+    assert not re.search(r"\d+ turns", req["messages"][0]["content"])          # the session note states no limit of its own
+    assert item["limits"]["max_tool_calls"] == 9 and json.dumps(item["limits"]) in text
+    env = mrgym.make(NOWRAP, level=2, seed=1, max_steps=9)             # --max-turns is the environment's own limit
     assert req["messages"][1]["content"] == env.reset()[0].text
-    assert req["tools"][:-1] == env.tools("openai") and req["tools"][-1]["function"]["name"] == "calc"
+    assert req["tools"] == env.tools("openai") and "calc" in [t["function"]["name"] for t in req["tools"]]
     assert all(t["function"]["name"] != "calc" for t in runner.dry_run([NOWRAP], seeds=[1], calc=False)[0]["request"]["tools"])
     assert other["env_id"] == T1 and derive_seed(T1, 2, "train", 1) not in text
 
 
 # ------------------------------------------------------------------ the table
 def test_wilson_interval_and_rates():
-    assert summarize.wilson(0, 0) == (0.0, 1.0)
-    lo, hi = summarize.wilson(10, 20)
+    from mrgym import stats  # the one interval lives in mrgym.stats
+    assert stats.wilson(0, 0) == (0.0, 1.0)
+    lo, hi = stats.wilson(10, 20)
     assert abs(lo - 0.2993) < 1e-3 and abs(hi - 0.7007) < 1e-3
-    lo, hi = summarize.wilson(24, 24)
+    lo, hi = stats.wilson(24, 24)
     assert abs(lo - 0.8620) < 1e-3 and hi == 1.0
     assert summarize.rate(3, 24) == "3/24 (12%)" and summarize.rate(0, 0) == "0/0"
     assert runner.parse_seeds("0-3,8") == [0, 1, 2, 3, 8] and runner.seeds_text([8, 0, 1, 2, 3]) == "0-3,8"
@@ -326,19 +346,21 @@ def test_results_check_passes_on_a_fresh_build_and_fails_after_an_edit(replay, c
         readme = f.read()
     assert readme.count(results.START) == readme.count(results.END) == 1
     assert results.dateline(out) in readme and results.table_markdown(out) in readme
-    assert "No language model has been run on these instances yet." in readme
-    assert "| reference | scripted | 2 | 2/2 (100%) | 34-100 % | 1.000 |" in readme
-    assert "| stub:prior | stub | 2 | 0/2 (0%) | 0-66 % | 0.000 |" in readme
     stored = runner._read(os.path.join(out, "results.json"))
-    assert stored["records"] == stored["completed"] == 20 and stored["infra_errors"] == 0 and stored["seeds"] == "0-1"
-    gate = stored["admitted_instances"]                                  # the stored verdict of the admission gate, per record
-    assert set(gate) == {NOWRAP, T1} and gate[T1] == {"2": 0} and all(0 <= n <= 2 for n in gate[NOWRAP].values())
-    assert f"**`{NOWRAP}`, level 1** (2 instances; the admission gate admits {gate[NOWRAP]['1']} of them)" in readme
-    row = next(r for r in stored["rows"] if (r["env_id"], r["level"], r["agent"]) == (NOWRAP, 1, "reference"))
-    assert row["admitted_passed"] == row["admitted_episodes"] == gate[NOWRAP]["1"]
-    assert [r["agent"] for r in stored["rows"] if (r["env_id"], r["level"]) == (NOWRAP, 1)] == ["prior", "reference", "stub:prior", "stub:reference"]
+    assert stored["schema"] == "mrgym-results/2" and stored["records"] == stored["completed"] == 20 and stored["infra_errors"] == 0
+    assert (stored["published_records"], stored["pilot_records"]) == (0, 20) and stored["comparisons"] == []
+    assert "admitted_instances" not in stored and "of them" not in readme           # no per-instance verdict in the results
+    assert "No row is published yet" in readme and "### Pilot rows (not published)" in readme
+    assert [r["agent"] for r in stored["rows"] if r["env_id"] == NOWRAP] == ["prior", "reference", "stub:prior", "stub:reference"]
+    row = next(r for r in stored["rows"] if (r["env_id"], r["agent"]) == (NOWRAP, "reference"))   # one row per environment and agent
+    assert (row["tier"], row["tier_reason"], row["instances"], row["episodes"], row["passed"]) == ("pilot", "< 100 instances", 4, 4, 4)
+    assert row["seeds"] == "L1: 0-1; L2: 0-1" and row["levels"] == [1, 2] and row["by_level"]["1"]["passed"] == 2
+    assert row["pass_rate"] == 1.0 and row["one_sided_bound"] is not None and row["ci_method"] in ("wilson-kg-t", "beta-binomial-grid")
+    assert f"| reference | scripted | 4 | {summarize.cell_text(row)} | 1.000 |" in readme and "4/4 (100.0 %; " in summarize.cell_text(row)
+    prior = next(r for r in stored["rows"] if (r["env_id"], r["agent"]) == (NOWRAP, "stub:prior"))
+    assert f"| stub:prior | stub | 4 | {summarize.cell_text(prior)} | 0.000 |" in readme and "one-sided bound <= " in summarize.cell_text(prior)
 
-    path = glob.glob(os.path.join(out, "episodes", "policy-reference", "Scanner-NoWrap-v0", "L1", "s0", "e0", "record.json"))[0]
+    path = glob.glob(os.path.join(out, "episodes", "policy-reference", "Scanner-NoWrap-v1", "L1", "s0", "e0", "record.json"))[0]
     with open(path, encoding="utf-8") as f:
         original = f.read()
     rec = json.loads(original)
@@ -371,7 +393,8 @@ def test_committed_results_match_their_records():
     assert stored["agents"]["stub"] == [], "rows of the test endpoint do not belong in the published results"
     with open(os.path.join(folder, "README.md"), encoding="utf-8") as f:
         readme = f.read()
-    assert ("No language model has been run on these instances yet." in readme) == (stored["agents"]["model"] == [])
+    assert "No language model has been run" not in readme               # what was run is read from the generated dateline
+    assert all(r["tier"] == "pilot" for r in stored["rows"]) == (stored["published_records"] == 0)
 
 
 def test_example_compiles():

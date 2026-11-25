@@ -1,0 +1,12 @@
+# What `make audit` needs beyond the package (the versions the audit of 2026-11-24 ran with).
+pytest>=8
+ruff==0.17.6
+hypothesis==6.170.17
+hypothesis-jsonschema==0.23.2
+mutmut==3.8.1
+coverage==7.17.5
+mypy==2.4.1
+build==1.6.1
+twine==7.0.0
+check-wheel-contents==0.6.3
+threadpoolctl>=3.5

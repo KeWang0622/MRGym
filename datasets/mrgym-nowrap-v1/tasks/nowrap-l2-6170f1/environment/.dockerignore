@@ -1,0 +1,3 @@
+# the agent image must not see the hidden episode file
+scanner
+docker-compose.yaml

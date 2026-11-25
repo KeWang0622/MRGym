@@ -8,6 +8,7 @@ have at its first sampled line and at the centre of k-space, and compares it wit
 Textbook result for spoiled gradient echo: the longitudinal magnetisation before pulse n approaches its steady
 state m as  m + (1 - m) (E1 cos a)^n,  E1 = exp(-TR / T1), so the time constant is 1 / (1 / T1 - ln(cos a) / TR).
 For a spin echo with exact 90 and 180 degree pulses one dummy cycle is enough; with a transmit error it is not.
+The chain has one flip angle per voxel, so the dummy cycles are those of ``excitation="nonselective"``.
 
     python examples/textbook/12_approach_to_steady_state.py [--plot FILE.png]
 """
@@ -28,7 +29,7 @@ def main():
     first, centre, where, err_formula, dummies = np.zeros(len(t1)), np.zeros(len(t1)), [None] * len(t1), 0.0, {}
     for tr in TRS:
         for flip in FLIPS:
-            plan = console.plan(dict(sequence="spgr", tr_ms=tr, flip_deg=flip, matrix=128, bandwidth_hz_per_px=600), EXAM)
+            plan = console.plan(dict(sequence="spgr", tr_ms=tr, flip_deg=flip, matrix=128, bandwidth_hz_per_px=600, excitation="nonselective"), EXAM)
             assert plan["accept"], plan["violations"]
             n, lines = plan["timing"]["dummy_cycles"], plan["realised"]["lines"]
             dummies[tr] = n

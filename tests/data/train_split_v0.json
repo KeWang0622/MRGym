@@ -1,0 +1,140 @@
+{
+ "_comment": "World seeds and task ids of the public train split, seeds 0-99, recorded on the base tree b9591a1 (before keys.py) with an empty environment. tests/test_keys.py compares the current derivation with these, with and without a secret.",
+ "base_commit": "b9591a1",
+ "ids": {
+  "Scanner/Explore-v0": {
+   "1": {
+    "world_seeds_sha256": "5872307853fa0569aabf3254c96140959ced4b44592f9a9d2538018083829179",
+    "task_ids_sha256": "59843a33f1c0709b70182d9fc38dad251e598dc306aff35cfe2dac76ef4ae2d3",
+    "first_world_seeds": [
+     "db72d1285089fde80cee5e1d71c8a0d4",
+     "3812bc0c2d81123c55c5bc49dd52d1f4",
+     "f4420f6ca973f1ba89628eafc3369ddc"
+    ],
+    "first_task_ids": [
+     "explore-01f8fd04fb90",
+     "explore-51d4f4d59545",
+     "explore-a7e3b0c77f84"
+    ]
+   }
+  },
+  "Scanner/NoWrap-v0": {
+   "1": {
+    "world_seeds_sha256": "1607e0affe1a9fdbf5cefd1f6873f4c601514c36e3282bf176aa9bc73a3cbe9f",
+    "task_ids_sha256": "0ea4735513504511a8f7c073faaf2b8e8545566cfaf5c5787b0bb76e6563c1e2",
+    "first_world_seeds": [
+     "c2fdcfaa5999a120546e4de8f9d3ddd2",
+     "f0c1c2392a7d90ea72375a1cde052611",
+     "3727c5a34585b7d4e892307fe674bfa6"
+    ],
+    "first_task_ids": [
+     "nowrap-efcda2432501",
+     "nowrap-1cc1febb6ce7",
+     "nowrap-a93d80d407ed"
+    ]
+   },
+   "2": {
+    "world_seeds_sha256": "bbcb3e6d679902793c0aa8ed626854b32d1193e963f6cb39dcb683f7113b0963",
+    "task_ids_sha256": "a8ec654fcce363d4839ba9930745a8c1696f4ecdc706c802ba9af799140e19c3",
+    "first_world_seeds": [
+     "f8aee75e73db7cafe3a828df4fe9d3c7",
+     "a76b5843f5c6fd82ec14a8d7af023a2e",
+     "b4aa1e1514342d41d33b3f054d13734f"
+    ],
+    "first_task_ids": [
+     "nowrap-e3c63f6b6fd8",
+     "nowrap-2ec35c7f5ad6",
+     "nowrap-5a58f4a79d92"
+    ]
+   }
+  },
+  "Scanner/NullTissue-v0": {
+   "1": {
+    "world_seeds_sha256": "3dea247915f62bf07347673fcc838fd2612b5b0d878e1e00707ca3cf9d8246da",
+    "task_ids_sha256": "25d9e7e7d874f14ce6c939dae2dfdefaf93d7a3fbaee5801a6f84cdb9370209a",
+    "first_world_seeds": [
+     "0f9f7ba856f2f4ef8652c2f584fa008f",
+     "10b00593df66932bdb75f3ad8e272d5b",
+     "2a8f9b919cc26ad34670382eff3e9702"
+    ],
+    "first_task_ids": [
+     "nulltissue-7582e4afd09a",
+     "nulltissue-eec10fd4623f",
+     "nulltissue-ed34bf3f5074"
+    ]
+   },
+   "2": {
+    "world_seeds_sha256": "8a4a91072668090183be8f496c6b3991774475afd3dc9976236ad1e1d7a403e1",
+    "task_ids_sha256": "a99c287b396b774278e8e9b987a836bfa92fa8fd0cb7361c4b114cf46d8dbc1b",
+    "first_world_seeds": [
+     "e3f6de191f284a7e35060348f01f79a2",
+     "47141c0c343dd57666333a686d69d395",
+     "39b3c43c8ead9021f6aecdc40fb9156f"
+    ],
+    "first_task_ids": [
+     "nulltissue-59d92af9cfe8",
+     "nulltissue-3a0dd7ea83ce",
+     "nulltissue-0d0539d045d5"
+    ]
+   },
+   "3": {
+    "world_seeds_sha256": "567807361ba1fc305e9803e7153615d5113b6902b2e58c7c97074d302377e76f",
+    "task_ids_sha256": "f34d7f270a3d1d9776a123c32ce5a0d7f0a439d912129365c04e74ed13529e49",
+    "first_world_seeds": [
+     "ccac2ce5fa305a9d6634287515247eb9",
+     "94cd89ed30f4c4b94392161adddc134d",
+     "03a6f9bb0b63357217456f040ba077f0"
+    ],
+    "first_task_ids": [
+     "nulltissue-713497e43cea",
+     "nulltissue-53d54d3d7126",
+     "nulltissue-f456d8776cc5"
+    ]
+   }
+  },
+  "Scanner/T1Transmit-v0": {
+   "1": {
+    "world_seeds_sha256": "5907550bd4620b19d231209e7389b1b04edaeb1198d86060e8ba7b84ae289a84",
+    "task_ids_sha256": "581923519b00898fded3a83deb00a2fd072c5b80359a14ea3ffe915cba5dfe5d",
+    "first_world_seeds": [
+     "a4ff16b68a4c28261b6afb13ba117811",
+     "b5eba5f9802ec1d866e2ce9973744ade",
+     "5bc81b6b4c17a921d50067be8f8172aa"
+    ],
+    "first_task_ids": [
+     "t1transmit-8e277a6fb8b5",
+     "t1transmit-ac1c40f739b6",
+     "t1transmit-eb50df286d46"
+    ]
+   },
+   "2": {
+    "world_seeds_sha256": "d95b3e12a1dd843e8a8bf4661470c6ac8c6081313e310f220abbb59ff5272d85",
+    "task_ids_sha256": "f3643923dd8c564792587bb5816c0b290f4e8e9081bf5320655cc84e2af1ef73",
+    "first_world_seeds": [
+     "166b470d254eb28a1107a50b70f031e3",
+     "d87117c36a4720f5b1a9ddb3cc382cbc",
+     "c4c165260d147c38da2cd160790f7331"
+    ],
+    "first_task_ids": [
+     "t1transmit-32b066334e7a",
+     "t1transmit-51c4a900f26c",
+     "t1transmit-26a01cf5b648"
+    ]
+   },
+   "3": {
+    "world_seeds_sha256": "6858e7ba5f0656345b380d39bb63dc0cf7fbc6c0add94f97216f91a2ee7c974b",
+    "task_ids_sha256": "2566857c20f7802d31d01f744c4bb5e99bd2e772d23f4852f6dabfba4668753c",
+    "first_world_seeds": [
+     "622537b2e4f10ff19383b8f47c2bbff5",
+     "cee16aacc40cd248f67802f4ee005711",
+     "3c791bd5c7b893790f5d6d9b182cad34"
+    ],
+    "first_task_ids": [
+     "t1transmit-e48be8d55eb3",
+     "t1transmit-5c295779dfe0",
+     "t1transmit-5358c3a8d306"
+    ]
+   }
+  }
+ }
+}

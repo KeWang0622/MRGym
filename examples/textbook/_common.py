@@ -41,6 +41,12 @@ def scan(env, regions="task", **protocol) -> dict:
     return call(env, "scan", protocol=protocol, regions=regions)
 
 
+def extent(env, scan_index: int) -> dict:
+    """The extent in mm of the bright pixels of a stored scan (operator side: read from the stored image of the
+    session; no tool returns it, an agent measures an edge with ``profile``)."""
+    return _session.image_extent(env.stored_scans()[scan_index])
+
+
 def column(readouts: list, key: str) -> np.ndarray:
     """One read-out column as an array [region, image]."""
     return np.array([r[key] for r in readouts], float)
@@ -67,7 +73,8 @@ def engine_scan(engine, rois=(), rng=None, **protocol) -> dict:
     """A scan on a ``kspace.Engine`` built around a known world (no session, no budget): images, plan and read-outs.
     ``rng`` None gives noise-free data."""
     out = engine.scan(protocol, rng)
-    out["roi_readouts"] = _session.roi_readouts(out["images"], list(rois), _session.fov_yx(out["plan"]["realised"]))
+    rp = out["plan"]["realised"]
+    out["roi_readouts"] = _session.roi_readouts(out["images"], list(rois), _session.fov_yx(rp), _session.centre_yx(rp), _session.rotation_of(rp))
     return out
 
 

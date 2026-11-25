@@ -1,0 +1,10 @@
+# Skip reasons `make audit` accepts, one fnmatch pattern per line (matched against the text after "SKIPPED [n] ").
+# On the audit stack (Python >= 3.11 with tools/ci/requirements-audit.txt) a test may be skipped only for a reason listed here.
+*is not registered any more (retired or replaced by a family built on envs/family.py)   # tests of a v0 id that was migrated
+*follows the family contract now: its table belongs under tests/scoring/                 # the same, by the task module
+*mrgym.admission has no per-instance path any more*                                      # the per-instance admission was removed
+*mrgym.admission is gone*
+*could not import 'gymnasium'*      # an adapter of an optional framework; it runs in its own environment (make conformance)
+*could not import 'openenv'*
+*could not import 'verifiers*
+*could not import 'inspect_ai'*

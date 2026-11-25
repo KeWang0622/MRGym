@@ -10,3 +10,8 @@ docs/_build/
 # episode logs, recordings and scans written by the command line
 /runs/
 /mrgym_out/
+# written by `make audit` and by coverage
+/audit_report.json
+.coverage
+.coverage.*
+/mutants/

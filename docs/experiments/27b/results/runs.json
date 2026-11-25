@@ -1,0 +1,73 @@
+{
+ "_copied_utc": "2026-11-25T21:48:02Z",
+ "c01": {
+  "what": "calibration of the base model, reasoning on (medium effort), replies up to 16,384 tokens",
+  "cells": "NoWrap, NullTissue, PhantomQA, SNRSpec, T1Transmit, ProtocolToSpec, ArtefactClinic: their levels; 4 instances x 8 episodes",
+  "node": "8 x H100",
+  "code": "an earlier state of the v1 interface (before `ed0f337`)",
+  "state": "finished"
+ },
+ "c04": {
+  "what": "calibration of the base model, thinking off, replies up to 2,048 tokens",
+  "cells": "all nine scored families, every level; 4 instances x 8 episodes",
+  "node": "8 x H200",
+  "code": "`ed0f337`",
+  "state": "finished"
+ },
+ "c05": {
+  "what": "the same after the interface corrections",
+  "cells": "all nine scored families, every level; 8 instances x 8 episodes",
+  "node": "8 x H200",
+  "code": "`fc4cede`",
+  "state": "finished"
+ },
+ "v07": {
+  "what": "training from the base model, 60 steps of 8 groups x 8 rollouts, LoRA rank 32, GRPO, reward = pass",
+  "cells": "NoWrap-v1 levels 1, 2",
+  "node": "8 x H100; episode limit 8,192 prompt + 24,576 response tokens",
+  "code": "`ef6d766`",
+  "state": "training finished at step 60 (preempted twice, resumed from its checkpoints); its own readout stopped on its length check"
+ },
+ "v09": {
+  "what": "training from the base model, same recipe",
+  "cells": "NoWrap-v1 levels 1, 2; NullTissue-v0 level 0; PhantomQA-v0 level 1",
+  "node": "8 x H200; 8,192 + 49,152 tokens",
+  "code": "`ef6d766`",
+  "state": "training (48 steps planned)"
+ },
+ "v11": {
+  "what": "training from the base model, same recipe",
+  "cells": "NullTissue-v0 level 0; NoWrap-v1 level 1",
+  "node": "8 x H200; 8,192 + 49,152 tokens",
+  "code": "`6ced347` with the calculator's step limit raised to 5 million (interim, not merged)",
+  "state": "training"
+ },
+ "v12": {
+  "what": "evaluation only: the step-40 weights of `v07` and the base model on the secret split",
+  "cells": "NoWrap-v1 levels 1, 2, 3; NullTissue-v0 level 0; 48 instances x 2 episodes",
+  "node": "8 x H200; 8,192 + 49,152 tokens",
+  "code": "`ef6d766`",
+  "state": "finished"
+ },
+ "v15": {
+  "what": "evaluation only: the step-60 weights of `v07` on the same instances (base half shared with `v12`)",
+  "cells": "as `v12`",
+  "node": "8 x H200; 8,192 + 49,152 tokens",
+  "code": "`ef6d766`",
+  "state": "finished"
+ },
+ "v13": {
+  "what": "training continued from the step-50 weights of `v07`, steps 51-110",
+  "cells": "NoWrap-v1 levels 2, 3 (dev looks also on level 1)",
+  "node": "8 x H200; 8,192 + 49,152 tokens",
+  "code": "`ef6d766`",
+  "state": "training"
+ },
+ "v16": {
+  "what": "training from the base model on the corrected interface, 60 steps",
+  "cells": "NullTissue-v0 levels 0, 1",
+  "node": "8 x H200; 8,192 + 49,152 tokens",
+  "code": "`fc4cede`",
+  "state": "started; no data in this report"
+ }
+}

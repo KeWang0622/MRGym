@@ -168,16 +168,23 @@ function paint(canvas, arr, ny, nx, colour, geo, marks) {
   const half = geo.centre ? 0.5 : 0;
   const X = (mm) => (mm / geo.fx + (geo.centre ? Math.floor(nx / 2) / nx : 0.5) + half / nx) * W;
   const Y = (mm) => (mm / geo.fy + (geo.centre ? Math.floor(ny / 2) / ny : 0.5) + half / ny) * H;
+  // patient position (y, x) in mm -> canvas point: the image may be centred off the isocentre and turned in the plane
+  const rot = (geo.rot || 0) * Math.PI / 180, cr = Math.cos(rot), sr = Math.sin(rot), gy = geo.cy || 0, gx = geo.cx || 0;
+  const P = (y, x) => [X(-(y - gy) * sr + (x - gx) * cr), Y((y - gy) * cr + (x - gx) * sr)];
   if (!marks) return;
   ctx.lineWidth = 2 * k; ctx.font = `${11 * k}px system-ui, sans-serif`;
   for (const r of marks.circles || []) {
     ctx.strokeStyle = INK.region; ctx.fillStyle = INK.region; ctx.setLineDash([]);
-    ctx.beginPath(); ctx.ellipse(X(r.x_mm), Y(r.y_mm), r.radius_mm / geo.fx * W, r.radius_mm / geo.fy * H, 0, 0, 2 * Math.PI); ctx.stroke();
-    if (r.id !== undefined) ctx.fillText(String(r.id), X(r.x_mm) + r.radius_mm / geo.fx * W + 2, Y(r.y_mm) - r.radius_mm / geo.fy * H + 2);
+    const [px, py] = P(r.y_mm, r.x_mm);
+    ctx.beginPath(); ctx.ellipse(px, py, r.radius_mm / geo.fx * W, r.radius_mm / geo.fy * H, 0, 0, 2 * Math.PI); ctx.stroke();
+    if (r.id !== undefined) ctx.fillText(String(r.id), px + r.radius_mm / geo.fx * W + 2, py - r.radius_mm / geo.fy * H + 2);
   }
   for (const b of marks.boxes || []) {
     ctx.strokeStyle = b.colour; ctx.setLineDash(b.dash ? [6 * k, 4 * k] : []);
-    ctx.strokeRect(X(b.x[0]), Y(b.y[0]), X(b.x[1]) - X(b.x[0]), Y(b.y[1]) - Y(b.y[0]));
+    const corners = b.corners || [[b.y[0], b.x[0]], [b.y[0], b.x[1]], [b.y[1], b.x[1]], [b.y[1], b.x[0]]];
+    ctx.beginPath();
+    corners.forEach(([y, x], i) => { const [px, py] = P(y, x); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+    ctx.closePath(); ctx.stroke();
   }
   ctx.setLineDash([]);
 }
@@ -302,11 +309,16 @@ function deliveredBox() {
   const [fy, fx] = dv.fov_yx_mm, r = dv.realised || {};
   // pixel i of an n-point axis is centred at (i - n / 2) * fov / n: the image spans -fov / 2 - px / 2 .. fov / 2 - px / 2
   const py = r.pe_dir === "y" ? fy / (r.matrix_pe || 1) : fy / (r.matrix || 1), px = r.pe_dir === "y" ? fx / (r.matrix || 1) : fx / (r.matrix_pe || 1);
-  return { y: [-fy / 2 - py / 2, fy / 2 - py / 2], x: [-fx / 2 - px / 2, fx / 2 - px / 2], colour: INK.fov };
+  // corners in patient coordinates: the delivered field of view may be centred off the isocentre and turned
+  const [cy, cx] = dv.centre_yx_mm || [0, 0], a = (dv.rotation_deg || 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+  const at = (v, u) => [cy + v * c - u * s, cx + v * s + u * c];
+  const v0 = -fy / 2 - py / 2, v1 = fy / 2 - py / 2, u0 = -fx / 2 - px / 2, u1 = fx / 2 - px / 2;
+  return { corners: [at(v0, u0), at(v0, u1), at(v1, u1), at(v1, u0)], colour: INK.fov };
 }
 
 function renderScan(sc, s) {
-  const [ni, ny, nx] = sc.shape, geo = { fy: sc.fov_yx_mm[0], fx: sc.fov_yx_mm[1], centre: true };
+  const [ni, ny, nx] = sc.shape, ctr = sc.centre_yx_mm || [0, 0];
+  const geo = { fy: sc.fov_yx_mm[0], fx: sc.fov_yx_mm[1], centre: true, cy: ctr[0], cx: ctr[1], rot: sc.rotation_deg || 0 };
   const mag = f32(sc.magnitude_f32_b64), ph = f32(sc.phase_f32_b64), top = percentile(mag, 0.995) || 1;
   const header = (steps().find((q) => q.call && q.call.name === "scan" && !q.is_error && q.data.scan_index === sc.index) || { data: {} }).data.header || "";
   const circles = [].concat(ep.task.regions || []);
@@ -407,7 +419,8 @@ function renderHidden() {
   };
   if (h.rescan) {
     const q = h.rescan, a = f32(q.magnitude_f32_b64).subarray(0, q.shape[1] * q.shape[2]), top = percentile(a, 0.995) || 1;
-    add(a, q.shape[1], q.shape[2], { fy: q.fov_yx_mm[0], fx: q.fov_yx_mm[1], centre: true }, (v) => GRAY(v / top),
+    const qc = q.centre_yx_mm || [0, 0];
+    add(a, q.shape[1], q.shape[2], { fy: q.fov_yx_mm[0], fx: q.fov_yx_mm[1], centre: true, cy: qc[0], cx: qc[1], rot: q.rotation_deg || 0 }, (v) => GRAY(v / top),
       `noise-free re-scan of the delivered protocol, ${sig(q.fov_yx_mm[0])} x ${sig(q.fov_yx_mm[1])} mm`, "", "", null, null);
   }
   const marks = { boxes, circles };

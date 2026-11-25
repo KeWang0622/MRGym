@@ -1,0 +1,53 @@
+{
+ "plan_schema_version": "1",
+ "reset": {
+  "episode_id": "mrgym-smoke",
+  "seed": 7,
+  "options": {
+   "env_id": "Scanner/NoWrap-v1",
+   "level": 2
+  }
+ },
+ "actions": [
+  {
+   "type": "call_tool",
+   "tool_name": "scanner_info",
+   "arguments": {}
+  },
+  {
+   "type": "call_tool",
+   "tool_name": "scan",
+   "arguments": {
+    "sequence": "spgr",
+    "tr_ms": 11.0,
+    "flip_deg": 10.0,
+    "fov_mm": 288.0,
+    "matrix": 160,
+    "averages": 2,
+    "circles": []
+   }
+  },
+  {
+   "type": "call_tool",
+   "tool_name": "view",
+   "arguments": {
+    "scan_index": 0,
+    "image_index": 0,
+    "kind": "magnitude"
+   }
+  },
+  {
+   "type": "call_tool",
+   "tool_name": "submit",
+   "arguments": {
+    "pe_dir": "y",
+    "fov_mm": 172.0,
+    "phase_fov": 0.604651,
+    "matrix": 86,
+    "centre_y_mm": 0.1,
+    "centre_x_mm": -17.9,
+    "rotation_deg": 0.0
+   }
+  }
+ ]
+}

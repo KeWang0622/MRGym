@@ -1,0 +1,6 @@
+{
+ "env_id": "Scanner/PhantomQA-v0",
+ "level": 2,
+ "seed": "9759673090d7a4b13ff91303b8abfc47",
+ "split": "test-iid"
+}

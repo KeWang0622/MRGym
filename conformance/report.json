@@ -1,0 +1,1405 @@
+{
+ "schema": "mrgym-conformance/1",
+ "date_utc": "2026-11-25T04:16Z",
+ "commit": "63548ea+uncommitted",
+ "mrgym": "0.1.0.dev0",
+ "engine": "mrgym-engine-0.2.0",
+ "ids": [
+  "Scanner/Explore-v0",
+  "Scanner/NoWrap-v0",
+  "Scanner/NullTissue-v0",
+  "Scanner/SNRSpec-v0",
+  "Scanner/T1Transmit-v0"
+ ],
+ "docker": false,
+ "online": false,
+ "python": "3.10.12",
+ "score": 0.5694,
+ "percent": 56.9,
+ "target": 0.9,
+ "total": {
+  "n": 108,
+  "points": 61.5,
+  "PASS": 49,
+  "PARTIAL": 25,
+  "FAIL": 34
+ },
+ "themes": [
+  {
+   "theme": "A",
+   "name": "Definition",
+   "n": 11,
+   "points": 9.0,
+   "percent": 81.8,
+   "PASS": 8,
+   "PARTIAL": 2,
+   "FAIL": 1
+  },
+  {
+   "theme": "B",
+   "name": "Verification",
+   "n": 14,
+   "points": 7.0,
+   "percent": 50.0,
+   "PASS": 5,
+   "PARTIAL": 4,
+   "FAIL": 5
+  },
+  {
+   "theme": "C",
+   "name": "Anti-cheating",
+   "n": 13,
+   "points": 3.5,
+   "percent": 26.9,
+   "PASS": 1,
+   "PARTIAL": 5,
+   "FAIL": 7
+  },
+  {
+   "theme": "D",
+   "name": "Difficulty and learnability",
+   "n": 9,
+   "points": 0.5,
+   "percent": 5.6,
+   "PASS": 0,
+   "PARTIAL": 1,
+   "FAIL": 8
+  },
+  {
+   "theme": "E",
+   "name": "Diversity and scale",
+   "n": 6,
+   "points": 2.5,
+   "percent": 41.7,
+   "PASS": 2,
+   "PARTIAL": 1,
+   "FAIL": 3
+  },
+  {
+   "theme": "F",
+   "name": "Documentation",
+   "n": 10,
+   "points": 6.0,
+   "percent": 60.0,
+   "PASS": 5,
+   "PARTIAL": 2,
+   "FAIL": 3
+  },
+  {
+   "theme": "G",
+   "name": "Reproducibility",
+   "n": 10,
+   "points": 8.5,
+   "percent": 85.0,
+   "PASS": 8,
+   "PARTIAL": 1,
+   "FAIL": 1
+  },
+  {
+   "theme": "H",
+   "name": "Packaging and integration",
+   "n": 12,
+   "points": 8.0,
+   "percent": 66.7,
+   "PASS": 6,
+   "PARTIAL": 4,
+   "FAIL": 2
+  },
+  {
+   "theme": "I",
+   "name": "Baselines",
+   "n": 7,
+   "points": 4.0,
+   "percent": 57.1,
+   "PASS": 2,
+   "PARTIAL": 4,
+   "FAIL": 1
+  },
+  {
+   "theme": "J",
+   "name": "Maintenance",
+   "n": 8,
+   "points": 5.5,
+   "percent": 68.8,
+   "PASS": 5,
+   "PARTIAL": 1,
+   "FAIL": 2
+  },
+  {
+   "theme": "K",
+   "name": "Ethics and licence",
+   "n": 8,
+   "points": 7.0,
+   "percent": 87.5,
+   "PASS": 7,
+   "PARTIAL": 0,
+   "FAIL": 1
+  }
+ ],
+ "frameworks": {
+  "gymnasium": "gymnasium 1.4.0: check_env PASS with 0 warnings on 5 of 5 ids",
+  "harbor": "4 exported task(s): `python -m mrgym.compat.harbor lint` 0 finding(s); the scanner service, the reference over HTTP and the verifier without Docker give the native reward and scanner-log head on 4 of 4 (oracle passes on 4, as natively on 4; no-op 0 on all); `harbor lint --extend-select ALL` on a copy without the Compose file: 0 finding(s), exit 0; with the Compose file: exit 2 (the Compose rules need the Docker CLI with the Compose plugin); `harbor run -a oracle|nop`: not run (needs a Docker daemon)",
+  "openenv": "openenv validate --level static --skip-build: static.manifest PASS, 9 SKIP (graders not implemented in that build), 0 FAIL, exit 0; demo in process and over HTTP + WebSocket: same reward and digest as the native API; runtime level: not run (needs Docker)",
+  "verifiers": "verifiers 0.4.1 vf-validate, 3 instances per scored id: gold valid Scanner/NoWrap-v0 3/3, Scanner/NullTissue-v0 3/3, Scanner/SNRSpec-v0 3/3, Scanner/T1Transmit-v0 0/3; no-op valid with reward 0.0 on 12 of 12; gold is valid exactly where the native reference passes; it does not pass natively on every instance of: Scanner/T1Transmit-v0 (0 of 3)",
+  "inspect": "inspect-ai 0.3.292 mock model: 15 of 15 episodes equal the native API; reference reward 1.0 on 9 of 9 episodes whose native reference passes; no-op reward 0.0 on 15 of 15; the reference does not pass natively for: Scanner/T1Transmit-v0"
+ },
+ "parity": {
+  "harbor": true,
+  "gymnasium": true,
+  "openenv": true,
+  "verifiers": true,
+  "inspect": true
+ },
+ "items": [
+  {
+   "id": "A1",
+   "theme": "A",
+   "item": "The skill is stated and mapped to the task",
+   "tier": null,
+   "kind": "native",
+   "status": "PASS",
+   "detail": "4 of 4 scored cards state skill, given, deliver, scored_by",
+   "action": null
+  },
+  {
+   "id": "A2",
+   "theme": "A",
+   "item": "Standard lifecycle; passes Gymnasium `check_env`",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PASS",
+   "detail": "5 of 5 ids pass gymnasium 1.4.0 check_env with 0 warnings",
+   "action": "ship a Gymnasium adapter that passes `check_env` with 0 warnings on every registered id"
+  },
+  {
+   "id": "A3",
+   "theme": "A",
+   "item": "Action and observation contract is declared and machine-checked",
+   "tier": null,
+   "kind": "check",
+   "status": "PASS",
+   "detail": "10 of 10 check lines ok",
+   "action": null
+  },
+  {
+   "id": "A4",
+   "theme": "A",
+   "item": "Episode end is defined and told to the agent",
+   "tier": null,
+   "kind": "check",
+   "status": "PASS",
+   "detail": "10 of 10 check lines ok",
+   "action": null
+  },
+  {
+   "id": "A5",
+   "theme": "A",
+   "item": "Reward range declared; reward finite and inside it",
+   "tier": null,
+   "kind": "check",
+   "status": "PASS",
+   "detail": "5 of 5 check lines ok",
+   "action": null
+  },
+  {
+   "id": "A6",
+   "theme": "A",
+   "item": "Instruction and scoring agree: every gate is stated, every stated requirement is checked",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "0 of 4 scored ids render every rule value into the reset text; not: Scanner/NoWrap-v0 (no task.RULES table); Scanner/NullTissue-v0 (no task.RULES table); Scanner/SNRSpec-v0 (no task.RULES table); Scanner/T1Transmit-v0 (no task.RULES table)",
+   "action": "render every number the verifier uses into the reset text and the card from one table `task.RULES`"
+  },
+  {
+   "id": "A7",
+   "theme": "A",
+   "item": "Deliverable schema with units",
+   "tier": null,
+   "kind": "native",
+   "status": "PASS",
+   "detail": "4 of 4 deliverable schemas name a unit for every number",
+   "action": null
+  },
+  {
+   "id": "A8",
+   "theme": "A",
+   "item": "Outcomes are graded, not process",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "one process gate is kept by design: the scanner log must show a measurement within the budget (mrgym.envs.family.GATES)",
+   "action": "none planned: the family rule keeps the measurement gate (lead's decision 1); a no-scan pass is excluded by the gate's blind ceiling"
+  },
+  {
+   "id": "A9",
+   "theme": "A",
+   "item": "Seeded reset gives a reproducible stream of distinct episodes",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "the Gymnasium adapter gives a reproducible stream of distinct worlds on every id; mrgym.Env.reset() without a seed repeats the constructor seed's world",
+   "action": "make `Env.reset()` without a seed draw the next world from a generator seeded by the constructor seed"
+  },
+  {
+   "id": "A10",
+   "theme": "A",
+   "item": "Permanent, versioned ids",
+   "tier": null,
+   "kind": "tests",
+   "status": "PASS",
+   "detail": "4 of 4 named tests pass",
+   "action": null
+  },
+  {
+   "id": "A11",
+   "theme": "A",
+   "item": "`state()` carries episode id and counters and nothing hidden",
+   "tier": null,
+   "kind": "check",
+   "status": "PASS",
+   "detail": "5 of 5 check lines ok",
+   "action": null
+  },
+  {
+   "id": "B1",
+   "theme": "B",
+   "item": "A correct solution earns the maximum (oracle)",
+   "tier": null,
+   "kind": "check",
+   "status": "PARTIAL",
+   "detail": "3 of 4 check lines ok; not: Scanner/T1Transmit-v0: reference policy reaches the reward thre (reward 0.839, seed 7)",
+   "action": null
+  },
+  {
+   "id": "B2",
+   "theme": "B",
+   "item": "The reference passes through the agent's interface on >= 200 fresh instances",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "0 of 4 scored ids store the reference on >= 200 fresh instances per level at >= 97 %; not: Scanner/NoWrap-v0 (no stored gate result); Scanner/NullTissue-v0 (no stored gate result); Scanner/SNRSpec-v0 (no stored gate result); Scanner/T1Transmit-v0 (no stored gate result)",
+   "action": "store the gate (`mrgym gate <id> --n 300 --write`) for every scored id"
+  },
+  {
+   "id": "B3",
+   "theme": "B",
+   "item": "A second, independently written reference",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "0 of 4 scored ids ship a second, independently written reference (reference_b); not: Scanner/NoWrap-v0 (no policy named reference_b); Scanner/NullTissue-v0 (no policy named reference_b); Scanner/SNRSpec-v0 (no policy named reference_b); Scanner/T1Transmit-v0 (no policy named reference_b)",
+   "action": "write a second reference without reading the first, as `controls.reference_b`"
+  },
+  {
+   "id": "B4",
+   "theme": "B",
+   "item": "Doing nothing earns exactly the floor; the gap to the oracle is at least 0.1 of the range",
+   "tier": null,
+   "kind": "check",
+   "status": "PASS",
+   "detail": "4 of 4 check lines ok",
+   "action": null
+  },
+  {
+   "id": "B5",
+   "theme": "B",
+   "item": "Degenerate deliverables: reward 0, a specific diagnostic, no crash; tolerant parsing",
+   "tier": null,
+   "kind": "tests",
+   "status": "PASS",
+   "detail": "4 of 4 named tests pass",
+   "action": null
+  },
+  {
+   "id": "B6",
+   "theme": "B",
+   "item": "Known-wrong variants of the reference are all rejected (unit, sign, convention mutants; >= 8)",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "0 of 4 scored ids ship >= 8 mutants of the reference; not: Scanner/NoWrap-v0 (1 mutant(s)); Scanner/NullTissue-v0 (1 mutant(s)); Scanner/SNRSpec-v0 (1 mutant(s)); Scanner/T1Transmit-v0 (1 mutant(s))",
+   "action": ">= 8 mutants per family listed in `controls.MUTANTS`"
+  },
+  {
+   "id": "B7",
+   "theme": "B",
+   "item": "Boundary pair: just inside passes, just outside fails",
+   "tier": "T1",
+   "kind": "tests_matching",
+   "status": "PASS",
+   "detail": "1 test(s) matching /boundary|just_inside|just_outside|tolerance_edge/: 1 passed, 1 skipped, 1018 deselected in 1.26s",
+   "action": "ship a test of a boundary pair per family (name it test_*boundary*)"
+  },
+  {
+   "id": "B8",
+   "theme": "B",
+   "item": "Verifier is deterministic",
+   "tier": null,
+   "kind": "tests",
+   "status": "PASS",
+   "detail": "3 of 3 named tests pass",
+   "action": null
+  },
+  {
+   "id": "B9",
+   "theme": "B",
+   "item": "The verifier does not use the formula the agent is given",
+   "tier": null,
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "3 of 4 task modules score on the hidden world (a noise-free re-scan, the console or the world's truth); not: Scanner/T1Transmit-v0 (the task module never reads them)",
+   "action": null
+  },
+  {
+   "id": "B10",
+   "theme": "B",
+   "item": "No LLM judge in the reward",
+   "tier": null,
+   "kind": "native",
+   "status": "PASS",
+   "detail": "no model client and no network import in the environment and scoring code",
+   "action": null
+  },
+  {
+   "id": "B11",
+   "theme": "B",
+   "item": "Provenance of the ground truth and of every tolerance is written down",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "0 of 4 scored cards carry a tolerance table with provenance; not: Scanner/NoWrap-v0 (the card has no `tolerances` table with a derivation per constant); Scanner/NullTissue-v0 (the card has no `tolerances` table with a derivation per constant); Scanner/SNRSpec-v0 (the card has no `tolerances` table with a derivation per constant); Scanner/T1Transmit-v0 (the card has no `tolerances` table with a derivation per constant)",
+   "action": "a `tolerances` table on the card: constant, value, derivation"
+  },
+  {
+   "id": "B12",
+   "theme": "B",
+   "item": "Verifier error rate measured by an expert on sampled rollouts",
+   "tier": "OWN",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/B12.json; action: the owner labels 50 sampled rollouts (25 pass, 25 fail) and records false-pass and false-fail counts",
+   "action": "the owner labels 50 sampled rollouts (25 pass, 25 fail) and records false-pass and false-fail counts"
+  },
+  {
+   "id": "B13",
+   "theme": "B",
+   "item": "Blind expert solve or expert review of the task",
+   "tier": "OWN",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/B13.json; action: the owner solves 5 instances per family blind through `mrgym play`, or an MR physicist reviews each task; the episodes are stored",
+   "action": "the owner solves 5 instances per family blind through `mrgym play`, or an MR physicist reviews each task; the episodes are stored"
+  },
+  {
+   "id": "B14",
+   "theme": "B",
+   "item": "Verification by execution, not by text patterns",
+   "tier": null,
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "3 of 4 task modules score on the hidden world (a noise-free re-scan, the console or the world's truth); not: Scanner/T1Transmit-v0 (the task module never reads them)",
+   "action": null
+  },
+  {
+   "id": "C1",
+   "theme": "C",
+   "item": "Nothing hidden reaches the agent; tested",
+   "tier": null,
+   "kind": "tests",
+   "status": "PARTIAL",
+   "detail": "5 of 6 named tests pass; not: test_check_passes_for_every_registered_id (failed)",
+   "action": null
+  },
+  {
+   "id": "C2",
+   "theme": "C",
+   "item": "The best constant answer fails at family level (NeutronGym: one-sided 95 % upper bound <= 20 %)",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "0 of 4 levels where the best constant answer has a 95 % upper bound <= 20 %; not: Scanner/NoWrap-v0 (no stored gate result); Scanner/NullTissue-v0 (no stored gate result); Scanner/SNRSpec-v0 (no stored gate result); Scanner/T1Transmit-v0 (no stored gate result)",
+   "action": "store the gate; the tuned constant answer must have an upper bound <= 20 %"
+  },
+  {
+   "id": "C3",
+   "theme": "C",
+   "item": "A rule that copies numbers from the prompt fails",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "1 of 4 scored ids where a rule that uses only the statement has nothing to copy or fails the stored gate; not: Scanner/NullTissue-v0 (4 distinct statements on 4 seeds, and no stored gate result clears a statement-only policy); Scanner/SNRSpec-v0 (4 distinct statements on 4 seeds, and no stored gate result clears a statement-only policy); Scanner/T1Transmit-v0 (4 distinct statements on 4 seeds, and no stored gate result clears a statement-only policy)",
+   "action": "store the gate: its tuned statement-only policy (`fixed_recipe`) must be cleared at every level"
+  },
+  {
+   "id": "C4",
+   "theme": "C",
+   "item": "Another instance's answer fails (replay)",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "0 of 4 levels where another instance's answer passes <= 1 % of pairs; not: Scanner/NoWrap-v0 (no stored gate result); Scanner/NullTissue-v0 (no stored gate result); Scanner/SNRSpec-v0 (no stored gate result); Scanner/T1Transmit-v0 (no stored gate result)",
+   "action": "add a swap probe to the gate result (`swap.rate`)"
+  },
+  {
+   "id": "C5",
+   "theme": "C",
+   "item": "The world cannot be rebuilt from public material (seed attack)",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "1 of 4 scored ids whose seed_attacker passes 0 of 6 instances of a secret split; not: Scanner/NoWrap-v0 (passes 1 of 6 secret instances); Scanner/NullTissue-v0 (no seed_attacker policy); Scanner/SNRSpec-v0 (no seed_attacker policy)",
+   "action": "a `seed_attacker` policy in every family; it must pass 0 instances of a secret split"
+  },
+  {
+   "id": "C6",
+   "theme": "C",
+   "item": "A blind sweep inside the budget fails (<= 10 %)",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "0 of 4 levels where the blind sweep has a 95 % upper bound <= 10 %; not: Scanner/NoWrap-v0 (no stored gate result); Scanner/NullTissue-v0 (no stored gate result); Scanner/SNRSpec-v0 (no stored gate result); Scanner/T1Transmit-v0 (no stored gate result)",
+   "action": "store the gate; the blind sweep must have an upper bound <= 10 %"
+  },
+  {
+   "id": "C7",
+   "theme": "C",
+   "item": "A policy that ignores the task's designated decision fails",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "0 of 4 levels where every listed ablation of the reference's decision loses >= 25 points; not: Scanner/NoWrap-v0 (no stored gate result); Scanner/NullTissue-v0 (no stored gate result); Scanner/SNRSpec-v0 (no stored gate result); Scanner/T1Transmit-v0 (no stored gate result)",
+   "action": "store the gate with the family's ablations"
+  },
+  {
+   "id": "C8",
+   "theme": "C",
+   "item": "Budget and log cannot be tampered with",
+   "tier": null,
+   "kind": "tests",
+   "status": "PASS",
+   "detail": "5 of 5 named tests pass",
+   "action": null
+  },
+  {
+   "id": "C9",
+   "theme": "C",
+   "item": "The verifier is isolated from agent code",
+   "tier": "T2",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "separate verifier and non-root agent are declared and lint clean; containers were not run. 4 exported task(s): `python -m mrgym.compat.harbor lint` 0 finding(s); the scanner service, the reference over HTTP and the verifier without Docker give the native reward and scanner-log head on 4 of 4 (oracle passes on 4, as natively on 4; no-op 0 on all); `harbor lint --extend-select ALL` on a copy without the Compose file: 0 finding(s), exit 0; with the Compose file: exit 2 (the Compose rules need the Docker CLI with the Compose plugin); `harbor run -a oracle|nop`: not run (needs a Docker daemon)",
+   "action": "CI with Docker: `make conformance DOCKER=1` runs `harbor run -a oracle|nop` and the Compose lint rules"
+  },
+  {
+   "id": "C10",
+   "theme": "C",
+   "item": "Adversarial cheat trials with a model",
+   "tier": "MOD",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/C10.json; action: 10 trials per family with a frontier model told to cheat, judged with the Terminal-Bench-Science cheat-analysis rubric; transcripts stored",
+   "action": "10 trials per family with a frontier model told to cheat, judged with the Terminal-Bench-Science cheat-analysis rubric; transcripts stored"
+  },
+  {
+   "id": "C11",
+   "theme": "C",
+   "item": "Found shortcuts become regression controls; canary string",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "canary in the task, solution and verifier files of 4 exported task(s) and not in the agent's instruction; shortcut registry conformance/shortcuts.json: absent; decoy answer (honeypot): absent",
+   "action": "a decoy answer flagged in `info[\"honeypot\"]` and `conformance/shortcuts.json`"
+  },
+  {
+   "id": "C12",
+   "theme": "C",
+   "item": "Concentration of passing answers is reported",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "0 of 4 levels whose gate result reports the concentration of passing answers; not: Scanner/NoWrap-v0 (no stored gate result); Scanner/NullTissue-v0 (no stored gate result); Scanner/SNRSpec-v0 (no stored gate result); Scanner/T1Transmit-v0 (no stored gate result)",
+   "action": "the gate reports the concentration of passing answers (`concentration`)"
+  },
+  {
+   "id": "C13",
+   "theme": "C",
+   "item": "A high reward means the task was solved",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "0 of 4 scored ids where no non-reference policy earns a mean reward above 0.3; not: Scanner/NoWrap-v0 (no_swap earns a mean reward of 0.93); Scanner/NullTissue-v0 (no stored control results); Scanner/SNRSpec-v0 (no stored control results); Scanner/T1Transmit-v0 (open_loop earns a mean reward of 1.00)",
+   "action": "retire the graded `-v0` rewards; every family uses the pass-only rule"
+  },
+  {
+   "id": "D1",
+   "theme": "D",
+   "item": "The model to be trained starts inside the learnable band (>= 2-3 %, or >= 1 in 64)",
+   "tier": "MOD",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/D1.json; action: >= 100 episodes per cell on the current ids for the model to be trained; pass rate >= 3 % (or >= 1 in 64)",
+   "action": ">= 100 episodes per cell on the current ids for the model to be trained; pass rate >= 3 % (or >= 1 in 64)"
+  },
+  {
+   "id": "D2",
+   "theme": "D",
+   "item": "Headroom for strong models",
+   "tier": "MOD",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/D2.json; action: >= 100 episodes per cell for 2 frontier models; the best is below 90 % on the top level",
+   "action": ">= 100 episodes per cell for 2 frontier models; the best is below 90 % on the top level"
+  },
+  {
+   "id": "D3",
+   "theme": "D",
+   "item": "A spread of difficulty across tasks",
+   "tier": "MOD",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/D3.json; action: >= 3 families whose pass rate for the reference model lies between 5 % and 80 %",
+   "action": ">= 3 families whose pass rate for the reference model lies between 5 % and 80 %"
+  },
+  {
+   "id": "D4",
+   "theme": "D",
+   "item": "Declared difficulty knobs move the pass rate monotonically",
+   "tier": "MOD",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/D4.json; action: each level step lowers the reference model's pass rate by >= 10 points with separated Wilson intervals",
+   "action": "each level step lowers the reference model's pass rate by >= 10 points with separated Wilson intervals"
+  },
+  {
+   "id": "D5",
+   "theme": "D",
+   "item": "Hard for the right reason (domain skill, not interface or convention)",
+   "tier": "MOD",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/D5.json; action: >= 70 % of sampled failures of the reference model are domain errors, not interface errors (labelled sample)",
+   "action": ">= 70 % of sampled failures of the reference model are domain errors, not interface errors (labelled sample)"
+  },
+  {
+   "id": "D6",
+   "theme": "D",
+   "item": "Training on the reward improves held-out performance (shown)",
+   "tier": "TRN",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/D6.json; action: one training run evaluated on held-out seeds against the control policies",
+   "action": "one training run evaluated on held-out seeds against the control policies"
+  },
+  {
+   "id": "D7",
+   "theme": "D",
+   "item": "Reward has usable signal and bounded noise",
+   "tier": "MOD",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/D7.json; action: reward > 0 in >= 5 % of the trainee's episodes, measured on >= 100 episodes per cell",
+   "action": "reward > 0 in >= 5 % of the trainee's episodes, measured on >= 100 episodes per cell"
+  },
+  {
+   "id": "D8",
+   "theme": "D",
+   "item": "The task needs multi-step work",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "2 of 4 scored ids whose reference needs >= 8 tool calls; not: Scanner/NoWrap-v0 (the reference needs a median of 4 tool calls); Scanner/T1Transmit-v0 (the reference needs a median of 7 tool calls)",
+   "action": "flagship families need >= 8 necessary tool calls"
+  },
+  {
+   "id": "D9",
+   "theme": "D",
+   "item": "Expert time estimate or human baseline",
+   "tier": "OWN",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/D9.json; action: the owner states `expert_time_estimate_hours` per family",
+   "action": "the owner states `expert_time_estimate_hours` per family"
+  },
+  {
+   "id": "E1",
+   "theme": "E",
+   "item": "Several task families",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "0 families are listed as admitted with a stored gate that admits every level (need 4); 4 scored ids registered",
+   "action": ">= 4 families admitted by a stored gate"
+  },
+  {
+   "id": "E2",
+   "theme": "E",
+   "item": "Enough gated instances to train on (>= 200 at admission)",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "0 of 1 admitted ids with a stored gate on >= 200 fresh instances per level; not: Scanner/NoWrap-v0 (no stored gate result)",
+   "action": "store the gate on >= 200 fresh instances per level for every admitted id"
+  },
+  {
+   "id": "E3",
+   "theme": "E",
+   "item": "Procedural generator, unlimited seeded instances",
+   "tier": null,
+   "kind": "tests",
+   "status": "PASS",
+   "detail": "3 of 3 named tests pass",
+   "action": null
+  },
+  {
+   "id": "E4",
+   "theme": "E",
+   "item": "The instance changes the right answer",
+   "tier": null,
+   "kind": "native",
+   "status": "PASS",
+   "detail": "4 of 4 scored ids whose reference answer differs between instances",
+   "action": null
+  },
+  {
+   "id": "E5",
+   "theme": "E",
+   "item": "Held-out split or held-out parameter regime",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "the held-out split refuses to run without MRGYM_SECRET; a held-out parameter regime is declared on 0 of 4 scored cards and no held-out result row is checked",
+   "action": "declare a held-out parameter regime on the card (`heldout_regime`) and store a result row for it"
+  },
+  {
+   "id": "E6",
+   "theme": "E",
+   "item": "Tasks share and compose skills",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "1 admitted id(s); they share one tool set: True (need >= 2 admitted)",
+   "action": ">= 2 admitted families on the shared tools"
+  },
+  {
+   "id": "F1",
+   "theme": "F",
+   "item": "Quick start that runs",
+   "tier": null,
+   "kind": "cmd",
+   "status": "FAIL",
+   "detail": "`{PY} tools/run_readme_commands.py` -> exit 1; FAILED: python tools/generate.py --check",
+   "action": null
+  },
+  {
+   "id": "F2",
+   "theme": "F",
+   "item": "Environment card: given, deliverable, reward rule, limits, knobs",
+   "tier": null,
+   "kind": "native",
+   "status": "PASS",
+   "detail": "5 of 5 cards carry every authored field",
+   "action": null
+  },
+  {
+   "id": "F3",
+   "theme": "F",
+   "item": "Limitations",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "3 of 3 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "F4",
+   "theme": "F",
+   "item": "Design and construction process",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "2 of 2 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "F5",
+   "theme": "F",
+   "item": "Datasheet or standard metadata",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "DATASHEET.md exists with 2 of the 7 standard section headings; BENCHMARK_CARD.md: absent; Croissant files: 0",
+   "action": "DATASHEET.md in the seven Datasheets sections; BENCHMARK_CARD.md; docs/croissant/*.json"
+  },
+  {
+   "id": "F6",
+   "theme": "F",
+   "item": "How to read the score",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "3 of 3 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "F7",
+   "theme": "F",
+   "item": "Documents agree with the current tree",
+   "tier": "T1",
+   "kind": "native",
+   "status": "FAIL",
+   "detail": "a generated file is stale:   README.md",
+   "action": "regenerate the stale file named in the detail"
+  },
+  {
+   "id": "F8",
+   "theme": "F",
+   "item": "Domain expertise and literature",
+   "tier": "OWN",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/F8.json; action: REVIEW.md signed per family by the owner or a named MR physicist: who reviewed what, when",
+   "action": "REVIEW.md signed per family by the owner or a named MR physicist: who reviewed what, when"
+  },
+  {
+   "id": "F9",
+   "theme": "F",
+   "item": "Per-task explanation of difficulty, solution and verification",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "the three sections are in the README of all 4 exported Harbor task(s); the environment cards under envs/ do not have them",
+   "action": "add Difficulty, Reference solution and Verification sections to the environment cards"
+  },
+  {
+   "id": "F10",
+   "theme": "F",
+   "item": "Code is documented",
+   "tier": null,
+   "kind": "native",
+   "status": "PASS",
+   "detail": "93 of 93 modules have a module docstring",
+   "action": null
+  },
+  {
+   "id": "G1",
+   "theme": "G",
+   "item": "Seed control",
+   "tier": null,
+   "kind": "check",
+   "status": "PASS",
+   "detail": "5 of 5 check lines ok",
+   "action": null
+  },
+  {
+   "id": "G2",
+   "theme": "G",
+   "item": "Same seed and actions give the same episode",
+   "tier": null,
+   "kind": "check",
+   "status": "PASS",
+   "detail": "5 of 5 check lines ok",
+   "action": null
+  },
+  {
+   "id": "G3",
+   "theme": "G",
+   "item": "Reproducible across stacks or hosts",
+   "tier": null,
+   "kind": "native",
+   "status": "PASS",
+   "detail": "identical episode digests and log heads on Python 3.10.12 / numpy 2.2.6 / scipy 1.15.3 and on Python/numpy/scipy 3.12.14 2.5.5 1.18.1 (one host)",
+   "action": null
+  },
+  {
+   "id": "G4",
+   "theme": "G",
+   "item": "A stored episode replays",
+   "tier": null,
+   "kind": "check",
+   "status": "PASS",
+   "detail": "5 of 5 check lines ok",
+   "action": null
+  },
+  {
+   "id": "G5",
+   "theme": "G",
+   "item": "Dependencies pinned",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PASS",
+   "detail": "uv.lock is current (`uv lock --check`); exported images pin the base image by digest and mrgym by exact version",
+   "action": "`uv lock`; after a release, install with hashes in the Dockerfiles"
+  },
+  {
+   "id": "G6",
+   "theme": "G",
+   "item": "Every number names its versions",
+   "tier": null,
+   "kind": "native",
+   "status": "PASS",
+   "detail": "results.json names engines ['mrgym-engine-0.1.0'], package versions ['0.1.0.dev0'], ids ['Scanner/NoWrap-v0', 'Scanner/T1Transmit-v0']",
+   "action": null
+  },
+  {
+   "id": "G7",
+   "theme": "G",
+   "item": "A command regenerates the reported tables from stored records",
+   "tier": null,
+   "kind": "cmd",
+   "status": "FAIL",
+   "detail": "`{PY} -m mrgym.cli results --check && {PY} tools/generate.py --check` -> exit 1;   README.md",
+   "action": null
+  },
+  {
+   "id": "G8",
+   "theme": "G",
+   "item": "No live service at run or verification time",
+   "tier": null,
+   "kind": "tests",
+   "status": "PASS",
+   "detail": "2 of 2 named tests pass",
+   "action": null
+  },
+  {
+   "id": "G9",
+   "theme": "G",
+   "item": "Intervals on reported rates",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "1 of 1 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "G10",
+   "theme": "G",
+   "item": "Per-episode evidence is published",
+   "tier": "MOD",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "1400 episode records; 200 model episodes of which 0 have a stored conversation and scanner log",
+   "action": "store the conversation and the scanner log of every model episode behind a number"
+  },
+  {
+   "id": "H1",
+   "theme": "H",
+   "item": "Released on a package index",
+   "tier": "OWN",
+   "kind": "online",
+   "status": "FAIL",
+   "detail": "not asked (run with --online); action: upload the release to PyPI (owner account, trusted publisher)",
+   "action": "upload the release to PyPI (owner account, trusted publisher)"
+  },
+  {
+   "id": "H2",
+   "theme": "H",
+   "item": "Wheel builds and installs clean with minimal dependencies",
+   "tier": null,
+   "kind": "native",
+   "status": "PASS",
+   "detail": "the wheel builds, installs into a fresh environment with its declared dependencies only, lists the ids, exports a Harbor task and plays it",
+   "action": null
+  },
+  {
+   "id": "H3",
+   "theme": "H",
+   "item": "Registered with Gymnasium",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PASS",
+   "detail": "gym.make works for 5 of 5 registered ids after `import mrgym.compat.gymnasium`; parity test: True",
+   "action": "register every id with Gymnasium on `import mrgym.compat.gymnasium`"
+  },
+  {
+   "id": "H4",
+   "theme": "H",
+   "item": "OpenEnv package that validates",
+   "tier": "T2",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "openenv validate --level static --skip-build: static.manifest PASS, 9 SKIP (graders not implemented in that build), 0 FAIL, exit 0; demo in process and over HTTP + WebSocket: same reward and digest as the native API; runtime level: not run (needs Docker)",
+   "action": "CI with Docker: `openenv validate --level runtime`"
+  },
+  {
+   "id": "H5",
+   "theme": "H",
+   "item": "verifiers package",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PASS",
+   "detail": "verifiers 0.4.1 vf-validate, 3 instances per scored id: gold valid Scanner/NoWrap-v0 3/3, Scanner/NullTissue-v0 3/3, Scanner/SNRSpec-v0 3/3, Scanner/T1Transmit-v0 0/3; no-op valid with reward 0.0 on 12 of 12; gold is valid exactly where the native reference passes; it does not pass natively on every instance of: Scanner/T1Transmit-v0 (0 of 3); in-process toolset parity: True",
+   "action": "ship a verifiers taskset package for which `vf-validate` reports valid_rate 1.0 (gold and no-op)"
+  },
+  {
+   "id": "H6",
+   "theme": "H",
+   "item": "Harbor task export, clean under `harbor lint`",
+   "tier": "T2",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "4 exported task(s): `python -m mrgym.compat.harbor lint` 0 finding(s); the scanner service, the reference over HTTP and the verifier without Docker give the native reward and scanner-log head on 4 of 4 (oracle passes on 4, as natively on 4; no-op 0 on all); `harbor lint --extend-select ALL` on a copy without the Compose file: 0 finding(s), exit 0; with the Compose file: exit 2 (the Compose rules need the Docker CLI with the Compose plugin); `harbor run -a oracle|nop`: not run (needs a Docker daemon)",
+   "action": "CI with Docker: Compose lint rules, `harbor run -a oracle|nop`; needs mrgym on a package index for the image build"
+  },
+  {
+   "id": "H7",
+   "theme": "H",
+   "item": "Container image with declared resources and timeouts",
+   "tier": "T2",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "three Dockerfiles per exported task (4 task(s)) and one for the OpenEnv server, base image pinned by digest, resources and timeouts declared; no image was built (no Docker daemon here, and mrgym is not on a package index yet)",
+   "action": "CI with Docker: build the images"
+  },
+  {
+   "id": "H8",
+   "theme": "H",
+   "item": "Works with API models and local models",
+   "tier": null,
+   "kind": "tests",
+   "status": "PASS",
+   "detail": "3 of 3 named tests pass",
+   "action": null
+  },
+  {
+   "id": "H9",
+   "theme": "H",
+   "item": "Continuous integration is running",
+   "tier": "T2",
+   "kind": "online",
+   "status": "FAIL",
+   "detail": "not asked (run with --online); action: a GitHub token with the workflow scope; tests.yml and conformance.yml green on main",
+   "action": "a GitHub token with the workflow scope; tests.yml and conformance.yml green on main"
+  },
+  {
+   "id": "H10",
+   "theme": "H",
+   "item": "Fast enough for RL",
+   "tier": null,
+   "kind": "native",
+   "status": "PASS",
+   "detail": "4 of 4 scored ids whose reference episode takes <= 5 CPU s on one thread",
+   "action": null
+  },
+  {
+   "id": "H11",
+   "theme": "H",
+   "item": "A trainer integration ships",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "the verifiers taskset (the form prime-rl trains on) validates; no training config or smoke run ships under examples/train/",
+   "action": "ship `examples/train/` with a trainer config naming `mrgym-scanner` and a smoke run"
+  },
+  {
+   "id": "H12",
+   "theme": "H",
+   "item": "Concurrent sessions",
+   "tier": null,
+   "kind": "native",
+   "status": "PASS",
+   "detail": "two interleaved episodes of Scanner/NoWrap-v0 equal their sequential runs: True; OpenEnv sessions over one server: True",
+   "action": null
+  },
+  {
+   "id": "I1",
+   "theme": "I",
+   "item": "No-op or random floor reported",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "2 of 4 scored ids with stored floor, shortcut and reference rows; not: Scanner/NullTissue-v0 (no stored control results); Scanner/SNRSpec-v0 (no stored control results)",
+   "action": "store control-policy results (the gate) for every scored id"
+  },
+  {
+   "id": "I2",
+   "theme": "I",
+   "item": "Shortcut baselines reported next to the results",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "2 of 4 scored ids with stored floor, shortcut and reference rows; not: Scanner/NullTissue-v0 (no stored control results); Scanner/SNRSpec-v0 (no stored control results)",
+   "action": "store control-policy results (the gate) for every scored id"
+  },
+  {
+   "id": "I3",
+   "theme": "I",
+   "item": "Reference ceiling reported",
+   "tier": "T1",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "2 of 4 scored ids with stored floor, shortcut and reference rows; not: Scanner/NullTissue-v0 (no stored control results); Scanner/SNRSpec-v0 (no stored control results)",
+   "action": "store control-policy results (the gate) for every scored id"
+  },
+  {
+   "id": "I4",
+   "theme": "I",
+   "item": "Model baselines with counts and intervals",
+   "tier": null,
+   "kind": "native",
+   "status": "PASS",
+   "detail": "4 model rows with counts and Wilson intervals, on ids of the current registry",
+   "action": "rerun the model baselines on the current ids"
+  },
+  {
+   "id": "I5",
+   "theme": "I",
+   "item": "Human expert baseline",
+   "tier": "OWN",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/I5.json; action: the owner plays 10 instances per family; stored as policy `human:<name>`",
+   "action": "the owner plays 10 instances per family; stored as policy `human:<name>`"
+  },
+  {
+   "id": "I6",
+   "theme": "I",
+   "item": "Base rates of the open models one would train",
+   "tier": "MOD",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "model rows in results/: ['claude-haiku-5-5', 'claude-sonnet-5-5', 'gemini-3.8-flash', 'kimi-k3']; open models one would train: [] (need 3)",
+   "action": "ship the open-model records under results/ and rerun them on the current ids"
+  },
+  {
+   "id": "I7",
+   "theme": "I",
+   "item": "Infrastructure failure rate reported",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "1 of 1 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "J1",
+   "theme": "J",
+   "item": "Changelog and versioning rule",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "2 of 2 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "J2",
+   "theme": "J",
+   "item": "Feedback channel",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "2 of 2 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "J3",
+   "theme": "J",
+   "item": "Rule for re-grading stored results when the verifier changes",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "2 of 2 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "J4",
+   "theme": "J",
+   "item": "Code checked as usable within the last year",
+   "tier": "T2",
+   "kind": "native",
+   "status": "PARTIAL",
+   "detail": "this command ran the tests and every validator on the date of the report; there is no record of a CI run on the host",
+   "action": "CI green on the host (see H9)"
+  },
+  {
+   "id": "J5",
+   "theme": "J",
+   "item": "Tagged releases",
+   "tier": "OWN",
+   "kind": "cmd",
+   "status": "FAIL",
+   "detail": "`git tag -l 'v*' | grep -q .` -> exit 1; no output",
+   "action": "tag the release"
+  },
+  {
+   "id": "J6",
+   "theme": "J",
+   "item": "Contribution guide that includes the quality gate",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "1 of 1 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "J7",
+   "theme": "J",
+   "item": "Channel for reporting exploits",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "2 of 2 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "J8",
+   "theme": "J",
+   "item": "Peer review or outside use",
+   "tier": "TRN",
+   "kind": "evidence",
+   "status": "FAIL",
+   "detail": "no evidence file conformance/evidence/J8.json; action: outside use: an inspect_evals register entry, a Harbor or Prime hub listing, or a peer-reviewed submission",
+   "action": "outside use: an inspect_evals register entry, a Harbor or Prime hub listing, or a peer-reviewed submission"
+  },
+  {
+   "id": "K1",
+   "theme": "K",
+   "item": "Licence",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "2 of 2 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "K2",
+   "theme": "K",
+   "item": "Data provenance; no personal data",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "1 of 1 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "K3",
+   "theme": "K",
+   "item": "The task is safe",
+   "tier": null,
+   "kind": "tests",
+   "status": "PASS",
+   "detail": "2 of 2 named tests pass",
+   "action": null
+  },
+  {
+   "id": "K4",
+   "theme": "K",
+   "item": "Intended use and misuse stated",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "1 of 1 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "K5",
+   "theme": "K",
+   "item": "Guard against contaminating a held-out benchmark",
+   "tier": null,
+   "kind": "tests",
+   "status": "PASS",
+   "detail": "4 of 4 named tests pass",
+   "action": null
+  },
+  {
+   "id": "K6",
+   "theme": "K",
+   "item": "No secrets, no malicious code",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "1 of 1 file requirements hold",
+   "action": null
+  },
+  {
+   "id": "K7",
+   "theme": "K",
+   "item": "Persistent identifier",
+   "tier": "OWN",
+   "kind": "cmd",
+   "status": "FAIL",
+   "detail": "`grep -Eq '^doi:' CITATION.cff` -> exit 1; no output",
+   "action": "Zenodo DOI in CITATION.cff"
+  },
+  {
+   "id": "K8",
+   "theme": "K",
+   "item": "Authorship and review status disclosed",
+   "tier": null,
+   "kind": "files",
+   "status": "PASS",
+   "detail": "1 of 1 file requirements hold",
+   "action": null
+  }
+ ],
+ "commands": [
+  {
+   "cmd": "{GYM} python -m mrgym.compat.gymnasium --check --json",
+   "exit": 0,
+   "seconds": 24.0,
+   "tail": " true\n  },\n  {\n   \"id\": \"Scanner/SNRSpec-v0\",\n   \"ok\": true,\n   \"warnings\": [],\n   \"error\": null,\n   \"distinct_worlds\": 3,\n   \"reproducible\": true\n  },\n  {\n   \"id\": \"Scanner/T1Transmit-v0\",\n   \"ok\": true,\n   \"warnings\": [],\n   \"error\": null,\n   \"distinct_worlds\": 3,\n   \"reproducible\": true\n  }\n ]\n}\n"
+  },
+  {
+   "cmd": "{GYM} python -m pytest -q -p no:cacheprovider tests/test_adapters_parity.py -k gymnasium",
+   "exit": 0,
+   "seconds": 36.3,
+   "tail": "...............                                                          [100%]\n15 passed, 81 deselected in 35.96s\n"
+  },
+  {
+   "cmd": "python -m pytest -q -p no:cacheprovider tests -k 'test_a_restart_cannot_refill_the_budget or test_a_retired_id_is_never_reused_and_a_served_id_cannot_be_retired or test_an_id_without_a_version_suffix_stays_an_error or test_bad_calls_are_observations_and_cost_nothing or test_chat_rollout_with_a_scripted_stand_in or test_check_passes_for_every_registered_id or test_command_line_runs_a_model_and_a_policy_into_one_folder or test_cut_log_and_restart_refills_nothing or test_endpoint_habits_do_not_change_the_episode or test_every_agent_route_needs_the_token_and_operator_routes_are_not_on_the_agent_port or test_every_registered_id_has_the_fingerprint_that_is_stored_for_it or test_harbor_service_and_verifier_match_the_native_api or test_http_service_has_no_route_to_truth_or_reset or test_importing_the_package_loads_only_the_core or test_info_card_states_the_public_instrument_only or test_no_environment_folder_uses_a_benchmark_domain_code or test_no_environment_id_uses_a_benchmark_domain_code or test_no_path_is_laid_out_like_the_benchmark or test_no_workshop_residue_in_the_tree or test_registry_lists_the_ids_with_their_kind or test_replay_is_bit_exact_on_the_same_stack or test_replay_rejects_forged_reordered_and_foreign_logs or test_same_seed_same_episode_other_seed_other_world or test_step_never_raises_on_malformed_numbers_or_shapes or test_step_survives_hostile_calls_after_a_scan or test_the_benchmark_canary_is_nowhere_in_the_tree or test_the_command_line_loads_only_the_core or test_the_hidden_seed_stays_out_of_everything_the_agent_can_read or test_the_noise_free_scan_is_deterministic or test_the_service_wants_the_token_and_serves_nothing_derived_from_the_seed or test_the_verifier_gives_the_floor_for_a_log_that_is_cut_edited_foreign_unanchored_or_unsealed or test_two_exports_share_neither_a_seed_nor_a_token_and_nothing_public_is_a_function_of_the_seed or test_typed_arguments_may_arrive_as_strings or test_unsealed_log_is_reported_as_such or test_world_is_a_function_of_the_seed' --junitxml=$TMP/junit.xml",
+   "exit": 1,
+   "seconds": 130.3,
+   "tail": "not import 'hypothesis': No module named 'hypothesis'\nFAILED tests/test_env.py::test_check_passes_for_every_registered_id[Scanner/NoWrap-v0]\nFAILED tests/test_env.py::test_check_passes_for_every_registered_id[Scanner/T1Transmit-v0]\n2 failed, 57 passed, 1 skipped, 960 deselected in 129.86s (0:02:09)\n"
+  },
+  {
+   "cmd": "python -m pytest -q -p no:cacheprovider tests -k test_the_service_refuses_to_start_when_a_boundary_is_missing",
+   "exit": 0,
+   "seconds": 1.6,
+   "tail": "                                                          [100%]\n=========================== short test summary info ============================\nSKIPPED [1] tests/test_contract_stateful.py:37: could not import 'hypothesis': No module named 'hypothesis'\n1 passed, 1 skipped, 1018 deselected in 1.26s\n"
+  },
+  {
+   "cmd": "{HARBOR} harbor lint --extend-select ALL datasets/mrgym-nowrap-v0/tasks/nowrap-l1-f3e36f datasets/mrgym-nulltissue-v0/tasks/nulltissue-l2-27ecc6 datasets/mrgym-snrspec-v0/tasks/snrspec-l2-044fdc datasets/mrgym-t1transmit-v0/tasks/t1transmit-l2-43c7f9",
+   "exit": 2,
+   "seconds": 1.2,
+   "tail": "Compose checks require the Docker CLI and Compose plugin; no running daemon is needed.\n"
+  },
+  {
+   "cmd": "{HARBOR} harbor lint --json --extend-select ALL $TMP/harbor_nocompose/mrgym-nowrap-v0/tasks/nowrap-l1-f3e36f $TMP/harbor_nocompose/mrgym-nulltissue-v0/tasks/nulltissue-l2-27ecc6 $TMP/harbor_nocompose/mrgym-snrspec-v0/tasks/snrspec-l2-044fdc $TMP/harbor_nocompose/mrgym-t1transmit-v0/tasks/t1transmit-l2-43c7f9",
+   "exit": 0,
+   "seconds": 1.1,
+   "tail": "[]\n"
+  },
+  {
+   "cmd": "python tools/run_readme_commands.py",
+   "exit": 1,
+   "seconds": 674.4,
+   "tail": "       0    27.2 s  mrgym timing\n               0     0.4 s  pip install pytest\n               1   567.7 s  pytest -q\n               1    33.6 s  python tools/generate.py --check\n14 of 17 commands ok\nFAILED: mrgym check Scanner/NoWrap-v0\n\nFAILED: pytest -q\n\nFAILED: python tools/generate.py --check\n\n"
+  },
+  {
+   "cmd": "python tools/generate.py --check",
+   "exit": 1,
+   "seconds": 33.7,
+   "tail": "generated files differ from the code; run `python tools/generate.py`:\n  envs/scanner-snrspec-v0/README.md\n  envs/index.json\n  envs/README.md\n  README.md\n"
+  },
+  {
+   "cmd": "python -m mrgym.cli export harbor --check",
+   "exit": 0,
+   "seconds": 0.9,
+   "tail": "4 Harbor task(s) under datasets are current\n"
+  },
+  {
+   "cmd": "python -m mrgym.cli export openenv --check",
+   "exit": 0,
+   "seconds": 1.1,
+   "tail": "the OpenEnv package under integrations/openenv/mrgym_scanner_env is current\n"
+  },
+  {
+   "cmd": "python conformance/run.py --check-readme",
+   "exit": 0,
+   "seconds": 0.0,
+   "tail": "integrations/README.md: the generated block is current\n"
+  },
+  {
+   "cmd": "python -m mrgym.compat.fingerprint --check",
+   "exit": 0,
+   "seconds": 19.3,
+   "tail": "lTissue-v0  7485fe6ff60003f2  not frozen  (mrgym 0.1.0.dev0, mrgym-engine-0.2.0)\nScanner/SNRSpec-v0  746368e51e0efb4f  not frozen  (mrgym 0.1.0.dev0, mrgym-engine-0.2.0)\nScanner/T1Transmit-v0  810cab572c93e3fe  not frozen  (mrgym 0.1.0.dev0, mrgym-engine-0.2.0)\n5 id(s): every fingerprint is current\n"
+  },
+  {
+   "cmd": "{GYM} python -m mrgym.compat.fingerprint --check",
+   "exit": 0,
+   "seconds": 19.5,
+   "tail": "lTissue-v0  7485fe6ff60003f2  not frozen  (mrgym 0.1.0.dev0, mrgym-engine-0.2.0)\nScanner/SNRSpec-v0  746368e51e0efb4f  not frozen  (mrgym 0.1.0.dev0, mrgym-engine-0.2.0)\nScanner/T1Transmit-v0  810cab572c93e3fe  not frozen  (mrgym 0.1.0.dev0, mrgym-engine-0.2.0)\n5 id(s): every fingerprint is current\n"
+  },
+  {
+   "cmd": "{GYM} python -c \"import sys, numpy, scipy; print(sys.version.split()[0], numpy.__version__, scipy.__version__)\"",
+   "exit": 0,
+   "seconds": 0.2,
+   "tail": "3.12.14 2.5.5 1.18.1\n"
+  },
+  {
+   "cmd": "uv lock --check",
+   "exit": 0,
+   "seconds": 0.0,
+   "tail": "Using CPython 3.13.15\nResolved 158 packages in 2ms\n"
+  },
+  {
+   "cmd": "python -m mrgym.cli results --check && python tools/generate.py --check",
+   "exit": 1,
+   "seconds": 36.6,
+   "tail": "results: results.json and the table in README.md match the 1400 episode records (0 published, 1400 pilot); no reporting rule is broken\ngenerated files differ from the code; run `python tools/generate.py`:\n  envs/scanner-snrspec-v0/README.md\n  envs/index.json\n  envs/README.md\n  README.md\n"
+  },
+  {
+   "cmd": "uv build --wheel -o $TMP/wheel . && uv venv -q -p python $TMP/wheel/v && uv pip install -q --python $TMP/wheel/v/bin/python $TMP/wheel/*.whl && cd $TMP/wheel && v/bin/python -c \"import mrgym, json, importlib.metadata as m; print(json.dumps([mrgym.list_envs(), sorted(r.split()[0] for r in (m.requires('mrgym') or []) if 'extra' not in r)]))\" && v/bin/mrgym export harbor --out $TMP/wheel/ds --id Scanner/NoWrap-v0 && v/bin/python -m mrgym.compat.harbor local $TMP/wheel/ds/*/tasks/*",
+   "exit": 0,
+   "seconds": 5.2,
+   "tail": "ritten: $TMP/wheel/ds/mrgym-nowrap-v0/tasks/nowrap-l1-b382c9\n$TMP/wheel/ds/mrgym-nowrap-v0/tasks/nowrap-l1-b382c9: policy reference -> reward 1 (expected 1), 1 scan(s), log replays against its head: True, sealed: True\nBuilding wheel...\nSuccessfully built $TMP/wheel/mrgym-0.1.0.dev0-py3-none-any.whl\n"
+  },
+  {
+   "cmd": "{OPENENV} openenv validate integrations/openenv/mrgym_scanner_env --level static --skip-build --json --output $TMP/openenv.json",
+   "exit": 0,
+   "seconds": 3.6,
+   "tail": "l,\n      \"duration_s\": 0.0\n    },\n    {\n      \"check_id\": \"static.task_distribution_pinning\",\n      \"status\": \"skip\",\n      \"measured\": {},\n      \"evidence\": [\n        \"grader not implemented in this build\"\n      ],\n      \"remediation\": null,\n      \"duration_s\": 0.0\n    }\n  ],\n  \"verdict\": \"warn\"\n}\n"
+  },
+  {
+   "cmd": "{OPENENV} python integrations/openenv/demo.py",
+   "exit": 0,
+   "seconds": 24.2,
+   "tail": "in process reward 1, same digest and log head: True | over HTTP + WebSocket reward 1, same digest: True\nScanner/T1Transmit-v0 L2 seed 0: native reference reward 0.953352 (7 calls) | in process reward 0.953352, same digest and log head: True | over HTTP + WebSocket reward 0.953352, same digest: True\n"
+  },
+  {
+   "cmd": "{VF} vf-validate mrgym-scanner -n 3 -c 2 --runtime.type subprocess --taskset.env-id Scanner/NoWrap-v0 -o $TMP/vf/Scanner-NoWrap-v0",
+   "exit": 0,
+   "seconds": 8.3,
+   "tail": "mrgym-scanner on the subprocess runtime (gold+noop)\n20:13:29    INFO results: $TMP/vf/Scanner-NoWrap-v0/mrgym-scanner--validate--14e5499a\n20:13:32    INFO idx=0 valid=True reason=valid (2.4s)\n20:13:32    INFO idx=1 valid=True reason=valid (2.2s)\n20:13:32    INFO idx=2 valid=True reason=valid (1.0s)\n"
+  },
+  {
+   "cmd": "{VF} vf-validate mrgym-scanner -n 3 -c 2 --runtime.type subprocess --taskset.env-id Scanner/NullTissue-v0 -o $TMP/vf/Scanner-NullTissue-v0",
+   "exit": 0,
+   "seconds": 11.9,
+   "tail": "m-scanner on the subprocess runtime (gold+noop)\n20:13:37    INFO results: $TMP/vf/Scanner-NullTissue-v0/mrgym-scanner--validate--e295de7e\n20:13:44    INFO idx=0 valid=True reason=valid (4.4s)\n20:13:44    INFO idx=1 valid=True reason=valid (4.5s)\n20:13:44    INFO idx=2 valid=True reason=valid (2.3s)\n"
+  },
+  {
+   "cmd": "{VF} vf-validate mrgym-scanner -n 3 -c 2 --runtime.type subprocess --taskset.env-id Scanner/SNRSpec-v0 -o $TMP/vf/Scanner-SNRSpec-v0",
+   "exit": 0,
+   "seconds": 16.1,
+   "tail": "gym-scanner on the subprocess runtime (gold+noop)\n20:13:49    INFO results: $TMP/vf/Scanner-SNRSpec-v0/mrgym-scanner--validate--e24b9e0b\n20:14:00    INFO idx=1 valid=True reason=valid (3.4s)\n20:14:00    INFO idx=0 valid=True reason=valid (10.9s)\n20:14:00    INFO idx=2 valid=True reason=valid (3.6s)\n"
+  },
+  {
+   "cmd": "{VF} vf-validate mrgym-scanner -n 3 -c 2 --runtime.type subprocess --taskset.env-id Scanner/T1Transmit-v0 -o $TMP/vf/Scanner-T1Transmit-v0",
+   "exit": 0,
+   "seconds": 9.7,
+   "tail": "   INFO results: $TMP/vf/Scanner-T1Transmit-v0/mrgym-scanner--validate--455a5f1d\n20:14:10    INFO idx=0 valid=False reason=invalid (3.1s) - gold: invalid\n20:14:10    INFO idx=1 valid=False reason=invalid (3.0s) - gold: invalid\n20:14:10    INFO idx=2 valid=False reason=invalid (1.5s) - gold: invalid\n"
+  },
+  {
+   "cmd": "{VF} python -c \"import importlib.metadata as m; print(m.version('verifiers'))\"",
+   "exit": 0,
+   "seconds": 0.1,
+   "tail": "0.4.1\n"
+  },
+  {
+   "cmd": "{VF} python -m pytest -q -p no:cacheprovider tests/test_adapters_parity.py -k verifiers",
+   "exit": 0,
+   "seconds": 36.4,
+   "tail": "....................                                                     [100%]\n20 passed, 76 deselected in 35.19s\n"
+  },
+  {
+   "cmd": "git tag -l 'v*' | grep -q .",
+   "exit": 1,
+   "seconds": 0.0,
+   "tail": ""
+  },
+  {
+   "cmd": "grep -Eq '^doi:' CITATION.cff",
+   "exit": 1,
+   "seconds": 0.0,
+   "tail": ""
+  },
+  {
+   "cmd": "{INSPECT} python integrations/inspect/mock_run.py --seeds 3 --json",
+   "exit": 0,
+   "seconds": 98.7,
+   "tail": "ribed_parameters\": 0\n   },\n   \"noop\": {\n    \"status\": \"success\",\n    \"passed\": 0.0,\n    \"reward\": 0.0,\n    \"done\": false,\n    \"observations\": 1,\n    \"text_sha256\": \"c5b06f056a3261606be31404280161175a60948973bc5384a4c89975f32e87b9\",\n    \"log_head\": null,\n    \"undescribed_parameters\": 0\n   }\n  }\n ]\n}\n"
+  }
+ ]
+}

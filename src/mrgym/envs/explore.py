@@ -48,7 +48,7 @@ class ExploreEnv(ScannerEnv):
 
     def terminal_tool(self):
         return ToolSpec("finish", "End the session. This environment pays no reward.",
-                        {"type": "object", "additionalProperties": False, "properties": {"notes": {"type": "string"}}}, terminal=True)
+                        {"type": "object", "additionalProperties": False, "properties": {"notes": {"type": "string", "description": "free text kept with the session; optional"}}}, terminal=True)
 
     def finish(self, a, rep):
         return 0.0, dict(reward=0.0, passed=None, note="sandbox: no reward", notes=a.get("notes")), "session closed; this environment pays no reward"

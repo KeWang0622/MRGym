@@ -1,0 +1,2 @@
+[mrgym.envs]
+private_stub = mrgym_private_stub.spec

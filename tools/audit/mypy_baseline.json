@@ -1,0 +1,11 @@
+{
+ "mypy": "mypy 2.4.1 (compiled: yes)",
+ "errors": {
+  "src/mrgym/env.py": 8,
+  "src/mrgym/envs/family.py": 3,
+  "src/mrgym/envs/null_tissue/task.py": 6,
+  "src/mrgym/gate.py": 13,
+  "src/mrgym/registry.py": 3,
+  "src/mrgym/tools.py": 1
+ }
+}

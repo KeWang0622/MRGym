@@ -1,13 +1,13 @@
 # Textbook experiments on the virtual scanner
 
-Twelve classic MR experiments, one script each. Every script prints a few lines of numbers and asserts the
+Thirteen classic MR experiments, one script each. Every script prints a few lines of numbers and asserts the
 textbook result with a stated tolerance. A failed assertion ends the script with a non-zero exit code.
 
 ```bash
 pip install -e .
 python examples/textbook/01_ernst_angle.py
 python examples/textbook/01_ernst_angle.py --plot ernst.png     # optional figure, needs matplotlib
-pytest tests/test_textbook_examples.py                          # all twelve
+pytest tests/test_textbook_examples.py                          # all thirteen
 ```
 
 The scripts need numpy and the package. No file is written unless `--plot` is given. Each one runs in under
@@ -15,7 +15,7 @@ The scripts need numpy and the package. No file is written unless `--plot` is gi
 
 ## How the scripts reach the scanner
 
-Scripts 01 to 04, 06 and 08 open a session the way an agent does: `mrgym.make("Scanner/Explore-v0", phantom="qa",
+Scripts 01 to 04, 06, 08 and 13 open a session the way an agent does: `mrgym.make("Scanner/Explore-v0", phantom="qa",
 seed=1)`, then `scan`, `read_regions` and `view` tool calls. They know their own seed, so they rebuild the hidden
 world with `env.episode_config()` and compare with it. An agent in an episode cannot do that.
 
@@ -42,9 +42,15 @@ its session's world with the ideal-spoiling engine (`tier=1`). Script 12 uses th
 | 10 | EPI distortion | `python examples/textbook/10_epi_distortion.py` | Shift -polarity x offset x echo spacing x FOV within 0.3 mm. Stretch 1 -/+ gradient x echo spacing x FOV within 0.01. Mean of blip-up and blip-down centres is the true centre within 0.3 mm. Brightness ratio within 3 %. | Per blip polarity: edges, centre, height. Mean centre. Brightness ratio. |
 | 11 | In and opposed phase | `python examples/textbook/11_in_opposed_phase.py` | One fat peak: minima at (k + 1/2) / abs(f_fat) within 0.02 ms, maxima at k / abs(f_fat) within 0.1 ms and never later. Six peaks: minima within 0.2 ms of those times, and deeper. | Per field strength: echo times of minima and maxima for one and for six fat peaks. |
 | 12 | Approach to steady state | `python examples/textbook/12_approach_to_steady_state.py` | First line after n dummy cycles = m (1 + (1 / m - 1) (E1 cos a)^n) within 1e-12. Spin echo with exact pulses: one dummy cycle reaches the periodic state. | Dummy cycles per TR. Per T1: first line and centre of k-space against the periodic state. Spin echo with a transmit error. |
+| 13 | Slice profile | `python examples/textbook/13_slice_profile_vfa.py` | Two-angle T1 with the nominal angles on a 2D slice: inside -35 to -80 % for time-bandwidth products 2 and 4 (published: 40 to 80 % underestimation, Svedin & Parker 2017; -63 %, Dieringer 2014), less for 8. The same two scans in 3D with the true angles: within 3 %. The signal maximum of a flip-angle sweep lies above the Ernst angle in 2D. | Bias range per pulse. T1 from two scans in 2D and in 3D, with nominal and with true angles. Flip angle of maximum signal in both modes. |
 
 Example 12 produces the transient sizes quoted in [docs/physics/limits.md](../../docs/physics/limits.md).
-Example 01 produces the served / Ernst range quoted there, and example 07 the overshoot at small pixels.
+Example 01 produces the served / Ernst range quoted there, example 07 the overshoot at small pixels and example 13
+the slice-profile bias.
+
+Examples 01 and 12 test a formula for one flip angle per voxel. They ask for `excitation="nonselective"` (hard
+pulses, 3D encoding); with the default slice-selective pulse the flip angle varies through the slice, which is what
+example 13 is about.
 
 ## Reading the output
 

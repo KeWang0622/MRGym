@@ -1,0 +1,6 @@
+{
+ "env_id": "Scanner/NoWrap-v1",
+ "level": 2,
+ "seed": "1520157f7d74c50cc5c0d482f1ee7a69",
+ "split": "test-iid"
+}

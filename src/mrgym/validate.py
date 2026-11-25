@@ -1,13 +1,19 @@
 """Physics validation: every behaviour of the scanner against an analytic formula or a separately written calculation.
 
-    mrgym validate            prints the table and exits 1 if any check fails
-    mrgym validate --json     the same rows as JSON
+    mrgym validate               prints the table and exits 1 if any check fails
+    mrgym validate --group rf    one group only
+    mrgym validate --json        the same rows as JSON
+    mrgym validate --perturb ID  re-scores an environment's reference policy under physics perturbations (``perturb.py``)
 
-Three groups:
+Four groups:
   signal    the per-tissue signal models against (a) published closed forms and (b) Bloch calculations in ``bloch.py``
             that share no code with them (matrix steady state, isochromat ensemble, time-stepping EPG)
-  encoding  the k-space engine against a brute-force evaluation of the time-dependent signal equation, and each
-            textbook image-formation effect against its formula
+  rf        slice-selective excitation: the pulse's rotation against a separately written 3 x 3 cascade and the
+            small-tip Fourier relation, the integral through the slice against fine quadrature and against an
+            isochromat ensemble, the size of the published variable-flip-angle bias
+  encoding  the k-space engine against a brute-force evaluation of the time-dependent signal equation, each
+            textbook image-formation effect against its formula, the movable and turned field of view, the
+            periodic-motion ghost
   console   the console's arithmetic
 
 What this does and does not establish: the scanner computes the equations it states, to the tolerances listed. It is
@@ -22,12 +28,14 @@ import time
 
 import numpy as np
 
-from .scanner import bloch, console, epg, kspace, tissue
+from .scanner import anatomy, bloch, console, epg, kspace, rf, tissue
 from .scanner import signal as S
 from .scanner import world as W
 
 D = np.deg2rad
 G = S.GAMMA_MHZ_PER_T
+GROUPS = dict(signal="Signal models", rf="Slice-selective excitation", encoding="Image formation in k-space", console="Console arithmetic")
+HARD = dict(excitation="nonselective")      # checks of a formula for one flip angle per voxel ask for the hard pulse
 
 
 def _row(id, group, check, reference, value, limit, measured=None, kind="max"):
@@ -210,7 +218,7 @@ def check_node_interpolation():
     worst = 0.0
     for prot in (dict(sequence="spgr", tr_ms=8.0, flip_deg=30.0, spoiler_mt_ms_per_m=60.0, matrix=64),
                  dict(sequence="afi", tr_ms=20.0, flip_deg=60.0, matrix=64)):
-        rp = console.plan(prot, w["console"])["realised"]
+        rp = console.plan(dict(prot, **HARD), w["console"])["realised"]
         for c, name in enumerate(w["names"]):
             cls, sup = w["tissues"][name], eng.sup[c]
             idx = np.flatnonzero(w["weights"][c][sup] > 0.5)[::997][:12]
@@ -220,7 +228,7 @@ def check_node_interpolation():
             direct = np.array([epg.steady_state(float(x), rp["tr_ms"], cls["t1_ms"], cls["t2_ms"], rp["rf_phase_increment_deg"], pattern, bd) for x in a]).T
             fast = [v[idx] / (w["weights"][c][sup][idx] * cls["pd"]) for v in eng.amplitudes(rp, c)]
             worst = max(worst, max(float(np.max(np.abs(f - d)) / np.max(np.abs(d))) for f, d in zip(fast, direct)))
-    return [_row("S15", "signal", "per-tissue EPG interpolated over the flip angle (5 to 10 Chebyshev nodes), strong B1 pattern",
+    return [_row("S15", "signal", "per-tissue EPG interpolated over the flip angle (5 to 10 Chebyshev nodes), strong B1 pattern, hard pulse",
                  "the EPG solved at the flip angle of every sampled voxel", worst, 1e-4, f"{worst:.1e} relative")]
 
 
@@ -461,8 +469,9 @@ def check_in_opposed():
         yy, xx = np.meshgrid(np.arange(128) - 64, np.arange(128) - 64, indexing="ij")
         for k in (2, 3, 4, 5, 6):
             te = 0.5e3 / abs(f) * k
-            im = np.abs(eng.scan(dict(sequence="spgr", tr_ms=150, flip_deg=60, te_ms=te, fov_mm=256, matrix=128, bandwidth_hz_per_px=1000))["images"][0])
-            te = console.plan(dict(sequence="spgr", tr_ms=150, flip_deg=60, te_ms=te, fov_mm=256, matrix=128, bandwidth_hz_per_px=1000), w["console"])["realised"]["te_ms"]
+            prot = dict(sequence="spgr", tr_ms=150, flip_deg=60, te_ms=te, fov_mm=256, matrix=128, bandwidth_hz_per_px=1000, **HARD)
+            im = np.abs(eng.scan(prot)["images"][0])
+            te = console.plan(prot, w["console"])["realised"]["te_ms"]
             ww = 0.5 * tw["pd"] * S.spgr(D(60), 150, tw["t1_ms"]) * np.exp(-te / tw["t2s_ms"])
             ff = 0.5 * tf["pd"] * S.spgr(D(60), 150, tf["t1_ms"]) * np.exp(-te / tf["t2s_ms"])
             pred = abs(ww + ff * np.exp(2j * np.pi * f * te * 1e-3)) * 5.0
@@ -506,32 +515,356 @@ def check_field_map():
 def check_console():
     b1 = console._b1_ut(10.0, 1.0)
     exam = dict(fov_mm=240.0, min_pixel_mm=0.8, b1rms_limit_ut=3.0, b0_t=3.0)
-    p = console.plan(dict(sequence="spgr", tr_ms=20, flip_deg=10, matrix=96), exam)
+    p = console.plan(dict(sequence="spgr", tr_ms=20, flip_deg=10, matrix=96, **HARD), exam)
     g = 300 * 96 / (console.GAMMA_HZ_PER_T * 0.24) * 1e3                 # mT/m
     sar = 100 * b1 ** 2 * 1.0 / 20.0 / 3.0 ** 2
     err = max(abs(b1 / 0.6522 - 1), abs(p["limits"]["gradient_percent"] / (100 * g / 40.0) - 1), abs(p["limits"]["rf_power_percent"] - round(sar, 2)))
+    p = console.plan(dict(sequence="spgr", tr_ms=20, flip_deg=10, matrix=96), exam)
     lines = p["realised"]["lines"]
     t = abs(p["scan_s"] - (3.0 + math.ceil(4000 / 20) * 0.02 + 0.02 * lines))
     wfs = abs(p["derived"]["water_fat_shift_px"] - 3.4e-6 * console.GAMMA_HZ_PER_T * 3.0 / 300)
     return [
-        _row("C1", "console", "hard-pulse amplitude, readout gradient and RF power of a 10 degree, 1 ms pulse at TR 20 ms",
+        _row("C1", "console", "hard-pulse amplitude, readout gradient and RF power of a 10 degree, 1 ms hard pulse (nonselective) at TR 20 ms",
              "B1 = alpha / (2 pi gamma tau) = 0.652 uT; G = bandwidth x matrix / (gamma FOV); B1rms^2 = B1^2 tau / TR", err, 1e-3),
         _row("C2", "console", "scan time of the same protocol", "overhead + dummy cycles x TR + TR x lines x averages", t, 1e-9, f"{p['scan_s']:.2f} s"),
         _row("C3", "console", "water-fat shift printed in the header", "3.4 ppm x gamma B0 / bandwidth per pixel", wfs, 1e-3, f"{p['derived']['water_fat_shift_px']:.3f} px"),
     ]
 
 
+# ================================================================================================== slice selection
+def _fine_profile(alpha, tbw, n=16001, zmax=12.0, window="hann"):
+    z = np.linspace(-zmax, zmax, n)
+    w = np.full(n, 2 * zmax / (n - 1))
+    w[[0, -1]] /= 2
+    theta, ph = rf.excitation(alpha, tbw, z, window)
+    return theta, ph, w
+
+
+def check_rf_pulse():
+    z = np.linspace(-2.5, 2.5, 1001)
+    rot = tip = 0.0
+    for tbw, window in ((2, "hann"), (4, "hann"), (8, "hann"), (4, "hamming")):
+        for deg in (10, 30, 60, 90, 120, 180):
+            a, b = rf.cayley_klein(D(deg), tbw, z, window=window)
+            th3, mxy3 = bloch.slice_profile(D(deg), tbw, z, window=window)
+            # the cascade takes Mz to +My at the centre, the spinor convention to -i: opposite sign of Mxy
+            rot = max(rot, np.abs(2 * np.arcsin(np.clip(np.abs(b), 0, 1)) - th3).max(), np.abs(2 * np.conj(a) * b + mxy3).max())
+        t = (np.arange(rf.N_SAMPLES) + 0.5) / rf.N_SAMPLES - 0.5
+        ft = np.abs(np.exp(-2j * np.pi * tbw * np.outer(z, t)) @ rf.sinc_pulse(tbw, window=window))
+        tip = max(tip, np.abs(rf.excitation(D(1.0), tbw, z, window)[0] / D(1.0) - ft).max())
+    sym = 0.0
+    for tbw in (2, 4, 8):
+        zz = np.linspace(-3, 3, 601)
+        th, ph = rf.excitation(D(90.0), tbw, zz)
+        b = rf.refocusing(D(180.0), tbw, zz)
+        sym = max(sym, np.abs(th - th[::-1]).max(), np.abs((ph - np.conj(ph[::-1]))[th > 1e-6]).max(), np.abs((b * b).imag).max())
+    return [
+        _row("R1", "rf", "rotation of the windowed-sinc pulse (spinor cascade), 10 to 180 degrees, time-bandwidth 2 / 4 / 8, Hann and Hamming",
+             "separately written cascade of real 3 x 3 rotations (bloch.py): flip angle (rad) and transverse magnetisation", rot, 1e-7),
+        _row("R2", "rf", "slice profile of a 1 degree pulse", "small-tip approximation: flip angle = alpha x abs(Fourier transform of the pulse)",
+             tip, 1e-4, f"{tip:.1e} of alpha"),
+        _row("R3", "rf", "symmetry used by the slice integral: flip angle even in z, transverse phase conjugate, echo factor -b^2 real",
+             "time-symmetric pulse under a constant gradient", sym, 1e-9),
+    ]
+
+
+def check_slice_integral():
+    """The quadrature the engine serves (``rf.quadrature``) against 16,001 positions on +- 12 slice thicknesses."""
+    usual = extreme = 0.0
+    for tbw in (2, 4, 8):
+        zeta, wz = rf.quadrature(tbw)
+        for flip in (2, 5, 10, 20, 40, 60, 90):
+            th_f, ph_f, w_f = _fine_profile(D(flip), tbw)
+            th, ph = rf.excitation(D(flip), tbw, zeta)
+            for tr, t1 in itertools.product((5, 20, 100, 2000), (300, 1000, 2500, 4300)):
+                ref = np.sum(w_f * ph_f * S.spgr(th_f, tr, t1))
+                err = abs(np.sum(wz * ph.real * S.spgr(th, tr, t1)) - ref) / abs(ref)
+                if tr >= 20:
+                    usual = max(usual, err)
+                else:
+                    extreme = max(extreme, err)
+    return [
+        _row("R4", "rf", "integral of the spoiled-GRE signal through the slice as served (6 x tbw points per thickness, to 0.5 + 12 / tbw thicknesses), "
+             "252 cases: TR 20 to 2000 ms, T1 300 to 4300 ms, 2 to 90 degrees", "the same integral on 16,001 positions over +- 12 thicknesses",
+             usual, 2e-4, f"{usual:.1e} relative"),
+        _row("R5", "rf", "the same at TR 5 ms (84 cases), where the wings of the profile pass the Ernst angle and outweigh the slice centre",
+             "the same reference", extreme, 1e-3, f"{extreme:.1e} relative"),
+    ]
+
+
+def check_slice_models():
+    # R6: the hard pulse of the 3D mode is the engine of version 0.1.0 (numbers recorded on mrgym-engine-0.1.0)
+    w = W.make_world("000102030405060708090a0b0c0d0e0f", dict(kind="qa"))
+    eng = kspace.Engine(w)
+    m = np.abs(eng.scan(dict(sequence="se", tr_ms=500, matrix=64, **HARD))["images"])
+    old = max(abs(float(m.mean()) / 0.7259219837862718 - 1), abs(float(m.max()) / 2.778571927919207 - 1), abs(float(m[0, 32, 32]) / 2.3098207026200184 - 1))
+    # R7: RF-spoiled gradient echo of a slice against the isochromat ensemble
+    iso = 0.0
+    for flip, tbw, tr, t1, t2 in ((20, 4, 20.0, 600.0, 60.0), (40, 2, 15.0, 400.0, 40.0), (10, 8, 20.0, 1000.0, 60.0), (60, 4, 12.0, 800.0, 50.0)):
+        rp = dict(sequence="spgr", tr_ms=tr, rf_phase_increment_deg=117.0, spoiler_mt_ms_per_m=100.0)
+        got = kspace.slice_signal(rp, dict(t1_ms=t1, t2_ms=t2, adc_um2_ms=0.0), D(flip), tbw)[0][0]
+        zmax = 0.5 + rf.WING / tbw
+        ref = bloch.slice_spgr_isochromats(D(flip), tbw, tr, t1, t2, n_z=int(round(2 * zmax * 12 * tbw)) + 1, z_max=zmax, n_iso=192)
+        iso = max(iso, abs(got - ref) / abs(ref))
+    # R8: the EPG through the profile is interpolated (difference to the ideal-spoiling form on 16 nodes)
+    itp = 0.0
+    for flip, tbw, tr, t1, t2, adc, sp in ((20, 4, 20.0, 1000, 80, 1.0, 100.0), (60, 4, 8.0, 2500, 200, 2.0, 100.0), (90, 2, 10.0, 4300, 600, 3.0, 100.0),
+                                           (10, 8, 5.0, 838, 75, 0.75, 60.0), (40, 8, 30.0, 300, 40, 2.2, 300.0)):
+        rp = dict(sequence="spgr", tr_ms=tr, rf_phase_increment_deg=117.0, spoiler_mt_ms_per_m=sp)
+        cls = dict(t1_ms=t1, t2_ms=t2, adc_um2_ms=adc)
+        zeta, wz = rf.quadrature(tbw)
+        th, ph = rf.excitation(D(flip), tbw, zeta)
+        bd = kspace.diffusion_bd(adc, sp, tr)
+        direct = np.sum(wz * ph.real * np.array([epg.steady_state(float(t), tr, t1, t2, 117.0, (1,), bd)[0] if t > 1e-9 else 0j for t in th]))
+        itp = max(itp, abs(kspace.slice_signal(rp, cls, D(flip), tbw)[0][0] - direct) / abs(direct))
+    # R9: spin echo and inversion recovery of a slice against isochromats over (position, crusher phase)
+    se = 0.0
+    for scale, tbw, tr, te, t1, ti, kap in ((1.0, 4, 500.0, 20.0, 800.0, None, 1.0), (0.8, 4, 300.0, 15.0, 1200.0, None, 1.0), (1.15, 2, 600.0, 20.0, 500.0, None, 1.0),
+                                            (1.0, 8, 400.0, 20.0, 900.0, None, 1.0), (0.9, 4, 2000.0, 20.0, 1000.0, 400.0, 0.93)):
+        rp = dict(sequence="se" if ti is None else "ir", tr_ms=tr, te_ms=te, ti_ms=ti)
+        got = kspace.slice_signal(rp, dict(t1_ms=t1), scale * np.pi / 2, tbw, inv_eff=kap)[0][0]
+        ref = bloch.slice_se_isochromats(scale * np.pi / 2, tbw, tr, te, t1, ti_ms=ti, inv_eff=kap)
+        se = max(se, abs(got - ref) / abs(ref))
+    return [
+        _row("R6", "rf", "excitation = nonselective (hard pulse, one flip angle per voxel): spin-echo image of the reference world",
+             "mean, maximum and centre pixel recorded on mrgym-engine-0.1.0", old, 1e-9, f"{old:.1e} relative"),
+        _row("R7", "rf", "RF-spoiled gradient echo integrated over the slice (EPG per column), 4 cases, time-bandwidth 2 / 4 / 8",
+             "separately written isochromat ensemble: positions through the slice x 192 spoiler phases, each turned by the 3 x 3 pulse "
+             "cascade of its position, time stepping from equilibrium", iso, 1e-3, f"{iso:.1e} relative"),
+        _row("R8", "rf", "the EPG through the profile, interpolated over the flip angle (difference to the ideal-spoiling form on 16 Chebyshev nodes), 5 cases with diffusion",
+             "the EPG solved at the flip angle of every position", itp, 5e-4, f"{itp:.1e} relative"),
+        _row("R9", "rf", "spin echo and inversion recovery integrated over the slice (refocusing slice 1.5 x the excitation slice), B1 80 to 115 % of nominal",
+             "separately written isochromat ensemble: positions x crusher phases, 3 x 3 cascades of both pulses, time stepping", se, 1e-3, f"{se:.1e} relative"),
+    ]
+
+
+def check_slice_engine():
+    """The engine's use of the profile: interpolation over the object's B1 range, through-slice dephasing, the bias."""
+    w = W.make_world("5b" * 16, dict(kind="qa", b1_shape_amp=(0.2, 0.24)))
+    eng = kspace.Engine(w)
+    worst = 0.0
+    for prot in (dict(sequence="spgr", tr_ms=12.0, flip_deg=30.0, matrix=64), dict(sequence="se", tr_ms=400.0, matrix=64),
+                 dict(sequence="bssfp", tr_ms=8.0, flip_deg=50.0, matrix=64)):
+        rp = console.plan(prot, w["console"])["realised"]
+        tbw = rp["rf_tbw"]
+        zeta, wz = rf.quadrature(tbw)
+        for c, name in enumerate(w["names"]):
+            cls, sup = w["tissues"][name], eng.sup[c]
+            idx = np.flatnonzero(w["weights"][c][sup] > 0.5)[::1499][:8]
+            a = D(rp["flip_deg"]) * eng.b1[sup][idx]
+            fast = eng.amplitudes(rp, c)[0][idx] / (w["weights"][c][sup][idx] * cls["pd"])
+            if rp["sequence"] == "bssfp":
+                free = 2 * np.pi * eng.df[sup][idx] * rp["tr_ms"] * 1e-3
+                direct = []
+                for ai, fi in zip(a, free):
+                    th, ph = rf.excitation(ai, tbw, zeta)
+                    direct.append(np.sum(wz * ph.real * S.bssfp(th, fi + D(rp["phase_cycle_deg"]), rp["tr_ms"], cls["t1_ms"], cls["t2_ms"])) * np.exp(0.5j * fi))
+                direct = np.array(direct)
+            else:
+                direct = kspace.slice_signal(rp, cls, a, tbw, inv_eff=w["system"]["inv_eff"])[0]
+            worst = max(worst, float(np.max(np.abs(fast - direct)) / np.max(np.abs(direct))))
+    # through-slice dephasing: numeric integral of a small-tip profile against the closed form, and the engine's image
+    deph = 0.0
+    for tbw in (2, 4, 8):
+        th, ph, wf = _fine_profile(D(2.0), tbw)
+        z = np.linspace(-12.0, 12.0, 16001)
+        for cyc in (0.25, 0.5, 1.0, 1.7):
+            num = abs(np.sum(wf * th * ph * np.exp(2j * np.pi * cyc * z))) / abs(np.sum(wf * th * ph))
+            deph = max(deph, abs(num - abs(float(rf.dephasing_factor(cyc, tbw)))))
+    ph_ = W.shapes_phantom([("wm", _disc(40))])
+    img = []
+    for dbdz in (0.0, 5.0):                                              # Hz / mm; 5 mm slice, TE 20 ms: 0.5 cycles
+        wd = W.flat_world(ph_)
+        wd["fields"]["dbdz_hz_per_mm"] = np.full((ph_["n"], ph_["n"]), dbdz)
+        img.append(np.abs(kspace.Engine(wd).scan(dict(sequence="spgr", tr_ms=100, flip_deg=10, te_ms=20, matrix=64, fov_mm=256))["images"][0])[32, 32])
+    drop = abs(img[1] / img[0] - float(rf.dephasing_factor(0.5, 4.0)))
+    # two-angle variable-flip-angle T1 with the nominal angles: the published 2D bias
+    bias = []
+    for tbw in (2, 4):
+        for t1, (f1, f2) in itertools.product((300.0, 1000.0, 2500.0), ((4, 20), (3, 17), (6, 35))):
+            a = D(np.array([f1, f2]))
+            sig = np.abs(kspace.slice_signal(dict(sequence="spgr", tr_ms=20.0), dict(t1_ms=t1), a, tbw, tier=1)[0])
+            y, x = sig / np.sin(a), sig / np.tan(a)
+            bias.append(-20.0 / np.log((y[1] - y[0]) / (x[1] - x[0])) / t1 - 1)
+    lo, hi = min(bias), max(bias)
+    outside = max(0.0, -0.80 - lo, hi + 0.35)
+    return [
+        _row("R10", "rf", "slice-integrated signal interpolated over the flip angles of the object (5 to 16 Chebyshev nodes), strong B1 pattern: spgr, se, bssfp",
+             "the slice integral at the flip angle and off-resonance of every sampled voxel", worst, 1e-4, f"{worst:.1e} relative"),
+        _row("R11", "rf", "signal left by a field gradient through the slice (0.25 to 1.7 cycles across the thickness), small flip angle",
+             "numeric integral of profile x phase ramp against sinc(cycles) x window(cycles / tbw): the profile is the transform of the pulse",
+             max(deph, drop), 2e-3, f"{max(deph, drop):.1e}; image at 0.5 cycles: {img[1] / img[0]:.3f}"),
+        _row("R12", "rf", "two-angle variable-flip-angle T1 on a 2D slice, nominal angles in the fit (TR 20 ms, T1 300 to 2500 ms, time-bandwidth 2 and 4, ideal spoiling)",
+             "published underestimation without profile correction: 40 to 80 % (Svedin & Parker 2017), -63 % (Dieringer 2014); band -35 to -80 %",
+             outside, 0.0, f"{100 * hi:.0f} to {100 * lo:.0f} %"),
+    ]
+
+
+# ================================================================================================== field of view, motion
+def check_field_of_view():
+    eng = _engine([("wm", _disc(15, cy=30.0, cx=-40.0))])
+    base = dict(sequence="se", tr_ms=500, te_ms=20, fov_mm=160, matrix=80, bandwidth_hz_per_px=300)
+    from .scanner.session import fov_yx, pixel_grid, roi_readouts, rotation_of
+    im = eng.scan(dict(base, centre_y_mm=30.0, centre_x_mm=-40.0))["images"][0]
+    off = max(abs(_centroid_px(im, 0)), abs(_centroid_px(im, 1))) * 2.0
+    # a field of view centred 100 mm away along phase: the disc at 70 mm beyond the edge wraps to ((y - y0 + FOV/2) mod FOV) - FOV/2
+    im = eng.scan(dict(base, centre_y_mm=-70.0, centre_x_mm=-40.0))["images"][0]
+    wrap = abs(_centroid_px(im, 0) * 2.0 - (((30.0 + 70.0 + 80.0) % 160.0) - 80.0))
+    # rotation: an ellipse turned by hand and imaged upright against the upright description imaged with a turned field of view
+    turn, cy, cx = 30.0, 12.0, -18.0
+    c, s = np.cos(D(turn)), np.sin(D(turn))
+    upright = kspace.Engine(W.flat_world(W.shapes_phantom([("wm", lambda y, x: anatomy.ell(y, x, cy, cx, 28.0, 52.0, 10.0)), ("csf", _disc(9, -45.0, 30.0))])))
+    by_hand = kspace.Engine(W.flat_world(W.shapes_phantom([
+        ("wm", lambda y, x: anatomy.ell(y, x, cy * c + cx * s, -cy * s + cx * c, 28.0, 52.0, 10.0 + turn)),
+        ("csf", _disc(9, -45.0 * c + 30.0 * s, 45.0 * s + 30.0 * c))])))
+    prot = dict(sequence="se", tr_ms=500, te_ms=20, fov_mm=220, matrix=96, bandwidth_hz_per_px=300, phase_fov=0.75)
+    a = upright.scan(dict(prot, rotation_deg=turn, centre_y_mm=5.0, centre_x_mm=-7.0))
+    b = by_hand.scan(dict(prot, centre_y_mm=5.0 * c - 7.0 * s, centre_x_mm=-5.0 * s - 7.0 * c))["images"][0]
+    rot = float(np.linalg.norm(a["images"][0] - b) / np.linalg.norm(b))
+    # pixel coordinates of the turned image: the centroid of the small disc, read in patient coordinates
+    rp = a["plan"]["realised"]
+    yy, xx = pixel_grid(a["images"].shape, fov_yx(rp), (rp["centre_y_mm"], rp["centre_x_mm"]), rotation_of(rp))
+    reg = roi_readouts(a["images"], [dict(id="d", y_mm=-45.0, x_mm=30.0, radius_mm=6.0), dict(id="o", y_mm=-45.0, x_mm=-30.0, radius_mm=6.0)],
+                       fov_yx(rp), (rp["centre_y_mm"], rp["centre_x_mm"]), rotation_of(rp))
+    csf = np.abs(a["images"][0]) * (np.hypot(yy + 45.0, xx - 30.0) < 16)
+    pos = max(abs((csf * yy).sum() / csf.sum() + 45.0), abs((csf * xx).sum() / csf.sum() - 30.0))
+    return [
+        _row("K21", "encoding", "disc at (30, -40) mm with the field of view centred on it", "centroid at the image centre", off, 0.05, f"{off:.3f} mm"),
+        _row("K22", "encoding", "the same disc with the field of view centred 100 mm away along phase encoding (160 mm)",
+             "wraps to ((y - centre + FOV / 2) mod FOV) - FOV / 2", wrap, 0.05, f"error {wrap:.3f} mm"),
+        _row("K23", "encoding", "field of view turned by 30 degrees (off-centre, rectangular): an ellipse and a disc",
+             "the object turned by hand and imaged upright: the turned world is re-evaluated, not interpolated", rot, 1e-6, f"{rot:.1e} relative L2"),
+        _row("K24", "encoding", "pixel coordinates and region read-out of the turned image: centroid of the disc, and a region placed on it",
+             "patient coordinates of the disc; the region off the object reads no signal", max(pos, 0.15 * (reg[1]["mean_magnitude"][0] / reg[0]["mean_magnitude"][0] > 0.02)),
+             0.15, f"centroid error {pos:.2f} mm"),
+    ]
+
+
+def check_motion():
+    """Periodic modulation of the k-space lines of one class: ghosts along phase encoding."""
+    ph = W.shapes_phantom([("wm", _disc(60)), ("blood", _disc(4, cy=0.0, cx=20.0))])
+    static = kspace.Engine(W.flat_world(ph))
+    pos = amp = 0.0
+    n = 128
+    cases = ((0.25, 400.0, 1, 0.3), (1.1, 400.0, 1, 0.3), (1.1, 400.0, 2, 0.3), (0.3, 250.0, 1, 0.5), (0.9, 600.0, 3, 0.2), (1.4, 350.0, 4, 0.4))
+    alone = kspace.Engine(W.flat_world(W.shapes_phantom([("blood", _disc(4, cy=0.0, cx=20.0))])))
+    col = slice(n // 2 + 10 - 4, n // 2 + 10 + 5)                        # the vessel sits 20 mm = 10 px right of the centre
+    for f, tr, nex, depth in cases:
+        w = W.flat_world(ph)
+        w["motion"] = [dict(cls="blood", kind="pulse", f_hz=f, depth=depth, phase_key=7)]
+        prot = dict(sequence="se", tr_ms=tr, te_ms=20, fov_mm=256, matrix=n, bandwidth_hz_per_px=300, averages=nex)
+        prof = np.abs(kspace.Engine(w).scan(prot)["images"][0] - static.scan(prot)["images"][0])[:, col].sum(1)
+        cyc = f * tr * 1e-3 * nex
+        want = (n // 2 + (cyc - np.round(cyc)) * n) % n                 # row of the copy displaced towards +phase
+        k = int(np.round(want)) % n
+        rows = np.arange(k - 4, k + 5)
+        pos = max(pos, abs((prof[rows % n] * rows).sum() / prof[rows % n].sum() - want))
+        vessel = np.abs(alone.scan(dict(prot, averages=1))["images"][0])[n // 2 - 4:n // 2 + 5, col].sum()
+        factor = depth / 2 * abs(np.sin(np.pi * f * tr * 1e-3 * nex) / (nex * np.sin(np.pi * f * tr * 1e-3)))
+        amp = max(amp, abs(prof[rows % n].sum() / vessel / factor - 1))
+    # a mover frozen in time (f = 0) is a displaced copy: sign and unit of the shift model
+    w = W.flat_world(W.shapes_phantom([("blood", _disc(8, cy=-20.0, cx=10.0))]))
+    w["motion"] = [dict(cls="blood", kind="shift", f_hz=0.0, amp_mm=6.0, dir="y", phase_key=3)]
+    eng = kspace.Engine(w)
+    prot = dict(sequence="se", tr_ms=500, te_ms=20, fov_mm=256, matrix=128, bandwidth_hz_per_px=300)
+    rp = console.plan(prot, w["console"])["realised"]
+    moved = eng.scan(prot)["images"][0]
+    still = kspace.Engine(w, effects=kspace.ALL - {"motion"}).scan(prot)["images"][0]
+    dy = (_centroid_px(moved, 0) - _centroid_px(still, 0)) * 2.0
+    dx = (_centroid_px(moved, 1) - _centroid_px(still, 1)) * 2.0
+    import hashlib
+    h = hashlib.sha256(repr((3, kspace.physics_key(rp, averages=True))).encode()).digest()
+    want = 6.0 * np.cos(2 * np.pi * int.from_bytes(h[:4], "big") / 2 ** 32)
+    return [
+        _row("K25", "encoding", "ghosts of a vessel whose signal pulses at 0.25 to 1.4 Hz (TR 250 to 600 ms, 1 to 4 averages): position along phase encoding",
+             "copies at +- lines x frac(f x TR x averages) pixels (Zaitsev 2015)", pos, 0.5, f"max error {pos:.2f} px"),
+        _row("K26", "encoding", "the same six scans: summed ghost amplitude over the vessel's own signal",
+             "(depth / 2) x abs(sin(pi f TR averages) / (averages x sin(pi f TR))): averaging the lines of a pulsing source is a Dirichlet kernel, not 1 / sqrt(averages)",
+             amp, 0.05, f"max deviation {100 * amp:.1f} %"),
+        _row("K27", "encoding", "a class displaced by a constant 6 mm x cos(phase) along y (motion frozen: f = 0)",
+             "the image of that class moves by the displacement along y and not along x", max(abs(dy - want), abs(dx)), 0.05, f"{dy:+.2f} mm (expected {want:+.2f})"),
+    ]
+
+
+def check_fat_saturation_offset():
+    worst = 0.0
+    f_fat = tissue.FAT_PPM * G * 3.0
+    plain = dict(sequence="se", tr_ms=500, te_ms=20, fov_mm=256, matrix=64, bandwidth_hz_per_px=800)
+    for sys_off, prot_off in ((0.0, 0.0), (60.0, 0.0), (0.0, 110.0), (-100.0, 0.0), (140.0, 0.0), (80.0, -80.0), (-f_fat, 0.0), (-f_fat + 200.0, -200.0)):
+        for name in ("subcut_fat", "wm"):
+            eng = _engine([(name, _disc(40))], dict(fatsat_eff=1.0, fatsat_bw_hz=200.0, fatsat_offset_hz=sys_off), fat_model="single")
+            on = np.abs(eng.scan(dict(plain, fat_sat=True, fatsat_offset_hz=prot_off))["images"][0])[32, 32]
+            off = np.abs(eng.scan(plain)["images"][0])[32, 32]
+            spin = (0.0 if name == "subcut_fat" else -f_fat) - sys_off - prot_off      # the spin's frequency seen from the pulse centre
+            pred = 1 - 0.5 * (1 - np.tanh((abs(spin) - 100.0) / 8.0))
+            worst = max(worst, abs(on / off - pred))
+    return [_row("K28", "encoding", "fat saturation whose pulse misses the fat line (hidden offset of the system, shift requested in the protocol, both): fat and water discs",
+                 "signal left = 1 - efficiency x band(abs(spin frequency - pulse centre)); a requested shift of the opposite size restores the suppression; "
+                 "a pulse moved onto the water line saturates water", worst, 1e-6)]
+
+
+# ================================================================================================== console, continued
+def check_console_slice():
+    exam = dict(fov_mm=240.0, min_pixel_mm=0.8, b1rms_limit_ut=3.0, b0_t=3.0)
+    gamma = console.GAMMA_HZ_PER_T
+    # energy and peak of the shape, from a fine sampling of the continuous pulse
+    t = (np.arange(8192) + 0.5) / 8192 - 0.5
+    shape = max(max(abs(rf.energy_factor(tbw) / (np.mean(b * b) / np.mean(b) ** 2) - 1), abs(rf.peak_factor(tbw) / (b.max() / np.mean(b)) - 1))
+                for tbw in (2.0, 4.0, 8.0) for b in [np.sinc(tbw * t) * 0.5 * (1 + np.cos(2 * np.pi * t))])
+    err = 0.0
+    for name, (dur, tbw) in rf.PULSES.items():
+        p = console.plan(dict(sequence="spgr", tr_ms=25, flip_deg=30, matrix=96, rf_pulse=name, slice_mm=4.0), exam)
+        g = tbw / (dur * 1e-3 * gamma * 4e-3) * 1e3
+        power = 100 * console._b1_ut(30.0, dur) ** 2 * dur * rf.energy_factor(tbw) / 25.0 / 3.0 ** 2
+        err = max(err, abs(p["timing"]["slice_gradient_mt_m"] / g - 1), abs(p["limits"]["rf_power_percent"] - round(power, 2)),
+                  abs(p["realised"]["rf_ms"] - dur), abs(p["realised"]["rf_tbw"] - tbw))
+    thin = 4.0 / (2e-3 * gamma * 0.8 * 40e-3) * 1e3
+    lim = [console.plan(dict(sequence="spgr", tr_ms=25, flip_deg=30, matrix=96, slice_mm=v), exam) for v in (round(thin - 0.02, 2), round(thin + 0.02, 2))]
+    refused = lim[0]["accept"] or lim[1]["accept"] is not True or lim[0]["violations"][0]["code"] != "SLICE_TOO_THIN"
+    # the 3D mode: time x partitions, noise / sqrt(partitions), the header says so
+    two, three = (console.plan(dict(sequence="spgr", tr_ms=20, flip_deg=10, matrix=64, slice_mm=5.0, **kw), exam) for kw in ({}, HARD))
+    parts = math.ceil(160.0 / 5.0)
+    price = max(abs(three["scan_s_parts"]["acquisition_s"] / two["scan_s_parts"]["acquisition_s"] - parts), abs(three["realised"]["partitions"] - parts),
+                abs(three["derived"]["relative_snr"] / two["derived"]["relative_snr"] / math.sqrt(parts) - 1))
+    eng = _engine([("wm", _disc(40))], dict(sigma0=0.03))
+    prot = dict(sequence="se", tr_ms=500, te_ms=20, fov_mm=256, matrix=128, bandwidth_hz_per_px=200)
+    sd = []
+    for kw in ({}, HARD):
+        r = eng.scan(dict(prot, **kw), np.random.default_rng(3))
+        sd.append((r["images"][0] - eng.scan(dict(prot, **kw))["images"][0]).real.std() / eng.noise_sd(r["plan"]["realised"]))
+    noise = max(abs(sd[0] - 1), abs(sd[1] - 1), abs(eng.noise_sd(console.plan(dict(prot, **HARD), exam)["realised"])
+                                                     / eng.noise_sd(console.plan(prot, exam)["realised"]) * math.sqrt(parts) - 1))
+    return [
+        _row("C4", "console", "energy and peak factors of the windowed-sinc pulses (time-bandwidth 2 / 4 / 8)",
+             "mean(b^2) / mean(b)^2 and max(b) / mean(b) of the continuous shape (8,192 samples; the console plays 128 sub-pulses)", shape, 3e-3),
+        _row("C5", "console", "slice gradient and RF power of the three selective pulses (30 degrees, TR 25 ms, 4 mm slice)",
+             "G = tbw / (duration x gamma x thickness); B1rms^2 = B1(hard pulse of that duration)^2 x duration x energy factor / TR", err, 1e-3),
+        _row("C6", "console", f"thinnest slice of the normal pulse: {thin:.2f} mm (80 % of 40 mT/m)", "refused with SLICE_TOO_THIN below it, accepted above",
+             float(refused), 0.0, "refused / accepted" if not refused else "wrong verdict"),
+        _row("C7", "console", "excitation = nonselective (3D): price and header", "acquisition time x ceil(160 mm / slice), relative SNR x sqrt(partitions)", price, 1e-3,
+             f"{parts} partitions"),
+        _row("C8", "console", "noise of a selective and of a nonselective scan", "Engine.noise_sd of the realised protocol; the 3D scan has 1 / sqrt(partitions) of the 2D noise",
+             noise, 0.03, f"max deviation {100 * noise:.1f} %"),
+    ]
+
+
 CHECKS = (check_closed_forms, check_ernst_angle, check_epg, check_spin_echo, check_bssfp, check_node_interpolation,
+          check_rf_pulse, check_slice_integral, check_slice_models, check_slice_engine,
           check_numerics, check_fat_shift, check_wrap, check_gibbs, check_t2star_blur, check_bssfp_bands, check_epi,
-          check_interference, check_noise, check_in_opposed, check_positions, check_field_map, check_console)
+          check_interference, check_noise, check_in_opposed, check_positions, check_field_map, check_field_of_view, check_motion,
+          check_fat_saturation_offset, check_console, check_console_slice)
+GROUP_OF = {check_closed_forms: "signal", check_ernst_angle: "signal", check_epg: "signal", check_spin_echo: "signal", check_bssfp: "signal",
+            check_node_interpolation: "signal", check_rf_pulse: "rf", check_slice_integral: "rf", check_slice_models: "rf", check_slice_engine: "rf",
+            check_console: "console", check_console_slice: "console"}
 
 
 def run(groups=None):
-    """Run every check. Returns (rows, seconds)."""
+    """Run every check, or those of the named groups (``GROUPS``). Returns (rows, seconds)."""
     t0 = time.time()
     rows = []
     for fn in CHECKS:
-        rows += fn()
+        if not groups or GROUP_OF.get(fn, "encoding") in groups:
+            rows += fn()
     if groups:
         rows = [r for r in rows if r["group"] in groups]
     return rows, time.time() - t0

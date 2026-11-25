@@ -8,16 +8,16 @@ item may change or be dropped, and none of it is available until it appears in t
 | Part | Where |
 |---|---|
 | Virtual scanner: k-space engine, six sequences (`spgr`, `afi`, `se`, `ir`, `bssfp`, `epi`), three phantoms, console with timing, cost and limits | `src/mrgym/scanner/`, [scanner.md](scanner.md) |
-| Scan log with hash chain and replay | `src/mrgym/scanner/session.py` |
+| Scan log with a keyed chain, a head held outside the log directory, and replay | `src/mrgym/scanner/session.py` |
 | Environment surface: `make`, `reset`, `tools`, `step` | `src/mrgym/env.py`, `src/mrgym/registry.py` |
 | `Scanner/Explore-v0`: the scanner with nothing asked, no reward | `mrgym play`, `mrgym scan` |
-| `Scanner/NoWrap-v0`: scored; status as printed by `mrgym list` | its card under `envs/` |
-| `Scanner/T1Transmit-v0`: scored practice; rejected by its own admission gate | its card under `envs/` |
-| Admission by control policies | `mrgym check <id> --admission` |
+| `Scanner/NoWrap-v1`: scored; status as printed by `mrgym list` | its card under `envs/` |
+| `Scanner/T1Transmit-v1`: scored practice (a measurement task: a fixed protocol passes) | its card under `envs/` |
+| The gate: control policies on fresh instances, one verdict per level | `mrgym gate <id>`, `mrgym check <id>` |
 | Physics checks against analytic formulas | `mrgym validate` |
 | Recorder and one-file viewer | `mrgym record`, `mrgym view` |
 | Model runner for an OpenAI-compatible endpoint | `mrgym run-agent` |
-| HTTP scanner service, one process per episode | `mrgym serve` |
+| HTTP scanner service: agent plane behind a token, operator plane on a unix socket | `mrgym serve` |
 | OpenEnv adapter, written and not run | `integrations/openenv/` |
 
 ## Remaining research work

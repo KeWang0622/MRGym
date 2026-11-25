@@ -1,4 +1,4 @@
-# Run once: pre-commit install. The same checks run in .github/workflows/tests.yml (ruff) and in the test suite.
+# Run once: pre-commit install. The same checks run in CI (tools/ci/tests.yml: ruff) and in the test suite.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -17,3 +17,18 @@ repos:
     rev: v0.17.6
     hooks:
       - id: ruff-check
+  - repo: local
+    hooks:
+      # fast guards of the test-strength tooling: a pragma outside the allow-list, a release whose versions disagree
+      - id: no-mutate-allowlist
+        name: "# pragma: no mutate only where tools/audit/no_mutate_allowlist.txt allows it"
+        entry: python -c "import sys; sys.path.insert(0, 'tools/audit'); import mutation; p = mutation.check_pragmas(); print('\n'.join(p)); sys.exit(bool(p))"
+        language: system
+        pass_filenames: false
+        files: ^src/.*\.py$
+      - id: versions-agree
+        name: "pyproject.toml and mrgym.__version__ carry the same version"
+        entry: python -c "import sys; sys.path.insert(0, 'tools/audit'); import release_check as r; v = r.versions(); sys.exit(v['pyproject'] != v['package'])"
+        language: system
+        pass_filenames: false
+        files: ^(pyproject\.toml|src/mrgym/__init__\.py)$

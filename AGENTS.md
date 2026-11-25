@@ -32,7 +32,8 @@ access, credentials or a model.
 | `make check` | fails when a generated file is stale, when the results table does not match the saved records, or when `mrgym check` fails on a registered id |
 | `make figures` | redraws the figures (`python tools/figures/make_all.py`; needs matplotlib) |
 | `mrgym validate` | physics checks against analytic formulas, as a table |
-| `mrgym check <id>` | the gate for publishing an environment id; `--admission` reruns the control policies |
+| `mrgym check <id>` | what must hold before an id is published; compares its kind with the stored gate result |
+| `mrgym gate <id>` | the control policies on fresh instances, one verdict per level; `--write` stores the table |
 
 ## Rules for changes
 
@@ -46,7 +47,7 @@ access, credentials or a model.
   `src/mrgym/scanner/session.py`, together with the reference numbers in `tests/test_engine_version.py` and an
   "Engine" line in the changelog. Not for comments, renames or formatting.
 - **The status of an environment is what its gate says.** Do not set `kind="admitted"` by hand ahead of
-  `mrgym check <id> --admission --write`. A rejected environment is listed as rejected.
+  `mrgym gate <id> --n 300 --write`. An environment whose gate rejects a level is listed as practice.
 - **The core stays numpy and scipy.** No new dependency in `src/mrgym` without the maintainer's agreement.
 - **No internal references.** No working notes, local paths or private file names in code, comments or documents.
   `tests/test_hygiene.py` checks the patterns it knows.

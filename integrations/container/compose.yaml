@@ -1,0 +1,64 @@
+{
+  "name": "mrgym-scanner-agent",
+  "services": {
+    "scanner": {
+      "build": {"context": "../..", "dockerfile": "integrations/container/Dockerfile"},
+      "image": "mrgym-scanner",
+      "command": ["serve",
+                  "--episode-file", "/run/secrets/episode",
+                  "--agent-token-file", "/run/secrets/agent_token",
+                  "--operator-token-file", "/run/secrets/operator_token",
+                  "--admin-socket", "/var/run/scanner-admin/admin.sock",
+                  "--log-dir", "/var/log/scanner",
+                  "--state-dir", "/var/lib/scanner",
+                  "--host", "0.0.0.0", "--port", "8000"],
+      "environment": {"MRGYM_SECRET_FILE": "/run/secrets/mrgym_secret", "OMP_NUM_THREADS": "1"},
+      "secrets": ["episode", "mrgym_secret", "operator_token", "agent_token"],
+      "volumes": ["scanlog:/var/log/scanner", "scanstate:/var/lib/scanner", "scanadmin:/var/run/scanner-admin"],
+      "user": "10001:10001",
+      "read_only": true,
+      "tmpfs": ["/tmp"],
+      "cap_drop": ["ALL"],
+      "security_opt": ["no-new-privileges:true"],
+      "pids_limit": 256,
+      "networks": ["episode"]
+    },
+    "agent": {
+      "image": "python:3.12-slim",
+      "command": ["python", "/workspace/probe.py"],
+      "working_dir": "/workspace/out",
+      "environment": {"MRSCAN_URL": "http://scanner:8000", "MRSCAN_TOKEN_FILE": "/run/secrets/agent_token"},
+      "secrets": ["agent_token"],
+      "volumes": ["../../src/mrgym/scanner/client.py:/workspace/mrscan.py:ro", "./probe.py:/workspace/probe.py:ro"],
+      "user": "10002:10002",
+      "read_only": true,
+      "tmpfs": ["/tmp", "/workspace/out"],
+      "cap_drop": ["ALL"],
+      "security_opt": ["no-new-privileges:true"],
+      "pids_limit": 256,
+      "networks": ["episode"],
+      "depends_on": {"scanner": {"condition": "service_healthy"}}
+    },
+    "operator": {
+      "image": "mrgym-scanner",
+      "profiles": ["operator"],
+      "entrypoint": ["python", "/operator_result.py"],
+      "environment": {"MRGYM_ADMIN": "unix:/var/run/scanner-admin/admin.sock", "MRGYM_OPERATOR_TOKEN_FILE": "/run/secrets/operator_token"},
+      "secrets": ["operator_token"],
+      "volumes": ["scanadmin:/var/run/scanner-admin", "./operator_result.py:/operator_result.py:ro"],
+      "user": "10001:10001",
+      "read_only": true,
+      "cap_drop": ["ALL"],
+      "security_opt": ["no-new-privileges:true"],
+      "network_mode": "none"
+    }
+  },
+  "networks": {"episode": {"internal": true}},
+  "volumes": {"scanlog": {}, "scanstate": {}, "scanadmin": {}},
+  "secrets": {
+    "episode": {"file": "./secrets/episode.json"},
+    "mrgym_secret": {"file": "./secrets/mrgym_secret.key"},
+    "operator_token": {"file": "./secrets/operator_token"},
+    "agent_token": {"file": "./secrets/agent_token"}
+  }
+}

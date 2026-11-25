@@ -1,0 +1,63 @@
+# Release to PyPI by trusted publishing (no stored token). Lives under tools/ci/ until the owner copies it:
+#     cp tools/ci/release.yml .github/workflows/release.yml
+# and registers the trusted publisher on PyPI (tools/ci/README.md). The build job holds no credential; only the
+# publish job may mint an OIDC token, and only in the `pypi` environment.
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: The tag, the package version and the changelog heading must agree
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: python tools/audit/release_check.py "$TAG"
+      - name: Build
+        run: |
+          python -m pip install "build==1.6.1" "twine==7.0.0" "check-wheel-contents==0.6.3"
+          python -m build
+          twine check --strict dist/*
+          check-wheel-contents dist/*.whl
+          python tools/audit/wheel_vs_git.py dist/*.whl
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/mrgym/
+    permissions:
+      contents: read
+      id-token: write          # the OIDC token PyPI exchanges for a 15-minute upload token
+      attestations: write      # build provenance for the release files
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3

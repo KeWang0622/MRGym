@@ -1,0 +1,1305 @@
+{
+ "schema": "mrgym-qa-acr/1",
+ "engine": "mrgym-engine-0.2.0",
+ "seed": "0",
+ "command": "mrgym qa acr --matrix --write",
+ "rows": [
+  {
+   "field_t": 1.5,
+   "fault": null,
+   "what": "healthy system",
+   "guidance": "-",
+   "failed": [],
+   "expected": [],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error +0.22 mm (slice 1 left-right)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 97.7 %; T2 PIU 97.6 %",
+    "ghosting": "ratio 0.0003",
+    "low_contrast": "T1 39 spokes (9 + 10 + 10 + 10); T2 36 spokes (6 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 2.7; T2 line z 2.6"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 349.7,
+   "seconds": 5.2
+  },
+  {
+   "field_t": 1.5,
+   "fault": "gradient_x",
+   "what": "X gradient (left-right) 2.5 % too strong",
+   "guidance": "1.5",
+   "failed": [
+    "geometric_accuracy"
+   ],
+   "expected": [
+    "geometric_accuracy"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error +5.07 mm (slice 1 left-right)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 97.7 %; T2 PIU 97.6 %",
+    "ghosting": "ratio 0.0002",
+    "low_contrast": "T1 39 spokes (9 + 10 + 10 + 10); T2 36 spokes (6 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 4.2; T2 line z 2.7"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 349.6,
+   "seconds": 5.2
+  },
+  {
+   "field_t": 1.5,
+   "fault": "gradient_y",
+   "what": "Y gradient (anterior-posterior) 2.5 % too weak",
+   "guidance": "1.5",
+   "failed": [
+    "geometric_accuracy"
+   ],
+   "expected": [
+    "geometric_accuracy"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -5.04 mm (slice 5 top-bottom)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 97.6 %; T2 PIU 97.6 %",
+    "ghosting": "ratio 0.0000",
+    "low_contrast": "T1 39 spokes (9 + 10 + 10 + 10); T2 36 spokes (6 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 2.9; T2 line z 2.9"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 349.9,
+   "seconds": 5.1
+  },
+  {
+   "field_t": 1.5,
+   "fault": "gradient_z",
+   "what": "Z gradient (head-foot) 2.5 % too strong",
+   "guidance": "1.5",
+   "failed": [
+    "geometric_accuracy"
+   ],
+   "expected": [
+    "geometric_accuracy"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error +3.67 mm (localizer length)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 97.7 %; T2 PIU 97.6 %",
+    "ghosting": "ratio 0.0003",
+    "low_contrast": "T1 39 spokes (9 + 10 + 10 + 10); T2 36 spokes (6 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 2.7; T2 line z 2.6"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 349.7,
+   "seconds": 5.2
+  },
+  {
+   "field_t": 1.5,
+   "fault": "shim",
+   "what": "a linear field gradient of 3.2 Hz/mm along X left by the shim",
+   "guidance": "1.5",
+   "failed": [
+    "geometric_accuracy"
+   ],
+   "expected": [
+    "geometric_accuracy"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -4.33 mm (slice 5 left-right)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 97.7 %; T2 PIU 97.7 %",
+    "ghosting": "ratio 0.0004",
+    "low_contrast": "T1 38 spokes (8 + 10 + 10 + 10); T2 37 spokes (7 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 2.8; T2 line z 3.3"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 358.5,
+   "seconds": 5.0
+  },
+  {
+   "field_t": 1.5,
+   "fault": "centre_frequency",
+   "what": "centre frequency off by up to 2 ppm (drawn)",
+   "guidance": "-",
+   "failed": [],
+   "expected": [],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error +0.30 mm (slice 1 left-right)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 97.7 %; T2 PIU 97.6 %",
+    "ghosting": "ratio 0.0004",
+    "low_contrast": "T1 39 spokes (9 + 10 + 10 + 10); T2 36 spokes (6 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 3.2; T2 line z 2.6"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 349.7,
+   "seconds": 5.0
+  },
+  {
+   "field_t": 1.5,
+   "fault": "transmit_gain",
+   "what": "transmitter gain 60 % off (sign drawn)",
+   "guidance": "5.1, 7.5",
+   "failed": [
+    "intensity_uniformity",
+    "low_contrast"
+   ],
+   "expected": [
+    "intensity_uniformity",
+    "low_contrast"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error +0.55 mm (slice 5 left-right)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 79.0 %; T2 PIU 79.1 %",
+    "ghosting": "ratio 0.0001",
+    "low_contrast": "T1 15 spokes (0 + 2 + 5 + 8); T2 4 spokes (0 + 0 + 0 + 4)",
+    "artifacts": "T1 line z 3.0; T2 line z 2.5"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 62.3,
+   "seconds": 5.0
+  },
+  {
+   "field_t": 1.5,
+   "fault": "b1_nonuniformity",
+   "what": "transmit field 36 % too high near the centre",
+   "guidance": "5.1",
+   "failed": [
+    "intensity_uniformity",
+    "low_contrast"
+   ],
+   "expected": [
+    "intensity_uniformity",
+    "low_contrast"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error +0.29 mm (slice 5 left-right)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 70.6 %; T2 PIU 70.2 %",
+    "ghosting": "ratio 0.0004",
+    "low_contrast": "T1 29 spokes (0 + 9 + 10 + 10); T2 27 spokes (0 + 8 + 9 + 10)",
+    "artifacts": "T1 line z 2.7; T2 line z 2.6"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 302.9,
+   "seconds": 5.3
+  },
+  {
+   "field_t": 1.5,
+   "fault": "receive_coil",
+   "what": "receive sensitivity falls across the phantom (a dead coil element)",
+   "guidance": "5.5",
+   "failed": [
+    "intensity_uniformity"
+   ],
+   "expected": [
+    "intensity_uniformity"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error +0.31 mm (slice 1 left-right)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 73.4 %; T2 PIU 73.4 %",
+    "ghosting": "ratio 0.0003",
+    "low_contrast": "T1 37 spokes (8 + 9 + 10 + 10); T2 31 spokes (4 + 8 + 9 + 10)",
+    "artifacts": "T1 line z 2.7; T2 line z 2.6"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 260.1,
+   "seconds": 4.9
+  },
+  {
+   "field_t": 1.5,
+   "fault": "signal_instability",
+   "what": "signal amplitude varies by +-15 % from pulse to pulse (0.31 Hz)",
+   "guidance": "6.5",
+   "failed": [
+    "ghosting"
+   ],
+   "expected": [
+    "ghosting"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error +0.31 mm (slice 5 left-right)",
+    "spatial_resolution": "T1 0.9 / 0.9; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 94.9 %; T2 PIU 93.3 %",
+    "ghosting": "ratio 0.0774",
+    "low_contrast": "T1 39 spokes (9 + 10 + 10 + 10); T2 32 spokes (2 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 2.7; T2 line z 2.4"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 321.3,
+   "seconds": 4.9
+  },
+  {
+   "field_t": 1.5,
+   "fault": "phantom_motion",
+   "what": "the phantom rocks by +-1.2 mm along Y (0.31 Hz)",
+   "guidance": "2.5, 6.5, 7.5",
+   "failed": [
+    "low_contrast",
+    "spatial_resolution"
+   ],
+   "expected": [
+    "low_contrast",
+    "spatial_resolution"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -0.46 mm (slice 5 top-bottom)",
+    "spatial_resolution": "T1 1.0 / unresolved; T2 1.0 / unresolved mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 94.8 %; T2 PIU 92.6 %",
+    "ghosting": "ratio 0.0171",
+    "low_contrast": "T1 33 spokes (4 + 9 + 10 + 10); T2 23 spokes (2 + 7 + 7 + 7)",
+    "artifacts": "T1 line z 3.0; T2 line z 7.3"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 347.6,
+   "seconds": 4.9
+  },
+  {
+   "field_t": 1.5,
+   "fault": "rf_interference",
+   "what": "a narrow-band interference line in the receiver band",
+   "guidance": "8.0",
+   "failed": [
+    "artifacts"
+   ],
+   "expected": [
+    "artifacts"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error +0.22 mm (slice 5 left-right)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 97.6 %; T2 PIU 97.1 %",
+    "ghosting": "ratio 0.0031",
+    "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 37 spokes (7 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 130.8; T2 line z 104.8"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 350.7,
+   "seconds": 4.9
+  },
+  {
+   "field_t": 1.5,
+   "fault": "receiver_noise",
+   "what": "receiver noise 5 times the healthy level",
+   "guidance": "7.5",
+   "failed": [
+    "low_contrast"
+   ],
+   "expected": [
+    "low_contrast"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error +0.23 mm (slice 5 left-right)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 97.5 %; T2 PIU 97.4 %",
+    "ghosting": "ratio 0.0001",
+    "low_contrast": "T1 17 spokes (0 + 3 + 6 + 8); T2 10 spokes (0 + 0 + 4 + 6)",
+    "artifacts": "T1 line z 3.0; T2 line z 2.5"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 85 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 30 and T2 >= 25",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 69.9,
+   "seconds": 4.9
+  },
+  {
+   "field_t": 3.0,
+   "fault": null,
+   "what": "healthy system",
+   "guidance": "-",
+   "failed": [],
+   "expected": [],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -0.44 mm (slice 1 top-bottom)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 94.8 %; T2 PIU 95.0 %",
+    "ghosting": "ratio 0.0003",
+    "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 39 spokes (9 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 3.6; T2 line z 3.4"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 721.2,
+   "seconds": 5.1
+  },
+  {
+   "field_t": 3.0,
+   "fault": "gradient_x",
+   "what": "X gradient (left-right) 2.5 % too strong",
+   "guidance": "1.5",
+   "failed": [
+    "geometric_accuracy"
+   ],
+   "expected": [
+    "geometric_accuracy"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error +4.88 mm (slice 5 left-right)",
+    "spatial_resolution": "T1 0.9 / 1.0; T2 0.9 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 94.8 %; T2 PIU 95.0 %",
+    "ghosting": "ratio 0.0002",
+    "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 40 spokes (10 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 4.9; T2 line z 3.2"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 722.4,
+   "seconds": 5.2
+  },
+  {
+   "field_t": 3.0,
+   "fault": "gradient_y",
+   "what": "Y gradient (anterior-posterior) 2.5 % too weak",
+   "guidance": "1.5",
+   "failed": [
+    "geometric_accuracy"
+   ],
+   "expected": [
+    "geometric_accuracy"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -5.25 mm (slice 1 top-bottom)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 94.4 %; T2 PIU 94.6 %",
+    "ghosting": "ratio 0.0000",
+    "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 40 spokes (10 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 3.6; T2 line z 2.8"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 719.8,
+   "seconds": 4.9
+  },
+  {
+   "field_t": 3.0,
+   "fault": "gradient_z",
+   "what": "Z gradient (head-foot) 2.5 % too strong",
+   "guidance": "1.5",
+   "failed": [
+    "geometric_accuracy"
+   ],
+   "expected": [
+    "geometric_accuracy"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error +3.62 mm (localizer length)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 94.8 %; T2 PIU 95.0 %",
+    "ghosting": "ratio 0.0003",
+    "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 39 spokes (9 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 3.6; T2 line z 3.4"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 721.2,
+   "seconds": 5.0
+  },
+  {
+   "field_t": 3.0,
+   "fault": "shim",
+   "what": "a linear field gradient of 3.2 Hz/mm along X left by the shim",
+   "guidance": "1.5",
+   "failed": [
+    "geometric_accuracy"
+   ],
+   "expected": [
+    "geometric_accuracy"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -4.53 mm (slice 1 left-right)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 94.8 %; T2 PIU 95.0 %",
+    "ghosting": "ratio 0.0005",
+    "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 40 spokes (10 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 4.9; T2 line z 4.4"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 737.5,
+   "seconds": 5.0
+  },
+  {
+   "field_t": 3.0,
+   "fault": "centre_frequency",
+   "what": "centre frequency off by up to 2 ppm (drawn)",
+   "guidance": "-",
+   "failed": [],
+   "expected": [],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -0.44 mm (slice 1 top-bottom)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 94.8 %; T2 PIU 95.0 %",
+    "ghosting": "ratio 0.0004",
+    "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 40 spokes (10 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 4.4; T2 line z 2.8"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 721.0,
+   "seconds": 5.0
+  },
+  {
+   "field_t": 3.0,
+   "fault": "transmit_gain",
+   "what": "transmitter gain 60 % off (sign drawn)",
+   "guidance": "5.1, 7.5",
+   "failed": [
+    "intensity_uniformity",
+    "low_contrast"
+   ],
+   "expected": [
+    "intensity_uniformity",
+    "low_contrast"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -0.85 mm (localizer length)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 36.5 %; T2 PIU 37.0 %",
+    "ghosting": "ratio 0.0005",
+    "low_contrast": "T1 6 spokes (0 + 0 + 2 + 4); T2 2 spokes (0 + 0 + 0 + 2)",
+    "artifacts": "T1 line z 2.7; T2 line z 2.6"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 104.1,
+   "seconds": 5.0
+  },
+  {
+   "field_t": 3.0,
+   "fault": "b1_nonuniformity",
+   "what": "transmit field 36 % too high near the centre",
+   "guidance": "5.1",
+   "failed": [
+    "intensity_uniformity",
+    "low_contrast"
+   ],
+   "expected": [
+    "intensity_uniformity",
+    "low_contrast"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -0.29 mm (slice 1 top-bottom)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 65.7 %; T2 PIU 65.4 %",
+    "ghosting": "ratio 0.0004",
+    "low_contrast": "T1 30 spokes (0 + 10 + 10 + 10); T2 30 spokes (0 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 3.6; T2 line z 3.4"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 598.4,
+   "seconds": 5.4
+  },
+  {
+   "field_t": 3.0,
+   "fault": "receive_coil",
+   "what": "receive sensitivity falls across the phantom (a dead coil element)",
+   "guidance": "5.5",
+   "failed": [
+    "intensity_uniformity"
+   ],
+   "expected": [
+    "intensity_uniformity"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -0.83 mm (slice 5 top-bottom)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 73.8 %; T2 PIU 73.8 %",
+    "ghosting": "ratio 0.0003",
+    "low_contrast": "T1 39 spokes (9 + 10 + 10 + 10); T2 39 spokes (9 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 3.2; T2 line z 2.8"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 536.4,
+   "seconds": 5.0
+  },
+  {
+   "field_t": 3.0,
+   "fault": "signal_instability",
+   "what": "signal amplitude varies by +-15 % from pulse to pulse (0.31 Hz)",
+   "guidance": "6.5",
+   "failed": [
+    "ghosting"
+   ],
+   "expected": [
+    "ghosting"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -0.49 mm (slice 1 top-bottom)",
+    "spatial_resolution": "T1 0.9 / 0.9; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 95.2 %; T2 PIU 93.5 %",
+    "ghosting": "ratio 0.0746",
+    "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 39 spokes (9 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 2.9; T2 line z 2.2"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 663.3,
+   "seconds": 4.9
+  },
+  {
+   "field_t": 3.0,
+   "fault": "phantom_motion",
+   "what": "the phantom rocks by +-1.2 mm along Y (0.31 Hz)",
+   "guidance": "2.5, 6.5, 7.5",
+   "failed": [
+    "low_contrast",
+    "spatial_resolution"
+   ],
+   "expected": [
+    "low_contrast",
+    "spatial_resolution"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -0.70 mm (slice 5 top-bottom)",
+    "spatial_resolution": "T1 1.0 / unresolved; T2 1.0 / unresolved mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 93.3 %; T2 PIU 91.1 %",
+    "ghosting": "ratio 0.0152",
+    "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 28 spokes (7 + 7 + 7 + 7)",
+    "artifacts": "T1 line z 3.9; T2 line z 10.0"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 710.1,
+   "seconds": 4.9
+  },
+  {
+   "field_t": 3.0,
+   "fault": "rf_interference",
+   "what": "a narrow-band interference line in the receiver band",
+   "guidance": "8.0",
+   "failed": [
+    "artifacts"
+   ],
+   "expected": [
+    "artifacts"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -0.43 mm (slice 1 top-bottom)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 94.8 %; T2 PIU 95.0 %",
+    "ghosting": "ratio 0.0016",
+    "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 40 spokes (10 + 10 + 10 + 10)",
+    "artifacts": "T1 line z 111.0; T2 line z 98.8"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 723.3,
+   "seconds": 5.0
+  },
+  {
+   "field_t": 3.0,
+   "fault": "receiver_noise",
+   "what": "receiver noise 5 times the healthy level",
+   "guidance": "7.5",
+   "failed": [
+    "low_contrast"
+   ],
+   "expected": [
+    "low_contrast"
+   ],
+   "as_expected": true,
+   "measured": {
+    "geometric_accuracy": "largest error -0.44 mm (slice 1 top-bottom)",
+    "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
+    "intensity_uniformity": "T1 PIU 94.7 %; T2 PIU 94.8 %",
+    "ghosting": "ratio 0.0001",
+    "low_contrast": "T1 32 spokes (4 + 8 + 10 + 10); T2 26 spokes (3 + 6 + 7 + 10)",
+    "artifacts": "T1 line z 3.0; T2 line z 2.6"
+   },
+   "limits": {
+    "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
+    "spatial_resolution": "<= 1.0 mm in both directions",
+    "slice_thickness": "5.0 +- 0.7 mm",
+    "slice_position": "bar length difference <= 5 mm",
+    "intensity_uniformity": ">= 80 %",
+    "ghosting": "<= 0.030",
+    "low_contrast": "T1 >= 37 and T2 >= 37",
+    "artifacts": "line z <= 15 (declared)"
+   },
+   "series": {
+    "t1": {
+     "scan_s": 131.5,
+     "guidance_s": 136.0,
+     "ratio": 0.9669
+    },
+    "t2": {
+     "scan_s": 517.0,
+     "guidance_s": 536.0,
+     "ratio": 0.9646
+    },
+    "localizer": {
+     "scan_s": 54.4,
+     "guidance_s": 56.0,
+     "ratio": 0.9714
+    }
+   },
+   "snr_t1_slice7": 144.2,
+   "seconds": 5.0
+  }
+ ],
+ "all_as_expected": true
+}

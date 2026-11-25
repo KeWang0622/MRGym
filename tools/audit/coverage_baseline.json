@@ -1,0 +1,8 @@
+{
+ "total_percent": 84.3,
+ "scoring_scope_percent": 100.0,
+ "scoring_scope": "mrgym/envs/family.py, mrgym/gate.py, mrgym/envs/*/task.py",
+ "rule": "a ratchet: `make audit` fails when the total falls below total_percent or the scoring scope below 100; raise it with `python tools/audit/report.py --only suite,coverage --write-coverage`",
+ "recorded_utc": "2026-11-25",
+ "recorded_on": "the integrated tree (engine 0.2.0), suite run one file per process by `make audit`"
+}

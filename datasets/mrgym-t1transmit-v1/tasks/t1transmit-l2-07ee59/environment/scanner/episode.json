@@ -1,0 +1,6 @@
+{
+ "env_id": "Scanner/T1Transmit-v1",
+ "level": 2,
+ "seed": "4c836f9d3be7834e48b2ab53e0e6bb2a",
+ "split": "test-iid"
+}

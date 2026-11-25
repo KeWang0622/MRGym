@@ -1,41 +1,328 @@
-[
- {
-  "id": "Scanner/Explore-v0",
-  "folder": "scanner-explore-v0",
-  "kind": "sandbox",
-  "levels": [
-   1
-  ],
-  "title": "The scanner, nothing asked",
-  "status": "SANDBOX: no reward",
-  "admitted_instances": 0,
-  "instances": 0
- },
- {
-  "id": "Scanner/NoWrap-v0",
-  "folder": "scanner-nowrap-v0",
-  "kind": "admitted",
-  "levels": [
-   1,
-   2
-  ],
-  "title": "The fastest geometry without wrap-around",
-  "status": "ADMITTED: 28 of 48 instances pass the gate",
-  "admitted_instances": 28,
-  "instances": 48
- },
- {
-  "id": "Scanner/T1Transmit-v0",
-  "folder": "scanner-t1transmit-v0",
-  "kind": "practice",
-  "levels": [
-   1,
-   2,
-   3
-  ],
-  "title": "T1 in marked regions with an uncalibrated transmit field",
-  "status": "PRACTICE: its own gate rejects it (0 of 72 instances admitted; most frequent reason: fixed_recipe passes)",
-  "admitted_instances": 0,
-  "instances": 72
- }
-]
+{
+ "environments": [
+  {
+   "id": "Scanner/ArtefactClinic-v0",
+   "folder": "scanner-artefactclinic-v0",
+   "kind": "admitted",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Artefact clinic: diagnose the marked findings and correct the protocol",
+   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 7 % (95 % bounds)",
+   "task_kind": {
+    "1": "measurement",
+    "2": "measurement",
+    "3": "measurement"
+   },
+   "gate": {
+    "engine": "mrgym-engine-0.2.0",
+    "instances_per_level": 300,
+    "verdicts": {
+     "1": "admitted",
+     "2": "admitted",
+     "3": "admitted"
+    }
+   }
+  },
+  {
+   "id": "Scanner/BandFree-v0",
+   "folder": "scanner-bandfree-v0",
+   "kind": "admitted",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Keep the dark bands of two balanced SSFP images off their marked regions",
+   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 94 %, no policy that ignores the object passes more than 3 % (95 % bounds)",
+   "task_kind": "measurement",
+   "gate": {
+    "engine": "mrgym-engine-0.2.0",
+    "instances_per_level": 300,
+    "verdicts": {
+     "1": "admitted",
+     "2": "admitted",
+     "3": "admitted"
+    }
+   }
+  },
+  {
+   "id": "Scanner/Explore-v0",
+   "folder": "scanner-explore-v0",
+   "kind": "sandbox",
+   "levels": [
+    1
+   ],
+   "claim_levels": [],
+   "practice_levels": [],
+   "title": "The scanner, nothing asked",
+   "status": "SANDBOX: no reward",
+   "task_kind": null,
+   "gate": null
+  },
+  {
+   "id": "Scanner/FatSuppress-v0",
+   "folder": "scanner-fatsuppress-v0",
+   "kind": "admitted",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Suppress the fat in each marked region and keep the water signal",
+   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 98 %, no policy that ignores the object passes more than 6 % (95 % bounds)",
+   "task_kind": "measurement",
+   "gate": {
+    "engine": "mrgym-engine-0.2.0",
+    "instances_per_level": 300,
+    "verdicts": {
+     "1": "admitted",
+     "2": "admitted",
+     "3": "admitted"
+    }
+   }
+  },
+  {
+   "id": "Scanner/NoWrap-v1",
+   "folder": "scanner-nowrap-v1",
+   "kind": "admitted",
+   "levels": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    2,
+    3
+   ],
+   "practice_levels": [
+    0,
+    1
+   ],
+   "title": "The fastest geometry without wrap-around",
+   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 6 % (95 % bounds)",
+   "task_kind": "measurement",
+   "gate": {
+    "engine": "mrgym-engine-0.2.0",
+    "instances_per_level": 300,
+    "verdicts": {
+     "2": "admitted",
+     "3": "admitted"
+    }
+   }
+  },
+  {
+   "id": "Scanner/NullTissue-v0",
+   "folder": "scanner-nulltissue-v0",
+   "kind": "admitted",
+   "levels": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [
+    0
+   ],
+   "title": "Null each marked material with inversion recovery",
+   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 92 %, no policy that ignores the object passes more than 3 % (95 % bounds)",
+   "task_kind": null,
+   "gate": {
+    "engine": "mrgym-engine-0.2.0",
+    "instances_per_level": 300,
+    "verdicts": {
+     "1": "admitted",
+     "2": "admitted",
+     "3": "admitted"
+    }
+   }
+  },
+  {
+   "id": "Scanner/PhantomQA-v0",
+   "folder": "scanner-phantomqa-v0",
+   "kind": "admitted",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Phantom QA: measure, judge and diagnose",
+   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 3 % (95 % bounds)",
+   "task_kind": {
+    "rule": "open_loop within 25 points of the reference = measurement task, else decision task",
+    "levels": {
+     "1": {
+      "kind": "measurement",
+      "reference": 1.0,
+      "open_loop": 1.0,
+      "gap_points": 0.0,
+      "n": 300
+     },
+     "2": {
+      "kind": "measurement",
+      "reference": 1.0,
+      "open_loop": 1.0,
+      "gap_points": 0.0,
+      "n": 300
+     },
+     "3": {
+      "kind": "measurement",
+      "reference": 1.0,
+      "open_loop": 0.7733,
+      "gap_points": 22.7,
+      "n": 300
+     }
+    },
+    "source": "mrgym gate Scanner/PhantomQA-v0 --n 300 --write on mrgym-engine-0.2.0, 2026-11-25"
+   },
+   "gate": {
+    "engine": "mrgym-engine-0.2.0",
+    "instances_per_level": 300,
+    "verdicts": {
+     "1": "admitted",
+     "2": "admitted",
+     "3": "admitted"
+    }
+   }
+  },
+  {
+   "id": "Scanner/ProtocolToSpec-v0",
+   "folder": "scanner-protocoltospec-v0",
+   "kind": "practice",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Adapt the standard protocol until the examination meets its specification",
+   "status": "PRACTICE: level(s) 1, 3 admitted; fixed_recipe#2 passes 25 of 300 (upper bound 11.4 % > 10 %)",
+   "task_kind": {
+    "kind": "measurement",
+    "levels": {
+     "1": "measurement",
+     "2": "measurement",
+     "3": "measurement"
+    },
+    "evidence": "reference minus open_loop, points of pass rate: -1.7 at level 1, 0 at level 2, 20.7 at level 3 (n = 300 per level, engine mrgym-engine-0.2.0)"
+   },
+   "gate": {
+    "engine": "mrgym-engine-0.2.0",
+    "instances_per_level": 300,
+    "verdicts": {
+     "1": "admitted",
+     "2": "practice",
+     "3": "admitted"
+    }
+   }
+  },
+  {
+   "id": "Scanner/SNRSpec-v0",
+   "folder": "scanner-snrspec-v0",
+   "kind": "admitted",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Meet a signal-to-noise requirement in the shortest scan time",
+   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 97 %, no policy that ignores the object passes more than 3 % (95 % bounds)",
+   "task_kind": {
+    "kind": "measurement",
+    "evidence": "reference minus open_loop, points of pass rate: 0 at level 1, -0.7 at level 2, 0.3 at level 3 (n = 300 per level, engine mrgym-engine-0.2.0)"
+   },
+   "gate": {
+    "engine": "mrgym-engine-0.2.0",
+    "instances_per_level": 300,
+    "verdicts": {
+     "1": "admitted",
+     "2": "admitted",
+     "3": "admitted"
+    }
+   }
+  },
+  {
+   "id": "Scanner/T1Transmit-v1",
+   "folder": "scanner-t1transmit-v1",
+   "kind": "practice",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "T1 in marked regions with an uncalibrated transmit field",
+   "status": "PRACTICE: level(s) 1 admitted; ignores_profile loses only 9.0 points against the reference (lower bound 6.3 < 25)",
+   "task_kind": "measurement",
+   "gate": {
+    "engine": "mrgym-engine-0.2.0",
+    "instances_per_level": 300,
+    "verdicts": {
+     "1": "admitted",
+     "2": "practice",
+     "3": "practice"
+    }
+   }
+  }
+ ],
+ "retired": [
+  {
+   "id": "Scanner/NoWrap-v0",
+   "last_version": "0.1.0",
+   "successor": "Scanner/NoWrap-v1"
+  },
+  {
+   "id": "Scanner/T1Transmit-v0",
+   "last_version": "0.1.0",
+   "successor": "Scanner/T1Transmit-v1"
+  }
+ ]
+}

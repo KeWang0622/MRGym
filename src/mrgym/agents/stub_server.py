@@ -1,7 +1,7 @@
 """A stub OpenAI-compatible chat-completions endpoint on loopback, for testing the runner without any model.
 
     python -m mrgym.agents.stub_server --port 4199 --seeds 0-3
-    mrgym run-agent --env Scanner/NoWrap-v0 --seeds 0-3 --model stub:reference --base-url http://127.0.0.1:4199/v1
+    mrgym run-agent --env Scanner/NoWrap-v1 --seeds 0-3 --model stub:reference --base-url http://127.0.0.1:4199/v1
 
 The "model" id selects a scripted behaviour, ``stub:<behaviour>[+flag+flag]``.
 
@@ -119,9 +119,11 @@ def _norm(x):
 
 
 def _body(text: str) -> str:
-    """An observation without its last line, the budget and counter status (it counts calls the twin never made)."""
-    lines = text.rstrip().split("\n")
-    return "\n".join(lines[:-1] if lines[-1].startswith("[") and lines[-1].endswith("]") else lines)
+    """An observation without what depends on the settings and counters of the episode it was read in (the twin plays
+    on the environment's own limits and tools and never makes the bad calls): the status line, the ``charged:`` line
+    of a refusal, and the Tools line and the Limits block of the task text."""
+    lines = [ln for ln in text.rstrip().split("\n") if not ln.startswith(("charged: ", "Limits. ", "Tools: "))]
+    return "\n".join(lines[:-1] if lines and lines[-1].startswith("[") and lines[-1].endswith("]") else lines).rstrip()
 
 
 class Twins:
@@ -170,6 +172,8 @@ class Twins:
                     calls.add(json.dumps(rec[-1][:2], sort_keys=True))
                 elif len(rec) > len(done) and all(r[0] == d[0] and r[1] == d[1] and r[2] == _body(d[2]) for r, d in zip(rec, done)):
                     calls.add(json.dumps(rec[len(done)][:2], sort_keys=True))
+                elif len(rec) == len(done) and all(r[0] == d[0] and r[1] == d[1] and r[2] == _body(d[2]) for r, d in zip(rec, done)):
+                    calls.add(json.dumps([None, None]))                  # the policy's episode ended with a refused delivery
         if len(calls) != 1:
             raise BadRequest(f"stub: {len(calls)} of the {len(self.candidates)} candidate instances continue this conversation "
                              f"as policy {policy!r} would; start the stub with the seeds of the run")
@@ -259,13 +263,15 @@ def behave(kind: str, body: dict) -> tuple[str, list]:
         return f"Step {turn}: {n}.", [_call(n, a)]
     if kind == "overspend":
         done = conversation_calls(msgs)
-        if any(r.startswith("refused: budget_exhausted") for _, _, r in done):
+        if any(r.startswith("error budget") for _, _, r in done):
             n, a = TWINS.next_call("prior", _statement(msgs), None)
             return "The budget is spent.", [_call(n, a)]
         if not done:
             return "", [_call("scanner_info", {})]
         return "", [_call("scan", OVERSPEND_SCAN)]
     n, a = TWINS.next_call(kind, _statement(msgs), conversation_calls(msgs))
+    if n is None:
+        return "The policy has nothing further to send.", []
     return f"Step {turn}: {n}.", [_call(n, a)]
 
 

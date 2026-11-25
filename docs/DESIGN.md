@@ -20,7 +20,7 @@ looking at the object is not an episode in this sense, whatever it is called.
 | 2. The interface is the console: a free `plan` that returns timing, cost and limits and never signal, and a priced `scan`. | Tools at the level of waveforms or code turn the task into programming. |
 | 3. The engine that serves and scores data models more than the formulas the agent is given. | If both sides use one closed form, the task is to invert that formula. |
 | 4. Every scan has a price: overhead, dummy cycles, lines, averages, and noise that depends on the protocol. | With a loose budget, a sweep or a slow safe scan replaces the decision. |
-| 5. An environment is admitted by control policies, not by its description. | A hidden world and a budget do not, by themselves, force a measurement. |
+| 5. A level of an environment is admitted by control policies, not by its description. | A hidden world and a budget do not, by themselves, force a measurement. |
 
 ## Admission by control policies
 
@@ -34,15 +34,20 @@ as an agent and never read the world.
 | best constant recipe | fail | one protocol and answer rule, tuned on other worlds, applied blindly |
 | blind sweep | fail | spending the budget without a decision |
 | wrong units | fail | the right numbers in the wrong unit |
-| seed attack | fail | rebuilding the world from guessable seeds with the public generator |
+| seed enumeration | not a control policy | `mrgym redteam`, row RT17: with the documented derivation the world of a public split is recovered (the positive control), that of a salted or secret split is not |
 | the environment's own | fail | procedures that ignore the one thing the environment hides |
 
-An instance is admitted when the reference passes on fresh noise draws and every control fails on every draw.
-`mrgym check <id> --admission --n 24 --write` runs the rule over public training seeds and stores the table. The
-environment card and `mrgym list` read that file, and `mrgym check <id>` fails when an id is registered as admitted
-without admitted instances on the current engine. An environment that its gate rejects stays listed, as rejected.
+The verdict is one per level, never one per instance. On fresh instances of the public split `gate` a level is
+admitted when the one-sided 95 % lower bound of the reference's pass rate is at least 90 %, the upper bound of
+every must-fail policy is at most 10 %, and every ablation the family lists for the level (the reference with one
+decision removed) loses at least 25 points. `mrgym gate <id> --n 300 --write` measures this and stores the table. The
+environment card and `mrgym list` read that file. Every id carries a kind: `candidate` (the gate is not stored on
+this engine yet), `admitted` (the stored gate admits every level of the claim) or `practice` (scored, outside any
+claim: its gate rejects a level, or a fixed protocol passes). `mrgym check <id>` fails when an id is registered as
+admitted without a stored gate on the current engine that admits every claim level. A family may mark levels as
+practice levels (`kind="practice"` in its level table): they are playable and outside the claim.
 
-What the gate shows: the listed shortcuts fail on the listed instances, and the task can be done by the reference.
+What the gate shows: the listed shortcuts fail on fresh instances, and the task can be done by the reference.
 
 What it does not show:
 
@@ -52,23 +57,26 @@ What it does not show:
   nothing here has been compared with a physical scanner or reviewed by an MR physicist.
 - Anything about a seed outside the stored instances. Admission is per instance.
 
-## Trust model
+## Threat model
 
-| Surface | The world is hidden from | The world is not hidden from |
-|---|---|---|
-| In process: `mrgym.make`, `env.step` | a model that only sends tool calls | any code in the same process |
-| HTTP service: `mrgym serve`, one process per episode | an agent in another process that reaches only the port | whoever can read the service's files, memory or episode config |
+Three kinds of agent, three boundaries. [SECURITY.md](../SECURITY.md) has the full statement; `mrgym redteam <id>`
+measures it, row by row, and exits non-zero when an expected outcome is not the observed one.
 
-- In process is the surface for tool-calling models and for training loops that own the episode. The seed, the
-  world and the score function are ordinary Python objects there.
-- An agent that executes code needs the HTTP service behind a process boundary. The service holds the episode
-  config and the log. It has no route to reset, to re-seed or to the truth; a fresh state is a fresh process.
-- The scanner log is append-only and hash-chained. The verifier replays it from the episode config and checks
-  every record, so a budget cannot be refilled and a scan cannot be invented after the fact.
-- Training seeds are public: anyone can rebuild those worlds. A held-out split needs `MRGYM_SECRET` and refuses to
-  run without it.
-- The task id is derived from the seed one way. Nothing else that the agent sees depends on the seed except
-  measurements.
+| Tier | The agent can | What stops it | What does not |
+|---|---|---|---|
+| Tool-calling model, in process (`mrgym.make`) | send tool calls and read the replies | no reply carries the seed, an id derived from it or a hidden value; a deliverable without a measurement, in the wrong unit or malformed earns 0 | nothing stops code in the same process: the seed, the world and the scorer are Python objects there |
+| Code in another process (`mrgym serve`) | all of the above, install the package, enumerate seeds, read what its user can read | worlds of a secret or salted split cannot be rebuilt; ids are random or keyed; tokens on every route; no secret in arguments or environment; a log that does not match its head is refused | on a public unsalted split the enumeration recovers the world, by design; a process of the same user can read the service's files |
+| Code in a container (`integrations/container/`) | all of the above inside its own container | separate container, user, volumes, internal network; the result comes from the operator plane | not run on the development machine |
+
+- Public splits (`train`, `dev`, `tune`, `gate`) are reproducible by anyone and never touch the secret. Secret
+  splits (`test-*`, `ood`, `heldout`, `semi`) refuse to run without it. A held-out epoch is committed to in advance
+  and verified after its reveal (`mrgym epoch`).
+- The scanner log carries a MAC per record under a key of the episode. Its head (length, last MAC, scan seconds)
+  is kept outside the log directory and handed to the trainer. The verifier replays the log against that head, so a
+  shortened, edited or foreign log does not verify, and a restart on a log that does not match its receipt serves
+  nothing. A budget cannot be refilled given the head; without a head held by someone else, a chain proves order,
+  not completeness.
+- The episode id is random. The task id is a trainer-side label; no agent-visible payload carries it.
 
 ## Three versions
 
@@ -76,7 +84,7 @@ What it does not show:
 |---|---|---|
 | Package | `0.1.0.dev0` | see the rule at the top of [CHANGELOG.md](../CHANGELOG.md) |
 | Engine | `mrgym-engine-0.1.0` | the same seed and protocol can give other data |
-| Environment | `Scanner/NoWrap-v0` | a reward of that environment can change |
+| Environment | `Scanner/NoWrap-v1` | a reward of that environment can change |
 
 The engine version is a constant, bumped by hand, and pinned by a test together with reference numbers. A recorded
 log replays only on the engine that wrote it: bit-exact on the same numerical stack, within a stated tolerance on

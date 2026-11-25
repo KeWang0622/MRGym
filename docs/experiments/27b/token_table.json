@@ -1,0 +1,240 @@
+{
+ "schema": "mrgym-verl-token-table/1",
+ "tokenizer": "Qwen/Qwen3.8-27B",
+ "chat_kwargs": "reasoning_effort=medium",
+ "seeds": "100-102 of the public train split",
+ "command": "python -m mrgym_verl.dryrun --tokenizer <tokenizer folder> --model-type qwen3_5 --overrides /dev/null --cells <every cell> --seeds 100-102 --tokens-only --chat-kwargs reasoning_effort=medium --out <folder>",
+ "note": "measured on CPU with the model's tokenizer and chat template, the reply limit of the plan (16,384 tokens) stated in the task text; no model was run, so the model's own text is not in these numbers",
+ "cells": {
+  "Scanner/SNRSpec-v0/L1": {
+   "first_prompt_max": 5961,
+   "tool_schemas": 4769,
+   "observation_median": 494,
+   "observation_max": 730,
+   "reference_calls_max": 20,
+   "tool_call_limit": 48,
+   "reference_episode_without_model_text_max": 18958,
+   "observations_if_every_call_used": 29673
+  },
+  "Scanner/SNRSpec-v0/L2": {
+   "first_prompt_max": 5959,
+   "tool_schemas": 4769,
+   "observation_median": 487,
+   "observation_max": 729,
+   "reference_calls_max": 20,
+   "tool_call_limit": 48,
+   "reference_episode_without_model_text_max": 18914,
+   "observations_if_every_call_used": 29335
+  },
+  "Scanner/SNRSpec-v0/L3": {
+   "first_prompt_max": 5961,
+   "tool_schemas": 4769,
+   "observation_median": 493,
+   "observation_max": 729,
+   "reference_calls_max": 20,
+   "tool_call_limit": 48,
+   "reference_episode_without_model_text_max": 18952,
+   "observations_if_every_call_used": 29625
+  },
+  "Scanner/NoWrap-v1/L0": {
+   "first_prompt_max": 5970,
+   "tool_schemas": 4717,
+   "observation_median": 459,
+   "observation_max": 1228,
+   "reference_calls_max": 4,
+   "tool_call_limit": 40,
+   "reference_episode_without_model_text_max": 8548,
+   "observations_if_every_call_used": 24330
+  },
+  "Scanner/NoWrap-v1/L1": {
+   "first_prompt_max": 5970,
+   "tool_schemas": 4717,
+   "observation_median": 459,
+   "observation_max": 1228,
+   "reference_calls_max": 4,
+   "tool_call_limit": 40,
+   "reference_episode_without_model_text_max": 8547,
+   "observations_if_every_call_used": 24330
+  },
+  "Scanner/NoWrap-v1/L2": {
+   "first_prompt_max": 5670,
+   "tool_schemas": 4717,
+   "observation_median": 459,
+   "observation_max": 1228,
+   "reference_calls_max": 4,
+   "tool_call_limit": 40,
+   "reference_episode_without_model_text_max": 8251,
+   "observations_if_every_call_used": 24030
+  },
+  "Scanner/NoWrap-v1/L3": {
+   "first_prompt_max": 5670,
+   "tool_schemas": 4717,
+   "observation_median": 459,
+   "observation_max": 1228,
+   "reference_calls_max": 4,
+   "tool_call_limit": 40,
+   "reference_episode_without_model_text_max": 8251,
+   "observations_if_every_call_used": 24030
+  },
+  "Scanner/NullTissue-v0/L0": {
+   "first_prompt_max": 5870,
+   "tool_schemas": 4523,
+   "observation_median": 501,
+   "observation_max": 728,
+   "reference_calls_max": 19,
+   "tool_call_limit": 48,
+   "reference_episode_without_model_text_max": 17061,
+   "observations_if_every_call_used": 29918
+  },
+  "Scanner/NullTissue-v0/L1": {
+   "first_prompt_max": 5481,
+   "tool_schemas": 4523,
+   "observation_median": 500,
+   "observation_max": 727,
+   "reference_calls_max": 19,
+   "tool_call_limit": 48,
+   "reference_episode_without_model_text_max": 16665,
+   "observations_if_every_call_used": 29481
+  },
+  "Scanner/NullTissue-v0/L2": {
+   "first_prompt_max": 5557,
+   "tool_schemas": 4563,
+   "observation_median": 499,
+   "observation_max": 727,
+   "reference_calls_max": 13,
+   "tool_call_limit": 48,
+   "reference_episode_without_model_text_max": 13359,
+   "observations_if_every_call_used": 29509
+  },
+  "Scanner/NullTissue-v0/L3": {
+   "first_prompt_max": 5556,
+   "tool_schemas": 4563,
+   "observation_median": 499,
+   "observation_max": 727,
+   "reference_calls_max": 13,
+   "tool_call_limit": 48,
+   "reference_episode_without_model_text_max": 13338,
+   "observations_if_every_call_used": 29508
+  },
+  "Scanner/PhantomQA-v0/L1": {
+   "first_prompt_max": 6172,
+   "tool_schemas": 4678,
+   "observation_median": 779,
+   "observation_max": 1359,
+   "reference_calls_max": 31,
+   "tool_call_limit": 64,
+   "reference_episode_without_model_text_max": 40192,
+   "observations_if_every_call_used": 56028
+  },
+  "Scanner/PhantomQA-v0/L2": {
+   "first_prompt_max": 6172,
+   "tool_schemas": 4678,
+   "observation_median": 768,
+   "observation_max": 1360,
+   "reference_calls_max": 30,
+   "tool_call_limit": 64,
+   "reference_episode_without_model_text_max": 39287,
+   "observations_if_every_call_used": 55324
+  },
+  "Scanner/PhantomQA-v0/L3": {
+   "first_prompt_max": 6172,
+   "tool_schemas": 4678,
+   "observation_median": 770,
+   "observation_max": 1366,
+   "reference_calls_max": 30,
+   "tool_call_limit": 64,
+   "reference_episode_without_model_text_max": 39429,
+   "observations_if_every_call_used": 55452
+  },
+  "Scanner/ProtocolToSpec-v0/L1": {
+   "first_prompt_max": 6212,
+   "tool_schemas": 4760,
+   "observation_median": 812,
+   "observation_max": 911,
+   "reference_calls_max": 6,
+   "tool_call_limit": 48,
+   "reference_episode_without_model_text_max": 12176,
+   "observations_if_every_call_used": 45188
+  },
+  "Scanner/ProtocolToSpec-v0/L2": {
+   "first_prompt_max": 6211,
+   "tool_schemas": 4760,
+   "observation_median": 812,
+   "observation_max": 908,
+   "reference_calls_max": 6,
+   "tool_call_limit": 48,
+   "reference_episode_without_model_text_max": 12179,
+   "observations_if_every_call_used": 45187
+  },
+  "Scanner/ProtocolToSpec-v0/L3": {
+   "first_prompt_max": 6212,
+   "tool_schemas": 4760,
+   "observation_median": 812,
+   "observation_max": 910,
+   "reference_calls_max": 6,
+   "tool_call_limit": 48,
+   "reference_episode_without_model_text_max": 12174,
+   "observations_if_every_call_used": 45188
+  },
+  "Scanner/ArtefactClinic-v0/L1": {
+   "first_prompt_max": 7856,
+   "tool_schemas": 6312,
+   "observation_median": 541,
+   "observation_max": 882,
+   "reference_calls_max": 27,
+   "tool_call_limit": 160,
+   "reference_episode_without_model_text_max": 28863,
+   "observations_if_every_call_used": 94416
+  },
+  "Scanner/ArtefactClinic-v0/L2": {
+   "first_prompt_max": 7879,
+   "tool_schemas": 6332,
+   "observation_median": 540,
+   "observation_max": 884,
+   "reference_calls_max": 27,
+   "tool_call_limit": 160,
+   "reference_episode_without_model_text_max": 28876,
+   "observations_if_every_call_used": 94279
+  },
+  "Scanner/ArtefactClinic-v0/L3": {
+   "first_prompt_max": 7888,
+   "tool_schemas": 6332,
+   "observation_median": 533,
+   "observation_max": 834,
+   "reference_calls_max": 21,
+   "tool_call_limit": 160,
+   "reference_episode_without_model_text_max": 23769,
+   "observations_if_every_call_used": 93168
+  },
+  "Scanner/T1Transmit-v1/L1": {
+   "first_prompt_max": 5795,
+   "tool_schemas": 4722,
+   "observation_median": 519,
+   "observation_max": 814,
+   "reference_calls_max": 9,
+   "tool_call_limit": 64,
+   "reference_episode_without_model_text_max": 13044,
+   "observations_if_every_call_used": 39011
+  },
+  "Scanner/T1Transmit-v1/L2": {
+   "first_prompt_max": 5719,
+   "tool_schemas": 4681,
+   "observation_median": 516,
+   "observation_max": 724,
+   "reference_calls_max": 9,
+   "tool_call_limit": 64,
+   "reference_episode_without_model_text_max": 12622,
+   "observations_if_every_call_used": 38743
+  },
+  "Scanner/T1Transmit-v1/L3": {
+   "first_prompt_max": 5794,
+   "tool_schemas": 4722,
+   "observation_median": 516,
+   "observation_max": 791,
+   "reference_calls_max": 9,
+   "tool_call_limit": 64,
+   "reference_episode_without_model_text_max": 12966,
+   "observations_if_every_call_used": 38818
+  }
+ }
+}

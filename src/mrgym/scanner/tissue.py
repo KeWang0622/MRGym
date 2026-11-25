@@ -11,7 +11,9 @@ Times in ms. PD relative to water = 1. T2' is derived: 1/T2' = 1/T2* - 1/T2. Fat
 Sources (full records in docs/physics/references.md)
   Wright 2008        MAGMA 21:121, doi:10.1007/s10334-008-0104-8    WM / GM / putamen / caudate T1 at 1.5 and 3 T      [A]
   Rooney 2007        MRM 57:308, doi:10.1002/mrm.21122              CSF T1 4.3 +- 0.2 s, independent of field          [A]
-  Wansapura 1999     JMRI 9:531                                     3 T: T2 GM about 110, WM about 80 ms               [A]
+  Wansapura 1999     JMRI 9:531                                     3 T T2 of GM and WM: the abstract is reported to print
+                                                                    grey 80 / white 110 ms, the opposite of the values
+                                                                    used here, so the T2 of WM and GM below are      [C]
   Peters 2007        MRI 25:748, doi:10.1016/j.mri.2007.02.014      T2* of GM and WM at 1.5 and 3 T                    [T]
   Stanisz 2005       MRM 54:507, doi:10.1002/mrm.20605              muscle, blood, cord T1 / T2 at 1.5 and 3 T         [T]
   de Bazelaire 2004  Radiology 230:652, doi:10.1148/radiol.2303021331   abdomen: 3 T values [A], 1.5 T values [T]
@@ -25,7 +27,7 @@ FAT_PEAKS = ((-3.80, 0.087), (-3.40, 0.693), (-2.60, 0.128), (-1.94, 0.004), (-0
 #            name            PD     T1@1.5  T1@3   T2@1.5 T2@3  T2*@1.5 T2*@3  ADC   fat
 _T = [
     # ---- head
-    ("wm",           0.69,   646,   838,    85,    75,    66,    53,   0.75, 0),   # T1 Wright [A]; T2 Wansapura [A] / [C]; T2* Peters [T]; PD [T]
+    ("wm",           0.69,   646,   838,    85,    75,    66,    53,   0.75, 0),   # T1 Wright [A]; T2 [C] (see Wansapura above); T2* Peters [T]; PD [T]
     ("gm",           0.82,  1197,  1607,   100,    95,    84,    66,   0.85, 0),   # same sources
     ("deep_gm",      0.80,  1090,  1360,    85,    70,    60,    42,   0.80, 0),   # putamen / caudate T1 Wright [A]; T2, T2* [C] (iron)
     ("csf",          1.00,  4300,  4300,  2000,  2000,  1000,   800,   3.00, 0),   # T1 Rooney [A]; T2 [T] 1.5-2.5 s
@@ -37,7 +39,7 @@ _T = [
     ("lesion_ms",    0.88,  1100,  1500,   160,   150,   110,    90,   1.10, 0),   # demyelinating plaque: longer T1 and T2 than WM [C]
     ("tumour",       0.88,  1500,  2000,   140,   130,   100,    80,   1.20, 0),   # [C]
     ("oedema",       0.86,  1300,  1700,   190,   170,   130,   100,   1.50, 0),   # vasogenic oedema [C]
-    ("blood",        0.85,  1441,  1932,   290,   275,   150,    60,   2.50, 0),   # Stanisz [T] (arterial, no flow modelled)
+    ("blood",        0.85,  1441,  1932,   290,   275,   150,    60,   2.50, 0),   # Stanisz [T]: an in-vitro value; in vivo is reported lower (not adopted here); no flow modelled
     # ---- abdomen (de Bazelaire 2004: 3 T [A], 1.5 T [T]; T2* [C])
     ("liver",        0.75,   586,   809,    46,    34,    28,    18,   1.10, 0),
     ("spleen",       0.78,  1057,  1328,    79,    61,    50,    35,   0.90, 0),

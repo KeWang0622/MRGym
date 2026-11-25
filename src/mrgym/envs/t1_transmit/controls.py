@@ -1,47 +1,70 @@
-"""Control policies of ``Scanner/T1Transmit`` and the per-instance admission rule.
+"""Control policies of ``Scanner/T1Transmit``. Every policy plays through the agent's interface only (``info`` /
+``plan`` / ``scan`` / ``budget``) and returns the deliverable. None reads the hidden world. What a policy may use: the
+task card, the instrument datasheet and its own physics.
 
-Every policy plays an episode through the agent's interface only (``info`` / ``plan`` / ``scan`` / ``budget`` of a
-``scanner.session.LocalScanner``, of the HTTP ``client.Scanner``, or of ``mrgym.policies.ToolScanner`` on top of the
-tools) and returns the deliverable. None reads the hidden world. What a policy may use: the task card, the instrument
-datasheet, the public generator's priors, and its own physics.
+The physics here is the AGENT-SIDE helper physics, written again in this file on purpose (the scanner serves the EPG
+steady state integrated over the slice; sharing its code would let errors cancel):
+  * ideal-spoiling closed forms of the gradient echo and of the dual-TR scan;
+  * the slice profile of the selective pulse, from what the datasheet states about it (a Hann-windowed sinc of 128
+    samples with a time-bandwidth product, a rephasing lobe of half the selection area): a cascade of small rotations
+    with precession in between, tabulated once per pulse over the flip angle at the slice centre. A 2D signal is the
+    sum of the closed form over that profile.
+The protocol constants of the reference (spoiler moments, repetition times, RF phase increment of the dual-TR scan)
+come from an offline study of the documented spoiling mechanism over the public priors.
 
-The physics here is the AGENT-SIDE helper physics: ideal-spoiling closed forms, written again in this file on purpose
-(the scanner serves the EPG steady state; sharing its code would let errors cancel). The protocol constants of the
-reference (spoiler moments, repetition times, RF phase increment of the dual-TR scan) come from an offline study of
-the documented spoiling mechanism over the public priors.
-
-Policies
-  reference            maps B1 (dual-TR, signed with the phase images), sets the gradient-echo flip angles from the
-                       measured B1, fills the budget with averages, joint fit of (M0, T1, B1) per region
-  prior                zero scans, the prior's geometric mean                      (defines the zero of the score)
-  blind_vfa            textbook two-angle variable flip angle with NOMINAL angles  (confounder-blind)
-  fixed_recipe         one constant protocol + the same fit, tuned on other worlds, applied blindly
-  brute_force          uniform sweep over sequences and flip angles at console defaults + the same generic fit
-  ir_only              inversion recovery only, as much as fits
-  wrong_units          the reference's numbers in seconds
-  seed_attacker        tries to rebuild the world from the public generator with guessable seeds, replays another
-                       instance's answer, and checks whether a repeated scan returns the same noise
-Reported, not part of the admission rule:
-  open_loop            the fixed recipe with averages scaled to the instance's budget (no use of any measurement)
-  short_tr_ideal       B1-corrected pipeline at the shortest repetition times and default spoilers (trusts ideal spoiling)
-  ir_unpriced          ir_only with 40x the budget (shows whether only the price closes that route)
+Must pass
+  reference        chooses by the budget how to handle the slice profile: if the non-selective 3D acquisition fits,
+                   it is played and fitted with the one-angle closed forms; otherwise 2D scans, fitted with the
+                   closed forms summed over the slice profile. Either way: B1 map (dual-TR, signed with the phase
+                   images), two gradient echoes, the budget filled with averages, joint fit of (M0, T1, B1) per
+                   region. No scan depends on a measurement: only the averages depend on the budget
+Must fail
+  prior            no scan; the geometric mean of the told T1 range in every region
+  fixed_recipe     one token scan, then the best answer that ignores the object: one constant T1 for every region,
+                   tuned on other worlds
+  wrong_units      the reference's numbers in seconds
+Ablations (the reference with one piece removed; each must lose at the levels it names)
+  ignores_profile  2D scans fitted with the one-angle closed forms, the model of ``Scanner/T1Transmit-v0`` (levels 2
+                   and 3, where the budget leaves no room for the 3D acquisition)
+  blind_vfa        two gradient echoes and no B1 map: the textbook variable flip angle method (every level)
+Reported
+  open_loop        a fixed scan list (the 2D protocol of the reference with the averages that fit the smallest budget
+                   of any level) and a fixed estimator (the profile-aware joint fit). If it passes within 25 points of
+                   the reference the family is a measurement task
+  profile_2d       the 2D route with the slice-profile model at every level, whatever the budget
+  nonselective_3d  the 3D route at every level; where it does not fit the budget, the prior answer after a token scan
+  ir_only          inversion recovery only, as much as fits (the textbook gold standard, priced out by the budget)
 """
 from __future__ import annotations
 
-import hashlib
+import functools
 import math
 
 import numpy as np
 
-from ...scanner import kspace
-from ...scanner import session as core
-from ...scanner import world as W
 from . import task
 
+REFERENCE = "reference"
+MUST_FAIL = ("prior", "fixed_recipe", "wrong_units")
+ABLATIONS = {"ignores_profile": (2, 3), "blind_vfa": (1, 2, 3)}
+REPORTED = ("open_loop", "profile_2d", "nonselective_3d", "ir_only")
+DESCRIPTIONS = dict(
+    reference="B1 map, two gradient echoes, joint fit; the slice profile is avoided (3D) where the budget allows, else modelled",
+    prior="no scan; the geometric mean of the told T1 range in every region",
+    fixed_recipe="one token scan, then one constant T1 for every region, tuned on other worlds",
+    wrong_units="the reference's numbers in seconds",
+    ignores_profile="2D scans fitted with the one-angle closed forms (the v0 reference)",
+    blind_vfa="two gradient echoes at nominal flip angles, no B1 map (confounder-blind)",
+    open_loop="a fixed scan list and a fixed estimator: the 2D protocol with fixed averages, the profile-aware fit",
+    profile_2d="2D scans with the slice-profile model at every level",
+    nonselective_3d="the non-selective 3D acquisition at every level; the prior answer where it does not fit the budget",
+    ir_only="inversion recovery only, as much as fits",
+)
 D2R = math.pi / 180.0
+T1_PRIOR_MS = math.sqrt(task.T1_RANGE_MS[0] * task.T1_RANGE_MS[1])
 
 
-# ------------------------------------------------------------------ agent-side physics (ideal spoiling)
+# ------------------------------------------------------------------------------------------------ agent-side physics
 def spgr_ideal(a, tr, t1):
     e1 = np.exp(-tr / t1)
     return np.sin(a) * (1 - e1) / (1 - e1 * np.cos(a))
@@ -53,14 +76,65 @@ def afi_ideal(a, tr1, tr2, t1):
     return np.sin(a) * (1 - e2 + (1 - e1) * e2 * c) / den, np.sin(a) * (1 - e1 + (1 - e2) * e1 * c) / den
 
 
+PULSE_SAMPLES = 128
+PULSE_TBW = dict(fast=2.0, normal=4.0, sharp=8.0)           # datasheet section 1
+ALPHA_GRID = np.linspace(0.0, 170.0 * D2R, 341)             # flip angle at the slice centre on which a profile is tabulated
+
+
+@functools.lru_cache(maxsize=4)
+def slice_profile(tbw: float):
+    """The profile of the selective pulse with time-bandwidth product ``tbw``, from the datasheet's description:
+    (theta [alpha, z], weight [alpha, z]). ``theta`` is the flip angle at height z for a flip angle alpha at the slice
+    centre (``ALPHA_GRID``); ``weight`` is the quadrature weight of z times the cosine of the transverse phase left
+    after the rephasing lobe (the two halves of the slice added), per slice thickness.
+
+    The pulse is ``PULSE_SAMPLES`` hard sub-pulses about x with the amplitudes of a Hann-windowed sinc; between them
+    the spin at height z precesses about z in proportion to z. Each step is a 2 x 2 unitary matrix; the product is
+    accumulated for every (alpha, z) at once."""
+    t = (np.arange(PULSE_SAMPLES) + 0.5) / PULSE_SAMPLES - 0.5
+    amp = np.sinc(tbw * t) * 0.5 * (1 + np.cos(2 * np.pi * t))
+    amp /= amp.sum()
+    z = np.linspace(0.0, 0.5 + 12.0 / tbw, int(round(6 * tbw * (0.5 + 12.0 / tbw))) + 1)          # in slice thicknesses, z >= 0
+    wz = np.full(len(z), 2 * (z[1] - z[0]))
+    wz[[0, -1]] /= 2
+    alpha = ALPHA_GRID[:, None]
+    step = 2 * np.pi * tbw * z[None, :] / PULSE_SAMPLES                                         # precession between two sub-pulses
+    half = np.exp(-0.25j * step)
+    a, b = np.ones((len(ALPHA_GRID), len(z)), complex), np.zeros((len(ALPHA_GRID), len(z)), complex)
+    for w in amp:
+        a, b = half * a, np.conj(half) * b
+        c, s = np.cos(w * alpha / 2), -1j * np.sin(w * alpha / 2)
+        a, b = c * a - np.conj(s) * b, s * a + c * b
+        a, b = half * a, np.conj(half) * b
+    back = np.exp(0.25j * step * PULSE_SAMPLES)                                                 # rephasing lobe: half the selection area
+    a, b = back * a, np.conj(back) * b
+    theta = 2 * np.arcsin(np.clip(np.abs(b), 0.0, 1.0))
+    phase = 1j * np.exp(1j * np.angle(2 * np.conj(a) * b))                                      # +1 at the slice centre
+    return theta, wz * phase.real
+
+
+def _through_slice(alpha, tbw):
+    """(theta, weight) [..., z] for flip angles ``alpha`` (rad, any shape) at the slice centre, by linear interpolation
+    in the table of ``slice_profile``. ``tbw`` None: a hard pulse, one angle per voxel."""
+    alpha = np.asarray(alpha, float)
+    if tbw is None:
+        return alpha[..., None], np.ones(alpha.shape + (1,))
+    theta, weight = slice_profile(float(tbw))
+    x = np.clip(alpha / (ALPHA_GRID[1] - ALPHA_GRID[0]), 0.0, len(ALPHA_GRID) - 1.000001)
+    i = x.astype(int)
+    f = (x - i)[..., None]
+    return theta[i] * (1 - f) + theta[i + 1] * f, weight[i] * (1 - f) + weight[i + 1] * f
+
+
 def _model(meas, t1, b1):
+    """Signals of the measurements ``meas`` for T1 and B1 arrays of one shape: [n_signals, ...]."""
     rows = []
     for m in meas:
-        a = b1 * m["flip"]
+        theta, weight = _through_slice(b1 * m["flip"], m["tbw"])
         if m["kind"] == "spgr":
-            rows.append(spgr_ideal(a, m["tr"], t1))
+            rows.append((weight * spgr_ideal(theta, m["tr"], t1[..., None])).sum(-1))
         else:
-            rows.extend(afi_ideal(a, m["tr"], m["tr2"], t1))
+            rows.extend((weight * s).sum(-1) for s in afi_ideal(theta, m["tr"], m["tr2"], t1[..., None]))
     return np.stack(np.broadcast_arrays(*rows))
 
 
@@ -84,9 +158,9 @@ def fit_region(meas, y, w, b1_fixed=None):
     return best
 
 
-# ------------------------------------------------------------------ helpers on the agent's interface
-def _rois(card):
-    return [dict(id=r["id"], y_mm=r["y_mm"], x_mm=r["x_mm"], radius_mm=r["radius_mm"]) for r in card["task"]["regions"]]
+# ------------------------------------------------------------------------------------------------ helpers on the agent's interface
+def _ids(card):
+    return [r["id"] for r in card["task"]["regions"]]
 
 
 def _values(resp):
@@ -103,11 +177,11 @@ def _afi_signed(resp):
 
 
 def _answer(ids, t1):
-    return {"units": "ms", "t1_ms": {k: float(np.clip(v, 31.0, 19999.0)) for k, v in zip(ids, t1)}}
+    return {"t1_ms": {k: float(np.clip(v, task.T1_VALID_MS[0] + 1.0, task.T1_VALID_MS[1] - 1.0)) for k, v in zip(ids, t1)}}
 
 
 def _prior_answer(card):
-    return _answer([r["id"] for r in card["task"]["regions"]], [task.T1_PRIOR_MS] * len(card["task"]["regions"]))
+    return _answer(_ids(card), [T1_PRIOR_MS] * len(card["task"]["regions"]))
 
 
 def _cost(sc, protocol):
@@ -118,17 +192,20 @@ def _cost(sc, protocol):
     return p["scan_s"] - p["scan_s_parts"]["acquisition_s"], p["scan_s_parts"]["acquisition_s"]
 
 
-COMMON = dict(matrix=64, bandwidth_hz_per_px=300.0, fov_mm=240.0)
+# The object is uniform through the slice (datasheet), so the thickest slice gives the most signal per scan second.
+COMMON = dict(matrix=64, bandwidth_hz_per_px=200.0, fov_mm=240.0, slice_mm=10.0)
 # From the offline spoiling study (strongest spoiler that fits the repetition time; RF phase increment scanned):
 # dual-TR B1 error <= 0.2 % and two-angle T1 error <= 1.5 % over the public priors of T1, T2 and diffusion.
 AFI = dict(COMMON, sequence="afi", tr_ms=30.0, tr_ratio=5, spoiler_mt_ms_per_m=585.0, rf_phase_increment_deg=45.0)
 SPGR = dict(COMMON, sequence="spgr", tr_ms=20.0, spoiler_mt_ms_per_m=340.0)
-AFI_FLIP, TARGETS = 70.0, (4.0, 20.0)      # degrees; AFI_FLIP nominal, TARGETS are angles the spins should see
-AFI_SHARE = 0.6                             # of the acquisition time: the B1 map limits the precision of T1
+AFI_FLIP, FLIPS = 70.0, (4.0, 20.0)        # nominal flip angles, degrees: of the dual-TR scan and of the two gradient echoes
+AFI_SHARE = 0.75                            # of the acquisition time: the B1 map limits the precision of T1
+MODE_2D, MODE_3D = dict(rf_pulse="normal"), dict(excitation="nonselective")
+OPEN_LOOP_BUDGET_S = 45.0                   # the fixed scan list is sized for this budget: it fits every instance of every level
 
 
 def _allocate(budget, cost_afi, cost_spgr, n_spgr, share=AFI_SHARE):
-    """Averages (afi, spgr each) that fill ``budget`` with ``share`` of the acquisition time on the B1 map."""
+    """Averages (afi, spgr each) that fill ``budget`` with ``share`` of the acquisition time on the B1 map, or None."""
     acq = budget - cost_afi[0] - n_spgr * cost_spgr[0] - 0.05
     if acq < cost_afi[1] + n_spgr * cost_spgr[1]:
         return None
@@ -137,105 +214,100 @@ def _allocate(budget, cost_afi, cost_spgr, n_spgr, share=AFI_SHARE):
     return n_a, n_s
 
 
-def _pipeline(sc, afi_flip, flips, n_afi, n_spgr, afi=AFI, spgr=SPGR, flips_are_actual=False, b1_fixed=None):
-    """B1 map + variable flip angle + joint fit. ``flips_are_actual``: the flip angles are targets for the angle the
-    spins see, so the nominal angles are set from the B1 just measured (rounded to 0.5 degrees)."""
+def _plan(sc, mode, budget=None):
+    """Averages of the scan list in ``mode`` that fill ``budget`` (default: what is left), or None when it does not fit."""
+    ca, cs = _cost(sc, dict(AFI, **mode, flip_deg=AFI_FLIP)), _cost(sc, dict(SPGR, **mode, flip_deg=FLIPS[0]))
+    if ca is None or cs is None:
+        return None
+    return _allocate(sc.budget()["remaining_s"] if budget is None else budget, ca, cs, len(FLIPS))
+
+
+def _pipeline(sc, n_afi, n_spgr, mode=MODE_2D, b1_fixed=None, model_profile=True):
+    """B1 map + two gradient echoes + joint fit, at the nominal flip angles ``AFI_FLIP`` and ``FLIPS``. ``mode``: the
+    excitation (``MODE_2D`` or ``MODE_3D``). ``model_profile`` False: fit as if every voxel saw one flip angle.
+    ``n_afi`` 0: no B1 map."""
     card = sc.info()
-    rois, ids = _rois(card), [r["id"] for r in card["task"]["regions"]]
+    rois, ids = card["task"]["regions"], _ids(card)
+    tbw = PULSE_TBW[mode["rf_pulse"]] if model_profile and mode.get("excitation") != "nonselective" else None
     meas, ys, ws = [], [], []
-    b1_med = 1.0
     if n_afi:
-        r = sc.scan(dict(afi, flip_deg=afi_flip, averages=n_afi), rois)
-        v, n = _afi_signed(r), afi["tr_ratio"]
-        meas.append(dict(kind="afi", flip=afi_flip * D2R, tr=r["realised"]["tr_ms"], tr2=r["realised"]["tr2_ms"]))
+        r = sc.scan(dict(AFI, **mode, flip_deg=AFI_FLIP, averages=n_afi), rois)
+        v = _afi_signed(r)
+        meas.append(dict(kind="afi", flip=AFI_FLIP * D2R, tr=r["realised"]["tr_ms"], tr2=r["realised"]["tr2_ms"], tbw=tbw))
         ys += [v[0], v[1]]
         ws += [math.sqrt(n_afi)] * 2
-        ratio = np.clip(v[1] / np.maximum(v[0], 1e-12), -0.99, 1.0)
-        b1_first = np.degrees(np.arccos(np.clip((ratio * n - 1) / (n - ratio), -1, 1))) / afi_flip
-        b1_med = float(np.clip(np.median(b1_first), 0.5, 1.7))
-    nominal = [float(np.clip(round(2 * f / b1_med) / 2 if flips_are_actual else f, 1.0, 90.0)) for f in flips]
-    for f in nominal:
-        r = sc.scan(dict(spgr, flip_deg=f, averages=n_spgr), rois)
-        meas.append(dict(kind="spgr", flip=f * D2R, tr=r["realised"]["tr_ms"]))
+    for f in FLIPS:
+        r = sc.scan(dict(SPGR, **mode, flip_deg=f, averages=n_spgr), rois)
+        meas.append(dict(kind="spgr", flip=f * D2R, tr=r["realised"]["tr_ms"], tbw=tbw))
         ys.append(_values(r)[0])
         ws.append(math.sqrt(n_spgr))
     y, w = np.array(ys), np.array(ws)
     return _answer(ids, [fit_region(meas, y[:, i], w, b1_fixed)[0] for i in range(len(ids))])
 
 
-# ------------------------------------------------------------------ the policies
+def _token_scan(sc):
+    sc.scan(dict(sequence="spgr", matrix=48, tr_ms=11.0, flip_deg=8.0))
+
+
+# ------------------------------------------------------------------------------------------------ the policies
+def profile_2d(sc):
+    """2D: map B1, two gradient echoes, the budget filled with averages, a joint fit with the slice profile in the model."""
+    alloc = _plan(sc, MODE_2D)
+    if alloc is None:
+        return _prior_answer(sc.info())
+    return _pipeline(sc, *alloc, mode=MODE_2D)
+
+
+def nonselective_3d(sc):
+    """The same with a non-selective 3D acquisition: one flip angle per voxel, every partition paid for."""
+    alloc = _plan(sc, MODE_3D)
+    if alloc is None:
+        _token_scan(sc)
+        return _prior_answer(sc.info())
+    return _pipeline(sc, *alloc, mode=MODE_3D)
+
+
 def reference(sc):
-    """Map B1 first, set the gradient-echo flip angles from it, spend what is left on averages, fit jointly."""
-    ca, cs = _cost(sc, dict(AFI, flip_deg=AFI_FLIP)), _cost(sc, dict(SPGR, flip_deg=10.0))
-    n_a, n_s = _allocate(sc.budget()["remaining_s"], ca, cs, len(TARGETS))
-    return _pipeline(sc, AFI_FLIP, TARGETS, n_a, n_s, flips_are_actual=True)
+    """3D where the budget has room for it (no slice profile to model), otherwise 2D with the profile in the model."""
+    return nonselective_3d(sc) if _plan(sc, MODE_3D) is not None else profile_2d(sc)
+
+
+def ignores_profile(sc):
+    alloc = _plan(sc, MODE_2D)
+    if alloc is None:
+        return _prior_answer(sc.info())
+    return _pipeline(sc, *alloc, mode=MODE_2D, model_profile=False)
+
+
+def blind_vfa(sc):
+    cs = _cost(sc, dict(SPGR, **MODE_2D, flip_deg=FLIPS[0]))
+    n = int(np.clip(math.floor((sc.budget()["remaining_s"] - len(FLIPS) * cs[0] - 0.05) / (len(FLIPS) * cs[1])), 1, 64))
+    return _pipeline(sc, 0, n, mode=MODE_2D, b1_fixed=1.0, model_profile=False)
+
+
+def open_loop(sc):
+    """One scan list for every instance of every level: the 2D protocol with the averages that fit ``OPEN_LOOP_BUDGET_S``.
+    Neither a measurement nor the budget of the instance changes a scan."""
+    return _pipeline(sc, *_plan(sc, MODE_2D, OPEN_LOOP_BUDGET_S), mode=MODE_2D)
 
 
 def prior(sc):
     return _prior_answer(sc.info())
 
 
-def blind_vfa(sc):
-    cs = _cost(sc, dict(SPGR, flip_deg=10.0))
-    n = int(np.clip(math.floor((sc.budget()["remaining_s"] - 2 * cs[0] - 0.05) / (2 * cs[1])), 1, 64))
-    return _pipeline(sc, None, TARGETS, 0, n, b1_fixed=1.0)
-
-
-def recipe_candidates(min_budget):
-    """Constant protocols that fit the smallest budget of a level (the recipe cannot look at the instance)."""
-    out = []
-    for afi_flip in (60.0, 70.0, 80.0):
-        for flips in ((4.0, 20.0), (3.0, 15.0), (5.0, 25.0), (3.0, 22.0), (3.0, 10.0, 25.0), (4.0, 12.0, 30.0)):
-            for share in (0.45, 0.6, 0.75):
-                out.append(dict(afi_flip=afi_flip, flips=flips, share=share, min_budget=min_budget))
-    return out
-
-
-def fixed_recipe(recipe, scale_to_budget=False):
+def fixed_recipe(recipe):
     def policy(sc):
-        ca, cs = _cost(sc, dict(AFI, flip_deg=recipe["afi_flip"])), _cost(sc, dict(SPGR, flip_deg=10.0))
-        budget = sc.budget()["remaining_s"] if scale_to_budget else recipe["min_budget"]
-        alloc = _allocate(budget, ca, cs, len(recipe["flips"]), recipe["share"])
-        if alloc is None:
-            return _prior_answer(sc.info())
-        return _pipeline(sc, recipe["afi_flip"], recipe["flips"], alloc[0], alloc[1])
+        card = sc.info()
+        _token_scan(sc)
+        return _answer(_ids(card), [recipe["t1_ms"]] * len(card["task"]["regions"]))
     return policy
 
 
-DEFAULT_RECIPE = dict(afi_flip=70.0, flips=(4.0, 20.0), share=0.6, min_budget=45.0)
+DEFAULT_RECIPE = dict(t1_ms=round(T1_PRIOR_MS, 1))
 
 
-def brute_force(sc):
-    """Uniform sweep at console defaults: every third scan a B1 scan, flip angles spread evenly, one average each."""
-    card = sc.info()
-    rois, ids = _rois(card), [r["id"] for r in card["task"]["regions"]]
-    afi, spgr = dict(sequence="afi", tr_ms=20.0), dict(sequence="spgr", tr_ms=15.0)
-    ca, cs = sc.plan(dict(afi, flip_deg=60.0))["scan_s"], sc.plan(dict(spgr, flip_deg=10.0))["scan_s"]
-    budget, kinds = sc.budget()["remaining_s"], []
-    while budget >= (ca if len(kinds) % 3 == 0 else cs):
-        kinds.append("afi" if len(kinds) % 3 == 0 else "spgr")
-        budget -= ca if kinds[-1] == "afi" else cs
-    n_a, n_s = kinds.count("afi"), kinds.count("spgr")
-    fa = iter(np.linspace(30.0, 90.0, n_a + 2)[1:-1])
-    fs = iter(np.linspace(2.0, 90.0, n_s + 2)[1:-1])
-    meas, ys, ws = [], [], []
-    for k in kinds:
-        if k == "afi":
-            f = float(next(fa))
-            r = sc.scan(dict(afi, flip_deg=f), rois)
-            meas.append(dict(kind="afi", flip=f * D2R, tr=r["realised"]["tr_ms"], tr2=r["realised"]["tr2_ms"]))
-            ys += list(_afi_signed(r))
-            ws += [1.0, 1.0]
-        else:
-            f = float(next(fs))
-            r = sc.scan(dict(spgr, flip_deg=f), rois)
-            meas.append(dict(kind="spgr", flip=f * D2R, tr=r["realised"]["tr_ms"]))
-            ys.append(_values(r)[0])
-            ws.append(1.0)
-    if not meas:
-        return _prior_answer(card)
-    y, w = np.array(ys), np.array(ws)
-    return _answer(ids, [fit_region(meas, y[:, i], w)[0] for i in range(len(ids))])
+def wrong_units(sc):
+    return {"t1_ms": {k: v / 1000.0 for k, v in reference(sc)["t1_ms"].items()}}
 
 
 def fit_ir(ti, y):
@@ -248,7 +320,7 @@ def fit_ir(ti, y):
     e = np.exp(-ti[None, :] / t1g[:, None])                 # [grid, n]
     n, se, see = len(ti), e.sum(1), (e * e).sum(1)
     det = n * see - se * se
-    best = (np.inf, task.T1_PRIOR_MS)
+    best = (np.inf, T1_PRIOR_MS)
     for k in range(len(ti) + 1):                           # the first k points are negative
         s = np.where(np.arange(len(ti)) < k, -y, y)
         ss, ses = s.sum(), e @ s
@@ -265,7 +337,7 @@ def fit_ir(ti, y):
 def ir_only(sc):
     """Inversion recovery at the cheapest useful settings; needs at least three inversion times for its fit."""
     card = sc.info()
-    rois, ids = _rois(card), [r["id"] for r in card["task"]["regions"]]
+    rois, ids = card["task"]["regions"], _ids(card)
     budget = sc.budget()["remaining_s"]
     for matrix, tr, tis in ((64, 6000.0, (60.0, 250.0, 600.0, 1300.0, 2800.0, 5500.0)), (64, 3000.0, (60.0, 300.0, 800.0, 1800.0)),
                             (48, 2500.0, (60.0, 500.0, 1500.0)), (48, 1000.0, (40.0, 300.0, 900.0))):
@@ -280,174 +352,19 @@ def ir_only(sc):
     return _prior_answer(card)
 
 
-def wrong_units(sc):
-    a = reference(sc)
-    return {"units": "ms", "t1_ms": {k: v / 1000.0 for k, v in a["t1_ms"].items()}}
-
-
-def short_tr_ideal(sc):
-    """The same B1-corrected pipeline run "as fast as possible": console-default spoilers and RF phase increments,
-    repetition times at the console minimum, textbook dual-TR ratio. Trusts the ideal-spoiling formulas."""
-    afi = dict(COMMON, sequence="afi", tr_ratio=5)
-    spgr = dict(COMMON, sequence="spgr")
-    afi["tr_ms"] = sc.plan(dict(afi, tr_ms=200.0, flip_deg=60.0))["timing"]["tr_min_ms"]
-    spgr["tr_ms"] = sc.plan(dict(spgr, tr_ms=200.0, flip_deg=10.0))["timing"]["tr_min_ms"]
-    ca, cs = _cost(sc, dict(afi, flip_deg=AFI_FLIP)), _cost(sc, dict(spgr, flip_deg=10.0))
-    n_a, n_s = _allocate(sc.budget()["remaining_s"], ca, cs, 2)
-    return _pipeline(sc, 60.0, TARGETS, n_a, n_s, afi=afi, spgr=spgr, flips_are_actual=True)
-
-
-def guessable_seeds(task_id, n_small=300):
-    """What an attacker without the secret can try: small integers and hashes of public strings."""
-    out = [f"{i:032x}" for i in range(n_small)]
-    for s in (task_id, task.FAMILY, task_id + task.FAMILY, "0", "seed", "mrgym"):
-        out += [hashlib.sha256(s.encode()).hexdigest()[:32], hashlib.md5(s.encode()).hexdigest()]
-    return out
-
-
-def seed_attacker(sc, candidates=None, diagnostics=None):
-    """One cheap scan (so the log is not empty), then: (1) rebuild candidate worlds with the PUBLIC generator from
-    guessable seeds and accept one whose region layout equals the task card's; (2) failing that, replay the answer of
-    another instance; (3) repeat one scan and record whether the noise repeats."""
-    card = sc.info()
-    regions, ids = card["task"]["regions"], [r["id"] for r in card["task"]["regions"]]
-    prot = dict(sequence="spgr", matrix=48, tr_ms=10.0, flip_deg=8.0)
-    a = sc.scan(prot, _rois(card))
-    if diagnostics is not None and sc.budget()["remaining_s"] >= a["cost_s"]:
-        b = sc.scan(prot, _rois(card))
-        diagnostics["repeat_scan_identical"] = bool(np.allclose(_values(a), _values(b), rtol=0, atol=0))
-    key = sorted((r["y_mm"], r["x_mm"]) for r in regions)
-    other = None
-    for seed in candidates if candidates is not None else guessable_seeds(card["task_id"]):
-        for level in task.LEVELS.values():
-            w = W.make_world(seed, level["world_spec"], layout_only=True)
-            pub = W.regions_public(w)
-            if sorted((r["y_mm"], r["x_mm"]) for r in pub) == key:
-                truth, at = W.truth(w), {(r["y_mm"], r["x_mm"]): r["id"] for r in pub}
-                if diagnostics is not None:
-                    diagnostics["world_recovered"] = True
-                return _answer(ids, [truth[at[(r["y_mm"], r["x_mm"])]]["t1_ms"] for r in regions])
-            if other is None and len(pub) == len(regions):
-                other = [W.truth(w)[r["id"]]["t1_ms"] for r in pub]
-    if diagnostics is not None:
-        diagnostics["world_recovered"] = False
-    return _answer(ids, other) if other else _prior_answer(card)
-
-
-def tune_recipe(cfgs, candidates=None, draws=(0, 1)):
-    """"Tuned on other worlds": the candidate with the smallest median error over the tuning instances."""
-    candidates = candidates or recipe_candidates(task.LEVELS[cfgs[0]["level"]]["budget_s"][0])
-    worlds = [W.make_world(c["seed"], c["world_spec"]) for c in cfgs]
-    engines = [kspace.Engine(w) for w in worlds]
-    best = None
-    for cand in candidates:
-        errs = []
-        for cfg, w, eng in zip(cfgs, worlds, engines):
-            for d in draws:
-                answer, session, _ = run_policy(cfg, fixed_recipe(cand), d, eng)
-                e = task.score(cfg, answer, 1.0, session.n_scans, world=w)["error"]
-                errs.append(e if e is not None and session.n_scans else 10.0)
-        m = float(np.median(errs))
-        if best is None or m < best[0]:
-            best = (m, cand)
-    return dict(best[1], tuned_median_error=best[0])
-
-
-# ------------------------------------------------------------------ running and admission
-def run_policy(cfg, policy, noise_draw=0, engine=None, budget_scale=1.0):
-    """Play one episode in process. Returns (answer or None, session, error text or None)."""
-    session = core.ScannerSession(dict(cfg, noise_draw=noise_draw, budget_s=cfg["budget_s"] * budget_scale), engine=engine)
-    try:
-        return policy(core.LocalScanner(session)), session, None
-    except Exception as e:  # noqa: BLE001  a crashing policy is a failed episode
-        return None, session, f"{type(e).__name__}: {e}"
-
-
-def tolerance_from(errors):
-    """Pass tolerance from the reference's error distribution over noise draws: twice its median, and at least 1.25
-    times its 95th percentile (so the reference passes with margin both when bias and when noise dominates)."""
-    e = np.asarray(errors, float)
-    return float(max(2.0 * np.median(e), 1.25 * np.quantile(e, 0.95)))
-
-
-ADMISSION_CONTROLS = ("prior", "blind_vfa", "fixed_recipe", "brute_force", "ir_only", "wrong_units", "seed_attacker")
-REPORTED_CONTROLS = ("open_loop", "short_tr_ideal", "ir_unpriced")
-
-
 def policies(recipe=None):
-    recipe = recipe or DEFAULT_RECIPE
-    return dict(reference=(reference, 1.0), prior=(prior, 1.0), blind_vfa=(blind_vfa, 1.0),
-                fixed_recipe=(fixed_recipe(recipe), 1.0), brute_force=(brute_force, 1.0), ir_only=(ir_only, 1.0),
-                wrong_units=(wrong_units, 1.0), seed_attacker=(seed_attacker, 1.0),
-                open_loop=(fixed_recipe(recipe, scale_to_budget=True), 1.0), short_tr_ideal=(short_tr_ideal, 1.0),
-                ir_unpriced=(ir_only, 40.0))
+    return dict(reference=reference, prior=prior, fixed_recipe=fixed_recipe(recipe or DEFAULT_RECIPE), wrong_units=wrong_units,
+                ignores_profile=ignores_profile, blind_vfa=blind_vfa, open_loop=open_loop, profile_2d=profile_2d,
+                nonselective_3d=nonselective_3d, ir_only=ir_only)
 
 
-def admit(cfg, recipe=None, n_cal=32, n_test=32, n_ctrl=8):
-    """Per-instance admission. Reference: tolerance from ``n_cal`` noise draws, then it must pass on fresh draws with
-    margin. Every admission control must fail on every one of its ``n_ctrl`` draws.
-
-    Returns a JSON-serialisable report; ``admitted`` and ``reasons`` summarise it.
-    """
-    world = W.make_world(cfg["seed"], cfg["world_spec"])
-    eng = kspace.Engine(world, cache=256)
-    pol = policies(recipe)
-
-    def play(name, draw):
-        fn, scale = pol[name]
-        answer, session, err = run_policy(cfg, fn, draw, eng, scale)
-        return answer, session, err
-
-    def errors(name, draws):
-        out = []
-        for d in draws:
-            answer, session, err = play(name, d)
-            out.append(task.score(cfg, answer, 1.0, session.n_scans, world=world)["error"])
-        return out
-
-    cal = errors("reference", range(1, n_cal + 1))                     # draw 0 is the one an episode plays on
-    rep = dict(task_id=cfg["task_id"], level=cfg["level"], budget_s=cfg["budget_s"], regions=len(cfg["task"]["regions"]),
-               reasons=[], controls={})
-    if any(e is None for e in cal):
-        rep.update(admitted=False, reasons=["reference failed to deliver"])
-        return rep
-    tol = tolerance_from(cal)
-    e_prior = task.score(cfg, _prior_answer(dict(task=cfg["task"])), tol, 1, world=world)["e_prior"]
-    rep.update(tolerance=tol, e_prior=e_prior, reference_cal_median=float(np.median(cal)),
-               reference_cal_q95=float(np.quantile(cal, 0.95)))
-
-    def evaluate(name, draws):
-        res, used = [], []
-        for d in draws:
-            answer, session, err = play(name, d)
-            s = task.score(cfg, answer, tol, session.n_scans, world=world)
-            res.append(s)
-            used.append(session.used)
-        errs = [s["error"] for s in res if s["error"] is not None]
-        return dict(pass_rate=float(np.mean([s["passed"] for s in res])), reward_mean=float(np.mean([s["reward"] for s in res])),
-                    error_median=float(np.median(errs)) if errs else None, scan_s_median=float(np.median(used)),
-                    gate_fail=[s["diagnostic"] for s in res if not s["gate_deliverable"]][:1]
-                    + (["no scan in the log"] if not all(s["gate_measured"] for s in res) else []))
-
-    ref = evaluate("reference", range(n_cal + 1, n_cal + 1 + n_test))
-    rep["controls"]["reference"] = ref
-    if tol >= 0.5 * e_prior:
-        rep["reasons"].append("tolerance is not well below the prior policy's error")
-    if ref["pass_rate"] < 0.9 or ref["error_median"] > 0.6 * tol:
-        rep["reasons"].append("reference does not pass fresh noise draws with margin")
-    for name in ADMISSION_CONTROLS + REPORTED_CONTROLS:
-        deterministic = name in ("prior",)
-        rep["controls"][name] = evaluate(name, range(1 if deterministic else n_ctrl))
-        if name in ADMISSION_CONTROLS and rep["controls"][name]["pass_rate"] > 0:
-            rep["reasons"].append(f"{name} passes")
-    # the zero of the score: the prior answer delivered after one token scan earns exactly 0
-    answer, session, _ = run_policy(cfg, lambda sc: (sc.scan(dict(sequence="spgr", matrix=48, tr_ms=10.0, flip_deg=8.0)),
-                                                     _prior_answer(sc.info()))[1], 0, eng)
-    rep["reward_prior_after_one_scan"] = task.score(cfg, answer, tol, session.n_scans, world=world)["reward"]
-    others = [n for n in ADMISSION_CONTROLS if n != "fixed_recipe" and rep["controls"][n]["pass_rate"] > 0]
-    rep["admitted_without_fixed_recipe_rule"] = not others and not [x for x in rep["reasons"] if not x.endswith(" passes")]
-    rep["adaptivity_gap"] = dict(
-        fixed_over_reference=rep["controls"]["fixed_recipe"]["error_median"] / ref["error_median"],
-        open_loop_over_reference=rep["controls"]["open_loop"]["error_median"] / ref["error_median"])
-    rep["admitted"] = not rep["reasons"]
-    return rep
+def tune(cfgs):
+    """The strongest answer that ignores the object, on other worlds: the one constant T1 that brings the most regions
+    within the tolerance (the verifier's own rule, per region), and the share of worlds it passes."""
+    truths = [task.true_t1_ms(c) for c in cfgs]
+    limit = math.log(1.0 + cfgs[0]["task"]["tolerance"])
+    values = np.array([v for t in truths for v in t.values()])
+    best = max(np.geomspace(task.T1_RANGE_MS[0], task.T1_RANGE_MS[1], 200), key=lambda c: float(np.mean(np.abs(np.log(c / values)) <= limit)))
+    passed = sum(all(abs(math.log(best / v)) <= limit for v in t.values()) for t in truths)
+    return dict(t1_ms=round(float(best), 1), tuned_region_pass_rate=round(float(np.mean(np.abs(np.log(best / values)) <= limit)), 3),
+                tuned_pass_rate=round(passed / len(truths), 3))

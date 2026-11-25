@@ -1,0 +1,34 @@
+{
+ "schema": "mrgym-prereg/1",
+ "name": "learnability-1",
+ "status": "not launched: needs the owner's word, the gates of section 2 and the adapter work of section 8",
+ "environment": {"train": "Scanner/NullTissue-v0", "train_levels": [0, 1, 2], "never_trained_level": 3,
+                 "untrained_environment": null},
+ "model": {"id": "Qwen/Qwen3.5-9B", "lora_rank": 32, "lora_alpha": 64, "reasoning": "the setting that calibrates in band (off preferred)"},
+ "algorithm": {"name": "GRPO, whole episode, in verl", "group_size": 8, "groups_per_step": 16, "steps": 120, "lr": 1e-5,
+               "warmup_steps": 5, "clip": 0.2, "grad_clip": 1.0, "kl": 0, "entropy_bonus": 0, "temperature": 1.0, "top_p": 1.0,
+               "max_turns": 12, "context_tokens": 32768, "new_tokens_per_turn": {"reasoning_off": 2048, "reasoning_on": 8192},
+               "reward": "the environment's paid reward (pass / fail)", "groups_without_spread": "dropped and counted"},
+ "curriculum": {"mode": "bandit", "alpha": 0.5, "tau": 0.5, "floor": 0.10, "first_seed": 10000},
+ "seeds": {"calibration": "9000-9063 per level", "dev": "0-63 per level, public train split, never sampled in training",
+           "train": "from 10000, a fresh seed for every group", "test": "split heldout (MRGYM_SECRET), 200 instances per cell"},
+ "arms": [
+  {"name": "R1", "what": "RL from the base model, bandit curriculum, paid reward", "seed": 1, "steps": 120, "core": true},
+  {"name": "R2", "what": "as R1", "seed": 2, "steps": 120, "core": true},
+  {"name": "R3", "what": "as R1", "seed": 3, "steps": 120, "core": true},
+  {"name": "U", "what": "as R1 with uniform level sampling", "seed": 1, "steps": 120, "core": false},
+  {"name": "G", "what": "as R1 with progress as the training signal", "seed": 1, "steps": 120, "core": false},
+  {"name": "S", "what": "SFT on 1,200 reference-policy trajectories of levels 0-2 (lr 1e-4, 2 epochs, assistant tokens only), no RL", "seed": 1, "steps": 0, "core": true},
+  {"name": "B", "what": "the base model", "seed": null, "steps": 0, "core": true}
+ ],
+ "evaluation": {"dev": {"instances": 64, "episodes": 2, "levels": [0, 1, 2], "every_steps": 30},
+                "test": {"instances": 200, "episodes": 2, "cells": ["level 1", "level 2", "level 3 (never trained)", "untrained environment"], "at_step": 120},
+                "calibration": {"instances": 64, "episodes": 8, "levels": [0, 1, 2, 3]}},
+ "compute_inputs": {
+  "gpu_s_per_episode": {"value": 17, "source": "measured on Scanner/NoWrap-v0 with Qwen3.5-9B, 12 turns, reasoning off (run s01 of the project record); not measured on Scanner/NullTissue-v0"},
+  "seconds_per_step": {"low": 228, "high": 395, "source": "measured for 128 episodes per step on one 8-GPU node, Scanner/NoWrap-v0 (run u01 of the project record); not measured on Scanner/NullTissue-v0"},
+  "gpus_per_node": 8,
+  "sft_gpu_h": {"value": 4, "source": "estimate, upper bound; never run"},
+  "preemption_overhead": 0.30
+ }
+}

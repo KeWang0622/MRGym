@@ -1,0 +1,6 @@
+{
+ "env_id": "Scanner/ProtocolToSpec-v0",
+ "level": 3,
+ "seed": "7e0cdaca3c5ac72237875511d14d9c18",
+ "split": "test-iid"
+}

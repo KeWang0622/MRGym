@@ -1,0 +1,90 @@
+{
+ "rung": "L1",
+ "title": "The scanner's equations, solved by other code",
+ "rows": [
+  {
+   "id": "L1.1",
+   "quantity": "RF-spoiled steady state of spgr and afi (hard pulses, no diffusion)",
+   "reference": "independent_bloch.spoiled_gre: 2,048 isochromats over one spoiler cycle, 3 x 3 rotations, time stepping from equilibrium",
+   "written_by_the_authors": "yes",
+   "cases": 7,
+   "value": 3.2552370204785783e-12,
+   "tolerance": 1e-06,
+   "unit": "M0",
+   "kind": "max",
+   "passed": true,
+   "note": ""
+  },
+  {
+   "id": "L1.2",
+   "quantity": "rotation made by the windowed-sinc pulse at every position through the slice (Cayley-Klein parameters), 10 to 180 degrees, time-bandwidth 2 / 4 / 8",
+   "reference": "independent_bloch.shaped_pulse acting on the three unit vectors, sample by sample",
+   "written_by_the_authors": "yes",
+   "cases": 12,
+   "value": 4.3634024805220026e-14,
+   "tolerance": 1e-09,
+   "unit": "",
+   "kind": "max",
+   "passed": true,
+   "note": ""
+  },
+  {
+   "id": "L1.3",
+   "quantity": "RF-spoiled gradient echo integrated over the slice (time-bandwidth 2 / 4 / 8)",
+   "reference": "independent_bloch.slice_gre: isochromats over (position through the slice) x (96 spoiler phases), the 128-sample pulse stepped under its slice gradient for each of them in every repetition",
+   "written_by_the_authors": "yes",
+   "cases": 3,
+   "value": 2.0353158966994498e-07,
+   "tolerance": 0.001,
+   "unit": "relative",
+   "kind": "max",
+   "passed": true,
+   "note": "With T1 / T2 relaxation during a 2 ms pulse, which the scanner's model leaves out, the same integrator gives a signal 0.05 % away (20 degrees, TR 20 ms, T1 400 ms, T2 50 ms): a declared difference, not a tolerance."
+  },
+  {
+   "id": "L1.4",
+   "quantity": "spin echo and inversion recovery integrated over the slice: shaped 90 and 180 degree pulses, crushers, B1 80 to 115 %",
+   "reference": "independent_bloch.slice_se: isochromats over (position) x (32 crusher phases), both pulses stepped under their gradients; the longitudinal magnetisation is averaged over the crusher phases after every echo, as the scanner's model states",
+   "written_by_the_authors": "yes",
+   "cases": 5,
+   "value": 1.0568235817205973e-10,
+   "tolerance": 0.001,
+   "unit": "relative",
+   "kind": "max",
+   "passed": true,
+   "note": "A refocusing pulse that is not 180 degrees everywhere stores a grating of longitudinal magnetisation, which identical crushers recall in the next repetition (a stimulated echo). The scanner's model leaves it out. With the grating kept, the same integrator gives -2 to +39 % of the served signal in these 5 cases (TR 300 to 2000 ms, T1 500 to 1200 ms): a declared difference, not a tolerance."
+  },
+  {
+   "id": "L1.5",
+   "quantity": "balanced SSFP against off-resonance (hard pulses, 41 precession angles per TR)",
+   "reference": "independent_bloch.bssfp: time stepping to the steady state",
+   "written_by_the_authors": "yes",
+   "cases": 123,
+   "value": 1.5138115505407441e-09,
+   "tolerance": 1e-06,
+   "unit": "M0",
+   "kind": "max",
+   "passed": true,
+   "note": ""
+  },
+  {
+   "id": "L1.6",
+   "quantity": "inversion time that nulls an inversion-recovery spin echo at finite TR and inversion efficiency 0.85 to 1",
+   "reference": "independent_bloch.ir_null: the longitudinal chain stepped through 40 repetitions, bisection",
+   "written_by_the_authors": "yes",
+   "cases": 4,
+   "value": 2.9309769500329708e-08,
+   "tolerance": 1e-06,
+   "unit": "relative",
+   "kind": "max",
+   "passed": true,
+   "note": ""
+  }
+ ],
+ "not_run": [
+  "per-pulse transient of the first 300 pulses: the scanner serves the periodic state only"
+ ],
+ "engine": "mrgym-engine-0.2.0",
+ "date_utc": "2026-11-25",
+ "command": "python tools/external/run_all.py --write"
+}

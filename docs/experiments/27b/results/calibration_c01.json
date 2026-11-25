@@ -1,0 +1,1182 @@
+{
+ "schema": "mrgym-verl-calibration/1",
+ "model": "qwen3.8-27b",
+ "complete": true,
+ "episodes": 736,
+ "n": 4,
+ "k": 8,
+ "seeds": "9000-9003",
+ "rule": "pass rate in [0.2, 0.6] and at least 80% of the groups of 8 mixed",
+ "cells": [
+  {
+   "env_id": "Scanner/SNRSpec-v0",
+   "level": 1,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 1,
+   "pass": 0.0312,
+   "ci95": [
+    0.0,
+    0.0938
+   ],
+   "mixed_group_share": 0.25,
+   "icc": 0.0,
+   "outcome_counts": {
+    "check_failed": 8,
+    "no_delivery:no_tool_calls": 23,
+    "pass": 1
+   },
+   "band": "frontier",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 708,
+   "calls_taken_as_written": 0.9562,
+   "submit_rate": 0.2812,
+   "cut_reply_share": 1.0,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 20.62,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 113156,
+    "p90": 171145,
+    "p99": 206096,
+    "max": 215189
+   },
+   "stream_tokens_est": {
+    "p50": 133592,
+    "p90": 194282,
+    "p99": 240571,
+    "max": 252386,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 591.5,
+    "mean": 636.8,
+    "max": 1089.0,
+    "sum": 20377.6
+   }
+  },
+  {
+   "env_id": "Scanner/SNRSpec-v0",
+   "level": 2,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 0,
+   "pass": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "mixed_group_share": 0.0,
+   "icc": null,
+   "outcome_counts": {
+    "check_failed": 3,
+    "no_delivery:no_tool_calls": 26,
+    "no_submission_rejected": 3
+   },
+   "band": "dead",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 703,
+   "calls_taken_as_written": 0.9331,
+   "submit_rate": 0.0938,
+   "cut_reply_share": 1.0,
+   "passes_on_last_call": null,
+   "tool_calls_mean": 19.97,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 138822,
+    "p90": 221702,
+    "p99": 243115,
+    "max": 249081
+   },
+   "stream_tokens_est": {
+    "p50": 157568,
+    "p90": 248259,
+    "p99": 267579,
+    "max": 271569,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 730.6,
+    "mean": 737.7,
+    "max": 1209.0,
+    "sum": 23605.2
+   }
+  },
+  {
+   "env_id": "Scanner/SNRSpec-v0",
+   "level": 3,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 0,
+   "pass": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "mixed_group_share": 0.0,
+   "icc": null,
+   "outcome_counts": {
+    "check_failed": 3,
+    "no_delivery:no_tool_calls": 25,
+    "no_submission_rejected": 4
+   },
+   "band": "dead",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 783,
+   "calls_taken_as_written": 0.9527,
+   "submit_rate": 0.0938,
+   "cut_reply_share": 0.9688,
+   "passes_on_last_call": null,
+   "tool_calls_mean": 22.53,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 120343,
+    "p90": 213321,
+    "p99": 245715,
+    "max": 247264
+   },
+   "stream_tokens_est": {
+    "p50": 143077,
+    "p90": 242526,
+    "p99": 275979,
+    "max": 278302,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 630.6,
+    "mean": 688.6,
+    "max": 1281.6,
+    "sum": 22036.3
+   }
+  },
+  {
+   "env_id": "Scanner/NoWrap-v1",
+   "level": 2,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 23,
+   "pass": 0.7188,
+   "ci95": [
+    0.6562,
+    0.75
+   ],
+   "mixed_group_share": 1.0,
+   "icc": -0.1209,
+   "outcome_counts": {
+    "no_submission_rejected": 2,
+    "object_cut_off": 5,
+    "pass": 23,
+    "too_slow": 2
+   },
+   "band": "comfortable",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 861,
+   "calls_taken_as_written": 0.9965,
+   "submit_rate": 0.9375,
+   "cut_reply_share": 0.4062,
+   "passes_on_last_call": 0.0435,
+   "tool_calls_mean": 25.66,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 66588,
+    "p90": 99178,
+    "p99": 138401,
+    "max": 141614
+   },
+   "stream_tokens_est": {
+    "p50": 95823,
+    "p90": 158131,
+    "p99": 181537,
+    "max": 187887,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 329.5,
+    "mean": 346.2,
+    "max": 690.5,
+    "sum": 11077.9
+   }
+  },
+  {
+   "env_id": "Scanner/NoWrap-v1",
+   "level": 3,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 4,
+   "pass": 0.125,
+   "ci95": [
+    0.0312,
+    0.2188
+   ],
+   "mixed_group_share": 0.75,
+   "icc": -0.0365,
+   "outcome_counts": {
+    "no_delivery:no_tool_calls": 5,
+    "no_submission_cap": 2,
+    "object_cut_off": 15,
+    "pass": 4,
+    "too_slow": 6
+   },
+   "band": "frontier",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 1142,
+   "calls_taken_as_written": 0.9851,
+   "submit_rate": 0.7812,
+   "cut_reply_share": 0.8125,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 33.47,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 109577,
+    "p90": 174788,
+    "p99": 223828,
+    "max": 231201
+   },
+   "stream_tokens_est": {
+    "p50": 149833,
+    "p90": 215168,
+    "p99": 263260,
+    "max": 270658,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 578.5,
+    "mean": 583.8,
+    "max": 1086.4,
+    "sum": 18681.3
+   }
+  },
+  {
+   "env_id": "Scanner/NoWrap-v1",
+   "level": 0,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 32,
+   "pass": 1.0,
+   "ci95": [
+    1.0,
+    1.0
+   ],
+   "mixed_group_share": 0.0,
+   "icc": null,
+   "outcome_counts": {
+    "pass": 32
+   },
+   "band": "mastered",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 205,
+   "calls_taken_as_written": 0.7951,
+   "submit_rate": 1.0,
+   "cut_reply_share": 0.0,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 4.91,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 6216,
+    "p90": 11735,
+    "p99": 19090,
+    "max": 19840
+   },
+   "stream_tokens_est": {
+    "p50": 16959,
+    "p90": 25316,
+    "p99": 31219,
+    "max": 31970,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 31.3,
+    "mean": 36.5,
+    "max": 97.0,
+    "sum": 1168.1
+   }
+  },
+  {
+   "env_id": "Scanner/NoWrap-v1",
+   "level": 1,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 31,
+   "pass": 0.9688,
+   "ci95": [
+    0.9062,
+    1.0
+   ],
+   "mixed_group_share": 0.25,
+   "icc": 0.0,
+   "outcome_counts": {
+    "object_cut_off": 1,
+    "pass": 31
+   },
+   "band": "mastered",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 460,
+   "calls_taken_as_written": 0.9043,
+   "submit_rate": 1.0,
+   "cut_reply_share": 0.0625,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 12.88,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 9444,
+    "p90": 20468,
+    "p99": 62915,
+    "max": 74839
+   },
+   "stream_tokens_est": {
+    "p50": 24031,
+    "p90": 36974,
+    "p99": 81785,
+    "max": 94258,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 45.8,
+    "mean": 61.5,
+    "max": 310.3,
+    "sum": 1968.3
+   }
+  },
+  {
+   "env_id": "Scanner/NullTissue-v0",
+   "level": 1,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 3,
+   "pass": 0.0938,
+   "ci95": [
+    0.0,
+    0.1875
+   ],
+   "mixed_group_share": 0.5,
+   "icc": 0.042,
+   "outcome_counts": {
+    "no_delivery:no_tool_calls": 14,
+    "none_nulled": 13,
+    "pass": 3,
+    "some_nulled": 2
+   },
+   "band": "frontier",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 530,
+   "calls_taken_as_written": 0.9415,
+   "submit_rate": 0.5625,
+   "cut_reply_share": 0.875,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 14.94,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 82636,
+    "p90": 152450,
+    "p99": 183733,
+    "max": 189035
+   },
+   "stream_tokens_est": {
+    "p50": 98145,
+    "p90": 175115,
+    "p99": 204997,
+    "max": 208288,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 443.5,
+    "mean": 493.4,
+    "max": 941.4,
+    "sum": 15789.3
+   }
+  },
+  {
+   "env_id": "Scanner/NullTissue-v0",
+   "level": 2,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 4,
+   "pass": 0.125,
+   "ci95": [
+    0.0,
+    0.2812
+   ],
+   "mixed_group_share": 0.5,
+   "icc": 0.1619,
+   "outcome_counts": {
+    "no_delivery:no_tool_calls": 6,
+    "no_submission_rejected": 3,
+    "none_nulled": 5,
+    "pass": 4,
+    "some_nulled": 14
+   },
+   "band": "frontier",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 575,
+   "calls_taken_as_written": 0.9478,
+   "submit_rate": 0.7188,
+   "cut_reply_share": 0.9062,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 16.0,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 78208,
+    "p90": 154682,
+    "p99": 201151,
+    "max": 205236
+   },
+   "stream_tokens_est": {
+    "p50": 95918,
+    "p90": 171345,
+    "p99": 223281,
+    "max": 226657,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 390.3,
+    "mean": 442.7,
+    "max": 969.8,
+    "sum": 14165.7
+   }
+  },
+  {
+   "env_id": "Scanner/NullTissue-v0",
+   "level": 3,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 1,
+   "pass": 0.0312,
+   "ci95": [
+    0.0,
+    0.0938
+   ],
+   "mixed_group_share": 0.25,
+   "icc": 0.0,
+   "outcome_counts": {
+    "no_delivery:no_tool_calls": 15,
+    "no_submission_rejected": 4,
+    "none_nulled": 5,
+    "pass": 1,
+    "some_nulled": 7
+   },
+   "band": "frontier",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 551,
+   "calls_taken_as_written": 0.9201,
+   "submit_rate": 0.4062,
+   "cut_reply_share": 1.0,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 14.62,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 95418,
+    "p90": 157393,
+    "p99": 190251,
+    "max": 198032
+   },
+   "stream_tokens_est": {
+    "p50": 112912,
+    "p90": 173423,
+    "p99": 214606,
+    "max": 218836,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 457.0,
+    "mean": 520.2,
+    "max": 998.5,
+    "sum": 16645.5
+   }
+  },
+  {
+   "env_id": "Scanner/NullTissue-v0",
+   "level": 0,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 21,
+   "pass": 0.6562,
+   "ci95": [
+    0.5625,
+    0.75
+   ],
+   "mixed_group_share": 1.0,
+   "icc": -0.0714,
+   "outcome_counts": {
+    "no_delivery:no_tool_calls": 3,
+    "no_submission_rejected": 4,
+    "none_nulled": 2,
+    "pass": 21,
+    "some_nulled": 2
+   },
+   "band": "comfortable",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 680,
+   "calls_taken_as_written": 0.8294,
+   "submit_rate": 0.7812,
+   "cut_reply_share": 0.5938,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 17.0,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 51549,
+    "p90": 90697,
+    "p99": 164239,
+    "max": 189950
+   },
+   "stream_tokens_est": {
+    "p50": 70795,
+    "p90": 117769,
+    "p99": 188818,
+    "max": 215422,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 230.6,
+    "mean": 256.7,
+    "max": 864.8,
+    "sum": 8216.0
+   }
+  },
+  {
+   "env_id": "Scanner/PhantomQA-v0",
+   "level": 1,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 17,
+   "pass": 0.5312,
+   "ci95": [
+    0.3438,
+    0.625
+   ],
+   "mixed_group_share": 1.0,
+   "icc": 0.013,
+   "outcome_counts": {
+    "diagnosis_wrong": 5,
+    "measurement_off": 8,
+    "no_delivery:no_tool_calls": 2,
+    "pass": 17
+   },
+   "band": "entry",
+   "expected_episodes": 32,
+   "in_rule": true,
+   "entry_rung": false,
+   "calls": 982,
+   "calls_taken_as_written": 0.9847,
+   "submit_rate": 0.9375,
+   "cut_reply_share": 0.4375,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 29.38,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 51960,
+    "p90": 121646,
+    "p99": 160818,
+    "max": 164567
+   },
+   "stream_tokens_est": {
+    "p50": 84278,
+    "p90": 151497,
+    "p99": 196923,
+    "max": 200442,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 284.1,
+    "mean": 323.2,
+    "max": 874.0,
+    "sum": 10341.8
+   }
+  },
+  {
+   "env_id": "Scanner/PhantomQA-v0",
+   "level": 2,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 23,
+   "pass": 0.7188,
+   "ci95": [
+    0.5,
+    0.875
+   ],
+   "mixed_group_share": 1.0,
+   "icc": 0.1532,
+   "outcome_counts": {
+    "diagnosis_wrong": 2,
+    "measurement_off": 5,
+    "no_delivery:no_tool_calls": 2,
+    "pass": 23
+   },
+   "band": "comfortable",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 784,
+   "calls_taken_as_written": 0.9694,
+   "submit_rate": 0.9375,
+   "cut_reply_share": 0.375,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 23.31,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 37957,
+    "p90": 89108,
+    "p99": 96492,
+    "max": 96909
+   },
+   "stream_tokens_est": {
+    "p50": 63529,
+    "p90": 118134,
+    "p99": 128762,
+    "max": 130083,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 193.4,
+    "mean": 237.9,
+    "max": 480.6,
+    "sum": 7611.5
+   }
+  },
+  {
+   "env_id": "Scanner/PhantomQA-v0",
+   "level": 3,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 14,
+   "pass": 0.4375,
+   "ci95": [
+    0.25,
+    0.625
+   ],
+   "mixed_group_share": 1.0,
+   "icc": 0.0649,
+   "outcome_counts": {
+    "diagnosis_wrong": 2,
+    "measurement_off": 12,
+    "no_delivery:no_tool_calls": 4,
+    "pass": 14
+   },
+   "band": "entry",
+   "expected_episodes": 32,
+   "in_rule": true,
+   "entry_rung": true,
+   "calls": 928,
+   "calls_taken_as_written": 0.9806,
+   "submit_rate": 0.875,
+   "cut_reply_share": 0.625,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 27.44,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 70355,
+    "p90": 118777,
+    "p99": 210614,
+    "max": 242153
+   },
+   "stream_tokens_est": {
+    "p50": 97323,
+    "p90": 148963,
+    "p99": 250491,
+    "max": 286075,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 360.0,
+    "mean": 405.0,
+    "max": 1234.8,
+    "sum": 12961.1
+   }
+  },
+  {
+   "env_id": "Scanner/T1Transmit-v1",
+   "level": 1,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 1,
+   "pass": 0.0312,
+   "ci95": [
+    0.0,
+    0.0938
+   ],
+   "mixed_group_share": 0.25,
+   "icc": 0.0,
+   "outcome_counts": {
+    "no_delivery:no_tool_calls": 10,
+    "no_region_within": 4,
+    "no_submission_rejected": 7,
+    "pass": 1,
+    "some_regions_within": 10
+   },
+   "band": "frontier",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 742,
+   "calls_taken_as_written": 0.8747,
+   "submit_rate": 0.4688,
+   "cut_reply_share": 0.9375,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 19.75,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 122076,
+    "p90": 174189,
+    "p99": 196585,
+    "max": 198833
+   },
+   "stream_tokens_est": {
+    "p50": 150592,
+    "p90": 212584,
+    "p99": 236505,
+    "max": 236937,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 598.3,
+    "mean": 615.6,
+    "max": 1029.9,
+    "sum": 19699.8
+   }
+  },
+  {
+   "env_id": "Scanner/T1Transmit-v1",
+   "level": 2,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 0,
+   "pass": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "mixed_group_share": 0.0,
+   "icc": null,
+   "outcome_counts": {
+    "no_delivery:no_tool_calls": 11,
+    "no_region_within": 8,
+    "no_submission_cap": 1,
+    "no_submission_rejected": 10,
+    "some_regions_within": 2
+   },
+   "band": "dead",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 895,
+   "calls_taken_as_written": 0.9039,
+   "submit_rate": 0.3125,
+   "cut_reply_share": 0.9688,
+   "passes_on_last_call": null,
+   "tool_calls_mean": 24.22,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 130749,
+    "p90": 228147,
+    "p99": 270351,
+    "max": 281532
+   },
+   "stream_tokens_est": {
+    "p50": 172410,
+    "p90": 280650,
+    "p99": 348459,
+    "max": 369791,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 619.7,
+    "mean": 720.3,
+    "max": 1511.0,
+    "sum": 23049.5
+   }
+  },
+  {
+   "env_id": "Scanner/T1Transmit-v1",
+   "level": 3,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 0,
+   "pass": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "mixed_group_share": 0.0,
+   "icc": null,
+   "outcome_counts": {
+    "no_delivery:no_tool_calls": 11,
+    "no_region_within": 1,
+    "no_submission_rejected": 10,
+    "some_regions_within": 10
+   },
+   "band": "dead",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 733,
+   "calls_taken_as_written": 0.854,
+   "submit_rate": 0.3438,
+   "cut_reply_share": 1.0,
+   "passes_on_last_call": null,
+   "tool_calls_mean": 18.94,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 94977,
+    "p90": 191936,
+    "p99": 236920,
+    "max": 248028
+   },
+   "stream_tokens_est": {
+    "p50": 117407,
+    "p90": 232517,
+    "p99": 269611,
+    "max": 275646,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 503.5,
+    "mean": 595.7,
+    "max": 1234.0,
+    "sum": 19063.9
+   }
+  },
+  {
+   "env_id": "Scanner/ProtocolToSpec-v0",
+   "level": 1,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 1,
+   "pass": 0.0312,
+   "ci95": [
+    0.0,
+    0.0938
+   ],
+   "mixed_group_share": 0.25,
+   "icc": 0.0,
+   "outcome_counts": {
+    "check_failed": 8,
+    "no_delivery:no_tool_calls": 23,
+    "pass": 1
+   },
+   "band": "frontier",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 362,
+   "calls_taken_as_written": 0.9641,
+   "submit_rate": 0.2812,
+   "cut_reply_share": 1.0,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 10.69,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 116270,
+    "p90": 154554,
+    "p99": 164434,
+    "max": 164824
+   },
+   "stream_tokens_est": {
+    "p50": 133965,
+    "p90": 172771,
+    "p99": 186274,
+    "max": 186282,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 607.7,
+    "mean": 590.1,
+    "max": 879.5,
+    "sum": 18883.6
+   }
+  },
+  {
+   "env_id": "Scanner/ProtocolToSpec-v0",
+   "level": 2,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 0,
+   "pass": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "mixed_group_share": 0.0,
+   "icc": null,
+   "outcome_counts": {
+    "check_failed": 6,
+    "no_delivery:no_tool_calls": 25,
+    "no_submission_rejected": 1
+   },
+   "band": "dead",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 404,
+   "calls_taken_as_written": 0.9728,
+   "submit_rate": 0.1875,
+   "cut_reply_share": 1.0,
+   "passes_on_last_call": null,
+   "tool_calls_mean": 12.03,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 114155,
+    "p90": 174847,
+    "p99": 257536,
+    "max": 280346
+   },
+   "stream_tokens_est": {
+    "p50": 131763,
+    "p90": 190956,
+    "p99": 275610,
+    "max": 297782,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 585.5,
+    "mean": 645.8,
+    "max": 1323.0,
+    "sum": 20664.9
+   }
+  },
+  {
+   "env_id": "Scanner/ProtocolToSpec-v0",
+   "level": 3,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 0,
+   "pass": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "mixed_group_share": 0.0,
+   "icc": null,
+   "outcome_counts": {
+    "check_failed": 6,
+    "no_delivery:no_tool_calls": 26
+   },
+   "band": "dead",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 402,
+   "calls_taken_as_written": 0.9552,
+   "submit_rate": 0.1875,
+   "cut_reply_share": 1.0,
+   "passes_on_last_call": null,
+   "tool_calls_mean": 11.47,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 133903,
+    "p90": 189144,
+    "p99": 262891,
+    "max": 272179
+   },
+   "stream_tokens_est": {
+    "p50": 148126,
+    "p90": 209830,
+    "p99": 280946,
+    "max": 291149,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 685.4,
+    "mean": 706.1,
+    "max": 1413.9,
+    "sum": 22595.2
+   }
+  },
+  {
+   "env_id": "Scanner/ArtefactClinic-v0",
+   "level": 1,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 9,
+   "pass": 0.2812,
+   "ci95": [
+    0.0625,
+    0.5
+   ],
+   "mixed_group_share": 0.75,
+   "icc": 0.2538,
+   "outcome_counts": {
+    "check_failed": 12,
+    "no_delivery:no_tool_calls": 11,
+    "pass": 9
+   },
+   "band": "entry",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 958,
+   "calls_taken_as_written": 0.9969,
+   "submit_rate": 0.6562,
+   "cut_reply_share": 0.8125,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 29.09,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 119381,
+    "p90": 239630,
+    "p99": 318208,
+    "max": 331452
+   },
+   "stream_tokens_est": {
+    "p50": 150446,
+    "p90": 276567,
+    "p99": 353202,
+    "max": 367364,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 650.5,
+    "mean": 754.5,
+    "max": 1794.0,
+    "sum": 24143.3
+   }
+  },
+  {
+   "env_id": "Scanner/ArtefactClinic-v0",
+   "level": 2,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 4,
+   "pass": 0.125,
+   "ci95": [
+    0.0,
+    0.2812
+   ],
+   "mixed_group_share": 0.5,
+   "icc": 0.1619,
+   "outcome_counts": {
+    "check_failed": 13,
+    "no_delivery:no_tool_calls": 14,
+    "no_submission_rejected": 1,
+    "pass": 4
+   },
+   "band": "frontier",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 935,
+   "calls_taken_as_written": 0.9904,
+   "submit_rate": 0.5312,
+   "cut_reply_share": 0.9688,
+   "passes_on_last_call": 0.0,
+   "tool_calls_mean": 27.47,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 132703,
+    "p90": 193930,
+    "p99": 221135,
+    "max": 227855
+   },
+   "stream_tokens_est": {
+    "p50": 171592,
+    "p90": 237927,
+    "p99": 266361,
+    "max": 274086,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 715.9,
+    "mean": 699.9,
+    "max": 1159.2,
+    "sum": 22397.3
+   }
+  },
+  {
+   "env_id": "Scanner/ArtefactClinic-v0",
+   "level": 3,
+   "n_instances": 4,
+   "n_episodes": 32,
+   "k": 8,
+   "passed": 0,
+   "pass": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "mixed_group_share": 0.0,
+   "icc": null,
+   "outcome_counts": {
+    "check_failed": 23,
+    "no_delivery:no_tool_calls": 9
+   },
+   "band": "dead",
+   "expected_episodes": 32,
+   "in_rule": false,
+   "entry_rung": false,
+   "calls": 754,
+   "calls_taken_as_written": 0.992,
+   "submit_rate": 0.7188,
+   "cut_reply_share": 0.9375,
+   "passes_on_last_call": null,
+   "tool_calls_mean": 22.59,
+   "tokens_estimated": false,
+   "completion_tokens": {
+    "p50": 107717,
+    "p90": 197567,
+    "p99": 280670,
+    "max": 304719
+   },
+   "stream_tokens_est": {
+    "p50": 136872,
+    "p90": 229449,
+    "p99": 317563,
+    "max": 346230,
+    "episodes": 32
+   },
+   "wall_s": {
+    "p50": 603.9,
+    "mean": 669.3,
+    "max": 1397.5,
+    "sum": 21417.5
+   }
+  }
+ ],
+ "train_arms": "Scanner/PhantomQA-v0:1,3",
+ "base_rate": 0.4844,
+ "episode_seconds": 376560.6,
+ "gpus": 8,
+ "concurrency": 32,
+ "gpu_s_per_episode": 127.9
+}

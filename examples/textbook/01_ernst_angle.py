@@ -5,6 +5,9 @@ arccos(exp(-TR / T1)) / B1 (Ernst & Anderson 1966; B1 = actual / nominal flip an
 steady state with RF spoiling, finite T2 and diffusion (tier 2), so its peak is shifted. The same world imaged with
 the ideal-spoiling engine (tier 1) gives the textbook peak.
 
+The formula is for one flip angle per voxel, so the sweep is run with ``excitation="nonselective"`` (hard pulses,
+3D encoding). On a 2D slice the peak sits elsewhere: example 13.
+
     python examples/textbook/01_ernst_angle.py [--plot FILE.png]
 """
 import _common as C
@@ -15,6 +18,7 @@ from mrgym.scanner import signal as S
 from mrgym.scanner import world as W
 
 TR, FLIPS = 15.0, np.arange(2.0, 26.1, 1.5)
+HARD = dict(excitation="nonselective")
 
 
 def peak(flips, s):
@@ -33,7 +37,7 @@ def tier_gap(exam):
         for tr in (8.0, 10.0, 15.0, 30.0):
             for f in (5, 10, 20, 30, 45, 60):
                 if not console.plan(dict(sequence="spgr", tr_ms=tr, flip_deg=f, spoiler_mt_ms_per_m=moment, matrix=64,
-                                         bandwidth_hz_per_px=1000), exam)["accept"]:
+                                         bandwidth_hz_per_px=1000, **HARD), exam)["accept"]:
                     continue
                 for c in (tab[k] for k in ("wm", "gm", "csf", "liver", "muscle", "blood")):
                     bd = kspace.diffusion_bd(c["adc_um2_ms"], moment, tr)
@@ -47,10 +51,10 @@ def main():
     env = C.session("qa", seed=1)
     world = C.hidden_world(env)
     rois, truth = C.water_regions(world), W.truth(world)
-    served = np.array([C.column(C.scan(env, rois, sequence="spgr", tr_ms=TR, flip_deg=float(f), matrix=64)["roi_readouts"],
+    served = np.array([C.column(C.scan(env, rois, sequence="spgr", tr_ms=TR, flip_deg=float(f), matrix=64, **HARD)["roi_readouts"],
                                 "complex_mean_magnitude")[:, 0] for f in FLIPS]).T
     ideal_engine = kspace.Engine(world, tier=1)
-    ideal = np.array([C.column(C.engine_scan(ideal_engine, rois, sequence="spgr", tr_ms=TR, flip_deg=float(f), matrix=64)["roi_readouts"],
+    ideal = np.array([C.column(C.engine_scan(ideal_engine, rois, sequence="spgr", tr_ms=TR, flip_deg=float(f), matrix=64, **HARD)["roi_readouts"],
                                "complex_mean_magnitude")[:, 0] for f in FLIPS]).T
     worst_ideal = worst_served = 0.0
     for k, r in enumerate(rois):
@@ -69,7 +73,7 @@ def main():
     print("served / Ernst, six tissues at 3 T, flip 5-60 deg, TR 8-30 ms, RF increment 117 deg: "
           + "; ".join(f"spoiler {m:.0f} mT*ms/m {lo:.3f} to {hi:.3f}" for m, (lo, hi) in gap.items()))
     assert min(v[0] for v in gap.values()) < 0.95 and max(v[1] for v in gap.values()) > 1.05, "the two tiers must differ"
-    timing = console.plan(dict(sequence="spgr", tr_ms=TR, flip_deg=10, matrix=64), world["console"])["timing"]
+    timing = console.plan(dict(sequence="spgr", tr_ms=TR, flip_deg=10, matrix=64, **HARD), world["console"])["timing"]
     print(f"spoiler lobe at the default moment: {timing['spoiler_ms']:.2f} ms of a {TR:.0f} ms TR")
 
     if args.plot:

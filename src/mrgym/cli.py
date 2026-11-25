@@ -1,20 +1,30 @@
 """The ``mrgym`` command.
 
     mrgym --version                         package version and scanner engine
-    mrgym list                              registered environments and their admission status
+    mrgym list                              registered environments: kind, levels, and what the stored gate says
     mrgym demo                              one real episode on the scanner, printed as a transcript
     mrgym scan sequence=se tr_ms=500 ...    one scan of a phantom from the command line; writes a PNG
     mrgym play                              operate the scanner yourself (plan / scan / view / budget)
     mrgym record <id> --out DIR             play a scripted policy and save the episode as one bundle file
     mrgym view BUNDLE ... --out FILE.html   one-file HTML viewer of recorded episodes
-    mrgym validate                          physics checks against analytic formulas, as a table
+    mrgym validate [--group rf]             physics checks against analytic formulas, as a table
+    mrgym validate --perturb <id>           the reference policy of an environment re-scored under perturbed physics
     mrgym timing                            seconds per scan, per sequence and matrix
     mrgym card <id> | tools <id>            the environment card; the tool schemas in a wire format
-    mrgym check <id> [--admission]          the gate for publishing an id; with --admission, rerun the control policies
+    mrgym check <id>                        what must hold before an id is published; the claim against the stored gate
+    mrgym gate <id> [--n 300] [--write]     the gate of a family: reference, blind policies and ablations on fresh instances
+    mrgym check <id> --learnability         train a small scripted policy family on the real reward, on CPU (minutes)
+    mrgym calibrate <id> --model M ...      pass rate of a model endpoint per level, in groups of 8; which levels are in band
     mrgym run-agent ...                     run a language model on an environment through an OpenAI-compatible endpoint
     mrgym results [--check]                 rebuild (or check) the results table from the saved episode records
-    mrgym serve ...                         the scanner as an HTTP service, one process per episode
-    mrgym verify ...                        replay the log of a served episode and score the deliverable
+    mrgym stats power | reliability | regret   what a design detects; reliability of a results folder; regret against the oracle
+    mrgym manifest <suite>                  the frozen instance list of a suite (report, validation, public-test, smoke)
+    mrgym export [episodes] --dir DIR       saved episodes as JSON lines: messages, deliverable, harness id, canary
+    mrgym export harbor | openenv           write the Harbor tasks or the OpenEnv manifest generated from the registry
+    mrgym serve ...                         the scanner as an HTTP service: agent plane, operator plane, tokens
+    mrgym verify ...                        replay the log of a served episode against its head and score the deliverable
+    mrgym epoch keygen|new|run|reveal|verify   secrets, and the commitment of a held-out epoch (publish, later reveal, verify)
+    mrgym redteam <id> [--n 50]             the attack suite of an environment: expected against observed, per row
 """
 from __future__ import annotations
 
@@ -45,7 +55,8 @@ def _write_pngs(scanner, scan_index, out_dir, stem, regions=None):
     os.makedirs(out_dir, exist_ok=True)
     paths = []
     for i, img in enumerate(s["magnitude"]):
-        png, _ = render.image_png(img, "magnitude", min_side=512, circles=regions, fov_yx_mm=s["fov_yx_mm"])
+        png, _ = render.image_png(img, "magnitude", min_side=512, circles=regions, fov_yx_mm=s["fov_yx_mm"],
+                                  centre_yx_mm=s.get("centre_yx_mm", (0.0, 0.0)), rotation_deg=s.get("rotation_deg", 0.0))
         path = os.path.join(out_dir, f"{stem}{'' if len(s['magnitude']) == 1 else f'_{i}'}.png")
         with open(path, "wb") as f:
             f.write(png)
@@ -54,14 +65,34 @@ def _write_pngs(scanner, scan_index, out_dir, stem, regions=None):
 
 
 # ------------------------------------------------------------------ list / card / tools / check
-def cmd_list(a):
+def list_rows() -> list[dict]:
+    """One row per registered id: the claim (``kind``), its levels and what the stored gate says per claim level."""
     import mrgym
-    rows = [(i, mrgym.spec(i), mrgym.card(i)) for i in mrgym.list_envs()]
+
+    from . import gate
+    out = []
+    for i in mrgym.list_envs():
+        s, c = mrgym.spec(i), mrgym.card(i)
+        claim = gate.claim_levels(s) if s.family else []
+        g = c["gate"] if c["gate"] and c["gate"].get("engine") == mrgym.ENGINE_ID else None
+        out.append(dict(id=i, kind=s.kind, levels=list(s.levels), claim_levels=claim, practice_levels=[lv for lv in s.levels if s.family and lv not in claim],
+                        title=c["title"], status=c["status"], task_kind=c.get("task_kind"),
+                        gate=None if not s.family else {str(lv): ((g or {}).get("levels", {}).get(str(lv)) or {}).get("verdict") for lv in claim}))
+    return out
+
+
+def cmd_list(a):
+    from .registry import retired as retired_ids
+    rows = list_rows()
+    retired = [dict(id=i, last_version=v, successor=s) for i, (v, s) in sorted(retired_ids.items())]
     if a.json:
-        print(json.dumps([dict(id=i, kind=s.kind, levels=list(s.levels), title=c["title"], status=c["status"]) for i, s, c in rows], indent=1))
+        print(json.dumps(rows if not a.retired else dict(environments=rows, retired=retired), indent=1))
         return 0
-    for i, s, c in rows:
-        print(f"{i:24s} levels {','.join(map(str, s.levels)):6s} {c['title']}\n{'':24s} {c['status']}")
+    for r in rows:
+        levels = ",".join(map(str, r["levels"])) + (f" (claim: {','.join(map(str, r['claim_levels']))})" if r["practice_levels"] else "")
+        print(f"{r['id']:24s} {r['kind']:9s} levels {levels:22s} {r['title']}\n{'':24s} {r['status']}")
+    for r in retired:
+        print(f"{r['id']:24s} retired   last served by mrgym {r['last_version']}" + (f"; successor {r['successor']}" if r["successor"] else ""))
     return 0
 
 
@@ -91,17 +122,28 @@ def cmd_tools(a):
 def cmd_check(a):
     import mrgym
 
-    from . import admission, check
-    if a.admission:
-        result = admission.run(a.id, n=a.n, levels=[a.level] if a.level else None, workers=a.workers)
-        print(admission.text_table(result))
+    from . import check
+    if a.learnability:
+        from . import learn
+        from .learn import check as learnability
+        report = learnability.run(a.id, level=a.level, quick=a.quick, workers=min(a.workers, 2))
+        print(learnability.text_table(report))
         if a.write:
-            print("written:", admission.write(a.id, result, a.results_dir))
-        return 0
+            print("written:", learn.write(report, "learnability", a.results_dir))
+        return 0 if report["verdict"] == "pass" else 1
     res = check.check_env(a.id, level=a.level, verbose=True)
     bad = [r for r in res if not r[1]]
     print(f"{len(res) - len(bad)} / {len(res)} checks passed · {mrgym.card(a.id)['status']}")
     return 1 if bad else 0
+
+
+def cmd_gate(a):
+    from . import gate
+    result = gate.run(a.id, n=a.n, levels=[a.level] if a.level is not None else None, workers=a.workers)
+    print(gate.text_table(result))
+    if a.write:
+        print("written:", gate.write(result, a.results_dir))
+    return 0 if all(v["verdict"] == "admitted" for v in result["levels"].values()) else 1
 
 
 # ------------------------------------------------------------------ demo
@@ -130,20 +172,21 @@ def cmd_demo(a):
     b = env.state()
     print(f"{a.id} · level {level} · seed {a.seed} · policy {a.policy} (scripted, no language model)")
     print(_compact(env))
-    print(f"  reward {r.reward:.3f} · {b['scans']} scan(s), {b['scan_time_used_s']:.1f} of {b['scan_time_budget_s']:.0f} s of scan time · "
+    print(f"  reward {r.reward:.0f} · {b['scans']} scan(s), {b['scan_time_used_s']:.1f} of {b['scan_time_budget_s']:.0f} s of scan time · "
           f"scanner log replays: {r.info['replay']['ok']}")
     if r.info.get("policy_error"):
         print("  policy error:", r.info["policy_error"])
     table = policies.controls_of(spec).policies()
-    others = [p for p in table if p not in (a.policy, "seed_attacker") and table[p][1] == 1.0 and not a.only]
+    others = [p for p in table if p != a.policy and not a.only]
     if others:
         print("the same hidden world, other scripted policies:")
         for p in others:
             rr = policies.run(mrgym.make(a.id, level=level, seed=a.seed, reveal_score=True), p)
             s = rr.info["score"]
-            why = ("passed" if s.get("passed") else "no scan in the log" if not s.get("gate_measured", True)
-                   else s.get("diagnostic") if s.get("diagnostic") not in (None, "ok") else "not within tolerance")
-            print(f"  {p:16s} reward {rr.reward:.3f}   {why}")
+            checks = s.get("checks") or {}
+            why = ("passed" if s.get("passed") else "no scan in the log" if not checks.get("measured", True)
+                   else s.get("diagnostic") or "failed: " + ", ".join(k for k, ok in checks.items() if not ok))
+            print(f"  {p:16s} reward {rr.reward:.0f}   {why}")
     return 0
 
 
@@ -171,7 +214,7 @@ PLAY_HELP = """commands
   info [sequences|physics]        the instrument card
   plan key=value ...              dry run of a protocol (free), e.g.  plan sequence=se tr_ms=500 matrix=256
   scan key=value ...              run it (costs scan time); the image is written as a PNG
-  view N                          digit map and extent of scan N
+  view N                          digit map of scan N
   budget                          scan time used and left
   help | quit"""
 
@@ -230,7 +273,15 @@ def cmd_play(a):
 # ------------------------------------------------------------------ validate / timing
 def cmd_validate(a):
     from . import validate
-    rows, seconds = validate.run()
+    if a.perturb:
+        from . import perturb
+        result = perturb.run(a.perturb, n=a.n, level=a.level, draws=a.draws, only=a.only.split(",") if a.only else None,
+                             workers=a.workers, all_policies=a.all_policies)
+        print(json.dumps(result, indent=1) if a.json else perturb.text_table(result))
+        if a.write:
+            print("written:", perturb.write(result, a.results_dir))
+        return 0
+    rows, seconds = validate.run(a.group or None)
     if a.json:
         print(json.dumps(rows, indent=1))
     else:
@@ -242,7 +293,7 @@ def cmd_validate(a):
 TIMING_PROTOCOLS = (
     ("spgr", dict(sequence="spgr", tr_ms=30.0, flip_deg=20.0)), ("spgr, 4 echoes", dict(sequence="spgr", tr_ms=60.0, flip_deg=20.0, n_echoes=4)),
     ("afi", dict(sequence="afi", tr_ms=30.0, flip_deg=60.0)), ("se", dict(sequence="se", tr_ms=500.0)),
-    ("ir", dict(sequence="ir", tr_ms=3000.0, ti_ms=800.0)), ("bssfp", dict(sequence="bssfp", tr_ms=6.0, flip_deg=40.0)),
+    ("ir", dict(sequence="ir", tr_ms=3000.0, ti_ms=800.0)), ("bssfp", dict(sequence="bssfp", tr_ms=8.0, flip_deg=40.0)),
     ("epi", dict(sequence="epi", tr_ms=2000.0)))
 
 
@@ -297,51 +348,47 @@ def cmd_timing(a):
     return 0
 
 
-# ------------------------------------------------------------------ serve
+# ------------------------------------------------------------------ serve / verify / epoch / redteam
 def cmd_serve(a):
     from .scanner import service
-    from .scanner import session as core
-    if a.config:
-        cfg = core.load_config(a.config)
-    else:
-        import mrgym
-        env = mrgym.make(a.id, level=a.level, seed=a.seed) if a.level else mrgym.make(a.id, seed=a.seed)
-        env.reset()
-        cfg = env.episode_config()
-        env.close()
-        if a.config_out:
-            fd = os.open(a.config_out, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-            with os.fdopen(fd, "w") as f:
-                json.dump(cfg, f)
-    service.serve(cfg, a.log_dir, a.host, a.port, a.port_file)
-    return 0
+    return service.run(a)
 
 
 def cmd_verify(a):
-    """Replay the scanner log of an episode played against the HTTP service and score the deliverable."""
-    import importlib
+    """Replay the scanner log of a served episode against its head and score the deliverable.
 
+    Exit status: 0 the log replays, is anchored by its head and sealed; 1 it does not replay or is not anchored (the
+    reason is printed); 2 it replays but the episode was never sealed (only with --allow-unsealed)."""
+    from . import epoch, keys
     from .scanner import session as core
-    cfg = core.load_config(a.config)
+    with open(a.episode_file, encoding="utf-8") as f:
+        spec = json.load(f)
     with open(a.answer, encoding="utf-8") as f:
         answer = json.load(f)
-    family = {"nowrap": "mrgym.envs.nowrap", "t1_transmit": "mrgym.envs.t1_transmit"}.get(cfg.get("family"))
-    if not family:
-        raise SystemExit(f"no scoring rule for family {cfg.get('family')!r}")
-    task, controls = importlib.import_module(family + ".task"), importlib.import_module(family + ".controls")
-    if cfg["family"] == "t1_transmit":                                  # the pass tolerance: the reference over other noise draws
-        errs = []
-        for d in range(1, 33):
-            ans, sess, _ = controls.run_policy(cfg, controls.reference, d)
-            e = task.score(cfg, ans, 1.0, sess.n_scans)["error"]
-            errs.append(10.0 if e is None else e)
-        rep = core.replay(cfg, core.read_log(os.path.join(a.log_dir, core.LOG_NAME)))
-        out = task.score(cfg, answer, controls.tolerance_from(errs), rep["scans"], rep["ok"] and not rep["over_budget"])
-        out["replay"] = rep
-    else:
-        out = task.verify(cfg, a.log_dir, answer)
-    print(json.dumps(out, indent=1))
-    return 0 if out["replay"]["ok"] else 1
+    try:
+        events = core.read_log(os.path.join(a.log_dir, core.LOG_NAME))
+    except (OSError, ValueError) as e:
+        print(json.dumps({"replay": {"ok": False, "problems": [f"the log cannot be read: {type(e).__name__}"]}}, indent=1))
+        return 1
+    master = keys.load_master()
+    out = epoch.verify_episode(spec, events, core.read_head(a.head), answer, log_key=keys.sub(master, "log") if master else None)
+    rep = out["replay"]
+    if rep["ok"] and not rep["sealed"] and not a.allow_unsealed:
+        rep["ok"] = False
+        rep["problems"].append("the episode was never sealed: no deliverable was received by the scanner (--allow-unsealed scores it anyway)")
+        out.update(reward=0.0, passed=False)
+    print(json.dumps(keys.stamp(out), indent=1))
+    return 1 if not rep["ok"] else 2 if not rep["sealed"] else 0
+
+
+def cmd_epoch(a):
+    from . import epoch
+    return epoch.main(a)
+
+
+def cmd_redteam(a):
+    from . import redteam
+    return redteam.main(a)
 
 
 def main(argv=None) -> int:
@@ -352,6 +399,7 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("list", help="registered environments")
     p.add_argument("--json", action="store_true")
+    p.add_argument("--retired", action="store_true", help="with --json: an object with the served and the retired ids")
     p.set_defaults(fn=cmd_list)
     p = sub.add_parser("card", help="environment card as Markdown")
     p.add_argument("id")
@@ -361,18 +409,26 @@ def main(argv=None) -> int:
     p.add_argument("id")
     p.add_argument("--format", default="openai", choices=("openai", "mcp", "anthropic", "neutral"))
     p.set_defaults(fn=cmd_tools)
-    p = sub.add_parser("check", help="the gate for publishing an id")
+    p = sub.add_parser("check", help="what must hold before an id is published")
     p.add_argument("id")
     p.add_argument("--level", type=int, default=None)
-    p.add_argument("--admission", action="store_true", help="rerun the control policies (minutes)")
-    p.add_argument("--n", type=int, default=8, help="instances per level for --admission")
-    p.add_argument("--workers", type=int, default=4)
-    p.add_argument("--write", action="store_true", help="store the --admission result as package data")
+    p.add_argument("--learnability", action="store_true", help="the CPU learnability check of the family (minutes; at most 2 workers)")
+    p.add_argument("--quick", action="store_true", help="with --learnability: one seed, fewer instances and steps")
+    p.add_argument("--workers", type=int, default=2)
+    p.add_argument("--write", action="store_true", help="store the --learnability result as package data")
     p.add_argument("--results-dir", default=None)
     p.set_defaults(fn=cmd_check)
 
+    p = sub.add_parser("gate", help="the gate of a family: reference, blind policies and ablations on fresh instances")
+    p.add_argument("id")
+    p.add_argument("--n", type=int, default=300, help="fresh instances per level (default 300)")
+    p.add_argument("--level", type=int)
+    p.add_argument("--workers", type=int, default=2)
+    p.add_argument("--write", action="store_true", help="store the result next to the package")
+    p.add_argument("--results-dir")
+    p.set_defaults(fn=cmd_gate)
     p = sub.add_parser("demo", help="one real episode, printed")
-    p.add_argument("--id", default="Scanner/NoWrap-v0")
+    p.add_argument("--id", default="Scanner/NoWrap-v1")
     p.add_argument("--level", type=int, default=None)
     p.add_argument("--seed", default="0")
     p.add_argument("--policy", default="reference")
@@ -392,37 +448,71 @@ def main(argv=None) -> int:
             p.add_argument("--out", default="mrgym_out", help="folder for the PNG of every scan")
         p.set_defaults(fn=fn)
 
-    p = sub.add_parser("validate", help="physics checks against analytic formulas")
+    p = sub.add_parser("validate", help="physics checks against analytic formulas; with --perturb, an environment under perturbed physics")
     p.add_argument("--json", action="store_true")
+    p.add_argument("--group", action="append", choices=("signal", "rf", "encoding", "console"), help="only this group of checks (repeatable)")
+    p.add_argument("--perturb", metavar="ID", help="re-score the reference policy of this environment under physics perturbations")
+    p.add_argument("--level", type=int, help="--perturb: level (default: the environment's default level)")
+    p.add_argument("--n", type=int, default=30, help="--perturb: instances (default 30)")
+    p.add_argument("--draws", type=int, default=1, help="--perturb: noise draws per instance")
+    p.add_argument("--only", help="--perturb: comma-separated perturbation names")
+    p.add_argument("--workers", type=int, default=1, help="--perturb: worker processes (at most 2)")
+    p.add_argument("--all-policies", action="store_true", help="--perturb: play every control policy, for the ranking under perturbed physics")
+    p.add_argument("--write", action="store_true", help="--perturb: store the result next to the package")
+    p.add_argument("--results-dir")
     p.set_defaults(fn=cmd_validate)
     p = sub.add_parser("timing", help="seconds per scan")
     p.add_argument("--repeats", type=int, default=3)
     p.add_argument("--markdown", action="store_true")
     p.set_defaults(fn=cmd_timing)
 
-    p = sub.add_parser("serve", help="HTTP scanner service for one episode")
-    p.add_argument("--config", default=None, help="episode config JSON (holds the seed)")
-    p.add_argument("--id", default="Scanner/Explore-v0")
-    p.add_argument("--level", type=int, default=None)
-    p.add_argument("--seed", default=None)
-    p.add_argument("--log-dir", default="runs/scanner_log")
-    p.add_argument("--host", default="127.0.0.1")
-    p.add_argument("--port", type=int, default=8000)
-    p.add_argument("--port-file", default=None)
-    p.add_argument("--config-out", default=None, help="also write the hidden episode config here (for `mrgym verify`); keep it from the agent")
+    p = sub.add_parser("serve", help="the scanner as an HTTP service: an agent plane and an operator plane")
+    from .scanner import service as _service
+    _service.add_arguments(p)
     p.set_defaults(fn=cmd_serve)
-    p = sub.add_parser("verify", help="replay a service log and score a deliverable")
-    p.add_argument("--config", required=True, help="hidden episode config JSON")
-    p.add_argument("--log-dir", required=True)
+    p = sub.add_parser("verify", help="replay a service log against its head and score a deliverable")
+    p.add_argument("--episode-file", required=True, help="JSON {env_id, level, split, seed} of the episode (hidden from the agent)")
+    p.add_argument("--log-dir", required=True, help="directory that holds the episode's scan_log.jsonl")
+    p.add_argument("--head", required=True, help="the receipt of the episode: <state-dir>/<handle>.head, or the trainer's copy")
     p.add_argument("--answer", required=True, help="JSON file with the deliverable")
+    p.add_argument("--allow-unsealed", action="store_true", help="score a log without a seal (exit status 2)")
     p.set_defaults(fn=cmd_verify)
+    from . import epoch as _epoch
+    from . import redteam as _redteam
+    _epoch.add_parser(sub).set_defaults(fn=cmd_epoch)
+    _redteam.add_parser(sub).set_defaults(fn=cmd_redteam)
 
-    from . import record, results, viewer
+    from . import calibrate, export, manifest, record, results, viewer
     from .agents import runner
+    from .stats import cli as stats_cli
     record.add_parser(sub)
     viewer.add_parser(sub)
     runner.add_parser(sub)
     results.add_parser(sub)
+    stats_cli.add_parser(sub)
+    manifest.add_parser(sub)
+    calibrate.add_parser(sub)
+    from .compat import export as compat_export
+    p = sub.add_parser("export", help="saved episodes as JSON lines (default), or the generated Harbor tasks / OpenEnv manifest")
+    p.add_argument("target", nargs="?", default="episodes", choices=("episodes", "harbor", "openenv"))
+    p.add_argument("--out", default=None, help="episodes: output file (default standard output); harbor: the datasets folder "
+                   "(default datasets); openenv: the package folder")
+    p.add_argument("--dir", default="results", help="episodes: run folder with episodes/ (default results)")
+    p.add_argument("--format", default="rl", choices=export.FORMATS, help="episodes: rl = one object per episode; sft = messages and tools of passing episodes")
+    p.add_argument("--agent", action="append", metavar="NAMES", help="episodes: only these agents (comma list)")
+    p.add_argument("--env", action="append", metavar="IDS", help="episodes: only these environments (comma list)")
+    p.add_argument("--include-scripted", action="store_true", help="episodes: also export scripted policies (no conversation)")
+    p.add_argument("--id", action="append", help="harbor / openenv: environment id; repeatable for harbor (default: every scored id)")
+    p.add_argument("--level", type=int, default=None, help="harbor / openenv: level (default: the id's default level)")
+    p.add_argument("--n", type=int, default=1, help="harbor: new tasks per id and level")
+    p.add_argument("--from-secret", action="store_true", help="harbor: derive the hidden seeds from MRGYM_SECRET instead of fresh entropy")
+    p.add_argument("--check", action="store_true", help="harbor / openenv: fail when a generated file on disk is stale or was edited")
+    p.add_argument("--refresh", action="store_true", help="harbor: render the existing tasks again from their stored seeds (no new instance)")
+    p.set_defaults(fn=lambda a: export.cmd_export(a) if a.target == "episodes" else compat_export.cmd_export(a))
+
+    from . import coverage, qa
+    qa.add_parser(sub)
+    coverage.add_parser(sub)
 
     a = ap.parse_args(argv)
     return int(a.fn(a) or 0)
