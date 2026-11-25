@@ -168,3 +168,15 @@ def test_calc_reaches_nothing_but_its_own_values():
     for probe in ("f.__globals__", "f.run", "d.__class__", "t.__class__", "print.__self__", "sqrt.__module__", "pi.__class__", "[].__class__"):
         with pytest.raises((C.CalcError, SyntaxError)):
             C.calc(probe, names)
+
+
+def test_the_solvers_the_tool_description_names_work_without_an_import_and_in_a_later_call():
+    names = {}
+    assert abs(C.calc("r = brentq(lambda t: t * t - 2, 0, 2)\nr", names)[-1][1] - 2 ** 0.5) < 1e-6
+    C.calc("def f(t, a, T1):\n    return a * (1 - 2 * exp(-t / T1))\npopt, pcov = curve_fit(f, [100, 200, 400, 800], [-0.4, 0.0, 0.45, 0.85], p0=[1.0, 300.0])", names)
+    assert abs(names["popt"][1] - 292.87) < 0.5                              # the fitted T1 of an inversion recovery
+    assert C.calc("m = minimize(lambda x: (x[0] - 2) ** 2, [0.0])\nround(m['x'][0], 3)", names)[-1][1] == 2
+    assert C.calc("s = minimize_scalar(lambda x: (x - 3) ** 2, bounds=(0, 10))\nround(s['x'], 3)", names)[-1][1] == 3
+    with pytest.raises(C.CalcError):
+        C.calc("np.brentq(lambda t: t - 1, 0, 2)")                           # numpy has no brentq: the prefix stays what numpy is
+    assert C.calc("def minimize(a):\n    return a + 1\nminimize(1)")[-1][1] == 2   # a name of the text hides calc's

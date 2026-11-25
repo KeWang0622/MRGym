@@ -1741,6 +1741,8 @@ MODULES = dict(
     functools=_Module("functools", dict(reduce=_reduce)), copy=_Module("copy", dict(copy=_copy, deepcopy=_deepcopy)),
     scipy=_Module("scipy", dict(optimize=_OPTIMIZE)))
 _SUBMODULES = {"numpy.linalg": _LINALG, "np.linalg": _LINALG, "scipy.optimize": _OPTIMIZE}
+# The solvers work without an import, as the tool description says (after the numpy and math tables were copied: np.brentq stays unknown).
+FUNCTIONS.update({k: _OPTIMIZE.members[k] for k in ("brentq", "fsolve", "minimize_scalar", "fminbound", "minimize", "least_squares", "curve_fit")})
 # What a text may ask for that the calculator does not have, and what to write instead.
 _NO_MODULE = dict(
     random="no random numbers in calc (a call must give the same answer every time): use a grid, e.g. linspace(a, b, n)",
