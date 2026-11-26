@@ -98,8 +98,9 @@ def test_the_repository_passes_and_reinserting_the_sentences_fails():
     with open(os.path.join(ROOT, "results", "results.json"), encoding="utf-8") as f:
         summary = json.load(f)
     assert lint.lint_text(readme, summary) == []
-    m1 = readme.replace("## Current results\n", "## Current results\n\nNo language model has been run yet.\n")
-    m4 = readme.replace("## Current results\n", "## Current results\n\nRows of kind `model` are language models; every agent plays the same instances.\n")
+    anchor = "<!-- RESULTS:START -->\n"                                       # the results section of the page, wherever it is folded
+    m1 = readme.replace(anchor, "No language model has been run yet.\n\n" + anchor)
+    m4 = readme.replace(anchor, "Rows of kind `model` are language models; every agent plays the same instances.\n\n" + anchor)
     assert m1 != readme and [v["rule"] for v in lint.lint_text(m1, summary)] == ["R1"]
     assert [v["rule"] for v in lint.lint_text(m4, summary)] == ["R4"]
     found = generate.lint_docs({"README.md": m1})

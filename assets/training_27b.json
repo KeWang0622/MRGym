@@ -1,0 +1,301 @@
+{
+ "schema": "mrgym-27b-figure/1",
+ "version": 1,
+ "steps": 60,
+ "secret": [
+  {
+   "cell": "NoWrap-v1 L1",
+   "label": "trained level",
+   "row": "Trained level",
+   "before": {
+    "passed": 38,
+    "episodes": 96,
+    "rate": 0.3958,
+    "lo": 0.3016,
+    "hi": 0.4985
+   },
+   "after": {
+    "passed": 93,
+    "episodes": 96,
+    "rate": 0.9688,
+    "lo": 0.91,
+    "hi": 0.9896
+   },
+   "instances": 48,
+   "diff": 0.5729,
+   "lo": 0.4692,
+   "hi": 0.6766
+  },
+  {
+   "cell": "NoWrap-v1 L2",
+   "label": "harder level",
+   "row": "Harder level (trained; reward only late)",
+   "before": {
+    "passed": 3,
+    "episodes": 96,
+    "rate": 0.0312,
+    "lo": 0.0104,
+    "hi": 0.09
+   },
+   "after": {
+    "passed": 37,
+    "episodes": 96,
+    "rate": 0.3854,
+    "lo": 0.2844,
+    "hi": 0.4974
+   },
+   "instances": 48,
+   "diff": 0.3542,
+   "lo": 0.2383,
+   "hi": 0.47
+  },
+  {
+   "cell": "NoWrap-v1 L3",
+   "label": "never-trained level",
+   "row": "Never-trained level",
+   "before": {
+    "passed": 0,
+    "episodes": 96,
+    "rate": 0.0,
+    "lo": 0.0,
+    "hi": 0.0778
+   },
+   "after": {
+    "passed": 4,
+    "episodes": 96,
+    "rate": 0.0417,
+    "lo": 0.0159,
+    "hi": 0.1045
+   },
+   "instances": 48,
+   "diff": 0.0417,
+   "lo": 0.0011,
+   "hi": 0.0822
+  },
+  {
+   "cell": "NullTissue-v0 L0",
+   "label": "another task family (never trained)",
+   "row": "Another task family (never trained)",
+   "before": {
+    "passed": 14,
+    "episodes": 96,
+    "rate": 0.1458,
+    "lo": 0.0838,
+    "hi": 0.2417
+   },
+   "after": {
+    "passed": 48,
+    "episodes": 96,
+    "rate": 0.5,
+    "lo": 0.3944,
+    "hi": 0.6056
+   },
+   "instances": 48,
+   "diff": 0.3542,
+   "lo": 0.2107,
+   "hi": 0.4977
+  }
+ ],
+ "rule": {
+  "met": 1,
+  "needed": 2
+ },
+ "response_tokens": {
+  "training": 24576,
+  "readout": 49152
+ },
+ "dev": [
+  {
+   "run": "v07",
+   "cell": "NoWrap-v1 L1",
+   "label": "trained level",
+   "points": [
+    {
+     "step": 0,
+     "cut": 3,
+     "passed": 20,
+     "episodes": 64,
+     "rate": 0.3125,
+     "lo": 0.2046,
+     "hi": 0.4455
+    },
+    {
+     "step": 10,
+     "cut": 0,
+     "passed": 17,
+     "episodes": 32,
+     "rate": 0.5312,
+     "lo": 0.3514,
+     "hi": 0.7034
+    },
+    {
+     "step": 20,
+     "cut": 1,
+     "passed": 16,
+     "episodes": 32,
+     "rate": 0.5,
+     "lo": 0.3237,
+     "hi": 0.6763
+    },
+    {
+     "step": 30,
+     "cut": 2,
+     "passed": 21,
+     "episodes": 32,
+     "rate": 0.6562,
+     "lo": 0.4682,
+     "hi": 0.8054
+    },
+    {
+     "step": 40,
+     "cut": 1,
+     "passed": 55,
+     "episodes": 64,
+     "rate": 0.8594,
+     "lo": 0.7366,
+     "hi": 0.9303
+    },
+    {
+     "step": 50,
+     "cut": 0,
+     "passed": 30,
+     "episodes": 32,
+     "rate": 0.9375,
+     "lo": 0.7819,
+     "hi": 0.9843
+    },
+    {
+     "step": 60,
+     "cut": 0,
+     "passed": 29,
+     "episodes": 32,
+     "rate": 0.9062,
+     "lo": 0.7412,
+     "hi": 0.9703
+    }
+   ]
+  },
+  {
+   "run": "v07",
+   "cell": "NoWrap-v1 L2",
+   "label": "harder level",
+   "points": [
+    {
+     "step": 0,
+     "cut": 20,
+     "passed": 0,
+     "episodes": 64,
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.2211
+    },
+    {
+     "step": 10,
+     "cut": 13,
+     "passed": 0,
+     "episodes": 32,
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.2211
+    },
+    {
+     "step": 20,
+     "cut": 19,
+     "passed": 1,
+     "episodes": 32,
+     "rate": 0.0312,
+     "lo": 0.0048,
+     "hi": 0.1775
+    },
+    {
+     "step": 30,
+     "cut": 19,
+     "passed": 1,
+     "episodes": 32,
+     "rate": 0.0312,
+     "lo": 0.0048,
+     "hi": 0.1775
+    },
+    {
+     "step": 40,
+     "cut": 42,
+     "passed": 4,
+     "episodes": 63,
+     "rate": 0.0625,
+     "lo": 0.0226,
+     "hi": 0.1613
+    },
+    {
+     "step": 50,
+     "cut": 22,
+     "passed": 2,
+     "episodes": 32,
+     "rate": 0.0625,
+     "lo": 0.0157,
+     "hi": 0.2181
+    },
+    {
+     "step": 60,
+     "cut": 6,
+     "passed": 6,
+     "episodes": 32,
+     "rate": 0.1875,
+     "lo": 0.0834,
+     "hi": 0.3694
+    }
+   ]
+  }
+ ],
+ "second": {
+  "run": "v09",
+  "cell": "NoWrap-v1 L1",
+  "label": "trained level",
+  "points": [
+   {
+    "step": 0,
+    "cut": 0,
+    "passed": 13,
+    "episodes": 32,
+    "rate": 0.4062,
+    "lo": 0.2443,
+    "hi": 0.5915
+   },
+   {
+    "step": 10,
+    "cut": 0,
+    "passed": 15,
+    "episodes": 32,
+    "rate": 0.4688,
+    "lo": 0.2966,
+    "hi": 0.6486
+   },
+   {
+    "step": 20,
+    "cut": 0,
+    "passed": 18,
+    "episodes": 32,
+    "rate": 0.5625,
+    "lo": 0.3756,
+    "hi": 0.7332
+   },
+   {
+    "step": 30,
+    "cut": 0,
+    "passed": 41,
+    "episodes": 64,
+    "rate": 0.6406,
+    "lo": 0.5074,
+    "hi": 0.7552
+   },
+   {
+    "step": 40,
+    "cut": 0,
+    "passed": 27,
+    "episodes": 32,
+    "rate": 0.8438,
+    "lo": 0.666,
+    "hi": 0.936
+   }
+  ]
+ }
+}

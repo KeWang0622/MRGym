@@ -138,7 +138,8 @@ The entry rung is the hardest level in the entry band whose measured share of mi
 command exits non-zero when no level qualifies. `--write` stores the rows; an environment card names a model under
 `learnability.trainable_by` only through that stored file.
 
-No model has been calibrated on any environment of this package yet.
+One open-weight model has been calibrated on every cell of the suite: section 5 of
+[experiments/RESULTS-27b.md](experiments/RESULTS-27b.md). No calibration is stored as package data yet.
 
 ## 7. Levels
 
@@ -218,7 +219,8 @@ run). What it does with the pieces of this page:
 | Curriculum (section 9) | `RowHook` behind the training rows, restricted to the calibrated cells, its state in every checkpoint |
 
 It has been run with verl's own classes and a real tokenizer on CPU and end to end against stand-in servers
-(`integrations/verl/SIMULATION.md`). It has not been run on a GPU.
+(`integrations/verl/SIMULATION.md`). Its first runs on a GPU node are reported in
+[experiments/RESULTS-27b.md](experiments/RESULTS-27b.md); the steps and the settings are in [RECIPE.md](RECIPE.md).
 
 ## 11. Not built
 

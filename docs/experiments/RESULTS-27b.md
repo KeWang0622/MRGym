@@ -21,6 +21,7 @@ The model is trained by reinforcement learning only: LoRA (rank 32) with GRPO in
 | `v15` | evaluation only: the step-60 weights of `v07` on the same instances (base half shared with `v12`) | as `v12` | 8 x H200; 8,192 + 49,152 tokens | `ef6d766` | finished |
 | `v13` | training continued from the step-50 weights of `v07`, steps 51-110 | NoWrap-v1 levels 2, 3 (dev looks also on level 1) | 8 x H200; 8,192 + 49,152 tokens | `ef6d766` | training |
 | `v16` | training from the base model on the corrected interface, 60 steps | NullTissue-v0 levels 0, 1 | 8 x H200; 8,192 + 49,152 tokens | `fc4cede` | started; no data in this report |
+| `v17` | check of the recipe on the published code: training from the base model with the settings of `recipes/qwen3.8-27b-nowrap.env`, 60 steps | NoWrap-v1 levels 1, 2 (dev looks also on level 3; readout as `v15`) | 8 x H200; 8,192 + 49,152 tokens | `18089f2` | started; no data in this report |
 
 ## 2. The secret split: trained against base on the same instances
 
@@ -266,3 +267,5 @@ python docs/experiments/27b/report.py --check          # this report from the st
 python -m mrgym_verl.readout --base <test_base.jsonl> --trained <test_trained.jsonl> --untrained Scanner/NullTissue-v0 --min-envs 2
 bash integrations/verl/node/make_main.sh train <settings.env> <job.sh>   # the node script of a run; settings in runs.json
 ```
+
+The steps with one settings file, what a run costs and the pitfalls: [RECIPE.md](../RECIPE.md).

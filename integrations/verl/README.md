@@ -4,7 +4,10 @@ LoRA + GRPO training of an open-weight model on MR Gym episodes with [verl](http
 pinned at commit `8357f1e0a7ce4c06dc970c2c637d49b33815f5cc` (verl 0.10.0.dev, main of 2026-11-24). The environment
 runs in the trainer's own agent-loop workers: no sandbox, no HTTP between the model and the scanner.
 
-**State.** Nothing in this folder has run on a GPU. The agent loop is a port of an earlier adapter that trained on a
+**State.** The first runs on 8-GPU nodes (calibration, training, readout) are reported in
+[docs/experiments/RESULTS-27b.md](../../docs/experiments/RESULTS-27b.md); the steps and one settings file are in
+[docs/RECIPE.md](../../docs/RECIPE.md). The rest of this paragraph and the last section of this page were written before
+those runs. The agent loop is a port of an earlier adapter that trained on a
 node (version 0 of the environments, a 9B model; it stopped for lack of reward); this version was run with verl's
 own code and a real tokenizer on CPU and, end to end, against stand-in servers. What ran, with commands and outputs:
 [SIMULATION.md](SIMULATION.md). What only a GPU can answer: the last section of this page.

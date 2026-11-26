@@ -2,34 +2,55 @@
 
 <p align="center">
   <b>A virtual MRI scanner for AI agents.</b><br>
-  An open reinforcement-learning environment: the agent runs scans, the scanner scores what it delivers.
-</p>
-
-<p align="center">
-  <img src="assets/hero.png" width="100%" alt="A scripted session on the MR Gym virtual scanner: five requests in the scanner's own words, the brain images that came back, and the scan-time budget being spent">
-</p>
-
-<p align="center">
+  An open reinforcement-learning environment: the agent scans an object it cannot see, the scanner scores what it delivers.<br>
   <a href="LICENSE"><img alt="Code: Apache-2.0" src="https://img.shields.io/badge/code-Apache--2.0-0e7490"></a>
 </p>
 
-**MR Gym is a virtual MRI scanner you can drop an AI agent into.**
-The agent plans and runs scans on an object it cannot see, inside a fixed scan-time budget, and delivers a measurement
-or a protocol. The scanner scores what was delivered against the hidden object.
+## Does training on it work?
 
-Every episode draws a new object and a new system state from a seed, so one environment serves training and testing.
-[MRI Agent Bench](https://github.com/KeWang0622/MRIAgentBench) remains the held-out evaluation; none of its tasks are
-used here.
+<!-- TRAINING:START -->
+**Qwen3.8-27B, reinforcement learning only, 60 steps: tested on instances it never saw.**
 
-[Environments](envs/) · [Scanner manual](docs/scanner.md) · [Physics validation](docs/physics/validation.md) ·
-[Results](results/) · [Limits](docs/physics/limits.md) · [Design](docs/DESIGN.md)
+<p align="center">
+  <img src="assets/training_27b.png" width="900" alt="Pass rate of Qwen3.8-27B before and after 60 steps of reinforcement learning on 4 cells of the secret split, with 95 % intervals, and on public instances during training">
+</p>
 
-<!-- COUNTS:START -->
-| 6 sequences | 5 phantoms | 2 field strengths | 25 tissue rows, each with a source tag | 63 physics checks | 10 environments (admitted, practice, sandbox) |
-|---|---|---|---|---|---|
-<!-- COUNTS:END -->
+| On secret test instances | Before training | After 60 steps | Gain in points [95 % interval] |
+|---|---|---|---|
+| Trained level · `NoWrap-v1 L1` | 40 % (38 / 96) | 97 % (93 / 96) | +57.3 [+46.9, +67.7] |
+| Harder level (trained; reward only late) · `NoWrap-v1 L2` | 3 % (3 / 96) | 39 % (37 / 96) | +35.4 [+23.8, +47.0] |
+| Never-trained level · `NoWrap-v1 L3` | 0 % (0 / 96) | 4 % (4 / 96) | +4.2 [+0.1, +8.2] |
+| Another task family (never trained) · `NullTissue-v0 L0` | 15 % (14 / 96) | 50 % (48 / 96) | +35.4 [+21.1, +49.8] |
 
-## Run an episode
+Evidence: one run, one seed, 48 secret instances x 2 episodes per row, base and trained on the same instances; exploratory (the pre-registered rule needs 2 trained environments, 1 was trained). The other family's row is a practice level whose text states the method. [Full report](docs/experiments/RESULTS-27b.md).
+<!-- TRAINING:END -->
+
+## The recipe
+
+1. **Calibrate.** Start on a level the untrained model should pass in 20-60 % of episodes: `mrgym calibrate Scanner/NoWrap-v1 --model MODEL --base-url URL --out runs/cal`
+2. **Settings.** Fill the four `FILL_IN` lines of a copy: `cp recipes/qwen3.8-27b-nowrap.env my.env`
+3. **Train** on one node with 8 accelerators: `bash integrations/verl/node/make_main.sh train my.env job.sh`
+4. **Read out.** The job ends with trained against base on the same held-out instances: `readout.txt`
+5. **Extend.** When a level saturates, add the next one to `TRAIN_ARMS`; one or two cells per run.
+
+<!-- RECIPE_SETTINGS:START -->
+```text
+model      Qwen/Qwen3.8-27B · thinking off · replies up to 2,048 tokens · episode up to 8,192 prompt + 49,152 response tokens
+adapter    LoRA rank 32, alpha 64 · learning rate 1e-5, 5 warm-up steps · no KL term
+algorithm  GRPO in verl · 60 steps x 8 groups x 8 rollouts · bandit curriculum over the training cells
+reward     1 when the delivered result passes the verifier, else 0 · no demonstrations, no supervised step
+cells      train Scanner/NoWrap-v1:1,2 · read out Scanner/NoWrap-v1:1,2,3 Scanner/NullTissue-v0:0 (secret split, seeds 0-47 x 2 episodes)
+```
+
+Every line as the node scripts read it: [`recipes/qwen3.8-27b-nowrap.env`](recipes/qwen3.8-27b-nowrap.env).
+<!-- RECIPE_SETTINGS:END -->
+
+<!-- RECIPE_STATUS:START -->
+Verified on commit `ef6d766` (run `v07`, 8 x H100 with 24,576-token responses; readout on 8 x H200 at 49,152). Check on the current code (commit `18089f2`, run `v17`, 8 x H200): started; no data yet.
+<!-- RECIPE_STATUS:END -->
+Cost, pitfalls, other task families: **[docs/RECIPE.md](docs/RECIPE.md)**.
+
+## Try it
 
 ```bash
 git clone https://github.com/KeWang0622/MRGym.git
@@ -38,13 +59,19 @@ pip install -e .
 mrgym demo
 ```
 
-Python 3.10 or later, numpy and scipy. No GPU and no network. This is what `mrgym demo` prints: one episode of
-`Scanner/NoWrap-v1` played by a scripted policy, then other scripted policies on the same hidden object.
+No GPU, no network. `mrgym demo` plays a scripted solution, then shortcuts built to fail on the same hidden object.
+
+[Environments](envs/) · [Scanner manual](docs/scanner.md) · [Physics validation](docs/physics/validation.md) ·
+[Limits](docs/physics/limits.md) · [Design](docs/DESIGN.md) · [All documentation](docs/README.md)
+
+<details>
+<summary><b>What <code>mrgym demo</code> prints</b>: a scripted solution, then shortcuts that must fail</summary>
 
 <!-- DEMO:START -->
 ```text
 $ mrgym demo
-Scanner/NoWrap-v1 · level 2 · seed 0 · policy reference (scripted, no language model)
+Scanner/NoWrap-v1 · level 2 · seed 0
+scripted solution (no language model): shows the task can be solved through the tools
   agent -> scanner_info {}
       (instrument card, 1367 characters)
   agent -> scan {"sequence":"spgr","tr_ms":11.0,"flip_deg":10.0,"fov_mm":288.0,"matrix":160,"averages":2,"circles":[]}
@@ -58,22 +85,29 @@ Scanner/NoWrap-v1 · level 2 · seed 0 · policy reference (scripted, no languag
       deliverable received; the episode is over
       reward 1 · every check passed
   reward 1 · 1 scan(s), 10.5 of 30 s of scan time · scanner log replays: True
-the same hidden world, other scripted policies:
-  prior            reward 0   no scan in the log
-  console_default  reward 0   the scan is slower than allowed
-  fixed_recipe     reward 0   part of the object lies outside the image; the image shows wrap-around; the scan is slower than allowed
-  brute_force      reward 0   the scan is slower than allowed
-  wrong_units      reward 0   error invalid_value · fix: {"fov_mm": 168.0} · fov_mm: 16.8 is below the minimum 80.0; fov_mm expects millimetres; 16.8 cm = 168 mm
-  size_only        reward 0   part of the object lies outside the image; the image shows wrap-around
-  centred_only     reward 0   the scan is slower than allowed
-  no_swap          reward 0   the scan is slower than allowed
-  no_turn          reward 1   passed
-  open_loop        reward 1   passed
-  safe_max         reward 0   the scan is slower than allowed
+shortcuts that ignore the object: built to fail (this is what makes the reward mean something)
+  prior            reward 0   no scan; the geometry that is safe for any object
+  console_default  reward 0   one token scan, then the console's default field of view, centred, phase along y
+  fixed_recipe     reward 0   one token scan, then one constant geometry (axis, rotation, lines; centred) tuned on other worlds
+  brute_force      reward 0   shrinks a centred square field of view scan by scan until the object touches its border
+  wrong_units      reward 0   the reference's geometry with every length in centimetres
+other scripted controls: may pass
+  size_only        reward 0   the right size and direction, with the field of view left on the isocentre
+  centred_only     reward 0   the field of view left on the isocentre and enlarged until it holds the object (the v0 answer)
+  no_swap          reward 0   moves the field of view but always phase-encodes along y and never turns it
+  no_turn          reward 1   moves the field of view but never turns it
+  open_loop        reward 1   a fixed scan list and a fixed estimator: the reference itself (no scan depends on a measurement)
+  safe_max         reward 0   one scan, then the safe geometry
+a language model lands between; `mrgym run-agent` plays one
 ```
 <!-- DEMO:END -->
 
-The same loop from Python, through the public API only ([examples/first_episode.py](examples/first_episode.py)):
+A level is admitted only when the shortcuts fail on fresh instances: `mrgym gate <id>`.
+
+</details>
+
+<details>
+<summary><b>The same loop from Python</b>: <code>make</code>, <code>reset</code>, <code>step</code></summary>
 
 ```python
 import mrgym
@@ -85,28 +119,31 @@ obs, reward, terminated, truncated, info = env.step({"name": "scan", "arguments"
     "sequence": "spgr", "tr_ms": 10, "flip_deg": 10, "fov_mm": 288, "matrix": 160, "averages": 2}})
 ```
 
-`reset`, `step` and `state` belong to whoever runs the episode. The agent sees tools only: `scanner_info`, `status`,
-`plan`, `scan`, `read_regions`, `view`, `profile`, `calc`, and one terminal tool. No tool resets the world or reads it.
+The agent sees tools only; no tool resets the world or reads it. [examples/first_episode.py](examples/first_episode.py)
 
 <p align="center">
   <img src="assets/loop.png" width="92%" alt="The loop: the agent sends tool calls to the virtual scanner; the console prices the protocol, the engine images the hidden world; the scanner log and the truth go to the verifier, which pays the reward at the end">
 </p>
 
-## What is on the scanner?
+</details>
 
-| Call | Cost | Returns |
-|---|---|---|
-| `scanner_info` | free | The instrument card, the sequences and their parameters, the task |
-| `plan` | free | The realised protocol, its timing, scan seconds and limits, the header line. Never any signal |
-| `scan` | scan seconds | The header line and read-outs of the regions the agent chose; images are stored |
-| `read_regions`, `view`, `profile` | free | Other regions of a stored scan; one stored image with its geometry; the numbers along a line through it |
-| `status`, `calc` | free | Every limit of the episode and what is left of it; arithmetic |
+<details>
+<summary><b>What is on the scanner</b>: tools, sequences, phantoms; images formed in k-space</summary>
 
-Six sequences run today: spoiled gradient echo (one to eight echoes), actual flip-angle imaging, spin echo, inversion
-recovery, balanced SSFP and single-shot EPI, on one slice at 1.5 or 3 T. Three procedural phantoms lie on the table:
-a head, an abdomen and a QA phantom with vials. Images are formed in k-space, so field of view, matrix, bandwidth
-and phase direction act where they act on a scanner. The object, the transmit and receive fields, the off-resonance
-and the noise level are hidden. The [scanner manual](docs/scanner.md) is everything the agent is told.
+<!-- COUNTS:START -->
+| 6 sequences | 5 phantoms | 2 field strengths | 25 tissue rows, each with a source tag | 63 physics checks | 10 environments (admitted, practice, sandbox) |
+|---|---|---|---|---|---|
+<!-- COUNTS:END -->
+
+- Tools: `scanner_info`, `plan`, `scan`, `read_regions`, `view`, `profile`, `status`, `calc`, one terminal tool.
+  Only `scan` costs scan time.
+- Sequences: spoiled gradient echo, actual flip-angle imaging, spin echo, inversion recovery, balanced SSFP, EPI.
+- Hidden: the object, the transmit and receive fields, the off-resonance, the noise level.
+- Everything the agent is told: [scanner manual](docs/scanner.md).
+
+<p align="center">
+  <img src="assets/hero.png" width="100%" alt="A scripted session on the MR Gym virtual scanner: five requests in the scanner's own words, the brain images that came back, and the scan-time budget being spent">
+</p>
 
 <p align="center">
   <img src="assets/hidden_vs_received.png" width="100%" alt="Above: the hidden world of one session, tissue classes, T1, off-resonance and transmit field. Below: one scan request and everything it returns, an image, the header line and region read-outs">
@@ -120,15 +157,16 @@ and the noise level are hidden. The [scanner manual](docs/scanner.md) is everyth
   <img src="assets/gallery_physics.png" width="100%" alt="Textbook behaviours of the virtual scanner: water-fat shift against bandwidth, wrap-around against phase field of view, Gibbs ringing against matrix, bSSFP bands against TR, EPI distortion with reversed blips">
 </p>
 
-Operate it yourself. `mrgym scan` runs one protocol and writes the image; `mrgym play` is a console session.
-
 ```bash
 mrgym scan sequence=se tr_ms=500 te_ms=15 matrix=256 --out mrgym_out/brain_t1w.png
 mrgym scan --phantom abdomen sequence=spgr tr_ms=120 flip_deg=70 te_ms=3.45 matrix=192 --out mrgym_out/abdomen_opposed_phase.png
 mrgym play --phantom brain --lesion ms
 ```
 
-## What are the environments?
+</details>
+
+<details>
+<summary><b>The environments</b>: given, delivered, scored by, gate result</summary>
 
 <!-- ENVS:START -->
 | Environment | Given | Deliver | Scored by | Kind | Levels of the claim | Stored gate |
@@ -145,65 +183,61 @@ mrgym play --phantom brain --lesion ms
 | [`Scanner/T1Transmit-v1`](envs/scanner-t1transmit-v1/) | A QA phantom with 4 to 7 vials, the scanner, a scan-time budget | T1 of every marked vial, in ms | The hidden T1 of every vial: each delivered value within a factor 1.1 of it | practice | 1, 2, 3 | level(s) 1 admitted; ignores_profile loses only 9.0 points against the reference (lower bound 6.3 < 25) |
 <!-- ENVS:END -->
 
-An **environment** is one job on the scanner with its own scoring rule. A **level** sets the hidden-world prior and
-the budget. An **episode** is one seeded attempt. A level is admitted only when, on fresh instances, a reference policy passes,
-every shortcut policy fails (the no-scan answer, the best constant recipe, a blind sweep, the right numbers in the
-wrong unit) and every listed ablation of the reference loses. `mrgym gate <id>` measures that, one verdict per level;
-`mrgym check <id>` compares the kind of the id (candidate, admitted, practice) with the stored result. The ids
-`Scanner/NoWrap-v0` and `Scanner/T1Transmit-v0` are retired: `mrgym==0.1.0` is the last package that serves them.
+- **Environment**: one job with its own scoring rule. **Level**: the hidden-world prior and the budget.
+  **Episode**: one seeded attempt.
+- `Scanner/NoWrap-v0` and `Scanner/T1Transmit-v0` are retired: `mrgym==0.1.0` is the last package that serves them.
 
 ```bash
 mrgym list
 mrgym check Scanner/NoWrap-v1
 ```
 
-## Watch an episode
+</details>
+
+<details>
+<summary><b>Watch an episode</b>: record it, step through it</summary>
 
 <p align="center">
   <img src="assets/episode_nowrap.png" width="100%" alt="One recorded episode of Scanner/NoWrap-v0 (the retired predecessor of Scanner/NoWrap-v1): the localiser, the delivered field of view over the hidden object, the re-scan, and a shortcut policy that wraps on the same object">
 </p>
 
-This episode is real and scripted: the reference policy, no language model. Record any episode as one file and step
-through it in a one-file viewer; a recorded example is in [examples/episode/](examples/episode/).
+A recorded example: [examples/episode/](examples/episode/).
 
 ```bash
 mrgym record Scanner/NoWrap-v1 --level 2 --seed 0 --policy reference --out runs/demo
 mrgym view runs/demo/episode_bundle.json --out runs/demo/viewer.html
 ```
 
-## Current results
+</details>
+
+<details>
+<summary><b>Results table of API models</b>: no published row; pilot records kept</summary>
 
 <!-- RESULTS:START -->
 No row is published yet. A published row needs at least 300 instances per environment, 2 episodes per instance for a model, and records that store the whole conversation. 1400 pilot episode records (played 2026-11-24, UTC) are listed with their intervals in [results/README.md](results/README.md); no comparison is computed from them.
 <!-- RESULTS:END -->
 
-No model row is published: the model runs so far are pilot data, single maintainer runs through an API gateway on a
-handful of public seeds, too few to compare two models, and their records hold no stored conversation. They are kept,
-with intervals, in [results/](results/). The pilot records were played on `Scanner/NoWrap-v0` and `Scanner/T1Transmit-v0`, which are retired: they are history
-of package 0.1.0, not results on the ids this package serves. The least favourable reading of the pilot rows: on
-`Scanner/T1Transmit-v0` the best constant recipe passes about as often as the reference policy. No model has
-been trained on these environments. All results are on simulated objects. The generator is public, so no level is secret. No environment has had independent expert review. A pass
-here does not establish that an agent can operate a real scanner. Model rows are added by `mrgym run-agent` into the
-same folder; [results/](results/) gives the command, the per-episode records and the denominators, and
-[docs/ANALYSIS_PLAN.md](docs/ANALYSIS_PLAN.md) says what a published row needs and which comparisons are planned.
+- The pilot records are history of package 0.1.0: they were played on the retired `-v0` ids.
+- `mrgym run-agent` adds model rows: [results/](results/), [docs/ANALYSIS_PLAN.md](docs/ANALYSIS_PLAN.md).
 
 ```bash
 mrgym results --check
 ```
 
-## Check the physics
+</details>
 
-`mrgym validate` compares the scanner with analytic formulas and with Bloch calculations written separately from the
-engine; [the table](docs/physics/validation.md) names the reference of every row.
-[conventions.md](docs/physics/conventions.md) states units, signs and axes; [limits.md](docs/physics/limits.md) says
-what is simplified; [examples/textbook/](examples/textbook/) holds the classic experiments as scripts.
+<details>
+<summary><b>Physics checks and timing</b></summary>
+
+[Validation table](docs/physics/validation.md) · [conventions](docs/physics/conventions.md) ·
+[textbook experiments](examples/textbook/)
 
 ```bash
 mrgym validate
 mrgym timing
 ```
 
-Seconds of computation per scan on the brain phantom (one thread; regenerate with `python tools/generate.py --timing`):
+Seconds of computation per scan:
 
 <!-- TIMING:START -->
 | Sequence | matrix 64 | matrix 128 | matrix 256 |
@@ -220,47 +254,46 @@ world generation, once per episode: brain 0.66 s, abdomen 0.66 s, qa 0.07 s
 brain phantom at 3 T, one thread, median of 3, noise-free data not cached; a repeated protocol reuses it
 <!-- TIMING:END -->
 
-## Limits
+</details>
 
-- One slice, one receive channel, steady state served without the transient.
-- No fast spin echo and no motion: a T2-weighted scan takes minutes, and the RF power limit rarely binds.
-- Tissue is piecewise constant and the anatomy is schematic.
-- `Scanner/T1Transmit-v1` is a measurement task: one fixed protocol is built to pass wherever the reference passes. It
-  is registered as practice.
-- `Scanner/NoWrap-v1` is a small task: one look, one prescription. By the open-loop rule it is a measurement task too
-  (its reference chooses no scan from a measurement). Its gate is not stored on this engine yet.
-- The gate shows that the listed shortcut policies fail. It does not prove that no shortcut exists.
+<details>
+<summary><b>Limits</b>: what this does not show</summary>
 
-[limits.md](docs/physics/limits.md) gives each item with its size where it was measured.
+- Simulated objects only: a pass does not establish that an agent can operate a real scanner.
+- No independent expert review of any environment.
+- The generator is public: the secret split hides instances behind a key, not the task.
+- One slice, one receive channel, no fast spin echo, no motion: [limits.md](docs/physics/limits.md).
+- The gate shows that the listed shortcuts fail, not that no shortcut exists.
+- Training: one run, one task family: [its limits](docs/experiments/RESULTS-27b.md).
 
-## Repository
+</details>
+
+<details>
+<summary><b>Repository map</b></summary>
 
 | Path | Contents |
 |---|---|
-| [`src/mrgym/scanner/`](src/mrgym/scanner/) | World (anatomy, tissue table, fields), console, signal models, k-space engine, session log and replay, HTTP service |
-| [`src/mrgym/envs/`](src/mrgym/envs/) | Environments: task, control policies and binding for each id; stored gate results |
-| [`src/mrgym/`](src/mrgym/) | `make` / `reset` / `step`, registry, tools, recorder, viewer, validation, model runner |
-| [`envs/`](envs/) | Generated environment cards |
-| [`docs/`](docs/) | Scanner manual, physics validation, conventions, limits, references, design |
-| [`examples/`](examples/) | First episode, textbook experiments, a recorded episode, a model-runner example |
-| [`results/`](results/) | Episode records and the generated results table |
-| [`tools/`](tools/) | `generate.py` (generated files and their check), figure scripts |
-| [`extras/recon_repair/`](extras/recon_repair/) | A code-repair task set that is not part of `mrgym`; read its warning first |
+| [`src/mrgym/scanner/`](src/mrgym/scanner/) | World, console, signal models, k-space engine, log and replay |
+| [`src/mrgym/envs/`](src/mrgym/envs/) | Task, control policies and stored gate result of each family |
+| [`integrations/verl/`](integrations/verl/), [`recipes/`](recipes/) | Trainer integration, node scripts, settings |
+| [`envs/`](envs/), [`results/`](results/) | Environment cards; episode records |
+| [`docs/`](docs/), [`examples/`](examples/), [`tools/`](tools/) | Documentation; examples; generators |
+| [`extras/recon_repair/`](extras/recon_repair/) | A code-repair task set, not part of `mrgym`; read its warning first |
 
-## Skills and evaluation
+</details>
 
-[MRFoundry](https://github.com/KeWang0622/MRFoundry) holds skills, tools and project memory for MRI research agents.
-[MRI Agent Bench](https://github.com/KeWang0622/MRIAgentBench) holds held-out, executable MRI research tasks.
-MR Gym is where an agent practises on the scanner. No task, data or grader of MRI Agent Bench is used here, and
-[a test](tests/test_no_benchmark_content.py) keeps it that way.
+<details>
+<summary><b>Skills, evaluation, contribute, cite</b></summary>
 
-## Contribute and cite
-
-[CONTRIBUTING.md](CONTRIBUTING.md) explains how to add an environment and what its gate must show.
-[CITATION.cff](CITATION.cff) gives the citation. Code is Apache-2.0. This is a research preview.
+- [MRFoundry](https://github.com/KeWang0622/MRFoundry): skills and tools for MRI research agents.
+- [MRI Agent Bench](https://github.com/KeWang0622/MRIAgentBench): the held-out evaluation. Nothing of it is used
+  here; [a test](tests/test_no_benchmark_content.py) keeps it that way.
+- [CONTRIBUTING.md](CONTRIBUTING.md) · [CITATION.cff](CITATION.cff) · Apache-2.0 · research preview
 
 ```bash
 pip install pytest
 pytest -q
 python tools/generate.py --check
 ```
+
+</details>

@@ -69,5 +69,12 @@
   "node": "8 x H200; 8,192 + 49,152 tokens",
   "code": "`fc4cede`",
   "state": "started; no data in this report"
+ },
+ "v17": {
+  "what": "check of the recipe on the published code: training from the base model with the settings of `recipes/qwen3.8-27b-nowrap.env`, 60 steps",
+  "cells": "NoWrap-v1 levels 1, 2 (dev looks also on level 3; readout as `v15`)",
+  "node": "8 x H200; 8,192 + 49,152 tokens",
+  "code": "`18089f2`",
+  "state": "started; no data in this report"
  }
 }

@@ -161,7 +161,17 @@ def _compact(env, max_lines=3):
     return "\n".join(out)
 
 
+DEMO_WIDTH = 100                                # characters of a control's description in the demo
+
+
+def _short(text, width=DEMO_WIDTH):
+    return text if len(text) <= width else text[:width - 3].rstrip() + "..."
+
+
 def cmd_demo(a):
+    """One episode of a scripted policy, then every other control policy on the same hidden world, in the two groups
+    of the family's ``controls``: the shortcuts that have to fail (``MUST_FAIL``) and the controls that may pass
+    (ablations of the reference and the reported policies)."""
     import mrgym
 
     from . import policies
@@ -170,23 +180,31 @@ def cmd_demo(a):
     env = mrgym.make(a.id, level=level, seed=a.seed, reveal_score=True)
     r = policies.run(env, a.policy)
     b = env.state()
-    print(f"{a.id} · level {level} · seed {a.seed} · policy {a.policy} (scripted, no language model)")
+    controls = policies.controls_of(spec)
+    print(f"{a.id} · level {level} · seed {a.seed}")
+    print("scripted solution (no language model): shows the task can be solved through the tools" if a.policy == controls.REFERENCE
+          else f"policy {a.policy} (scripted, no language model)")
     print(_compact(env))
     print(f"  reward {r.reward:.0f} · {b['scans']} scan(s), {b['scan_time_used_s']:.1f} of {b['scan_time_budget_s']:.0f} s of scan time · "
           f"scanner log replays: {r.info['replay']['ok']}")
     if r.info.get("policy_error"):
         print("  policy error:", r.info["policy_error"])
-    table = policies.controls_of(spec).policies()
-    others = [p for p in table if p != a.policy and not a.only]
-    if others:
-        print("the same hidden world, other scripted policies:")
-        for p in others:
+    if a.only:
+        return 0
+    others = [p for p in controls.policies() if p != a.policy]
+    describe = getattr(controls, "DESCRIPTIONS", {})
+    groups = (("shortcuts that ignore the object: built to fail (this is what makes the reward mean something)",
+               [p for p in others if p in controls.MUST_FAIL]),
+              ("other scripted controls: may pass", [p for p in others if p not in controls.MUST_FAIL]))
+    width = max([len(p) for p in others] + [0])
+    for title, names in groups:
+        if not names:
+            continue
+        print(title)
+        for p in names:
             rr = policies.run(mrgym.make(a.id, level=level, seed=a.seed, reveal_score=True), p)
-            s = rr.info["score"]
-            checks = s.get("checks") or {}
-            why = ("passed" if s.get("passed") else "no scan in the log" if not checks.get("measured", True)
-                   else s.get("diagnostic") or "failed: " + ", ".join(k for k, ok in checks.items() if not ok))
-            print(f"  {p:16s} reward {rr.reward:.0f}   {why}")
+            print(f"  {p:{width}s}  reward {rr.reward:.0f}   {_short(describe.get(p, ''))}".rstrip())
+    print("a language model lands between; `mrgym run-agent` plays one")
     return 0
 
 

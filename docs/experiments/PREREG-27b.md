@@ -1,5 +1,8 @@
 # Pre-registration: does Qwen3.8-27B improve on MR Gym by reinforcement learning?
 
+First runs exist and are reported in [RESULTS-27b.md](RESULTS-27b.md). They are exploratory: they do not follow this plan (thinking
+off, one trained environment) and do not replace it; the status below is that of the plan as written.
+
 Status: **not launched.** Nothing in this plan has been run on a GPU: no pass rate of this model on any v1 environment
 exists, and the trainer has never run at this model size. The plan is fixed here before the first training step; a
 change after that step is a deviation and is reported as one. The fields marked *(calibration)* are blank on purpose:

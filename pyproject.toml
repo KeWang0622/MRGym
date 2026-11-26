@@ -87,6 +87,7 @@ include = [
     "/results",
     "/tools",
     "/integrations",
+    "/recipes",
     "/datasets",
     "/conformance",
     "/extras",
