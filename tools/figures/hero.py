@@ -19,7 +19,7 @@ SEED = 1
 BUDGET_S = 1200.0
 GEOMETRY = dict(pe_dir="x", phase_fov=0.75)         # the head is narrower left to right: fewer phase-encode lines
 SESSION = [
-    ("localiser", dict(sequence="spgr", tr_ms=10, flip_deg=15, matrix=128)),
+    ("localiser", dict(sequence="spgr", tr_ms=11, flip_deg=15, matrix=128)),
     ("T1-weighted", dict(sequence="se", tr_ms=500, matrix=192, **GEOMETRY)),
     ("T2-weighted", dict(sequence="se", tr_ms=3000, te_ms=90, matrix=160, **GEOMETRY)),
     ("FLAIR-like", dict(sequence="ir", tr_ms=6000, ti_ms=2000, te_ms=90, matrix=128, **GEOMETRY)),

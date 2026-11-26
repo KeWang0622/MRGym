@@ -169,20 +169,24 @@ def test_the_recipe_file_is_one_the_node_scripts_accept(report, tmp_path):
     assert subprocess.run(["bash", MAKE_MAIN, "train", str(missing), str(tmp_path / "x.sh")], capture_output=True, text=True).returncode == 2
 
 
-def test_the_front_page_fits_one_screen_and_keeps_every_generated_block():
+def test_the_front_page_says_what_it_is_before_it_shows_training_and_keeps_every_generated_block():
     readme, recipe = _read("README.md"), _read("docs", "RECIPE.md")
-    lines = readme.split("\n")
-    first = next(i for i, ln in enumerate(lines) if ln.startswith("<details"))
-    assert first <= 70, f"{first} lines above the first folded section"
-    top = "\n".join(lines[:first])
-    for heading in ("## Does training on it work?", "## The recipe", "## Try it"):
-        assert heading in top
-    assert top.count("<img src=\"assets/") == 1 and "mrgym demo" in top and "(docs/RECIPE.md)" in top
-    for name in ("TRAINING", "RECIPE_SETTINGS", "RECIPE_STATUS"):
-        assert f"<!-- {name}:START -->" in top
+    order = [readme.index(h) for h in ('<img src="assets/hero.png"', "## What it is", "## Try it", "## The tasks",
+                                       "## Does training on it work?", "## The recipe")]
+    assert order == sorted(order)                       # the scanner and what it does first, the training result and the recipe after
+    top = readme[:order[-1]]
+    lines_before_training = readme[:order[4]].count("\n")
+    assert lines_before_training <= 150, f"{lines_before_training} lines before the training result"
+    assert "mrgym demo" in readme[order[2]:order[3]] and "import mrgym" in readme[order[2]:order[3]]
+    tail = readme[order[-1]:]
+    assert "(docs/RECIPE.md)" in tail
+    for name in ("RECIPE_SETTINGS", "RECIPE_STATUS"):
+        assert f"<!-- {name}:START -->" in tail
+    assert "<!-- TRAINING:START -->" in readme[order[4]:order[5]]
     for name in ("COUNTS", "DEMO", "ENVS", "RESULTS", "TIMING"):
-        assert f"<!-- {name}:START -->" in readme[len(top):]                      # kept, folded
+        assert f"<!-- {name}:START -->" in readme
     assert readme.count("<details>") == readme.count("</details>") >= 8
+    top = readme
     lo, hi = (round(100 * x) for x in learn.ENTRY_BAND)
     assert f"{lo}-{hi} %" in top and f"{lo}-{hi} %" in _block(recipe, "RECIPE_PITFALLS")       # the band of mrgym.learn, not a typed one
     assert len(recipe.rstrip("\n").split("\n")) <= 120
