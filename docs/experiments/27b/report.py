@@ -6,7 +6,8 @@
 
 Every number in the report is computed here from ``docs/experiments/27b/results/``: the episode logs of the runs
 (``episodes_<run>.jsonl.gz``, one line per episode as the trainer wrote it), the evaluation logs on the secret split
-(``test_base_<run>.jsonl.gz`` and ``test_trained_<run>.jsonl.gz``; ``READOUT_FILES`` names the ones of the first run),
+(``test_base_<run>.jsonl.gz`` and ``test_trained_<run>.jsonl.gz``; ``READOUT_FILES`` names the ones of the first run,
+``LINE`` the readings of the first run's adapter and of its continuation against the same base log),
 the calibration summaries (``calibration_<run>.json``) and ``runs.json`` (what each run was). A run has a readout when
 its two evaluation logs are stored; what it trained on, for how many steps and which environments it never trained on
 are read from its logs. The paired readout and the evaluation table are the functions the node scripts use
@@ -53,7 +54,13 @@ MAIN_RUN = "v17"                                           # the headline: the r
 FIRST_RUN, MANY_CELLS_RUN, LONGER_RUN, STOPPED_RUN, RECOUNT_RUN = "v07", "v09", "v13", "v18", "v19"
 READOUT_FILES = {"v07": ("test_base_57k.jsonl.gz", "test_trained_step60.jsonl.gz")}       # other runs: test_base_<run>, test_trained_<run>
 READOUT_BY = {"v07": "v15"}                                # the evaluation-only run that read a run out, where it was not the run itself
-EARLIER_LOOK = ("v07", "test_trained_step40.jsonl.gz")     # one more reading of the secret split: an earlier checkpoint of the first run
+# one adapter read several times against the base log of the first run: (the run that read it out, the run whose weights, the log)
+LINE = (("v12", "v07", "test_trained_step40.jsonl.gz"), ("v15", "v07", "test_trained_step60.jsonl.gz"),
+        ("v20", "v13", "test_trained_step80.jsonl.gz"), ("v13", "v13", "test_trained_step110.jsonl.gz"))
+SELECTED = "v20"                                           # the reading whose checkpoint was chosen on the dev looks (runs.json says so)
+# the stop rules of the runs that a rule stopped, as their job scripts set them (the other values are the defaults of stoprules.py)
+STOP_CONFIG = {k: dict(episodes_per_step=64, group_size=8, base_rate=0.40, mixed_min=0.30, submit_min=0.40, cut_max=0.50, looks=6, futility_from_step=30)
+               for k in ("v18", "v19")}
 L1, L2, L3 = ("Scanner/NoWrap-v1", 1), ("Scanner/NoWrap-v1", 2), ("Scanner/NoWrap-v1", 3)
 HINTED, UNHINTED, NEVER = ("Scanner/NullTissue-v0", 0), ("Scanner/NullTissue-v0", 1), ("Scanner/T1Transmit-v1", 1)
 REJECTED = "no_submission_rejected"                        # the outcome of an episode ended by the rejected-call limit
@@ -66,7 +73,9 @@ PLAIN = {L1: ("trained level", "Trained level"),
 PAGES = {"README.md": ("", ("TRAINING", "RECIPE_SETTINGS", "RECIPE_STATUS")),
          "docs/RECIPE.md": ("../", ("TRAINING", "RECIPE_NEEDS", "RECIPE_SETTINGS", "RECIPE_PITFALLS", "RECIPE_STATUS", "RECIPE_REACH"))}
 # the sections of the report, in order; the text refers to them by these names so that a number never goes stale
-SECTIONS = ("runs", "replications", "behaviour", "secret", "dev", "rollouts", "calibration", "reads", "deviations", "limits", "reproduce")
+SECTIONS = ("runs", "replications", "line", "behaviour", "second", "secret", "dev", "rollouts", "calibration", "reads", "deviations", "limits",
+            "reproduce")
+TITLES = dict(line="One adapter line on the same secret instances", second="A second family did not train")
 SEC = {name: i + 1 for i, name in enumerate(SECTIONS)}
 
 
@@ -106,11 +115,12 @@ def table(head, lines):
 
 def words(items):
     items = [str(x) for x in items]
-    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+    return "" if not items else items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
-def moved(a, b, verb=("fall", "rise", "stay")):
-    return f"{verb[0]} from {a} to {b}" if b < a else f"{verb[1]} from {a} to {b}" if b > a else f"{verb[2]} at {a}"
+def moved(a, b, verb=("fall", "rise", "stay"), fmt="{}"):
+    x, y = fmt.format(a), fmt.format(b)
+    return f"{verb[0]} from {x} to {y}" if b < a else f"{verb[1]} from {x} to {y}" if b > a else f"{verb[2]} at {x}"
 
 
 def _of(eps, key):
@@ -176,7 +186,11 @@ def stored() -> dict:
         if b in present and t in present:
             raw = (rows(b), rows(t))
             tests[k] = dict(files=(b, t), raw=raw, base=_test(raw[0]), trained=_test(raw[1]))
-    return dict(runs=runs, logs=logs, tests=tests, early=rows(EARLIER_LOOK[1]), cals={k: load(f"calibration_{k}.json") for k in ("c01", "c04", "c05")})
+    line = []
+    for reader, weights, log in LINE:
+        raw = rows(log)
+        line.append(dict(reader=reader, run=weights, file=log, raw=raw, rows=_test(raw), step=max(r["step"] for r in raw)))
+    return dict(runs=runs, logs=logs, tests=tests, line=line, cals={k: load(f"calibration_{k}.json") for k in ("c01", "c04", "c05")})
 
 
 def readout_of(d: dict, run: str) -> dict:
@@ -198,6 +212,32 @@ def readouts(d: dict) -> list[dict]:
     """The readouts of every finished training run, the headline run first, the others in the order of runs.json."""
     order = [MAIN_RUN] + [k for k in d["runs"] if k in d["tests"] and k != MAIN_RUN]
     return [readout_of(d, k) for k in order]
+
+
+def line_of(d: dict) -> dict:
+    """The adapter of the first run and of its continuation, read against the same base log: per reading the paired
+    readout with the plan's rule and how its episodes ended."""
+    base = d["tests"][FIRST_RUN]["base"]
+    trained = {k for p in d["line"] for k in _cells(_train(d["logs"][p["run"]]))}
+    untrained = sorted({e for e, _ in _cells(base)} - {e for e, _ in trained})
+    points = []
+    for p in d["line"]:
+        r = R.readout(base, p["rows"], untrained, "test", GAIN, LOWER, HARM, MIN_ENVS)
+        cells = {(c["env_id"], c["level"]): c for c in r["cells"]}
+        label = f"step {p['step']} (`{p['run']}`" + ("" if p["reader"] == p["run"] else f", read out by `{p['reader']}`") + ")"
+        points.append(dict(p, label=label, result=r, cells=cells, trained_cells=_cells(_train(d["logs"][p["run"]])),
+                           ended={k: (_ended(base, k), _ended(p["rows"], k)) for k in cells}))
+    return dict(base=base, untrained=untrained, points=points)
+
+
+def stop_of(d: dict, run: str) -> dict:
+    """What the stop rules say on the stored log of a run, with the settings of its job script."""
+    return S.decide(d["logs"][run], STOP_CONFIG[run])
+
+
+def slug(title: str) -> str:
+    """The anchor a Markdown heading gets."""
+    return re.sub(r"[^a-z0-9 -]", "", title.lower()).replace(" ", "-")
 
 
 # ------------------------------------------------------------------------------------------------ sections
@@ -327,6 +367,12 @@ def behaviour_section(d: dict, rs: list[dict]) -> list[str]:
         for k, (b, t) in sorted(r["ended"].items()):
             out.append([f"`{r['run']}`", name(k), "yes" if k in r["trained_cells"] else "no", f"{b['passed']} -> {t['passed']}",
                         f"{b['rejected']} -> {t['rejected']}", f"{b['cut']} -> {t['cut']}", f"{b['context']:,} -> {t['context']:,}", b["episodes"]])
+    line = line_of(d)
+    cont = [p for p in line["points"] if p["run"] != FIRST_RUN]
+    for p in cont:
+        for k, (b, t) in sorted(p["ended"].items()):
+            out.append([f"`{p['run']}` at step {p['step']}" + ("" if p["reader"] == p["run"] else f" (read out by `{p['reader']}`)"), name(k), "yes" if k in p["trained_cells"] else "no", f"{b['passed']} -> {t['passed']}",
+                        f"{b['rejected']} -> {t['rejected']}", f"{b['cut']} -> {t['cut']}", f"{b['context']:,} -> {t['context']:,}", b["episodes"]])
     lines = table(["run", "cell", "trained on it", "passes", "ended by the rejected-call limit", "cut by length", "median context tokens",
                    "episodes per side"], out) + [""]
     by = {r["run"]: r for r in rs}
@@ -354,9 +400,88 @@ def behaviour_section(d: dict, rs: list[dict]) -> list[str]:
         lines.append(f"- `{many['run']}` ({len(many['trained_cells'])} training cells): the episodes cut by length {moved(b, t)} "
                      f"of {n} ({100 * t / n:.0f} % of the trained side), and the median context grows in {sum(x[1]['context'] > x[0]['context'] for x in many['ended'].values())} "
                      f"of its {len(many['ended'])} cells. Its own readout stopped on its length check for that reason.")
+    ref, last = next(p for p in reversed(line["points"]) if p["run"] == FIRST_RUN), cont[-1]
+    for k in (L1, HINTED):
+        a, b = ref["ended"][k][1], last["ended"][k][1]
+        lines.append(f"- The adapter line (section {SEC['line']}) from step {ref['step']} (`{ref['run']}`) to step {last['step']} (`{last['run']}`) on "
+                     f"{name(k)}: the endings at the rejected-call limit {moved(a['rejected'], b['rejected'])}, the episodes cut by length "
+                     f"{moved(a['cut'], b['cut'])} of {a['episodes']}, and the median context "
+                     f"{moved(a['context'], b['context'], ('falls', 'rises', 'stays'), '{:,}')} tokens.")
     lines.append(f"- The accounting was corrected afterwards (commit {d['runs'][RECOUNT_RUN]['code']}): until then a call that the instrument refused "
                  "counted toward the rejected-call limit like a call that was written wrongly; since then only a call that is written wrongly "
-                 f"does. Run `{RECOUNT_RUN}` trains {d['runs'][RECOUNT_RUN]['cells'].split(' (')[0]} on that code; it has no readout yet.")
+                 f"does. Run `{RECOUNT_RUN}` trained {d['runs'][RECOUNT_RUN]['cells'].split(' (')[0]} on that code (section {SEC['second']}); it has no readout.")
+    return lines
+
+
+def line_section(d: dict, line: dict) -> list[str]:
+    """One adapter on the same secret instances at every step it was read: passes per cell with the paired difference
+    against base, then what the table holds, in sentences read from it."""
+    points, base = line["points"], line["base"]
+    first, cont = [p for p in points if p["run"] == FIRST_RUN], [p for p in points if p["run"] != FIRST_RUN]
+    n = len(_of(base, L1))
+    forked = min(r["step"] for r in _train(d["logs"][LONGER_RUN])) - 1
+    who = lambda k: words(f"`{r}`" for r in dict.fromkeys(p["run"] for p in points if k in p["trained_cells"])) or "-"           # noqa: E731
+    head = ["cell", "training cell of", "base"] + [p["label"] + (", chosen on the dev looks" if p["reader"] == SELECTED else "") for p in points]
+    out = [[name(k), who(k), _ended(base, k)["passed"]] + [f"{p['ended'][k][1]['passed']}: {gain(p['cells'][k]['paired'])}" for p in points]
+           for k in sorted(points[0]["cells"])]
+    lines = [f"`{FIRST_RUN}` trained on {words(name(k) for k in first[0]['trained_cells'])} for {first[-1]['step']} steps. `{LONGER_RUN}` continued "
+             f"its step-{forked} weights on {words(name(k) for k in cont[0]['trained_cells'])} to step {cont[-1]['step']}. Their adapter was read "
+             f"{len(points)} times against one base log on the same secret instances ({len(points) + 1} readings with the base model's): passes of "
+             f"{n} episodes per cell, then the paired difference against base in points with its 95 % interval. The step-"
+             f"{next(p['step'] for p in points if p['reader'] == SELECTED)} checkpoint was chosen on the dev looks of `{LONGER_RUN}` (section "
+             f"{SEC['dev']}); the other readings are of fixed steps.", ""] + table(head, out) + [""]
+    seq = lambda k: [_ended(base, k)["passed"]] + [p["ended"][k][1]["passed"] for p in points]                                 # noqa: E731
+    hard = seq(L2)
+    lines.append(f"- {name(L2)} " + ("rises at every reading" if all(b > a for a, b in zip(hard, hard[1:])) else "does not rise at every reading")
+                 + ": " + ", ".join(map(str, hard)) + f" of {n}.")
+    for k, what in ((L1, "not a training cell of the continuation"), (HINTED, "the family never trained on")):
+        ref, mid, last = first[-1], cont[0], cont[-1]
+        lines.append(f"- {name(k)}, {what}: its passes {moved(ref['ended'][k][1]['passed'], last['ended'][k][1]['passed'])} of {n} between step "
+                     f"{ref['step']} and step {last['step']} ({mid['ended'][k][1]['passed']} at step {mid['step']}; the base model passes "
+                     f"{_ended(base, k)['passed']}).")
+    harm = [(p, next(e for e in p["result"]["environments"] if e["role"] == "untrained")) for p in points]
+    broken = [(p, e) for p, e in harm if not e["meets_rule"]]
+    lines.append(f"- The plan's \"no harm\" (the environment never trained on is at most {100 * HARM:.0f} points below base) "
+                 + ("holds at every reading." if not broken else "is violated at " + words(f"step {p['step']}" for p, _ in broken) + ": "
+                    + ", ".join(f"{e['env_id'].split('/')[1]} is {gain(e['paired'])} points against base" for _, e in broken)
+                    + ". It holds at " + words(f"step {p['step']}" for p, e in harm if e["meets_rule"]) + "."))
+    return lines
+
+
+def second_family_section(d: dict, rs: list[dict]) -> list[str]:
+    """Every run that had the other family as a training cell: what it ran on, its dev looks on the practice level,
+    its readout there where it has one, how it ended; for the run on the corrected accounting, its training by blocks."""
+    runs, logs = d["runs"], d["logs"]
+    by = {r["run"]: r for r in rs}
+    family = [k for k in runs if k in logs and any(e == HINTED[0] for e, _ in _cells(_train(logs[k])))]
+    out = []
+    for k in family:
+        looks = _of(S._looks(logs[k], "dev"), HINTED)
+        dev = ", ".join(f"{frac([r for r in looks if r['step'] == st])} at {st}" for st in sorted({r["step"] for r in looks}))
+        c = by[k]["cells"][HINTED] if k in by else None
+        secret = "-" if c is None else (f"{by[k]['ended'][HINTED][0]['passed']} / {by[k]['ended'][HINTED][0]['episodes']} -> "
+                                        f"{by[k]['ended'][HINTED][1]['passed']} / {by[k]['ended'][HINTED][1]['episodes']}: {gain(c['paired'])}")
+        out.append([f"`{k}`", runs[k]["code"], "by class" if k == RECOUNT_RUN else "before the correction",
+                    ", ".join(name(x) for x in _cells(_train(logs[k]))), max(r["step"] for r in _train(logs[k])), dev, secret, runs[k]["state"]])
+    lines = [f"{HINTED[0].split('/')[1]} was a training cell in {len(family)} runs. Level 0 is its practice level: the text states the method.", ""]
+    lines += table(["run", "code", "rejected-call accounting", "trained on", "last training step", f"dev passes of {name(HINTED)} by step",
+                    f"secret split, {name(HINTED)}: base -> trained, paired difference [95 %]", "how it ended"], out) + [""]
+    for k in family:
+        if k in STOP_CONFIG:
+            stop = stop_of(d, k)
+            lines.append(f"- `{k}` stopped on `{stop['rule']}`: {stop['reason']}." if stop["stop"] else f"- `{k}`: no rule stops on its stored log.")
+    lines.append(f"- In `{RECOUNT_RUN}` the rejected calls were already counted by class (commit {runs[RECOUNT_RUN]['code']}, section "
+                 f"{SEC['behaviour']}), so that accounting is not the explanation there. `{STOPPED_RUN}` holds the episodes of `v16`.")
+    train = _train(logs[RECOUNT_RUN])
+    last, block = max(r["step"] for r in train), 5
+    blocks = []
+    for lo in range(0, last, block):
+        eps = [r for r in train if lo < r["step"] <= lo + block]
+        blocks.append([f"{lo + 1}-{min(lo + block, last)}", f"{frac(eps)} ({100 * sum(bool(r['passed']) for r in eps) / len(eps):.0f} %)",
+                       f"{sum(bool(r['submitted']) for r in eps)} / {len(eps)} ({100 * sum(bool(r['submitted']) for r in eps) / len(eps):.0f} %)",
+                       f"{_ended(eps)['context']:,}"])
+    lines += ["", f"Training rollouts of `{RECOUNT_RUN}` in blocks of {block} steps (all its training cells):", ""]
+    lines += table(["steps", "passes / rollouts", "rollouts that delivered", "median context tokens"], blocks)
     return lines
 
 
@@ -435,13 +560,6 @@ def dev_against_secret(d: dict, r: dict, key=L1):
     return _rate([x for x in looks if x["step"] == last]), _rate(_of(d["tests"][r["run"]]["trained"], key)), last
 
 
-def submit_rate(log, window=5):
-    """Share of the training episodes of the last ``window`` steps that delivered, as the stop rule computes it."""
-    per_step = collections.Counter(r["step"] for r in _train(log))
-    steps = S.step_table(log, dict(S.DEFAULTS, episodes_per_step=collections.Counter(per_step.values()).most_common(1)[0][0]))
-    return sum(s["submit_rate"] for s in steps[-window:]) / len(steps[-window:]), steps[-1]["step"]
-
-
 # ------------------------------------------------------------------------------------------------ the report
 def build(d: dict | None = None) -> str:
     d = d or stored()
@@ -449,15 +567,19 @@ def build(d: dict | None = None) -> str:
     rs = readouts(d)
     by = {r["run"]: r for r in rs}
     main, first = by[MAIN_RUN], by[FIRST_RUN]
-    early = R.readout(d["tests"][FIRST_RUN]["base"], _test(d["early"]), first["untrained"], "test", GAIN, LOWER, HARM, MIN_ENVS)
-    early_step = max(r["step"] for r in d["early"])
+    line = line_of(d)
+    early_point = line["points"][0]
+    early, early_step, early_rows = early_point["result"], early_point["step"], early_point["rows"]
+    selected = next(p for p in line["points"] if p["reader"] == SELECTED)
     limit = lambda k: f"{_episode_tokens(runs[k]):,}-token"                                         # noqa: E731
     last_step = lambda k: max(r["step"] for r in _train(logs[k]))                                   # noqa: E731
     dev, secret, dev_step = dev_against_secret(d, main)
-    stop_rate, stop_step = submit_rate(logs[STOPPED_RUN])
     many = by[MANY_CELLS_RUN]
     many_cut, many_n = sum(x[1]["cut"] for x in many["ended"].values()), sum(x[1]["episodes"] for x in many["ended"].values())
     base_logs = len({r["files"][0] for r in d["tests"].values()})
+    trained_logs = len({r["files"][1] for r in d["tests"].values()} | {p["file"] for p in line["points"]})
+    stops = {k: stop_of(d, k) for k in STOP_CONFIG}
+    second = [k for k in runs if k in logs and any(e == HINTED[0] for e, _ in _cells(_train(logs[k])))]
     attempts_in_base = {k: len({r["attempt"] for r in t["raw"][0]}) for k, t in d["tests"].items()}
     dead, families = dead_families(cals["c05"])
     unhinted = [f"{r['ended'][UNHINTED][0]['passed']} / {r['ended'][UNHINTED][0]['episodes']} -> {r['ended'][UNHINTED][1]['passed']} / "
@@ -481,10 +603,13 @@ def build(d: dict | None = None) -> str:
          "Every finished training run, trained against the base model on the same instances of the secret split `test-iid`, in the "
          "trainer's harness. One row per run; the trained level is the cell that every run trained on.", ""] + replications_section(rs) + [
          "", "What the tables show, and what they do not:", ""] + findings(rs) + ["",
+         f"## {SEC['line']}. {TITLES['line']}", ""] + line_section(d, line) + ["",
          f"## {SEC['behaviour']}. What training does to behaviour", "",
          "How the episodes of the secret split ended, base -> trained, per run and cell: passes, episodes ended by the rejected-call "
          f"limit (outcome `{REJECTED}`), episodes cut by length (a reply cut by its token limit, or a full context), and the median "
-         "context of an episode in tokens.", ""] + behaviour_section(d, rs) + ["",
+         f"context of an episode in tokens. The last rows are the continuation of the adapter line (section {SEC['line']}).", ""]
+         + behaviour_section(d, rs) + ["",
+         f"## {SEC['second']}. {TITLES['second']}", ""] + second_family_section(d, rs) + ["",
          f"## {SEC['secret']}. The secret split, run by run", "",
          f"### Run `{MAIN_RUN}`: the recipe on the published code", "",
          f"Trained on {words(name(k) for k in main['trained_cells'])} for {main['steps']} steps on {_node(runs[MAIN_RUN])} with a {limit(MAIN_RUN)} "
@@ -497,9 +622,9 @@ def build(d: dict | None = None) -> str:
          f"{limit(first['by'])} limit (runs `v12`, `{first['by']}`; the base half is shared).", "",
          f"After {first['steps']} steps (the final weights):", ""] + readout_section(first["result"], f"after {first['steps']} steps") + ["",
          f"After {early_step} steps:", ""] + readout_section(early, f"after {early_step} steps") + ["", "How its episodes ended:", ""]
-         + outcomes_section([("base", d["tests"][FIRST_RUN]["base"]), (f"step {early_step}", _test(d["early"])),
+         + outcomes_section([("base", d["tests"][FIRST_RUN]["base"]), (f"step {early_step}", early_rows),
                              (f"step {first['steps']}", d["tests"][FIRST_RUN]["trained"])]) + ["", "Length of its episodes:", ""]
-         + tokens_section([("base", d["tests"][FIRST_RUN]["base"]), (f"step {early_step}", _test(d["early"])),
+         + tokens_section([("base", d["tests"][FIRST_RUN]["base"]), (f"step {early_step}", early_rows),
                            (f"step {first['steps']}", d["tests"][FIRST_RUN]["trained"])]) + [""])
     for r in rs:
         if r["run"] not in (MAIN_RUN, FIRST_RUN):
@@ -517,11 +642,11 @@ def build(d: dict | None = None) -> str:
         MANY_CELLS_RUN: f"Four cells at once on the {limit(MANY_CELLS_RUN)} limit, same code as `{FIRST_RUN}`.",
         "v11": "NullTissue-v0 level 0 + NoWrap-v1 level 1 on an interim code state in which only the calculator's step limit was raised.",
         LONGER_RUN: f"Continues the step-50 weights of `{FIRST_RUN}` on NoWrap-v1 levels 2 and 3 only, {limit(LONGER_RUN)} limit; level 1 is watched "
-                    f"for forgetting. {runs[LONGER_RUN]['state'][0].upper() + runs[LONGER_RUN]['state'][1:]}: the log ends at step {last_step(LONGER_RUN)}.",
+                    f"for forgetting. The log ends at step {last_step(LONGER_RUN)}. Its secret-split readings are in section {SEC['line']}.",
         STOPPED_RUN: f"NullTissue-v0 levels 0 and 1 from the base model on the corrected interface (it holds the episodes of `v16`). "
-                     f"{runs[STOPPED_RUN]['state'][0].upper() + runs[STOPPED_RUN]['state'][1:]}: in the log that rate is {stop_rate:.3f} at step {stop_step}.",
+                     f"Stopped on `{stops[STOPPED_RUN]['rule']}`: {stops[STOPPED_RUN]['reason']}.",
         RECOUNT_RUN: f"The same cells on the code that counts rejected calls by class (commit {runs[RECOUNT_RUN]['code']}). "
-                     f"{runs[RECOUNT_RUN]['state'][0].upper() + runs[RECOUNT_RUN]['state'][1:]}: the log ends at step {last_step(RECOUNT_RUN)}.",
+                     f"Stopped on `{stops[RECOUNT_RUN]['rule']}`: {stops[RECOUNT_RUN]['reason']}.",
     }
     order = [k for k in notes if k in logs]
     for k in order:
@@ -564,11 +689,14 @@ def build(d: dict | None = None) -> str:
           "readout was made by separate evaluation-only runs on a larger limit, with the same instances and harness.",
           f"- The readout of `{MANY_CELLS_RUN}` stopped on its length check as well ({many_cut} of its {many_n} trained episodes were cut, "
           f"{100 * many_cut / many_n:.0f} %); its two evaluation logs are complete and the paired readout here is computed from them.",
-          f"- The secret split was read {len(d['tests']) + 1} times with trained weights (`{FIRST_RUN}` after {early_step} and {first['steps']} steps, "
-          + ", ".join(f"`{r['run']}` after {r['steps']}" for r in rs if r["run"] != FIRST_RUN) + f") and {base_logs} times with the base model; "
+          f"- The secret split was read {trained_logs} times with trained weights ("
+          + ", ".join(f"`{k}` after {words(p['step'] for p in line['points'] if p['run'] == k)} steps" for k in dict.fromkeys(p["run"] for p in line["points"]))
+          + ", " + ", ".join(f"`{r['run']}` after {r['steps']}" for r in rs if r["run"] != FIRST_RUN) + f") and {base_logs} times with the base model; "
           "every reading is in this report. Where an evaluation log holds more than one attempt ("
           + (", ".join(f"the base log of `{k}`: {n}" for k, n in attempts_in_base.items() if n > 1) or "none does") + "), the newest is used, as the "
           "readout of the node scripts does.",
+          f"- The adapter of `{FIRST_RUN}` and `{LONGER_RUN}` was read {len(line['points']) + 1} times on the same secret instances, the base model's "
+          f"reading included; the checkpoint of step {selected['step']} was chosen on the dev looks, the other steps were fixed (section {SEC['line']}).",
           f"- {' or '.join(map(str, sizes))} secret instances per cell instead of the planned number; one sampler seed per run.",
           f"- `v11` ran on {runs['v11']['code']}.",
           "- The evaluation table pools repeated looks at the same weights after a restart; the table the job itself printed kept the newer look only.", "",
@@ -584,8 +712,11 @@ def build(d: dict | None = None) -> str:
           "- All tasks of the suite are measurement tasks by the suite's own open-loop control; nothing here is evidence about decision tasks.",
           f"- {dead} of the {families} scored families have every cell below {100 * learn.BANDS[0][2]:.0f} % for the thinking-off model in `c05`: "
           "the reward has nothing to start from there.",
-          f"- {words(f'`{k}`' for k in training)} {'was' if len(training) == 1 else 'were'} still training when the files were copied ("
-          + ", ".join(f"`{k}` at step {last_step(k)}" for k in training) + ").",
+          f"- The step-{selected['step']} reading of the adapter line is of a checkpoint selected on the dev looks; it is not a fixed-step result "
+          f"(section {SEC['line']}).",
+          f"- A second family did not train: {HINTED[0].split('/')[1]} was a training cell in {len(second)} runs (section {SEC['second']}).",
+          *([f"- {words(f'`{k}`' for k in training)} {'was' if len(training) == 1 else 'were'} still training when the files were copied ("
+             + ", ".join(f"`{k}` at step {last_step(k)}" for k in training) + ")."] if training else []),
           "- No conversation of a readout episode has been read: the report counts how episodes ended, it does not explain why.", "",
           f"## {SEC['reproduce']}. Reproduce", "",
           "```", "python docs/experiments/27b/report.py --check          # this report from the stored files",
@@ -797,9 +928,11 @@ def pitfalls_block(d: dict) -> str:
     walled = [r for r in by.values() if HINTED in r["trained_cells"] and UNHINTED in r["cells"]][-1]
     clean = [r for r in by.values() if HINTED in r["cells"] and HINTED not in r["trained_cells"]]
     wall = walled["ended"][HINTED]
-    looks = S._looks(logs[LONGER_RUN], "dev")
-    late = sorted({r["step"] for r in looks})[-4:]
-    ends = [_ended([r for r in looks if r["step"] == st]) for st in late]
+    recount_looks = _of(S._looks(logs[RECOUNT_RUN], "dev"), HINTED)
+    recount = [[r for r in recount_looks if r["step"] == st] for st in (0, max(r["step"] for r in recount_looks))]
+    line = line_of(d)["points"]
+    late = [next(p for p in reversed(line) if p["run"] == FIRST_RUN)] + [p for p in line if p["run"] != FIRST_RUN]
+    ends = [p["ended"][L1][1] for p in late]
     return "\n".join([
         f"1. **The episode token limit.** A limit that is too small hides learning. The step-{step} weights of `{FIRST_RUN}` pass the harder level in "
         f"{frac(look(FIRST_RUN, L2, step))} dev episodes on its {_response_tokens(runs[FIRST_RUN]):,}-token response limit ({cut} cut by length) "
@@ -820,10 +953,12 @@ def pitfalls_block(d: dict) -> str:
         f"such endings {wall[0]['rejected']} -> {wall[1]['rejected']}); "
         + words(f"`{r['run']}`" for r in clean) + " trained on the clean cell only and it improved (passes "
         + ", ".join(f"{r['ended'][HINTED][0]['passed']} -> {r['ended'][HINTED][1]['passed']}" for r in clean) + ", such endings "
-        + ", ".join(f"{r['ended'][HINTED][0]['rejected']} -> {r['ended'][HINTED][1]['rejected']}" for r in clean) + ").",
-        f"6. **Episodes get longer late in training.** In `{LONGER_RUN}` the median context of the dev looks at steps {words(late)} is "
-        + ", ".join(f"{e['context']:,}" for e in ends) + " tokens and " + ", ".join(str(e["cut"]) for e in ends) + f" of {ends[0]['episodes']} episodes "
-        "are cut by length. Choose the checkpoint by the dev looks, not by the last step."])
+        + ", ".join(f"{r['ended'][HINTED][0]['rejected']} -> {r['ended'][HINTED][1]['rejected']}" for r in clean) + "). With the accounting corrected "
+        f"it still did not train (`{RECOUNT_RUN}`: dev {frac(recount[0])} at step 0, {frac(recount[1])} at its last look).",
+        f"6. **Episodes get longer late in training.** On the secret split the adapter of `{FIRST_RUN}` and its continuation `{LONGER_RUN}` passes the "
+        f"trained level in " + ", ".join(str(e["passed"]) for e in ends) + f" of {ends[0]['episodes']} episodes at steps {words(p['step'] for p in late)}, "
+        "with a median context of " + ", ".join(f"{e['context']:,}" for e in ends) + " tokens and " + ", ".join(str(e["cut"]) for e in ends)
+        + " episodes cut by length. Choose the checkpoint by the dev looks, not by the last step."])
 
 
 def status_block(d: dict) -> str:
@@ -837,8 +972,9 @@ def status_block(d: dict) -> str:
     return f"Check on the published code (commit {main['code']}, run `{MAIN_RUN}`, {_node(main)}): {main['state']}. " + then
 
 
-def reach_block(d: dict) -> str:
+def reach_block(d: dict, prefix: str) -> str:
     cal = d["cals"]["c05"]
+    second = [k for k in d["runs"] if k in d["logs"] and any(e == HINTED[0] for e, _ in _cells(_train(d["logs"][k])))]
     by = collections.defaultdict(list)
     for c in cal["cells"]:
         by[learn.band(c["passed"] / c["n_episodes"])].append(c)
@@ -858,13 +994,14 @@ def reach_block(d: dict) -> str:
                             f"{cal['n']} instances x {cal['k']} episodes)", "Use"], out) + [
         "", f"The trainer's token stream is stricter than the chat harness (a reply cut by the token limit ends the episode): {cell(chat)} is "
             f"{chat['passed']} / {chat['n_episodes']} in this calibration and {frac(step0)} at step 0 of `{MAIN_RUN}`. The step-0 evaluation of a "
-            "run is the number that decides."])
+            f"run is the number that decides. A second family ({HINTED[0].split('/')[1]}) did not train with this recipe in {len(second)} runs: "
+            f"[what happened]({prefix}docs/experiments/RESULTS-27b.md#{slug(str(SEC['second']) + '. ' + TITLES['second'])})."])
 
 
 def blocks(d: dict, prefix: str) -> dict:
     env, data = settings(), figure_data(d)
     return dict(TRAINING=training_block(data, prefix, env["MODEL_HF"]), RECIPE_SETTINGS=settings_block(env, prefix), RECIPE_STATUS=status_block(d),
-                RECIPE_NEEDS=needs_block(d, env, prefix), RECIPE_PITFALLS=pitfalls_block(d), RECIPE_REACH=reach_block(d))
+                RECIPE_NEEDS=needs_block(d, env, prefix), RECIPE_PITFALLS=pitfalls_block(d), RECIPE_REACH=reach_block(d, prefix))
 
 
 def fill(text: str, bodies: dict, needed=()) -> str:

@@ -123,10 +123,11 @@ def test_the_front_page_shows_the_recipe_run_counted_from_its_logs(report, store
 def test_the_report_holds_every_replication_and_what_training_did_to_behaviour(report, stored):
     text = _read("docs", "experiments", "RESULTS-27b.md")
     heads = [ln for ln in text.splitlines() if ln.startswith("## ")]
-    assert heads[:4] == ["## 1. Runs", "## 2. Replications", "## 3. What training does to behaviour", "## 4. The secret split, run by run"]
+    assert heads[:6] == ["## 1. Runs", "## 2. Replications", "## 3. One adapter line on the same secret instances",
+                         "## 4. What training does to behaviour", "## 5. A second family did not train", "## 6. The secret split, run by run"]
     assert [h.split(". ", 1)[0] for h in heads] == [f"## {i}" for i in range(1, len(report.SECTIONS) + 1)]
     replications = text[text.index(heads[1]):text.index(heads[2])]
-    behaviour = text[text.index(heads[2]):text.index(heads[3])]
+    behaviour = text[text.index(heads[3]):text.index(heads[4])]
     for run, (b, t) in READOUT_FILES.items():
         base, trained = _log(b), _log(t)
         row = next(ln for ln in replications.splitlines() if ln.startswith(f"| `{run}`"))       # one row per finished training run
@@ -208,7 +209,58 @@ def test_the_recipe_line_and_the_pitfalls_follow_the_stored_runs(report, stored)
     pitfalls = _block(recipe, "RECIPE_PITFALLS").strip().splitlines()
     assert [ln.split(".")[0] for ln in pitfalls] == ["1", "2", "3", "4", "5", "6"]                 # one line each
     assert "`v11` trained on it and it got worse" in pitfalls[4] and "`v17` and `v07` trained on the clean cell only" in pitfalls[4]
-    assert "In `v13` the median context of the dev looks" in pitfalls[5] and "Choose the checkpoint by the dev looks" in pitfalls[5]
+    assert "With the accounting corrected it still did not train (`v19`" in pitfalls[4]
+    passes = [_counts(_log(n))[("NoWrap-v1", 1)][0] for n in ("test_trained_step60.jsonl.gz", "test_trained_step80.jsonl.gz", "test_trained_step110.jsonl.gz")]
+    assert f"passes the trained level in {', '.join(map(str, passes))} of 96 episodes at steps 60, 80 and 110" in pitfalls[5]     # the adapter line
+    assert "Choose the checkpoint by the dev looks" in pitfalls[5]
+    # how to extend: the family that did not train, with a link to its section of the report
+    heading = next(ln for ln in _read("docs", "experiments", "RESULTS-27b.md").splitlines() if ln.endswith("A second family did not train"))
+    anchor = re.sub(r"[^a-z0-9 -]", "", heading.lstrip("# ").lower()).replace(" ", "-")
+    assert f"did not train with this recipe in 4 runs: [what happened](../docs/experiments/RESULTS-27b.md#{anchor})" in _block(recipe, "RECIPE_REACH")
+
+
+def test_the_report_carries_the_adapter_line_and_the_family_that_did_not_train(report, stored):
+    """The negative results are in the report as the logs hold them: the continuation loses the level it no longer
+    trains on and the family it never trained on, and the second family did not train in any run."""
+    text = _read("docs", "experiments", "RESULTS-27b.md")
+    heads = [ln for ln in text.splitlines() if ln.startswith("## ")]
+    line = text[text.index(heads[2]):text.index(heads[3])]
+    second = text[text.index(heads[4]):text.index(heads[5])]
+    files = ("test_trained_step40.jsonl.gz", "test_trained_step60.jsonl.gz", "test_trained_step80.jsonl.gz", "test_trained_step110.jsonl.gz")
+    base, points = _log("test_base_57k.jsonl.gz"), [_log(n) for n in files]
+    assert [sorted({r["step"] for r in p}) for p in points] == [[40], [60], [80], [110]]
+    # what the runs' own readouts printed for the last two readings
+    assert [_counts(points[3])[c][0] for c in sorted(_counts(base))] == [73, 67, 8, 6] and [_counts(points[2])[c][0] for c in sorted(_counts(base))] == [90, 47, 5, 26]
+    for cell in sorted(_counts(base)):
+        row = next(ln for ln in line.splitlines() if ln.startswith(f"| {cell[0]} L{cell[1]} |")).split(" | ")
+        assert row[2] == str(_counts(base)[cell][0])
+        assert [c.strip(" |").split(":")[0] for c in row[3:]] == [str(_counts(p)[cell][0]) for p in points]
+        assert all(f"{_paired(base, p, cell):+.1f} [" in c for c, p in zip(row[3:], points))
+    head = next(ln for ln in line.splitlines() if ln.startswith("| cell |"))
+    assert "step 80 (`v13`, read out by `v20`), chosen on the dev looks" in head and "step 110 (`v13`) |" in head and "read out by `v12`" in head
+    assert "NoWrap-v1 L2 rises at every reading: 3, 18, 37, 47, 67 of 96." in line
+    assert "NoWrap-v1 L1, not a training cell of the continuation: its passes fall from 93 to 73 of 96 between step 60 and step 110" in line
+    assert "NullTissue-v0 L0, the family never trained on: its passes fall from 48 to 6 of 96" in line
+    assert "is violated at step 110: NullTissue-v0 is -8.3 [" in line and "It holds at step 40, step 60 and step 80." in line
+    assert "the checkpoint of step 80 was chosen on the dev looks" in text and "it is not a fixed-step result" in text
+    assert "was read 5 times on the same secret instances, the base model's reading included" in text
+    # the family that was a training cell in four runs
+    rows = [ln for ln in second.splitlines() if ln.startswith("| `v")]
+    assert [ln.split(" | ")[0].strip("| `") for ln in rows] == ["v09", "v11", "v18", "v19"] and "was a training cell in 4 runs" in second
+    assert [ln.split(" | ")[2] for ln in rows] == ["before the correction"] * 3 + ["by class"]
+    with gzip.open(os.path.join(ROOT, "docs", "experiments", "27b", "results", "episodes_v19.jsonl.gz"), "rt", encoding="utf-8") as f:
+        log = [json.loads(ln) for ln in f]
+    dev = [r for r in log if r["phase"] == "dev" and (r["env_id"], r["level"]) == ("Scanner/NullTissue-v0", 0)]
+    looks = ", ".join(f"{sum(r['passed'] for r in dev if r['step'] == st)} / {sum(r['step'] == st for r in dev)} at {st}" for st in sorted({r["step"] for r in dev}))
+    assert looks == "31 / 64 at 0, 63 / 128 at 10, 24 / 64 at 20, 25 / 56 at 30" and f"| {looks} |" in rows[3]
+    assert "`v18` stopped on `not_delivering`: submit rate of the last 5 steps is 0.391" in second
+    assert "`v19` stopped on `futility`: evaluation at step 30: checkpoint minus base = -0.032, one-sided upper bound +0.045" in second
+    assert "so that accounting is not the explanation there" in second
+    train = [r for r in log if r["phase"] == "train" and r["attempt"] == max(x["attempt"] for x in log if x["phase"] == "train" and x["step"] == r["step"])]
+    block = [r for r in train if 26 <= r["step"] <= 30]
+    assert f"| 26-30 | {sum(r['passed'] for r in block)} / {len(block)} (" in second and f"| {sum(bool(r['submitted']) for r in block)} / {len(block)} (" in second
+    # the front page is still the recipe run
+    assert stored["runs"]["v13"]["state"] == "finished" and "v13" not in stored["tests"] and json.loads(_read("assets", "training_27b.json"))["run"] == "v17"
 
 
 def test_the_recipe_file_is_one_the_node_scripts_accept(report, tmp_path):

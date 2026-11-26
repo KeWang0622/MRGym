@@ -1,5 +1,5 @@
 {
- "_copied_utc": "2026-11-26T10:04:29Z",
+ "_copied_utc": "2026-11-26T15:17:44Z",
  "c01": {
   "what": "calibration of the base model, reasoning on (medium effort), replies up to 16,384 tokens",
   "cells": "NoWrap, NullTissue, PhantomQA, SNRSpec, T1Transmit, ProtocolToSpec, ArtefactClinic: their levels; 4 instances x 8 episodes",
@@ -58,10 +58,17 @@
  },
  "v13": {
   "what": "training continued from the step-50 weights of `v07`, steps 51-110",
-  "cells": "NoWrap-v1 levels 2, 3 (dev looks also on level 1)",
+  "cells": "NoWrap-v1 levels 2, 3 (dev looks also on level 1; readout on NoWrap-v1 levels 1, 2, 3 and NullTissue-v0 level 0 against the base half of `v12`; 48 instances x 2 episodes)",
   "node": "8 x H200; 8,192 + 49,152 tokens",
   "code": "`ef6d766`",
-  "state": "training when the files were copied"
+  "state": "finished"
+ },
+ "v20": {
+  "what": "evaluation only: the step-80 weights of `v13`, a checkpoint chosen on its dev looks, on the same instances (base half shared with `v12`)",
+  "cells": "as `v12`",
+  "node": "as `v12`; 8,192 + 49,152 tokens",
+  "code": "`ef6d766`",
+  "state": "finished"
  },
  "v16": {
   "what": "training from the base model on the corrected interface, 60 steps",
@@ -89,6 +96,6 @@
   "cells": "NullTissue-v0 levels 0, 1 (dev looks also on level 2)",
   "node": "8 x H200; 8,192 + 49,152 tokens",
   "code": "`852d3b3`",
-  "state": "training when the files were copied"
+  "state": "stopped by its rule `futility` (the upper bound of checkpoint minus base on the dev instances below the smallest gain worth detecting, 0.05); no readout"
  }
 }

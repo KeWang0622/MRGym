@@ -90,8 +90,8 @@ PYTHONPATH=integrations/verl python -m mrgym_verl.readout --untrained Scanner/Nu
 2. **Start where there is signal.** The reward is pass or nothing, so a cell near zero gives no gradient: start where the untrained model passes 20-60 % of the episodes with a pass and a failure in the same group, and keep the next level beside it. In `v17` the harder level gave 4 / 176 passing rollouts in steps 1-10 and 71 / 384 in steps 51-60, after the first level had gone from 204 / 464 to 220 / 256.
 3. **Few cells per run.** `v09` trained 4 cells at 8 groups per step: on the secret split the first level gained +53.1 [+38.0, +68.3] points, the other 3 +9.4 [+0.9, +17.9] (NoWrap-v1 L2), +1.6 [-11.0, +14.1] (NullTissue-v0 L0), +4.7 [-4.9, +14.2] (PhantomQA-v0 L1).
 4. **One look is noise, and the dev split flatters.** In run `v07` the weights of step 40 were evaluated 2 times on the same instances: 30 / 32 and 25 / 32 on NoWrap-v1 level 1. The last dev look of `v17` gave the trained level 62 / 64, its secret split 79 / 96. Judge by the paired readout on held-out instances, trained against base on the same instances.
-5. **Do not train on a cell while its interface wall stands.** NullTissue-v0 L0 ended 50 of 96 base episodes at the rejected-call limit. `v11` trained on it and it got worse (passes 24 -> 15, such endings 50 -> 73); `v17` and `v07` trained on the clean cell only and it improved (passes 32 -> 74, 14 -> 48, such endings 31 -> 4, 49 -> 31).
-6. **Episodes get longer late in training.** In `v13` the median context of the dev looks at steps 80, 85, 90 and 100 is 23,277, 27,176, 30,689, 33,765 tokens and 1, 10, 17, 22 of 192 episodes are cut by length. Choose the checkpoint by the dev looks, not by the last step.
+5. **Do not train on a cell while its interface wall stands.** NullTissue-v0 L0 ended 50 of 96 base episodes at the rejected-call limit. `v11` trained on it and it got worse (passes 24 -> 15, such endings 50 -> 73); `v17` and `v07` trained on the clean cell only and it improved (passes 32 -> 74, 14 -> 48, such endings 31 -> 4, 49 -> 31). With the accounting corrected it still did not train (`v19`: dev 31 / 64 at step 0, 25 / 56 at its last look).
+6. **Episodes get longer late in training.** On the secret split the adapter of `v07` and its continuation `v13` passes the trained level in 93, 90, 73 of 96 episodes at steps 60, 80 and 110, with a median context of 15,806, 18,943, 29,974 tokens and 0, 0, 5 episodes cut by length. Choose the checkpoint by the dev looks, not by the last step.
 <!-- RECIPE_PITFALLS:END -->
 
 ## Another task family
@@ -106,7 +106,7 @@ Where the untrained model stands on every cell of the suite, with thinking off:
 | frontier | 2 - 20 % | NullTissue-v0 L3 (3 / 64), PhantomQA-v0 L1 (9 / 64), PhantomQA-v0 L2 (7 / 64), PhantomQA-v0 L3 (6 / 64), T1Transmit-v1 L1 (6 / 64) | only inside a curriculum next to an easier level |
 | dead | 0 - 2 % | 21 cells of 8 families | never train on it: add an easier level or warm-start the model |
 
-The trainer's token stream is stricter than the chat harness (a reply cut by the token limit ends the episode): NoWrap-v1 L1 is 43 / 64 in this calibration and 33 / 64 at step 0 of `v17`. The step-0 evaluation of a run is the number that decides.
+The trainer's token stream is stricter than the chat harness (a reply cut by the token limit ends the episode): NoWrap-v1 L1 is 43 / 64 in this calibration and 33 / 64 at step 0 of `v17`. The step-0 evaluation of a run is the number that decides. A second family (NullTissue-v0) did not train with this recipe in 4 runs: [what happened](../docs/experiments/RESULTS-27b.md#5-a-second-family-did-not-train).
 <!-- RECIPE_REACH:END -->
 
 - **Entry:** start there once its failing episodes do not end at the rejected-call limit (pitfall 5). Set `TRAIN_ARMS`,
