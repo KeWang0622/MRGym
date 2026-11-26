@@ -180,3 +180,13 @@ def test_the_solvers_the_tool_description_names_work_without_an_import_and_in_a_
     with pytest.raises(C.CalcError):
         C.calc("np.brentq(lambda t: t - 1, 0, 2)")                           # numpy has no brentq: the prefix stays what numpy is
     assert C.calc("def minimize(a):\n    return a + 1\nminimize(1)")[-1][1] == 2   # a name of the text hides calc's
+
+
+def test_a_long_value_is_answered_by_its_ends_and_a_summary_not_in_full():
+    grid = C.render(C.calc("x = linspace(0, 1, 4096)"))
+    assert len(grid) < 200 and grid.startswith("x = [0, 0.0002442002,") and "4096 values, min 0, max 1" in grid
+    assert len(C.render(C.calc("y = [[i, i * i] for i in range(200)]"))) < 200 and "200 x 2 values" in C.render(C.calc("y = [[i, i * i] for i in range(200)]"))
+    assert C.render(C.calc("x = linspace(0, 1, 5)")) == "x = [0, 0.25, 0.5, 0.75, 1]"            # a short value is unchanged
+    assert C.render(C.calc("x = linspace(0, 1, 4096)\nx[10:13]")).endswith("[0.002442002, 0.002686203, 0.002930403]")
+    words = C.render(C.calc("s = ['ab'] * 400"))
+    assert len(words) < 700 and "characters; print the part you need" in words

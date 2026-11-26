@@ -3584,9 +3584,30 @@ def calc(text: str, names: dict | None = None) -> list[tuple[str | None, object]
     return new[-MAX_ECHO:]                                              # nothing asked for: the names it assigned (the last ones)
 
 
+MAX_ROW_CHARS = 600             # a value longer than this is shown as its ends and a summary (an assigned grid is not echoed in full)
+
+
+def _row_text(v) -> str:
+    """A value as one line of the answer. A long list or array is cut to its first and last elements with its size and
+    range: an assignment of a 4,096-point grid used to answer with 45,000 characters."""
+    text = _text(v)
+    if len(text) <= MAX_ROW_CHARS:
+        return text
+    if isinstance(v, (list, tuple, np.ndarray)):
+        try:
+            flat = np.asarray(v, float).ravel()
+            shape = np.shape(v)
+            size = f"{flat.size} values" if len(shape) <= 1 else " x ".join(str(n) for n in shape) + " values"
+            ends = ", ".join(_text(float(x)) for x in flat[:4]) + ", ..., " + ", ".join(_text(float(x)) for x in flat[-2:])
+            return f"[{ends}]  ({size}, min {_text(float(np.nanmin(flat)))}, max {_text(float(np.nanmax(flat)))}; print a slice to see more)"
+        except (TypeError, ValueError):
+            pass
+    return text[:MAX_ROW_CHARS] + f" ...  ({len(text)} characters; print the part you need)"
+
+
 def render(rows) -> str:
     """The rows as the agent reads them: ``name = value`` or the value, one per line."""
-    return "\n".join(f"{name} = {_text(v)}" if name else _text(v) for name, v in rows)
+    return "\n".join(f"{name} = {_row_text(v)}" if name else _row_text(v) for name, v in rows)
 
 
 def calc_call(raw_arguments: str) -> tuple[str, bool]:
