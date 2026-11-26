@@ -114,19 +114,26 @@ def test_a_refused_deliverable_does_not_end_the_episode_and_a_pass_without_a_sca
 
 @pytest.mark.parametrize("module", FAMILIES)
 def test_refusals_are_limited_and_the_limit_ends_the_episode_without_a_reward(module):
-    """An episode that runs out of refused deliverables is truncated: reward 0, nothing submitted, a stated reason."""
+    """An episode that runs out of refused deliverables is truncated: reward 0, nothing submitted, a stated reason. A
+    deliverable the console cannot evaluate, or one refused for how it is written, is a rejected call; one refused for
+    what it asks (a region missing, a value out of its range: class task) is a tool call. Whichever limit comes first
+    ends the episode."""
     good, case = scoring.first_row(module, passed=True)
     rows = _refused_through_step(module, good.instance, case)[0]
     env = _episode(module, good.instance)
-    steps = []
-    for k in range(env.max_rejected_calls + 1):
+    steps, before = [], env.state()["tool_calls"] + env.state()["rejected_calls"]        # the calls of the scan the episode starts with
+    for k in range(env.max_steps + env.max_rejected_calls):
         obs, reward, terminated, truncated, info = _submit(env, case.answer(rows[k % len(rows)]))
         assert obs.is_error and not terminated and reward == 0.0
         steps.append(truncated)
         if truncated:
             break
-    assert steps[-1] is True and not any(steps[:-1]) and len(steps) <= env.max_rejected_calls
-    assert info["submitted"] is False and info["reason"] == "rejected_call_limit" and obs.data["episode_continues"] is False
+    state = env.state()
+    assert steps[-1] is True and not any(steps[:-1]) and len(steps) == state["tool_calls"] + state["rejected_calls"] - before
+    assert info["submitted"] is False and obs.data["episode_continues"] is False
+    by_rejected = state["rejected_calls"] >= env.max_rejected_calls or env._episode["invalid_deliverables"] >= env.max_invalid_deliverables
+    assert info["reason"] == ("rejected_call_limit" if by_rejected else "max_steps") and (by_rejected or state["tool_calls"] == env.max_steps)
+    assert info["interface"]["rejected"] == info["interface"]["shape"] + info["interface"]["vocabulary"] + env._episode["invalid_deliverables"]
     assert env.state()["done"] is True and env.state()["reward"] == 0.0
     env.close()
 

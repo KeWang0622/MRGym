@@ -34,7 +34,7 @@ agrees with the same scan without the artefact mechanisms (mean absolute differe
 signal; at most 3 % against the object itself averaged over each pixel); every requirement is met.
 The scanner's log must show that you measured.
 
-Limits. Scan time: 67 s (only `scan` spends it). Tool calls: 160 (every executed call counts once). Rejected calls: 8 (a call that is refused for how it is written reaches no tool and costs nothing else), of them at most 3 refused `submit` calls. The episode ends at `submit` or at a limit; without `submit` the score is 0.
+Limits. Scan time: 67 s (only `scan` spends it). Tool calls: 160 (every call counts once unless rejected). Rejected calls: 8 (a call refused for how it is written: unknown name, wrong type; costs nothing else), of them at most 3 refused `submit` calls. The episode ends at `submit` or at a limit; without `submit` the score is 0.
 [scan time left 67.00 of 67 s · calls 0/160 · rejected 0/8]
 
 ## Working in this container

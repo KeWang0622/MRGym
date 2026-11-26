@@ -226,6 +226,10 @@ NEVER = [   # (what is never done for the agent, tool, arguments, parameter name
 ]
 
 
+NEVER_AS_TOOL_CALL = {"another unit is not converted", "a length in centimetres is not converted", "percent is not read as a fraction",
+                      "a non-integer is not rounded", "an odd matrix is not rounded", "a value is not clipped to its range"}
+
+
 @pytest.mark.parametrize("what, tool, arguments, parameter", NEVER, ids=[f"{n[1]}-{n[3]}-{i}" for i, n in enumerate(NEVER)])
 def test_canonical_form_never_guesses(what, tool, arguments, parameter):
     env = make()
@@ -233,7 +237,11 @@ def test_canonical_form_never_guesses(what, tool, arguments, parameter):
     err = step.observation.data["error"]
     assert step.observation.is_error and not step.done and err["parameter"] == parameter, what
     assert err.get("fix") or err.get("did_you_mean") or err.get("allowed"), what
-    assert env.state()["tool_calls"] == 0 and env.state()["rejected_calls"] == 1 and env._session.events == []      # nothing ran
+    # nothing ran. A value the instrument refuses (class task: another unit, percent, a non-integer, an odd matrix, out of
+    # range) is a tool call; a name or a word the interface does not have (vocabulary), a wrong type (shape) is a rejected call
+    as_tool_call = what in NEVER_AS_TOOL_CALL
+    assert (err["class"] == "task") == as_tool_call and env._session.events == [], what
+    assert (env.state()["tool_calls"], env.state()["rejected_calls"]) == ((1, 0) if as_tool_call else (0, 1)), what
     if err.get("fix"):                                                   # the fix repairs it: not refused for the same reason again
         fixed = call(env, tool, **I.apply_fix(env.admit({"name": tool, "arguments": arguments})[1], err["fix"])).observation
         again = fixed.data.get("error", {})
@@ -304,6 +312,10 @@ def _probes():
 PROBES = _probes()
 
 
+# the ``invalid_value`` probes that are rejected calls (class shape or vocabulary); every other one is of class task: a tool call
+REJECTED_VALUE_PROBES = {"protocol as prose", "scan index as a word", "unknown topic", "submit: header vocabulary", "T1 submit: a list"}
+
+
 def test_errors_every_probe_is_typed_charged_nothing_and_never_ends_the_episode():
     envs, seen = {}, set()
     for env_id, state, (label, tool_call, expected) in PROBES:
@@ -324,7 +336,10 @@ def test_errors_every_probe_is_typed_charged_nothing_and_never_ends_the_episode(
         err = obs.data["error"]
         assert obs.is_error and err["type"] == expected and err["type"] in I.ERROR_TYPES and err["class"] in I.CLASSES, (label, obs.text)
         assert obs.data["charged"]["scan_time_s"] == 0 and env.state()["scan_time_used_s"] == used and obs.data["episode_continues"], label
-        counted = I.ERRORS[expected][1]
+        # what the refusal is charged as: a rejected call for class shape / vocabulary and for a refused deliverable, a
+        # tool call for class task (``I.counts_as_tool_call``); the invalid_value probes of each side are listed below
+        counted = expected not in I.REJECTED_TYPES and err["class"] == "task"
+        assert counted == (I.ERRORS[expected][1] if I.ERRORS[expected][1] is not None else label not in REJECTED_VALUE_PROBES), (label, err["class"])
         assert (env.state()["tool_calls"] - calls, env.state()["rejected_calls"] - rejected) == (int(counted), int(not counted)), label
         assert obs.data["charged"] == dict(scan_time_s=0.0, tool_calls=int(counted), rejected_calls=int(not counted)), label
         assert obs.text.startswith(f"error {expected} · ") and "charged: " not in obs.text and len(obs.text) < 700, (label, obs.text)
@@ -508,7 +523,7 @@ def test_limits_rejected_calls_end_the_episode_at_the_number_told():
     env = mrgym.make(NOWRAP, level=1, seed=0)
     obs, info = env.reset(options={"harness": {"max_reply_tokens": 4096}})
     assert "Reply length: 4096 tokens." in obs.text and info["limits"]["harness"] == {"max_reply_tokens": 4096}
-    steps = [call(env, "plan", sequence="se") for _ in range(info["limits"]["max_rejected_calls"])]
+    steps = [call(env, "plan", sequence="se", tr_ms="soon") for _ in range(info["limits"]["max_rejected_calls"])]      # a wrong type: shape
     assert [s.done for s in steps] == [False] * 7 + [True] and steps[-1].truncated and steps[-1].info["reason"] == "rejected_call_limit"
     assert "rejected 8/8 (nothing charged)" in steps[-1].observation.text and env.state()["tool_calls"] == 0
     with pytest.raises(mrgym.ResetNeeded):

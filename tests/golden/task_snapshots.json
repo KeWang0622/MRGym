@@ -297,7 +297,7 @@
     "policy_error": null,
     "reward": 1.0,
     "steps": 27,
-    "texts_sha256": "a3e498377e816b4134e6ad2d22a4988ca3d757b614c006dec8f18dc0fc3a2d82",
+    "texts_sha256": "0a05d4c1808ccbc5969b6eeeda58feb34b41ed042c85f48df716ce7836434efe",
     "used_s": 53.4
    },
    "levels": {
@@ -1880,7 +1880,7 @@
     "policy_error": null,
     "reward": 1.0,
     "steps": 27,
-    "texts_sha256": "1a641a763e26529aa28c6fa55dbc110ab4ac00b877a6b179e572a45d30b6bfe7",
+    "texts_sha256": "2aab46a7f1fa4c74fffe8af747ddca4adf8194abf8a5b1abd0db0e050fb08dab",
     "used_s": 41.2306
    },
    "levels": {
@@ -2521,7 +2521,7 @@
     "policy_error": null,
     "reward": 1.0,
     "steps": 25,
-    "texts_sha256": "3acd98f418e14652f3e971f148f00ca698a940131f6caeaf333592ebcb3c9f03",
+    "texts_sha256": "f9d633d6319f57d8526fb1d65c0ce0b59417d678a05fd1d36e44062f95654602",
     "used_s": 114.36
    },
    "levels": {
@@ -3325,7 +3325,7 @@
     "policy_error": null,
     "reward": 1.0,
     "steps": 4,
-    "texts_sha256": "9ccd0dadc6b6ad46097e84517f338c52a559a060947c87649a9c3e44227edf1d",
+    "texts_sha256": "686eb0441aadd8d0bfb750e5a695b9866cf73aea8bea7b39a53062001738889c",
     "used_s": 10.524
    },
    "levels": {
@@ -3944,7 +3944,7 @@
     "policy_error": null,
     "reward": 1.0,
     "steps": 11,
-    "texts_sha256": "8b83420865b01cfa4465e019916b0c91b76268fd8f22763a79c462adcdaf974a",
+    "texts_sha256": "8ad15306463434cfebcb16e8c5224cccbc7735e2b0b635c733cdd438d081cd1e",
     "used_s": 193.44
    },
    "levels": {
@@ -4544,7 +4544,7 @@
     "policy_error": null,
     "reward": 1.0,
     "steps": 29,
-    "texts_sha256": "09a4aee7ff5e300339262bd905ed76da9f8b35c5f0ba47a66e313cdf8f537a47",
+    "texts_sha256": "c8b86a0309525a8cf572d98590526d4b8944091f0bf18335ddc6384b8bb36863",
     "used_s": 131.5
    },
    "levels": {
@@ -5270,7 +5270,7 @@
     "policy_error": null,
     "reward": 1.0,
     "steps": 6,
-    "texts_sha256": "0982368caef32b23bfbebdcb4374ea4e0c35b54b2e317870c6fc6a6aec054c58",
+    "texts_sha256": "e95631af4f00b4463c770a37550e59d829a4d528bdf78028be0e36229ff560e6",
     "used_s": 62.6
    },
    "levels": {
@@ -6090,7 +6090,7 @@
     "policy_error": null,
     "reward": 1.0,
     "steps": 20,
-    "texts_sha256": "dd0ede9a3c131ce18a195506dbe7036dfabd391b0dbe577f38fac2fe52f3b767",
+    "texts_sha256": "b8d579ad385babe65a7fde6fa5eda5c2fa5f477fa7f531718c25ba45b5175472",
     "used_s": 229.34
    },
    "levels": {
@@ -6754,7 +6754,7 @@
     "policy_error": null,
     "reward": 1.0,
     "steps": 9,
-    "texts_sha256": "d1d415ed6d1ece0f202a7ca257b8330a13f493cb1f88c766a3a44c77b2146a67",
+    "texts_sha256": "65f48881b1804d6451d48a55304366662e6fdfa868d18184b20ec8f8c7341d8f",
     "used_s": 82.58
    },
    "levels": {

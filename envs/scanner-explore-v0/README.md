@@ -63,7 +63,7 @@ Limits: 512 scanner requests and 1024 tool calls per episode.
 
 You operate a virtual MR scanner at 3 T through tool calls. A head lies in the field of view. Nothing is asked and nothing is scored: plan and run any protocol, look at the images, read out regions. `finish` ends the session.
 
-Limits. Scan time: 3600 s (only `scan` spends it). Tool calls: 1024 (every executed call counts once). Rejected calls: 8 (a call that is refused for how it is written reaches no tool and costs nothing else), of them at most 3 refused `finish` calls. The episode ends at `finish` or at a limit; without `finish` the score is 0.
+Limits. Scan time: 3600 s (only `scan` spends it). Tool calls: 1024 (every call counts once unless rejected). Rejected calls: 8 (a call refused for how it is written: unknown name, wrong type; costs nothing else), of them at most 3 refused `finish` calls. The episode ends at `finish` or at a limit; without `finish` the score is 0.
 [scan time left 3600.00 of 3600 s · calls 0/1024 · rejected 0/8]
 ~~~
 

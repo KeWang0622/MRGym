@@ -14,7 +14,9 @@ which only the runner of the episode receives.
                 error_class and error_type are the interface's own (``mrgym.interface``): the class is None | "shape" |
                 "vocabulary" (the two are the interface tax: the call was not taken as written) | "task" (the instrument
                 or the verifier said no) | "internal"; the type is one of ``mrgym.interface.ERRORS``. ``counted``: the
-                call counts as a tool call (a refused call that reached no tool counts as a rejected call instead)
+                call counts as a tool call. A call refused with class "shape" or "vocabulary" (for how it is written)
+                is a rejected call instead, as is a refused submission; a call refused with class "task" (for what it
+                asks) is a tool call, whatever its type
 
 and at the last step of the episode (terminated or truncated)
     outcome       exactly one name of the environment's closed taxonomy (``env.outcomes()``), worst first

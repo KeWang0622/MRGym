@@ -46,7 +46,9 @@ step        {turn, tool, ok, error_class, error_type, counted, cost_s, scan_time
             error_class, error_type: the interface's own (mrgym.interface). The class is None, "shape" or
             "vocabulary" (the interface tax: the call was not taken as written), "task" (the instrument or the
             verifier said no) or "internal"; the type is one of mrgym.interface.ERRORS.
-            counted: the call counts as a tool call (a refused call that reached no tool is a rejected call)
+            counted: the call counts as a tool call. A call refused with class "shape" or "vocabulary" (for
+            how it is written) is a rejected call instead, as is a refused submission; a call refused with class
+            "task" (for what it asks) is a tool call, whatever its type
 ```
 
 and at the last step of the episode, terminated or truncated:

@@ -127,11 +127,12 @@ def test_each_way_an_episode_ends_has_its_outcome():
         env.note_length_cut()
         end = env.end_without_submission(reason)
         assert end["outcome"] == name and end["counts"]["length_cuts"] == 1 and env.end_without_submission(reason) == end
-    env, ids = fresh()                                                   # a deliverable with a region missing: a rejected call of class task
+    env, ids = fresh()                                                   # a deliverable with a region missing: class task, a tool call
     r = env.step(_call("submit", ti_ms={ids[0]: 400.0}))
-    assert not r.done and (r.info["step"]["error_class"], r.info["step"]["error_type"], r.info["step"]["counted"]) == ("task", "invalid_value", False)
+    assert not r.done and (r.info["step"]["error_class"], r.info["step"]["error_type"], r.info["step"]["counted"]) == ("task", "invalid_value", True)
     end = env.end_without_submission("stopped")
-    assert end["outcome"] == "no_submission_stopped" and end["counts"]["refused_deliverables"] == 0 and end["counts"]["rejected"] == 1
+    assert end["outcome"] == "no_submission_stopped" and end["counts"]["refused_deliverables"] == 0
+    assert (end["counts"]["rejected"], end["counts"]["executed"], end["counts"]["task_refusals"]) == (0, 1, 1)
     env = mrgym.make(NULL, level=2, seed=11)                             # a deliverable the console refuses, then nothing
     env.reset()
     t = env.episode_config()["task"]
@@ -169,18 +170,18 @@ def test_error_classes_and_counts_are_the_interfaces():
              env.step(_call("scan", sequence="ir", tr_ms=6000.0, ti_ms=500.0, matrix=256)), env.step(_call("view", scan_index=7)),
              env.step(_call("scan", protocol=CHEAP)), env.step(_call("scan", **CHEAP))]
     got = [(s.info["step"]["error_class"], s.info["step"]["error_type"], s.info["step"]["counted"]) for s in steps]
-    assert got == [("shape", "malformed_call", False), ("vocabulary", "unknown_tool", False), ("task", "invalid_value", False),
+    assert got == [("shape", "malformed_call", False), ("vocabulary", "unknown_tool", False), ("task", "invalid_value", True),
                    ("task", "budget", True), ("task", "not_found", True), (None, None, True), (None, None, True)]
     for s in steps:                                                      # the same class and charge as the observation itself states
         e = s.observation.data.get("error")
         assert s.info["step"]["error_class"] == I.error_class(s.observation.data) and s.info["step"]["ok"] == (e is None)
         assert s.info["step"]["counted"] == I.counts_as_tool_call(s.observation.data) and not hooks.validate(s.info, env.outcomes(), final=False)
     last = steps[-1].info["step"]
-    assert (last["tool_calls_left"], last["rejected_calls_left"], last["turns_left"]) == (env.max_steps - 4, 8 - 3, None)
+    assert (last["tool_calls_left"], last["rejected_calls_left"], last["turns_left"]) == (env.max_steps - 5, 8 - 2, None)
     assert last["tool_calls_left"] == env.state()["tool_calls_left"] and last["cost_s"] > 0
     end = env.end_without_submission("stopped")["counts"]
     assert {k: end[k] for k in hooks.INTERFACE_COUNTS} == env.interface_counts() == dict(
-        calls=7, executed=4, rejected=3, shape=1, vocabulary=1, task_refusals=3, coerced=1, internal_errors=0)
+        calls=7, executed=5, rejected=2, shape=1, vocabulary=1, task_refusals=3, coerced=1, internal_errors=0)
     assert (end["scans"], end["refused_deliverables"], end["turns"]) == (2, 0, 0)
 
 

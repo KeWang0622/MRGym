@@ -38,7 +38,7 @@ encoding (`excitation`).
 | `profile` | free | the values along one line through a stored image, as a table of position in mm and value |
 | `calc` | free | a calculator: statements in Python syntax; the names it assigns stay for the rest of the episode |
 
-"Free" means no scan time; every executed call counts once against the tool-call limit of the episode.
+"Free" means no scan time; every call counts once against the tool-call limit of the episode unless it is rejected.
 
 The protocol parameters of section 3 are top-level arguments of `plan` and `scan` (`sequence`, `tr_ms`, ...). A scan
 names its read-outs in two arguments: `regions`, the ids of the task's marked regions (default: all of them), and

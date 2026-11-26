@@ -37,7 +37,7 @@ NOWRAP, T1 = "Scanner/NoWrap-v1", "Scanner/T1Transmit-v1"
 SEEDS = [0, 1]
 FAST = dict(backoff_s=0.01, max_retries=3, quiet=True)
 FAILURES = dict(malformed_json="rejected_call_limit", unknown_tool="rejected_call_limit", text_only="no_tool_calls", empty="no_tool_calls",
-                flood="truncated", bad_args="rejected_call_limit", overspend="submitted")
+                flood="truncated", bad_args="truncated", overspend="submitted")
 
 
 @pytest.fixture(scope="module")
@@ -160,8 +160,11 @@ def test_agent_failure_is_a_scored_episode(variants, behaviour):
         assert rec["turns"] == runner.IDLE_TURNS and rec["tool_calls"] == 0
     if behaviour == "flood":                                    # the environment's limit of tool calls (made with max_steps=12) ends it
         assert rec["env_tool_calls"] == rec["settings"]["max_turns"] == 12 and rec["turns"] == 1 and rec["tool_calls"] == 30
-    if behaviour == "bad_args":                                 # eight calls that cannot be executed: the same limit
-        assert rec["turns"] == 8 and rec["invalid_calls"] == 8 and rec["scans"] == 0
+    if behaviour == "bad_args":                                 # no call can be executed. Six are refused for how they are written (rejected
+        # calls); the others for what they ask (a missing parameter, a read-out of nothing, an unknown name in calc, a
+        # deliverable out of its range): tool calls, and the tool-call limit (max_steps=12) ends the episode
+        assert rec["turns"] == 18 and rec["invalid_calls"] == 6 and rec["env_tool_calls"] == 12 and rec["scans"] == 0
+        assert (rec["interface"]["shape"], rec["interface"]["vocabulary"], rec["interface"]["task_refusals"]) == (3, 3, 12)
     if behaviour == "overspend":                                # the scanner refused; the budget held
         assert rec["scans"] >= 1 and rec["scan_s_used"] <= rec["scan_s_budget"] and rec["log"]["replays"]
         assert rec["gates"]["measured"] and rec["gates"]["deliverable_valid"]
@@ -178,7 +181,8 @@ def test_calc_is_a_calculator_and_nothing_else():
     ok = env.step({"name": "calc", "arguments": {"expressions": "sqrt(2)"}})
     assert not ok.observation.is_error and "1.414214" in ok.observation.text and env.state()["tool_calls"] == 1
     bad = env.step({"name": "calc", "arguments": {"expressions": "__import__('os').system('id')"}}).observation
-    assert bad.is_error and bad.data["error"]["type"] == "invalid_value" and env.state()["tool_calls"] == 1
+    assert bad.is_error and bad.data["error"]["type"] == "invalid_value" and bad.data["error"]["class"] == "task"       # an unknown name
+    assert env.state()["tool_calls"] == 2 and env.state()["rejected_calls"] == 0                                       # a tool call
 
 
 def test_merge_choices_reads_every_choice():

@@ -153,7 +153,7 @@ def test_calc_names_stay_for_the_calls_of_one_episode():
         obs = call(text)
         assert obs.is_error and (obs.data["error"]["type"], obs.data["error"]["class"]) == (kind, cls) and len(obs.text) < 260, obs.text
     assert "line 1" in call("a = (1").text and "never_assigned" in call("never_assigned").text
-    assert env.state()["tool_calls"] == 2 and env.state()["rejected_calls"] == 6
+    assert env.state()["tool_calls"] == 5 and env.state()["rejected_calls"] == 3      # the three run-time errors are tool calls, the three the calculator cannot read are rejected
     env.reset()
     assert call("E").is_error
 

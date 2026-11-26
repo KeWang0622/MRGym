@@ -21,7 +21,7 @@ protocol with the noise level of this scanner, and (2) its scan time is at most 
 with which any choice of tr_ms, averages and bandwidth_hz_per_px meets (1). The scanner's log must show that you
 measured. An answer in the wrong unit is wrong.
 
-Limits. Scan time: 330 s (only `scan` spends it). Tool calls: 48 (every executed call counts once). Rejected calls: 8 (a call that is refused for how it is written reaches no tool and costs nothing else), of them at most 3 refused `submit` calls. The episode ends at `submit` or at a limit; without `submit` the score is 0.
+Limits. Scan time: 330 s (only `scan` spends it). Tool calls: 48 (every call counts once unless rejected). Rejected calls: 8 (a call refused for how it is written: unknown name, wrong type; costs nothing else), of them at most 3 refused `submit` calls. The episode ends at `submit` or at a limit; without `submit` the score is 0.
 [scan time left 330.00 of 330 s · calls 0/48 · rejected 0/8]
 
 ## Working in this container

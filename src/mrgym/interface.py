@@ -44,8 +44,10 @@ to the call, gives a call that is not refused for the same reason) and what was 
                                              not model, with ``code`` VENDOR_TERM a vendor's word for a parameter
                                              in another unit (the conversion is stated, never applied)
     not_applicable       vocabulary   no     a parameter of another sequence
-    invalid_value        per problem  no     wrong type (shape), not in the enum (vocabulary), out of a fixed range,
-                                             odd matrix, missing required, another unit (task)
+    invalid_value        per problem  by class  no: wrong type, two spellings that clash, Python the calculator does
+                                             not have (shape), not in the enum (vocabulary); yes: out of a fixed
+                                             range, odd matrix, missing required, another unit, a read-out the
+                                             scanner cannot take, a calculation that ran and failed (task)
     console_limit        task         yes    the console cannot realise the protocol (``code`` = the console's code)
     budget               task         yes    scan time, request limit
     not_found            task         yes    no stored scan / image of that index, unknown region id
@@ -53,8 +55,17 @@ to the call, gives a call that is not refused for the same reason) and what was 
     episode_over         task         no
     internal_error       internal     no     a fault of the environment, never of the agent; counted for the trainer
 
-The class says who lost the turn. ``shape`` and ``vocabulary`` are the interface tax: the model knew what it wanted
-and the interface did not take it. ``task`` is the instrument saying no, which is part of the job.
+The class says who lost the turn, and with it what the call is charged as. ``shape`` and ``vocabulary`` are the
+interface tax: the model knew what it wanted and the interface did not take it as written. ``task`` is the instrument
+saying no, which is part of the job.
+
+**What a refused call is charged as** (``counts_as_tool_call``; one rule, said in the same words in ``mrgym.env``, in
+the Limits block of every task text and in docs/TRAINING.md). A call refused with class ``shape`` or ``vocabulary``
+is a *rejected call* (``max_rejected_calls``): it was refused for how it is written. A call refused with class
+``task`` is a *tool call* (``max_steps``), whatever its type: it was refused for what it asks, and it counts like a
+call that was answered. Three types are rejected calls whatever their class: ``invalid_deliverable``,
+``episode_over``, ``internal_error``. A refusal that lists problems of several classes is a rejected call when any of
+them is ``shape`` or ``vocabulary``. No refusal is charged scan time.
 """
 from __future__ import annotations
 
@@ -67,13 +78,14 @@ import re
 from . import tools as T
 from .scanner import console
 
-# type: (class, or None when each problem carries its own; whether the call counts as an executed tool call)
+# type: (class, or None when each problem carries its own; whether the call counts as a tool call, or None when the
+# class of the refusal decides). The second column is the rule of ``counts_as_tool_call`` applied to the type's own class.
 ERRORS = {
     "malformed_call": ("shape", False),
     "unknown_tool": ("vocabulary", False),
     "unknown_parameter": ("vocabulary", False),
     "not_applicable": ("vocabulary", False),
-    "invalid_value": (None, False),
+    "invalid_value": (None, None),
     "console_limit": ("task", True),
     "budget": ("task", True),
     "not_found": ("task", True),
@@ -83,7 +95,11 @@ ERRORS = {
 }
 ERROR_TYPES = tuple(ERRORS)
 CLASSES = ("shape", "vocabulary", "task", "internal")
-INTERFACE_CLASSES = ("shape", "vocabulary")                 # what the interface-tax metric counts
+INTERFACE_CLASSES = ("shape", "vocabulary")                 # what the interface-tax metric counts, and what a rejected call is
+REJECTED_TYPES = ("invalid_deliverable", "episode_over", "internal_error")    # rejected calls whatever their class
+# The same rule in the words the agent reads: the two parentheses of the Limits block of every task text.
+TOOL_CALLS_TOLD = "every call counts once unless rejected"
+REJECTED_CALLS_TOLD = "a call refused for how it is written: unknown name, wrong type; costs nothing else"
 MAX_PROBLEMS = 8                                            # listed per refusal; the rest is counted in ``more``
 MAX_REJECTED_CALLS = 8                                      # per episode
 MAX_INVALID_DELIVERABLES = 3                                # per episode, within the rejected calls
@@ -181,8 +197,19 @@ def error_class(data: dict) -> str | None:
 
 
 def counts_as_tool_call(data: dict) -> bool:
+    """Whether the call behind an observation's data is charged as a tool call (``max_steps``); else it is a rejected
+    call (``max_rejected_calls``). An answer that is no error is a tool call. A refusal is a rejected call when its
+    class is ``shape`` or ``vocabulary`` (refused for how it is written) or its type is one of ``REJECTED_TYPES``, and
+    a tool call when its class is ``task`` (refused for what it asks), whatever its type. ``error_data`` puts the most
+    basic problem first, so the class of a refusal with several problems is ``shape`` or ``vocabulary`` when any of
+    them is. A type outside the closed vocabulary is no tool call."""
     e = (data or {}).get("error")
-    return ERRORS.get(e.get("type"), (None, False))[1] if isinstance(e, dict) else True
+    if not isinstance(e, dict):
+        return True
+    type = e.get("type")
+    if type not in ERRORS or type in REJECTED_TYPES:
+        return False
+    return (e.get("class") or ERRORS[type][0] or "task") not in INTERFACE_CLASSES
 
 
 def did_you_mean(word, candidates):

@@ -123,7 +123,7 @@ Passing, for every region:
    3 % of the region's signal. (Between 3 % and 5 % both methods pass.)
 The scanner's log must show that you measured. An answer in the wrong unit is wrong.
 
-Limits. Scan time: 120 s (only `scan` spends it). Tool calls: 64 (every executed call counts once). Rejected calls: 8 (a call that is refused for how it is written reaches no tool and costs nothing else), of them at most 3 refused `submit` calls. The episode ends at `submit` or at a limit; without `submit` the score is 0.
+Limits. Scan time: 120 s (only `scan` spends it). Tool calls: 64 (every call counts once unless rejected). Rejected calls: 8 (a call refused for how it is written: unknown name, wrong type; costs nothing else), of them at most 3 refused `submit` calls. The episode ends at `submit` or at a limit; without `submit` the score is 0.
 [scan time left 120.00 of 120 s · calls 0/64 · rejected 0/8]
 ~~~
 

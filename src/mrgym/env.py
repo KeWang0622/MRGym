@@ -17,10 +17,14 @@ environment itself is answered the same way (``internal_error``) and counted for
 Limits. An episode ends at the terminal tool or at one of the limits, and every limit is told to the agent in the
 task text (``Limits``), in the status line of every result, and in ``info["limits"]``: the same numbers.
 
-    max_tool_calls         calls that reached a tool (``max_steps``), whatever the tool answered
-    max_rejected_calls     calls the interface refused before any tool saw them (8); they cost nothing else
+    max_tool_calls         every call that is not a rejected call (``max_steps``): a call that was answered, and a
+                           call that was refused for what it asks (error class ``task``)
+    max_rejected_calls     calls refused for how they are written (error class ``shape`` or ``vocabulary``), refused
+                           submissions and faults of the environment (8); they cost nothing else
     max_invalid_deliverables   refused submissions (3), within the rejected calls
     plus whatever the environment charges (the scanner: scan time)
+
+The rule and its table are in ``mrgym.interface`` (``counts_as_tool_call``); no refusal is charged scan time.
 
 An environment implements three hooks: ``_reset(seed_hex)``, ``_tool_specs()``, ``_call(name, arguments)``.
 """
@@ -175,15 +179,18 @@ class Env:
     def limits_text(self) -> str:
         """The Limits block that ends the task text; the same in every harness."""
         terminal = next((t.name for t in self._tool_specs() if t.terminal), "the terminal tool")
-        parts = self._limit_sentences() + [
-            f"Tool calls: {self.max_steps} (every call that reaches a tool counts once).",
-            f"Rejected calls: at most {self.max_rejected_calls} (a malformed call, such as an unknown tool or parameter or a value of the "
-            f"wrong type or outside its fixed range, reaches no tool: it is answered with a fix and costs nothing else), of them at most "
-            f"{self.max_invalid_deliverables} refused `{terminal}` calls."]
+        parts = self._limit_sentences() + self._call_limit_sentences(terminal)
         if "max_reply_tokens" in self._harness:
             parts.append(f"Reply length: {self._harness['max_reply_tokens']} tokens (harness).")
         parts.append(f"The episode ends at `{terminal}` or at a limit; without `{terminal}` the score is 0.")
         return "Limits. " + " ".join(parts)
+
+    def _call_limit_sentences(self, terminal: str) -> list:
+        """The two sentences on tool calls and rejected calls: the rule of ``mrgym.interface.counts_as_tool_call`` in
+        the words the agent reads, the same in every environment."""
+        return [f"Tool calls: {self.max_steps} ({I.TOOL_CALLS_TOLD}).",
+                f"Rejected calls: {self.max_rejected_calls} ({I.REJECTED_CALLS_TOLD}), of them at most "
+                f"{self.max_invalid_deliverables} refused `{terminal}` calls."]
 
     # ------------------------------------------------------------------ lifecycle
     def reset(self, *, seed=None, options: dict | None = None) -> tuple[Observation, dict]:
@@ -336,7 +343,11 @@ class Env:
     def interface_counts(self) -> dict:
         """Trainer side: how the calls of this episode fared at the interface. ``shape`` + ``vocabulary`` is the
         interface tax; ``task_refusals`` are the instrument's own refusals; ``coerced`` counts calls the canonicaliser
-        rewrote (format skill the interface absorbed); ``internal_errors`` are faults of the environment."""
+        rewrote (format skill the interface absorbed); ``internal_errors`` are faults of the environment.
+
+        ``calls`` = ``executed`` + ``rejected``. ``rejected`` = ``shape`` + ``vocabulary`` + refused submissions
+        (``invalid_deliverable``, counted in ``task_refusals``) + ``internal_errors``; every other refusal of class
+        ``task`` is among ``executed``, as a tool call (``mrgym.interface.counts_as_tool_call``)."""
         ep = self._episode
         return dict(calls=ep["steps"] + ep["rejected"], executed=ep["steps"], rejected=ep["rejected"], shape=ep["by_class"]["shape"],
                     vocabulary=ep["by_class"]["vocabulary"], task_refusals=ep["by_class"]["task"], coerced=ep["coerced"],

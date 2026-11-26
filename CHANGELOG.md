@@ -14,6 +14,25 @@ Three versions travel with every number:
 
 ## Unreleased
 
+### A refused call is charged by its class: this changes when an episode ends
+
+A call refused with class `shape` or `vocabulary` (for how it is written) is a rejected call, and a call refused with
+class `task` (for what it asks) is a tool call, whatever its type; before, every `invalid_value` refusal was a
+rejected call, so a calculator program that ran and failed, a value out of its range or off its grid, a missing
+parameter, another unit and a read-out the scanner cannot take counted toward the eight rejected calls that end an
+episode, against the rule the task text states. This changes when an episode ends (such refusals no longer bring the
+rejected-call limit closer, and they now use up tool calls), so results measured before and after this entry are not
+comparable on any family whose episodes meet these refusals, above all the families that use the calculator.
+
+Unchanged: every limit (tool calls, 8 rejected calls, 3 refused deliverables), the text of every refusal, the charge
+of scan time (none for any refusal), and `invalid_deliverable`, `episode_over` and `internal_error`, which stay
+rejected calls. What the calculator cannot read (a syntax error, Python it does not have) stays class `shape`: a
+rejected call. The rule is `mrgym.interface.counts_as_tool_call`; the table of `mrgym.interface`, `mrgym.env`,
+docs/TRAINING.md and the Limits block of every task text say it in the same words (`interface.TOOL_CALLS_TOLD`,
+`interface.REJECTED_CALLS_TOLD`; the Limits sentences on tool calls and rejected calls and one sentence of the
+datasheet changed). `tools/audit/rejected_replay.py RUN/episodes` reads the stored episodes of a run under both
+rules. Pinned by `tests/test_rejected_accounting.py`.
+
 ### The interface and the task texts say what is true (before the first release of interface v1)
 
 Found by reading stored conversations of an untrained model (run c04, thinking off): places where an answer or a task

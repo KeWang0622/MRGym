@@ -13,7 +13,9 @@ and replay are ``mrgym.scanner``.
     profile        free         the numbers along one line through a stored image
     calc           free         a calculator in Python syntax; its names stay for the episode
 
-"Free" means no scan time. Every executed call counts once against the tool-call limit, whatever the tool.
+"Free" means no scan time. Every call counts once against the tool-call limit unless it is rejected, whatever the
+tool: a call refused for what it asks (error class ``task``) is a tool call, a call refused for how it is written
+(``shape``, ``vocabulary``) is a rejected call (``mrgym.interface.counts_as_tool_call``).
 
 What the text of an answer holds. An episode is a token stream that a trainer has to hold in one piece, and most of
 it is the environment's own text, so an answer says what a decision needs and nothing twice: ``plan`` and ``scan`` do
@@ -317,10 +319,7 @@ class ScannerEnv(Env):
     def limits_text(self) -> str:
         """The Limits block that ends the task text: every number of ``limits()``, once, in the fewest words."""
         terminal = self.terminal_tool().name
-        parts = self._limit_sentences() + [
-            f"Tool calls: {self.max_steps} (every executed call counts once).",
-            f"Rejected calls: {self.max_rejected_calls} (a call that is refused for how it is written reaches no tool and costs nothing else), "
-            f"of them at most {self.max_invalid_deliverables} refused `{terminal}` calls."]
+        parts = self._limit_sentences() + self._call_limit_sentences(terminal)
         if "max_reply_tokens" in self._harness:
             parts.append(f"Reply length: {self._harness['max_reply_tokens']} tokens.")
         parts.append(f"The episode ends at `{terminal}` or at a limit; without `{terminal}` the score is 0.")

@@ -141,7 +141,7 @@ Passing: for every region, in the target scan with the inversion time you delive
 5 % of its signal in the same scan without the inversion pulse. The scanner's log must show that you
 measured. An answer in the wrong unit is wrong.
 
-Limits. Scan time: 200 s (only `scan` spends it). Tool calls: 48 (every executed call counts once). Rejected calls: 8 (a call that is refused for how it is written reaches no tool and costs nothing else), of them at most 3 refused `submit` calls. The episode ends at `submit` or at a limit; without `submit` the score is 0.
+Limits. Scan time: 200 s (only `scan` spends it). Tool calls: 48 (every call counts once unless rejected). Rejected calls: 8 (a call refused for how it is written: unknown name, wrong type; costs nothing else), of them at most 3 refused `submit` calls. The episode ends at `submit` or at a limit; without `submit` the score is 0.
 [scan time left 200.00 of 200 s · calls 0/48 · rejected 0/8]
 ~~~
 

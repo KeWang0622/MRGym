@@ -35,7 +35,7 @@ The target images are not acquired in this episode: the scanner evaluates the pr
 Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.
 Nothing about the materials, the field or the frequency adjustment is known in advance. The scanner's log must show that you measured. An answer in the wrong unit is wrong.
 
-Limits. Scan time: 43 s (only `scan` spends it). Tool calls: 64 (every executed call counts once). Rejected calls: 8 (a call that is refused for how it is written reaches no tool and costs nothing else), of them at most 3 refused `submit` calls. The episode ends at `submit` or at a limit; without `submit` the score is 0.
+Limits. Scan time: 43 s (only `scan` spends it). Tool calls: 64 (every call counts once unless rejected). Rejected calls: 8 (a call refused for how it is written: unknown name, wrong type; costs nothing else), of them at most 3 refused `submit` calls. The episode ends at `submit` or at a limit; without `submit` the score is 0.
 [scan time left 43.00 of 43 s · calls 0/64 · rejected 0/8]
 
 ## Working in this container
