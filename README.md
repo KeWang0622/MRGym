@@ -139,7 +139,7 @@ mrgym check Scanner/NoWrap-v1
 ## Does training on it work?
 
 <!-- TRAINING:START -->
-**Qwen3.8-27B, reinforcement learning only, 60 steps: tested on instances it never saw.**
+**Qwen3.8-27B, reinforcement learning only, 60 steps, the recipe below on the published code: tested on instances it never saw.**
 
 <p align="center">
   <img src="assets/training_27b.png" width="900" alt="Pass rate of Qwen3.8-27B before and after 60 steps of reinforcement learning on 4 cells of the secret split, with 95 % intervals, and on public instances during training">
@@ -147,12 +147,12 @@ mrgym check Scanner/NoWrap-v1
 
 | On secret test instances | Before training | After 60 steps | Gain in points [95 % interval] |
 |---|---|---|---|
-| Trained level · `NoWrap-v1 L1` | 40 % (38 / 96) | 97 % (93 / 96) | +57.3 [+46.9, +67.7] |
-| Harder level (trained; reward only late) · `NoWrap-v1 L2` | 3 % (3 / 96) | 39 % (37 / 96) | +35.4 [+23.8, +47.0] |
-| Never-trained level · `NoWrap-v1 L3` | 0 % (0 / 96) | 4 % (4 / 96) | +4.2 [+0.1, +8.2] |
-| Another task family (never trained) · `NullTissue-v0 L0` | 15 % (14 / 96) | 50 % (48 / 96) | +35.4 [+21.1, +49.8] |
+| Trained level · `NoWrap-v1 L1` | 49 % (47 / 96) | 82 % (79 / 96) | +33.3 [+22.0, +44.7] |
+| Harder level (trained; reward only late) · `NoWrap-v1 L2` | 5 % (5 / 96) | 22 % (21 / 96) | +16.7 [+7.0, +26.3] |
+| Never-trained level · `NoWrap-v1 L3` | 0 % (0 / 96) | 4 % (4 / 96) | +4.2 [-0.9, +9.2] |
+| Another task family (never trained) · `NullTissue-v0 L0` | 33 % (32 / 96) | 77 % (74 / 96) | +43.8 [+31.5, +56.0] |
 
-Evidence: one run, one seed, 48 secret instances x 2 episodes per row, base and trained on the same instances; exploratory (the pre-registered rule needs 2 trained environments, 1 was trained). The other family's row is a practice level whose text states the method. [Full report](docs/experiments/RESULTS-27b.md).
+Evidence: run `v17` at commit `18089f2`, 48 secret instances x 2 episodes per row, base and trained on the same instances. The trained level's gain was measured in 4 independent training runs: +33.3 [+22.0, +44.7] (`v17`), +57.3 [+46.9, +67.7] (`v07`), +53.1 [+38.0, +68.3] (`v09`), +44.8 [+33.5, +56.1] (`v11`). Exploratory: the pre-registered rule needs 2 trained environments, each run trained 1 that meets it. The other family's row is a practice level whose text states the method. [Full report](docs/experiments/RESULTS-27b.md).
 <!-- TRAINING:END -->
 
 ## The recipe
@@ -176,7 +176,7 @@ Every line as the node scripts read it: [`recipes/qwen3.8-27b-nowrap.env`](recip
 <!-- RECIPE_SETTINGS:END -->
 
 <!-- RECIPE_STATUS:START -->
-Verified on commit `ef6d766` (run `v07`, 8 x H100 with 24,576-token responses; readout on 8 x H200 at 49,152). Check on the current code (commit `18089f2`, run `v17`, 8 x H200): started; no data yet.
+Verified on the published code: run `v17` at commit `18089f2` (8 x H200, 60 steps, then its own readout). The recipe first ran on an earlier commit (`ef6d766`, run `v07`).
 <!-- RECIPE_STATUS:END -->
 Cost, pitfalls, other task families: **[docs/RECIPE.md](docs/RECIPE.md)**.
 
@@ -282,7 +282,7 @@ brain phantom at 3 T, one thread, median of 3, noise-free data not cached; a rep
 - The generator is public: the secret split hides instances behind a key, not the task.
 - One slice, one receive channel, no fast spin echo, no motion: [limits.md](docs/physics/limits.md).
 - The gate shows that the listed shortcuts fail, not that no shortcut exists.
-- Training: one run, one task family: [its limits](docs/experiments/RESULTS-27b.md).
+- Training: exploratory first runs, one sampler seed each: [their limits](docs/experiments/RESULTS-27b.md).
 
 </details>
 

@@ -56,17 +56,46 @@ def test_the_stored_report_is_current_and_names_nothing_outside_the_repository()
         assert "s3:" + "//" not in page and "/opt" + "/" not in page and "/mnt" + "/" not in page      # run ids only: no store, no machine path
 
 
-def test_the_before_after_table_of_the_front_page_is_counted_from_the_logs(report, stored):
-    """Passes and episodes of every row, counted here from the stored files without the report's own functions."""
-    def counts(name):
-        out = {}
-        with gzip.open(os.path.join(ROOT, "docs", "experiments", "27b", "results", name), "rt", encoding="utf-8") as f:
-            for line in f:
-                r = json.loads(line)
-                k = (r["env_id"].split("/")[1], r["level"])
-                out[k] = (out.get(k, (0, 0))[0] + bool(r["passed"]), out.get(k, (0, 0))[1] + 1)
-        return out
-    base, trained = counts("test_base_57k.jsonl.gz"), counts("test_trained_step60.jsonl.gz")
+READOUT_FILES = {"v17": ("test_base_v17.jsonl.gz", "test_trained_v17.jsonl.gz"), "v07": ("test_base_57k.jsonl.gz", "test_trained_step60.jsonl.gz"),
+                 "v09": ("test_base_v09.jsonl.gz", "test_trained_v09.jsonl.gz"), "v11": ("test_base_v11.jsonl.gz", "test_trained_v11.jsonl.gz")}
+
+
+def _log(name):
+    """The rows of a stored evaluation log as a readout takes them, read here without the report's functions: the
+    attempt that wrote the last line of the file."""
+    with gzip.open(os.path.join(ROOT, "docs", "experiments", "27b", "results", name), "rt", encoding="utf-8") as f:
+        rows = [json.loads(line) for line in f if line.strip()]
+    return [r for r in rows if r["attempt"] == rows[-1]["attempt"]]
+
+
+def _counts(rows, what=lambda r: bool(r["passed"])):
+    out = {}
+    for r in rows:
+        k = (r["env_id"].split("/")[1], r["level"])
+        out[k] = (out.get(k, (0, 0))[0] + what(r), out.get(k, (0, 0))[1] + 1)
+    return out
+
+
+def _paired(base, trained, cell):
+    """Trained minus base on one cell, in points: the mean over instances of the difference of the instance means."""
+    def means(rows):
+        acc = {}
+        for r in rows:
+            if (r["env_id"].split("/")[1], r["level"]) == cell:
+                acc.setdefault(r["seed"], []).append(bool(r["passed"]))
+        return {k: sum(v) / len(v) for k, v in acc.items()}
+    a, b = means(trained), means(base)
+    assert set(a) == set(b)
+    return 100 * sum(a[k] - b[k] for k in a) / len(a)
+
+
+def test_the_front_page_shows_the_recipe_run_counted_from_its_logs(report, stored):
+    """The headline is the run on the published code. Passes and episodes of every row are counted here from the
+    stored files without the report's own functions, and are the ones the run's own readout printed."""
+    assert report.MAIN_RUN == "v17" and stored["runs"]["v17"]["code"] == "`18089f2`" and stored["runs"]["v17"]["state"] == "finished"
+    base, trained = (_counts(_log(n)) for n in READOUT_FILES["v17"])
+    assert (base, trained) == ({("NoWrap-v1", 1): (47, 96), ("NoWrap-v1", 2): (5, 96), ("NoWrap-v1", 3): (0, 96), ("NullTissue-v0", 0): (32, 96)},
+                               {("NoWrap-v1", 1): (79, 96), ("NoWrap-v1", 2): (21, 96), ("NoWrap-v1", 3): (4, 96), ("NullTissue-v0", 0): (74, 96)})
     readme, recipe = _read("README.md"), _read("docs", "RECIPE.md")
     block = _block(readme, "TRAINING")
     rows = [ln for ln in block.splitlines() if ln.startswith("| ") and "`" in ln]
@@ -75,8 +104,15 @@ def test_the_before_after_table_of_the_front_page_is_counted_from_the_logs(repor
         row = next(ln for ln in rows if f"`{env} L{level}`" in ln)
         t = trained[(env, level)]
         assert f"({k} / {n})" in row.split(" | ")[1] and f"({t[0]} / {t[1]})" in row.split(" | ")[2], row
-    assert [ln.split(" · ")[0].lstrip("| ") for ln in rows] == [report.PLAIN[k][1] for k in sorted(report.PLAIN)]
-    assert "one run, one seed" in block and "exploratory" in block and "(docs/experiments/RESULTS-27b.md)" in block
+    assert [ln.split(" · ")[0].lstrip("| ") for ln in rows] == [report.PLAIN[k][1] for k in sorted(report.PLAIN)]      # the plain-word labels
+    # one line of evidence: the run, the design, and the trained level's gain in every training run that was read out
+    evidence = next(ln for ln in block.splitlines() if ln.startswith("Evidence:"))
+    assert "run `v17` at commit `18089f2`" in evidence and "48 secret instances x 2 episodes per row, base and trained on the same instances" in evidence
+    assert f"measured in {len(READOUT_FILES)} independent training runs" in evidence and "Exploratory" in evidence
+    assert "(docs/experiments/RESULTS-27b.md)" in evidence
+    gains = [f"{_paired(_log(b), _log(t), ('NoWrap-v1', 1)):+.1f} [" for b, t in READOUT_FILES.values()]
+    places = [evidence.index(g) for g in gains]
+    assert places == sorted(places) and [evidence[evidence.index("(`", p):][:7] for p in places] == [f"(`{k}`)" for k in READOUT_FILES]
     assert 'src="assets/training_27b.png"' in block and 'src="../assets/training_27b.png"' in _block(recipe, "TRAINING")
     # the same table on the recipe page; only the links differ
     assert [ln for ln in _block(recipe, "TRAINING").splitlines() if ln.startswith("|")] == [ln for ln in block.splitlines() if ln.startswith("|")]
@@ -84,12 +120,55 @@ def test_the_before_after_table_of_the_front_page_is_counted_from_the_logs(repor
         assert old == new, f"{rel}: a generated block is stale; run docs/experiments/27b/report.py"
 
 
+def test_the_report_holds_every_replication_and_what_training_did_to_behaviour(report, stored):
+    text = _read("docs", "experiments", "RESULTS-27b.md")
+    heads = [ln for ln in text.splitlines() if ln.startswith("## ")]
+    assert heads[:4] == ["## 1. Runs", "## 2. Replications", "## 3. What training does to behaviour", "## 4. The secret split, run by run"]
+    assert [h.split(". ", 1)[0] for h in heads] == [f"## {i}" for i in range(1, len(report.SECTIONS) + 1)]
+    replications = text[text.index(heads[1]):text.index(heads[2])]
+    behaviour = text[text.index(heads[2]):text.index(heads[3])]
+    for run, (b, t) in READOUT_FILES.items():
+        base, trained = _log(b), _log(t)
+        row = next(ln for ln in replications.splitlines() if ln.startswith(f"| `{run}`"))       # one row per finished training run
+        k, n = _counts(base)[("NoWrap-v1", 1)]
+        kt, _ = _counts(trained)[("NoWrap-v1", 1)]
+        assert stored["runs"][run]["code"] in row and f"| {k} / {n} | {kt} / {n} | {_paired(base, trained, ('NoWrap-v1', 1)):+.1f} [" in row
+        assert "1 of 2 needed" in row                                                           # the plan's rule, per run
+        ended = _counts(base, lambda r: r["outcome"] == "no_submission_rejected"), _counts(trained, lambda r: r["outcome"] == "no_submission_rejected")
+        cut = _counts(base, lambda r: "length" in r["outcome"]), _counts(trained, lambda r: "length" in r["outcome"])
+        for cell in _counts(base):                                                               # every readout cell, in both tables
+            assert f"{_counts(base)[cell][0]} / {_counts(base)[cell][1]} -> {_counts(trained)[cell][0]} / {_counts(trained)[cell][1]}: " in replications
+            line = next(ln for ln in behaviour.splitlines() if ln.startswith(f"| `{run}` | {cell[0]} L{cell[1]} |"))
+            assert f"| {_counts(base)[cell][0]} -> {_counts(trained)[cell][0]} | {ended[0][cell][0]} -> {ended[1][cell][0]} | {cut[0][cell][0]} -> {cut[1][cell][0]} |" in line
+    # both directions that the logs hold
+    rejected = lambda run, cell: tuple(_counts(_log(n), lambda r: r["outcome"] == "no_submission_rejected")[cell][0] for n in READOUT_FILES[run])   # noqa: E731
+    assert all(rejected(run, ("NullTissue-v0", 0))[1] < rejected(run, ("NullTissue-v0", 0))[0] for run in ("v07", "v17"))
+    assert all(rejected("v11", cell)[1] > rejected("v11", cell)[0] for cell in (("NullTissue-v0", 0), ("NullTissue-v0", 1), ("T1Transmit-v1", 1)))
+    a, b = rejected("v11", ("T1Transmit-v1", 1))
+    assert f"on T1Transmit-v1 L1, which it never trained on, they rise from {a} to {b}" in behaviour
+    assert "does not see this" in behaviour and "counts as no harm: True" in behaviour and stored["runs"]["v19"]["code"] in behaviour
+    for run in ("v07", "v17"):
+        a, b = rejected(run, ("NullTissue-v0", 0))
+        assert f"fall from {a} to {b} of 96 (`{run}`)" in behaviour
+    # the plan's verdict is the plan's rule: no run meets it, each trained one environment that does
+    assert text.count('"it trained" by that rule: **False**') == len(READOUT_FILES) + 1 and '"it trained" by that rule: **True**' not in text
+    assert "each of the 4 runs trained 1 environment that meets it" in replications
+    # the dev split against the secret split, both from the logs
+    with gzip.open(os.path.join(ROOT, "docs", "experiments", "27b", "results", "episodes_v17.jsonl.gz"), "rt", encoding="utf-8") as f:
+        dev = [r for r in map(json.loads, f) if r["phase"] == "dev" and r["step"] == 60 and (r["env_id"], r["level"]) == ("Scanner/NoWrap-v1", 1)]
+    k, n = _counts(_log(READOUT_FILES["v17"][1]))[("NoWrap-v1", 1)]
+    assert f"its dev look at step 60 gave {sum(r['passed'] for r in dev)} / {len(dev)}" in text and f"the secret split {k} / {n}" in text
+    assert "The secret-split figure is the one to quote." in text
+
+
 def test_the_figure_is_drawn_from_its_stored_data_file(report, stored):
     data = json.loads(_read("assets", "training_27b.json"))
     assert data == report.figure_data(stored) and data["version"] == report.FIGURE_VERSION
+    assert data["run"] == "v17" and data["code"] == "18089f2"
     assert [c["label"] for c in data["secret"]] == ["trained level", "harder level", "never-trained level", "another task family (never trained)"]
     assert all(0 <= c[s]["lo"] <= c[s]["rate"] <= c[s]["hi"] <= 1 for c in data["secret"] for s in ("before", "after"))
-    assert [s["run"] for s in data["dev"]] == ["v07", "v07"] and data["second"]["run"] == "v09"
+    assert [s["run"] for s in data["dev"]] == ["v17", "v17"] and [s["run"] for s in data["earlier"]] == ["v07", "v09", "v11"]
+    assert [r["run"] for r in data["replications"]] == list(READOUT_FILES) and data["rule"] == dict(needed=2, met=[1, 1, 1, 1])
     assert data["dev"][0]["points"][0]["step"] == 0 and data["dev"][0]["points"][-1]["step"] == data["steps"] == 60
     path = os.path.join(ROOT, "assets", "training_27b.png")
     with open(path, "rb") as f:
@@ -98,10 +177,10 @@ def test_the_figure_is_drawn_from_its_stored_data_file(report, stored):
 
 
 def test_check_fails_when_a_stored_result_changes(report, stored):
-    """One more passing episode in the final readout: the report, the figure's data and both pages are stale."""
+    """One more passing episode in the readout of the recipe run: the report, the figure's data and both pages are stale."""
     assert report.stale(stored, report.build(stored)) == []
-    changed = dict(stored, t60=copy.deepcopy(stored["t60"]))
-    row = next(r for r in changed["t60"] if not r["passed"])
+    changed = dict(stored, tests=copy.deepcopy(stored["tests"]))
+    row = next(r for r in changed["tests"]["v17"]["trained"] if not r["passed"])
     row.update(passed=True, outcome="pass")
     stale = report.stale(changed, report.build(changed))
     assert stale[0] == "docs/experiments/RESULTS-27b.md" and stale[1].startswith("assets/training_27b.png")
@@ -115,17 +194,21 @@ def test_check_fails_when_a_stored_result_changes(report, stored):
         report.FIGURE_VERSION = version
 
 
-def test_the_recipe_line_follows_the_run_list(report, stored):
-    """Which commit the recipe ran on, and the state of its check on the current code, come from runs.json; when the
-    log of the check arrives the line shows its newest evaluation."""
+def test_the_recipe_line_and_the_pitfalls_follow_the_stored_runs(report, stored):
+    """Which commit the recipe was verified on comes from runs.json; the cost comes from the log of that run."""
     runs = stored["runs"]
     line = report.status_block(stored)
-    assert runs["v07"]["code"] in line and runs["v17"]["code"] in line and runs["v17"]["state"].split(";")[0] in line
+    assert line.startswith(f"Verified on the published code: run `v17` at commit {runs['v17']['code']} (") and runs["v07"]["code"] in line
     assert _block(_read("README.md"), "RECIPE_STATUS").strip() == line == _block(_read("docs", "RECIPE.md"), "RECIPE_STATUS").strip()
-    later = dict(stored, runs=dict(runs, v17=dict(runs["v17"], state="training")), logs=dict(stored["logs"], v17=stored["logs"]["v09"]))
-    line = report.status_block(later)
-    assert "): training. Its newest evaluation on public instances (step 40): NoWrap-v1 L1 27 / 32" in line
-    assert "README.md" in report.stale(later, report.build(later))
+    unfinished = dict(stored, runs=dict(runs, v17=dict(runs["v17"], state="training")))
+    assert report.status_block(unfinished).startswith(f"Check on the published code (commit {runs['v17']['code']}, run `v17`, 8 x H200): training.")
+    recipe = _read("docs", "RECIPE.md")
+    attempts, hours = report._attempts(stored["logs"]["v17"])
+    assert f"**Training:** {hours:.1f} node hours for 60 steps (`v17`, {attempts} attempts" in _block(recipe, "RECIPE_NEEDS") and 5 < hours < 15
+    pitfalls = _block(recipe, "RECIPE_PITFALLS").strip().splitlines()
+    assert [ln.split(".")[0] for ln in pitfalls] == ["1", "2", "3", "4", "5", "6"]                 # one line each
+    assert "`v11` trained on it and it got worse" in pitfalls[4] and "`v17` and `v07` trained on the clean cell only" in pitfalls[4]
+    assert "In `v13` the median context of the dev looks" in pitfalls[5] and "Choose the checkpoint by the dev looks" in pitfalls[5]
 
 
 def test_the_recipe_file_is_one_the_node_scripts_accept(report, tmp_path):

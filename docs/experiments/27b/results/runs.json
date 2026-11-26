@@ -1,5 +1,5 @@
 {
- "_copied_utc": "2026-11-25T21:48:02Z",
+ "_copied_utc": "2026-11-26T10:04:29Z",
  "c01": {
   "what": "calibration of the base model, reasoning on (medium effort), replies up to 16,384 tokens",
   "cells": "NoWrap, NullTissue, PhantomQA, SNRSpec, T1Transmit, ProtocolToSpec, ArtefactClinic: their levels; 4 instances x 8 episodes",
@@ -30,17 +30,17 @@
  },
  "v09": {
   "what": "training from the base model, same recipe",
-  "cells": "NoWrap-v1 levels 1, 2; NullTissue-v0 level 0; PhantomQA-v0 level 1",
+  "cells": "NoWrap-v1 levels 1, 2; NullTissue-v0 level 0; PhantomQA-v0 level 1 (readout also on NoWrap-v1 level 3, NullTissue-v0 level 1, PhantomQA-v0 level 2, SNRSpec-v0 level 1; 32 instances x 2 episodes)",
   "node": "8 x H200; 8,192 + 49,152 tokens",
   "code": "`ef6d766`",
-  "state": "training (48 steps planned)"
+  "state": "finished; its own readout stopped on its length check, the evaluation logs are complete"
  },
  "v11": {
   "what": "training from the base model, same recipe",
-  "cells": "NullTissue-v0 level 0; NoWrap-v1 level 1",
+  "cells": "NullTissue-v0 level 0; NoWrap-v1 level 1 (readout also on NoWrap-v1 level 2, NullTissue-v0 level 1, PhantomQA-v0 level 2, T1Transmit-v1 level 1; 48 instances x 2 episodes)",
   "node": "8 x H200; 8,192 + 49,152 tokens",
   "code": "`6ced347` with the calculator's step limit raised to 5 million (interim, not merged)",
-  "state": "training"
+  "state": "finished"
  },
  "v12": {
   "what": "evaluation only: the step-40 weights of `v07` and the base model on the secret split",
@@ -61,20 +61,34 @@
   "cells": "NoWrap-v1 levels 2, 3 (dev looks also on level 1)",
   "node": "8 x H200; 8,192 + 49,152 tokens",
   "code": "`ef6d766`",
-  "state": "training"
+  "state": "training when the files were copied"
  },
  "v16": {
   "what": "training from the base model on the corrected interface, 60 steps",
   "cells": "NullTissue-v0 levels 0, 1",
   "node": "8 x H200; 8,192 + 49,152 tokens",
   "code": "`fc4cede`",
-  "state": "started; no data in this report"
+  "state": "its episodes are the first attempt in the log of `v18`, which continued it under a new run id"
  },
  "v17": {
-  "what": "check of the recipe on the published code: training from the base model with the settings of `recipes/qwen3.8-27b-nowrap.env`, 60 steps",
-  "cells": "NoWrap-v1 levels 1, 2 (dev looks also on level 3; readout as `v15`)",
+  "what": "the recipe on the published code: training from the base model with the settings of `recipes/qwen3.8-27b-nowrap.env`, then its own readout",
+  "cells": "NoWrap-v1 levels 1, 2 (dev looks also on level 3; readout on NoWrap-v1 levels 1, 2, 3 and NullTissue-v0 level 0; 48 instances x 2 episodes)",
   "node": "8 x H200; 8,192 + 49,152 tokens",
   "code": "`18089f2`",
-  "state": "started; no data in this report"
+  "state": "finished"
+ },
+ "v18": {
+  "what": "`v16` continued under a new run id with the same settings",
+  "cells": "NullTissue-v0 levels 0, 1 (dev looks also on level 2)",
+  "node": "8 x H200; 8,192 + 49,152 tokens",
+  "code": "`fc4cede`",
+  "state": "stopped by its rule `not_delivering` (submit rate of the last 5 steps below 0.40)"
+ },
+ "v19": {
+  "what": "training from the base model on the code that counts rejected calls by class",
+  "cells": "NullTissue-v0 levels 0, 1 (dev looks also on level 2)",
+  "node": "8 x H200; 8,192 + 49,152 tokens",
+  "code": "`852d3b3`",
+  "state": "training when the files were copied"
  }
 }

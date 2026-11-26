@@ -140,7 +140,7 @@ The entry rung is the hardest level in the entry band whose measured share of mi
 command exits non-zero when no level qualifies. `--write` stores the rows; an environment card names a model under
 `learnability.trainable_by` only through that stored file.
 
-One open-weight model has been calibrated on every cell of the suite: section 5 of
+One open-weight model has been calibrated on every cell of the suite: the calibration table of
 [experiments/RESULTS-27b.md](experiments/RESULTS-27b.md). No calibration is stored as package data yet.
 
 ## 7. Levels

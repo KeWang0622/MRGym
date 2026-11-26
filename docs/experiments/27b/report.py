@@ -6,16 +6,20 @@
 
 Every number in the report is computed here from ``docs/experiments/27b/results/``: the episode logs of the runs
 (``episodes_<run>.jsonl.gz``, one line per episode as the trainer wrote it), the evaluation logs on the secret split
-(``test_*.jsonl.gz``), the calibration summaries (``calibration_<run>.json``) and ``runs.json`` (what each run was).
-The paired readout and the evaluation table are the functions the node scripts use (``mrgym_verl.readout``,
-``mrgym_verl.stoprules``). The text between the tables is written here; it states settings and no result of its own.
+(``test_base_<run>.jsonl.gz`` and ``test_trained_<run>.jsonl.gz``; ``READOUT_FILES`` names the ones of the first run),
+the calibration summaries (``calibration_<run>.json``) and ``runs.json`` (what each run was). A run has a readout when
+its two evaluation logs are stored; what it trained on, for how many steps and which environments it never trained on
+are read from its logs. The paired readout and the evaluation table are the functions the node scripts use
+(``mrgym_verl.readout``, ``mrgym_verl.stoprules``): the newest attempt of each log, the instances both played. The
+text between the tables is written here; it states settings and no result of its own.
 
 The same numbers go to the front page. ``assets/training_27b.png`` is drawn from ``figure_data()``, which is stored
 beside it as ``assets/training_27b.json``: ``--check`` compares that file with the stored logs, not the image bytes
 (``FIGURE_VERSION`` is in it, so a change of the drawing makes the stored figure stale too). The blocks
 ``<!-- NAME:START -->`` ... ``<!-- NAME:END -->`` of README.md and docs/RECIPE.md listed in ``PAGES`` are written here:
-the before / after table, the settings of ``recipes/qwen3.8-27b-nowrap.env``, what the run cost (from the ``utc``
-stamps of the logs), the pitfalls with their numbers, and which commit the recipe was run on (from ``runs.json``).
+the before / after table of the headline run (``MAIN_RUN``), the settings of ``recipes/qwen3.8-27b-nowrap.env``, what
+the run cost (from the ``utc`` stamps of its logs), the pitfalls with their numbers, and which commit the recipe was
+run on (from ``runs.json``).
 """
 from __future__ import annotations
 
@@ -44,17 +48,26 @@ GAIN, LOWER, HARM, MIN_ENVS = 0.15, 0.05, 0.05, 2          # the rule of PREREG-
 FIGURE = os.path.join(ROOT, "assets", "training_27b.png")
 SIDECAR = os.path.join(ROOT, "assets", "training_27b.json")
 RECIPE_ENV = os.path.join(ROOT, "recipes", "qwen3.8-27b-nowrap.env")
-FIGURE_VERSION = 1                                         # raise it when draw() changes: the stored figure is then stale
-MAIN_RUN, SECOND_RUN, LONGER_RUN, CHECK_RUN = "v07", "v09", "v13", "v17"
-UNTRAINED = ["Scanner/NullTissue-v0"]
-# the cells of the readout in plain words: (short label, label in a table)
-PLAIN = {("Scanner/NoWrap-v1", 1): ("trained level", "Trained level"),
-         ("Scanner/NoWrap-v1", 2): ("harder level", "Harder level (trained; reward only late)"),
-         ("Scanner/NoWrap-v1", 3): ("never-trained level", "Never-trained level"),
-         ("Scanner/NullTissue-v0", 0): ("another task family (never trained)", "Another task family (never trained)")}
+FIGURE_VERSION = 2                                         # raise it when draw() changes: the stored figure is then stale
+MAIN_RUN = "v17"                                           # the headline: the recipe on the published code
+FIRST_RUN, MANY_CELLS_RUN, LONGER_RUN, STOPPED_RUN, RECOUNT_RUN = "v07", "v09", "v13", "v18", "v19"
+READOUT_FILES = {"v07": ("test_base_57k.jsonl.gz", "test_trained_step60.jsonl.gz")}       # other runs: test_base_<run>, test_trained_<run>
+READOUT_BY = {"v07": "v15"}                                # the evaluation-only run that read a run out, where it was not the run itself
+EARLIER_LOOK = ("v07", "test_trained_step40.jsonl.gz")     # one more reading of the secret split: an earlier checkpoint of the first run
+L1, L2, L3 = ("Scanner/NoWrap-v1", 1), ("Scanner/NoWrap-v1", 2), ("Scanner/NoWrap-v1", 3)
+HINTED, UNHINTED, NEVER = ("Scanner/NullTissue-v0", 0), ("Scanner/NullTissue-v0", 1), ("Scanner/T1Transmit-v1", 1)
+REJECTED = "no_submission_rejected"                        # the outcome of an episode ended by the rejected-call limit
+# the cells of the headline readout in plain words: (short label, label in a table)
+PLAIN = {L1: ("trained level", "Trained level"),
+         L2: ("harder level", "Harder level (trained; reward only late)"),
+         L3: ("never-trained level", "Never-trained level"),
+         HINTED: ("another task family (never trained)", "Another task family (never trained)")}
 # page -> (prefix of a link to the repository root, the blocks it must hold)
 PAGES = {"README.md": ("", ("TRAINING", "RECIPE_SETTINGS", "RECIPE_STATUS")),
          "docs/RECIPE.md": ("../", ("TRAINING", "RECIPE_NEEDS", "RECIPE_SETTINGS", "RECIPE_PITFALLS", "RECIPE_STATUS", "RECIPE_REACH"))}
+# the sections of the report, in order; the text refers to them by these names so that a number never goes stale
+SECTIONS = ("runs", "replications", "behaviour", "secret", "dev", "rollouts", "calibration", "reads", "deviations", "limits", "reproduce")
+SEC = {name: i + 1 for i, name in enumerate(SECTIONS)}
 
 
 def rows(name):
@@ -71,6 +84,10 @@ def cell(r):
     return f"{r['env_id'].split('/')[1]} L{r['level']}"
 
 
+def name(key):
+    return f"{key[0].split('/')[1]} L{key[1]}"
+
+
 def frac(eps):
     return f"{sum(bool(r['passed']) for r in eps)} / {len(eps)}" if eps else "-"
 
@@ -79,61 +96,268 @@ def pts(x):
     return f"{100 * x:+.1f}"
 
 
+def gain(p):
+    return f"{pts(p['diff'])} [{pts(p['lo'])}, {pts(p['hi'])}]"
+
+
 def table(head, lines):
     return ["| " + " | ".join(head) + " |", "|" + "---|" * len(head)] + ["| " + " | ".join(str(c) for c in line) + " |" for line in lines]
 
 
+def words(items):
+    items = [str(x) for x in items]
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def moved(a, b, verb=("fall", "rise", "stay")):
+    return f"{verb[0]} from {a} to {b}" if b < a else f"{verb[1]} from {a} to {b}" if b > a else f"{verb[2]} at {a}"
+
+
+def _of(eps, key):
+    return [r for r in eps if (r["env_id"], r["level"]) == key]
+
+
+def _cells(eps):
+    return sorted({(r["env_id"], r["level"]) for r in eps})
+
+
+def _test(eps):
+    """The rows of a readout as ``mrgym_verl.readout`` takes them: the newest attempt of the log, the test phase."""
+    return [r for r in S._newest_attempt(eps) if r.get("phase") == "test"]
+
+
+def _train(log):
+    return [r for r in S._newest_attempt(log) if r.get("phase") == "train"]
+
+
+def _ended(eps, key=None):
+    """(passes, ended by the rejected-call limit, cut by length, median context tokens, episodes) of a cell."""
+    eps = eps if key is None else _of(eps, key)
+    ctx = sorted(r["context_tokens"] for r in eps)
+    return dict(passed=sum(bool(r["passed"]) for r in eps), rejected=sum(r["outcome"] == REJECTED for r in eps),
+                cut=sum("length" in r["outcome"] for r in eps), context=ctx[len(ctx) // 2], episodes=len(eps))
+
+
+def _response_tokens(run):
+    """The response limit of a run, from its ``node`` line in runs.json (``... + 24,576 response tokens``)."""
+    return int(re.search(r"\+ ([\d,]+)", run["node"]).group(1).replace(",", ""))
+
+
+def _episode_tokens(run):
+    """Prompt + response limit of a run, from its ``node`` line in runs.json."""
+    a, b = re.search(r"([\d,]+)[^\d+]*\+ ([\d,]+)", run["node"]).groups()
+    return int(a.replace(",", "")) + int(b.replace(",", ""))
+
+
+def _node(run):
+    return run["node"].split(";")[0]
+
+
+def _attempts(log):
+    """(attempts, node hours): per attempt from its start (the stamp in its id) to its last logged episode."""
+    stamp = lambda s, fmt: datetime.datetime.strptime(s, fmt)                                       # noqa: E731
+    last = {}
+    for r in log:
+        last[r["attempt"]] = max(last.get(r["attempt"], r["utc"]), r["utc"])
+    seconds = sum((stamp(u, "%Y-%m-%dT%H:%M:%SZ") - stamp(a.split("-")[0], "%Y%m%dT%H%M%SZ")).total_seconds() for a, u in last.items())
+    return len(last), seconds / 3600.0
+
+
+# ------------------------------------------------------------------------------------------------ the stored files
+def stored() -> dict:
+    """Every stored result file, read once. ``logs``: the episode log of every run that has one. ``tests``: per run with
+    a readout its two evaluation logs as stored (``raw``) and as the readout takes them (``base``, ``trained``)."""
+    runs = load("runs.json")
+    present = set(os.listdir(RESULTS))
+    logs = {k: rows(f"episodes_{k}.jsonl.gz") for k in runs if f"episodes_{k}.jsonl.gz" in present}
+    tests = {}
+    for k in runs:
+        b, t = READOUT_FILES.get(k, (f"test_base_{k}.jsonl.gz", f"test_trained_{k}.jsonl.gz"))
+        if b in present and t in present:
+            raw = (rows(b), rows(t))
+            tests[k] = dict(files=(b, t), raw=raw, base=_test(raw[0]), trained=_test(raw[1]))
+    return dict(runs=runs, logs=logs, tests=tests, early=rows(EARLIER_LOOK[1]), cals={k: load(f"calibration_{k}.json") for k in ("c01", "c04", "c05")})
+
+
+def readout_of(d: dict, run: str) -> dict:
+    """The readout of one run: what it trained on (from its log), the environments it never trained on, the paired
+    result of ``mrgym_verl.readout`` with the plan's rule, and how its episodes ended per cell."""
+    t = d["tests"][run]
+    trained_cells = _cells(_train(d["logs"][run]))
+    untrained = sorted({e for e, _ in _cells(t["base"] + t["trained"])} - {e for e, _ in trained_cells})
+    r = R.readout(t["base"], t["trained"], untrained, "test", GAIN, LOWER, HARM, MIN_ENVS)
+    cells = {(c["env_id"], c["level"]): c for c in r["cells"]}
+    return dict(run=run, code=d["runs"][run]["code"], by=READOUT_BY.get(run, run), trained_cells=trained_cells, untrained=untrained,
+                steps=max(x["step"] for x in t["trained"]), result=r, cells=cells,
+                instances=sorted({c["paired"]["instances"] for c in r["cells"]}),
+                episodes=len(t["base"]) // max(1, sum(c["paired"]["instances"] for c in r["cells"])),
+                ended={k: (_ended(t["base"], k), _ended(t["trained"], k)) for k in cells})
+
+
+def readouts(d: dict) -> list[dict]:
+    """The readouts of every finished training run, the headline run first, the others in the order of runs.json."""
+    order = [MAIN_RUN] + [k for k in d["runs"] if k in d["tests"] and k != MAIN_RUN]
+    return [readout_of(d, k) for k in order]
+
+
 # ------------------------------------------------------------------------------------------------ sections
-def runs_table(runs):
-    return table(["run", "what", "cells", "node", "code", "state when the files were copied"],
-                 [[f"`{k}`", r["what"], r["cells"], r["node"], r["code"], r["state"]] for k, r in runs.items()])
+def runs_table(d):
+    def log(k):
+        if k not in d["logs"]:
+            return "-"
+        train = _train(d["logs"][k])
+        return f"steps {min(r['step'] for r in train)}-{max(r['step'] for r in train)}, {_attempts(d['logs'][k])[0]} attempt{'s' if _attempts(d['logs'][k])[0] != 1 else ''}"
+    return table(["run", "what", "cells", "node", "code", "state when the files were copied", "training steps in the stored log"],
+                 [[f"`{k}`", r["what"], r["cells"], r["node"], r["code"], r["state"], log(k)] for k, r in d["runs"].items() if not k.startswith("_")])
 
 
-def readout_section(base, trained, label):
-    r = R.readout(base, trained, ["Scanner/NullTissue-v0"], "test", GAIN, LOWER, HARM, MIN_ENVS)
+def readout_section(r: dict, label: str):
     out = []
     for c in r["cells"]:
         b, t, p = c["base"], c["trained"], c["paired"]
         out.append([f"{c['env_id'].split('/')[1]} L{c['level']}",
                     f"{round(b['pass_rate'] * b['episodes'])} / {b['episodes']}", f"{round(t['pass_rate'] * t['episodes'])} / {t['episodes']}",
-                    f"{pts(p['diff'])} [{pts(p['lo'])}, {pts(p['hi'])}]", p["instances"], f"{p['p']:.4f}" if p["p"] >= 0.0001 else "< 0.0001"])
+                    gain(p), p["instances"], f"{p['p']:.4f}" if p["p"] >= 0.0001 else "< 0.0001"])
     lines = table(["cell", "base", label, "paired difference in points [95 %]", "instances", "p"], out)
     env = []
     for e in r["environments"]:
         p = e["paired"]
-        env.append([e["env_id"].split("/")[1], e["role"], f"{pts(p['diff'])} [{pts(p['lo'])}, {pts(p['hi'])}]", p["instances"],
-                    "yes" if e.get("meets_rule") else "no"])
+        env.append([e["env_id"].split("/")[1], e["role"], gain(p), p["instances"], "yes" if e.get("meets_rule") else "no"])
     lines += [""] + table(["environment (levels as strata)", "role", "paired difference in points [95 %]", "instances",
-                           f"gain >= {100 * GAIN:.0f} points and lower bound > {100 * LOWER:.0f}"], env)
+                           f"trained: gain >= {100 * GAIN:.0f} points and lower bound > {100 * LOWER:.0f}; untrained: not below -{100 * HARM:.0f}"], env)
     v = r["verdict"]
     lines += ["", f"Rule of the pre-registration: {v['trained_environments_meeting_rule']} trained environment(s) meet it, "
-                  f"{v['needed']} are needed; no harm on the environment never trained on: {v['no_harm_on_untrained']}; "
+                  f"{v['needed']} are needed; no harm on the environment(s) never trained on: {v['no_harm_on_untrained']}; "
                   f"\"it trained\" by that rule: **{v['it_trained']}**."]
-    return lines, r
+    return lines
 
 
-def outcomes_section(base, t40, t60):
-    cells = sorted({(r["env_id"], r["level"]) for r in base})
-    names = [n for n, _ in collections.Counter(r["outcome"] for r in base + t40 + t60).most_common()]
+def outcomes_section(columns):
+    """How the episodes ended, per cell: one column per (label, rows)."""
+    cells = _cells(columns[0][1])
+    names = [n for n, _ in collections.Counter(r["outcome"] for _, eps in columns for r in eps).most_common()]
     out = []
-    for env, lv in cells:
-        b, m, e = (collections.Counter(r["outcome"] for r in eps if (r["env_id"], r["level"]) == (env, lv)) for eps in (base, t40, t60))
+    for key in cells:
+        counts = [collections.Counter(r["outcome"] for r in _of(eps, key)) for _, eps in columns]
         for n in names:
-            if b[n] + m[n] + e[n]:
-                out.append([f"{env.split('/')[1]} L{lv}", f"`{n}`", b[n], m[n], e[n]])
-    return table(["cell", "how the episode ended", "base", "step 40", "step 60"], out)
+            if sum(c[n] for c in counts):
+                out.append([name(key), f"`{n}`"] + [c[n] for c in counts])
+    return table(["cell", "how the episode ended"] + [label for label, _ in columns], out)
 
 
-def tokens_section(base, t40, t60):
+def tokens_section(columns):
     out = []
-    for env, lv in sorted({(r["env_id"], r["level"]) for r in base}):
-        line = [f"{env.split('/')[1]} L{lv}"]
-        for eps in (base, t40, t60):
-            ctx = sorted(r["context_tokens"] for r in eps if (r["env_id"], r["level"]) == (env, lv))
-            cut = sum(1 for r in eps if (r["env_id"], r["level"]) == (env, lv) and "length" in r["outcome"])
-            line += [f"{ctx[len(ctx) // 2]:,}", cut]
+    for key in _cells(columns[0][1]):
+        line = [name(key)]
+        for _, eps in columns:
+            e = _ended(eps, key)
+            line += [f"{e['context']:,}", e["cut"]]
         out.append(line)
-    return table(["cell", "base: median context tokens", "cut by length", "step 40: median", "cut", "step 60: median", "cut"], out)
+    head = ["cell"]
+    for label, _ in columns:
+        head += [f"{label}: median context tokens", "cut by length"]
+    return table(head, out)
+
+
+def replications_section(rs: list[dict]) -> list[str]:
+    """One row per finished training run, then every readout cell of every run side by side."""
+    def trained_level(r):
+        c = r["cells"][L1]
+        return [f"{round(c['base']['pass_rate'] * c['base']['episodes'])} / {c['base']['episodes']}",
+                f"{round(c['trained']['pass_rate'] * c['trained']['episodes'])} / {c['trained']['episodes']}", gain(c["paired"])]
+    out = []
+    for r in rs:
+        v = r["result"]["verdict"]
+        meets = [e["env_id"].split("/")[1] for e in r["result"]["environments"] if e["role"] == "trained" and e["meets_rule"]]
+        out.append([f"`{r['run']}`" + ("" if r["by"] == r["run"] else f" (read out by `{r['by']}`)"), r["code"], ", ".join(name(k) for k in r["trained_cells"]),
+                    r["steps"], f"{' or '.join(map(str, r['instances']))} x {r['episodes']}"] + trained_level(r)
+                   + [f"{v['trained_environments_meeting_rule']} of {v['needed']} needed" + (f" ({', '.join(meets)})" if meets else "")])
+    lines = table(["run", "code", "trained on", "steps", "secret instances x episodes per cell", f"{name(L1)}: base", "trained",
+                   "paired difference in points [95 %]", "trained environments that meet the plan's rule"], out)
+    keys = sorted({k for r in rs for k in r["cells"]})
+    matrix = []
+    for k in keys:
+        line = [name(k)]
+        for r in rs:
+            c = r["cells"].get(k)
+            if c is None:
+                line.append("-")
+                continue
+            b, t = c["base"], c["trained"]
+            line.append(f"{round(b['pass_rate'] * b['episodes'])} / {b['episodes']} -> {round(t['pass_rate'] * t['episodes'])} / {t['episodes']}: "
+                        f"{gain(c['paired'])}" + (" **T**" if k in r["trained_cells"] else ""))
+        matrix.append(line)
+    lines += ["", "Every readout cell of every run: base -> trained passes / episodes, then the paired difference in points with its 95 % "
+                  "interval. **T** marks a cell the run trained on; `-` a cell it did not read.", ""]
+    lines += table(["cell"] + [f"`{r['run']}`" for r in rs], matrix)
+    return lines
+
+
+def findings(rs: list[dict]) -> list[str]:
+    """What the replication tables show, in sentences whose numbers and directions are read from the readouts."""
+    def per_run(key, pick=lambda r: True):
+        return [f"{gain(r['cells'][key]['paired'])} (`{r['run']}`)" for r in rs if key in r["cells"] and pick(r)]
+    l1 = [r["cells"][L1]["paired"] for r in rs]
+    out = [f"- The trained level ({name(L1)}) gains on instances the model never saw in {len(l1)} of {len(rs)} runs: " + ", ".join(per_run(L1)) + ". "
+           + ("Every interval lies above zero." if all(p["lo"] > 0 for p in l1) else f"{sum(p['lo'] > 0 for p in l1)} of the intervals lie above zero.")]
+    hard_t, hard_u = per_run(L2, lambda r: L2 in r["trained_cells"]), per_run(L2, lambda r: L2 not in r["trained_cells"])
+    out.append(f"- The harder level ({name(L2)}): " + ", ".join(hard_t) + " where it was a training cell"
+               + (f"; {', '.join(hard_u)} where it was not" if hard_u else "") + f". Its reward appears late (section {SEC['rollouts']}).")
+    away, on = per_run(HINTED, lambda r: HINTED not in r["trained_cells"]), per_run(HINTED, lambda r: HINTED in r["trained_cells"])
+    out.append(f"- {name(HINTED)}, the practice level of another task family (its text states the method): " + ", ".join(away)
+               + " in the runs that never trained on it; " + ", ".join(on) + f" in the runs that did (section {SEC['behaviour']}). "
+               "What carried over in the first case is executing a stated method through the tools. No conversation of these episodes has "
+               "been read, so the mechanism is not established.")
+    edge = per_run(L3)
+    out.append(f"- {name(L3)}, never trained on: " + ", ".join(edge) + ". It is at the edge of its intervals and is not claimed.")
+    met = [r["result"]["verdict"]["trained_environments_meeting_rule"] for r in rs]
+    needed = rs[0]["result"]["verdict"]["needed"]
+    out.append(f"- By the rule of the pre-registration ({needed} trained environments with a gain of at least {100 * GAIN:.0f} points and a lower bound "
+               f"above {100 * LOWER:.0f}) " + (f"each of the {len(rs)} runs trained {met[0]} environment that meets it"
+                                             if len(set(met)) == 1 else "the runs trained " + words(met) + " environments that meet it")
+               + f": \"improved on one environment\" {len(rs)} times, not the plan's \"it trained\".")
+    return out
+
+
+def behaviour_section(d: dict, rs: list[dict]) -> list[str]:
+    """Per run and cell of the secret split, base -> trained: passes, episodes ended by the rejected-call limit, cut by
+    length, median context tokens; then what the table holds, in sentences read from it."""
+    out = []
+    for r in rs:
+        for k, (b, t) in sorted(r["ended"].items()):
+            out.append([f"`{r['run']}`", name(k), "yes" if k in r["trained_cells"] else "no", f"{b['passed']} -> {t['passed']}",
+                        f"{b['rejected']} -> {t['rejected']}", f"{b['cut']} -> {t['cut']}", f"{b['context']:,} -> {t['context']:,}", b["episodes"]])
+    lines = table(["run", "cell", "trained on it", "passes", "ended by the rejected-call limit", "cut by length", "median context tokens",
+                   "episodes per side"], out) + [""]
+    by = {r["run"]: r for r in rs}
+    clean = [r for r in rs if HINTED in r["cells"] and HINTED not in r["trained_cells"] and all(e == L1[0] for e, _ in r["trained_cells"])]
+    if clean:
+        lines.append(f"- Runs that trained on {L1[0].split('/')[1]} only: on {name(HINTED)}, which they never trained on, the endings at the "
+                     "rejected-call limit " + words(f"{moved(*[x['rejected'] for x in r['ended'][HINTED]])} of {r['ended'][HINTED][0]['episodes']} "
+                                                    f"(`{r['run']}`)" for r in clean) + ".")
+    for r in rs:
+        if HINTED in r["trained_cells"] and UNHINTED in r["cells"] and NEVER in r["cells"]:
+            e = r["ended"]
+            env = next(x for x in r["result"]["environments"] if x["env_id"] == NEVER[0])
+            lines.append(f"- `{r['run']}` trained on {name(HINTED)} itself, on the accounting of that time. There the endings at the rejected-call "
+                         f"limit {moved(e[HINTED][0]['rejected'], e[HINTED][1]['rejected'])} of {e[HINTED][0]['episodes']} and the passes "
+                         f"{moved(e[HINTED][0]['passed'], e[HINTED][1]['passed'])}; on {name(UNHINTED)} the endings "
+                         f"{moved(e[UNHINTED][0]['rejected'], e[UNHINTED][1]['rejected'])}; on {name(NEVER)}, which it "
+                         f"never trained on, they {moved(e[NEVER][0]['rejected'], e[NEVER][1]['rejected'])} while its "
+                         f"passes {moved(e[NEVER][0]['passed'], e[NEVER][1]['passed'])}.")
+            lines.append(f"- The plan's \"no harm\" reads the pass rate only and does not see this: {NEVER[0].split('/')[1]} in `{r['run']}` is "
+                         f"{gain(env['paired'])} points and counts as no harm: {env['meets_rule']}.")
+    many = by.get(MANY_CELLS_RUN)
+    if many:
+        b, t = (sum(x[i]["cut"] for x in many["ended"].values()) for i in (0, 1))
+        n = sum(x[0]["episodes"] for x in many["ended"].values())
+        lines.append(f"- `{many['run']}` ({len(many['trained_cells'])} training cells): the episodes cut by length {moved(b, t)} "
+                     f"of {n} ({100 * t / n:.0f} % of the trained side), and the median context grows in {sum(x[1]['context'] > x[0]['context'] for x in many['ended'].values())} "
+                     f"of its {len(many['ended'])} cells. Its own readout stopped on its length check for that reason.")
+    lines.append(f"- The accounting was corrected afterwards (commit {d['runs'][RECOUNT_RUN]['code']}): until then a call that the instrument refused "
+                 "counted toward the rejected-call limit like a call that was written wrongly; since then only a call that is written wrongly "
+                 f"does. Run `{RECOUNT_RUN}` trains {d['runs'][RECOUNT_RUN]['cells'].split(' (')[0]} on that code; it has no readout yet.")
+    return lines
 
 
 def dev_section(log):
@@ -143,16 +367,17 @@ def dev_section(log):
     table_rows = {d["step"]: d for d in S.dev_table(log, dict(S.DEFAULTS))}
     out = []
     for st in steps:
-        line = [st] + [frac([r for r in looks if r["step"] == st and (r["env_id"], r["level"]) == c]) for c in cells]
-        cut = sum(1 for r in looks if r["step"] == st and "length" in r["outcome"])
+        at = [r for r in looks if r["step"] == st]
+        line = [st] + [frac(_of(at, c)) for c in cells]
         lk = table_rows[st]["look"]
-        line += [cut, "-" if not lk else f"{pts(lk['diff'])}"]
+        line += [_ended(at)["cut"], f"{_ended(at)['context']:,}", "-" if not lk else f"{pts(lk['diff'])}"]
         out.append(line)
-    return table(["step"] + [f"{e.split('/')[1]} L{lv}" for e, lv in cells] + ["cut by length (all cells)", "all cells against the first look, points"], out)
+    return table(["step"] + [f"{e.split('/')[1]} L{lv}" for e, lv in cells]
+                 + ["cut by length (all cells)", "median context tokens (all cells)", "all cells against the first look, points"], out)
 
 
 def train_section(log, block=10):
-    train = [r for r in S._newest_attempt(log) if r.get("phase") == "train"]
+    train = _train(log)
     cells = sorted({(r["env_id"], r["level"]) for r in train})
     last = max(r["step"] for r in train)
     first = min(r["step"] for r in train)
@@ -173,7 +398,7 @@ def calibration_section(cals):
     keys = [(c["env_id"], c["level"]) for c in cals["c05"]["cells"]]
     by = {k: {(c["env_id"], c["level"]): c for c in v["cells"]} for k, v in cals.items()}
     show = lambda c: "-" if c is None else f"{c['passed']} / {c['n_episodes']}"                                   # noqa: E731
-    rej = lambda c: "-" if c is None else c["outcome_counts"].get("no_submission_rejected", 0)                    # noqa: E731
+    rej = lambda c: "-" if c is None else c["outcome_counts"].get(REJECTED, 0)                                    # noqa: E731
     out = []
     for env, lv in sorted(keys):
         a, b, c = (by[k].get((env, lv)) for k in ("c01", "c04", "c05"))
@@ -182,7 +407,15 @@ def calibration_section(cals):
                   "ended by rejected calls", "`c05` stream tokens p50 / p90"], out)
 
 
-def repeat_sentence(log):
+def dead_families(cal):
+    """(families whose every cell is in the dead band, families) of a calibration."""
+    by = collections.defaultdict(list)
+    for c in cal["cells"]:
+        by[c["env_id"]].append(learn.band(c["passed"] / c["n_episodes"]))
+    return sum(all(b == "dead" for b in bands) for bands in by.values()), len(by)
+
+
+def repeat_sentence(run, log):
     """What two evaluations of the same weights gave (a run that was preempted right after an evaluation)."""
     looks = S._looks(log, "dev")
     for step in sorted({r["step"] for r in looks}):
@@ -190,81 +423,125 @@ def repeat_sentence(log):
         if step > 0 and len(attempts) > 1:
             c = sorted({(r["env_id"], r["level"]) for r in looks})[0]
             parts = [frac([r for r in looks if r["step"] == step and r["attempt"] == a and (r["env_id"], r["level"]) == c]) for a in attempts]
-            return (f"In run `v07` the weights of step {step} were evaluated {len(attempts)} times on the same instances: "
+            return (f"In run `{run}` the weights of step {step} were evaluated {len(attempts)} times on the same instances: "
                     f"{' and '.join(parts)} on {c[0].split('/')[1]} level {c[1]}.")
     return ""
 
 
+def dev_against_secret(d: dict, r: dict, key=L1):
+    """(last dev look, secret-split readout) of a cell of one run after training: two rate dicts."""
+    looks = _of(S._looks(d["logs"][r["run"]], "dev"), key)
+    last = max(x["step"] for x in looks)
+    return _rate([x for x in looks if x["step"] == last]), _rate(_of(d["tests"][r["run"]]["trained"], key)), last
+
+
+def submit_rate(log, window=5):
+    """Share of the training episodes of the last ``window`` steps that delivered, as the stop rule computes it."""
+    per_step = collections.Counter(r["step"] for r in _train(log))
+    steps = S.step_table(log, dict(S.DEFAULTS, episodes_per_step=collections.Counter(per_step.values()).most_common(1)[0][0]))
+    return sum(s["submit_rate"] for s in steps[-window:]) / len(steps[-window:]), steps[-1]["step"]
+
+
 # ------------------------------------------------------------------------------------------------ the report
-def stored() -> dict:
-    """Every stored result file, read once."""
-    logs = {k: rows(f"episodes_{k}.jsonl.gz") for k in ("v07", "v09", "v11", "v13")}
-    if os.path.exists(os.path.join(RESULTS, f"episodes_{CHECK_RUN}.jsonl.gz")):
-        logs[CHECK_RUN] = rows(f"episodes_{CHECK_RUN}.jsonl.gz")
-    return dict(runs=load("runs.json"), base=rows("test_base_57k.jsonl.gz"), t40=rows("test_trained_step40.jsonl.gz"),
-                t60=rows("test_trained_step60.jsonl.gz"), logs=logs, cals={k: load(f"calibration_{k}.json") for k in ("c01", "c04", "c05")})
-
-
 def build(d: dict | None = None) -> str:
     d = d or stored()
-    runs, base, t40, t60, logs, cals = d["runs"], d["base"], d["t40"], d["t60"], d["logs"], d["cals"]
-    r60_lines, r60 = readout_section(base, t60, "after 60 steps")
-    r40_lines, _ = readout_section(base, t40, "after 40 steps")
-    L = ["<!-- Generated by docs/experiments/27b/report.py from docs/experiments/27b/results/. Do not edit: change the script. -->",
+    runs, logs, cals = d["runs"], d["logs"], d["cals"]
+    rs = readouts(d)
+    by = {r["run"]: r for r in rs}
+    main, first = by[MAIN_RUN], by[FIRST_RUN]
+    early = R.readout(d["tests"][FIRST_RUN]["base"], _test(d["early"]), first["untrained"], "test", GAIN, LOWER, HARM, MIN_ENVS)
+    early_step = max(r["step"] for r in d["early"])
+    limit = lambda k: f"{_episode_tokens(runs[k]):,}-token"                                         # noqa: E731
+    last_step = lambda k: max(r["step"] for r in _train(logs[k]))                                   # noqa: E731
+    dev, secret, dev_step = dev_against_secret(d, main)
+    stop_rate, stop_step = submit_rate(logs[STOPPED_RUN])
+    many = by[MANY_CELLS_RUN]
+    many_cut, many_n = sum(x[1]["cut"] for x in many["ended"].values()), sum(x[1]["episodes"] for x in many["ended"].values())
+    base_logs = len({r["files"][0] for r in d["tests"].values()})
+    attempts_in_base = {k: len({r["attempt"] for r in t["raw"][0]}) for k, t in d["tests"].items()}
+    dead, families = dead_families(cals["c05"])
+    unhinted = [f"{r['ended'][UNHINTED][0]['passed']} / {r['ended'][UNHINTED][0]['episodes']} -> {r['ended'][UNHINTED][1]['passed']} / "
+                f"{r['ended'][UNHINTED][1]['episodes']} (`{r['run']}`)" for r in rs if UNHINTED in r["cells"]]
+    sizes = sorted({n for r in rs for n in r["instances"]}, reverse=True)
+    training = [k for k in logs if runs[k]["state"].startswith("training") and "finished" not in runs[k]["state"]]
+    L = (["<!-- Generated by docs/experiments/27b/report.py from docs/experiments/27b/results/. Do not edit: change the script. -->",
          "# Results: Qwen3.8-27B on MR Gym by reinforcement learning, first runs", "",
          f"Files copied {runs['_copied_utc']}. Some runs were still training then; their tables stop where the copied log stops.", "",
          "**Status: exploratory.** These runs came before the plan of [PREREG-27b.md](PREREG-27b.md) could be followed as written; the "
-         "deviations are listed in section 7. One training run with one sampler seed carries the main result, the secret split was read "
-         "twice with its weights (both readings are below), and a cell holds 48 secret instances. Read it as the first evidence that the "
-         "model learns on the environment, not as the pre-registered result.", "",
+         f"deviations are listed in section {SEC['deviations']}. {len(rs)} training runs from the base model were read out on the secret split, each "
+         f"with one sampler seed; a cell holds {' or '.join(map(str, sizes))} secret instances. The headline is run `{MAIN_RUN}`: the recipe of "
+         f"[RECIPE.md](../RECIPE.md) on the published code (commit {runs[MAIN_RUN]['code']}). Read it as evidence that the model learns on the "
+         "environment, not as the pre-registered result.", "",
          "The model is trained by reinforcement learning only: LoRA (rank 32) with GRPO in verl on episodes played through the "
          "environment's tools, reward 1 when the delivered result passes the verifier and 0 otherwise. No demonstrations, no supervised "
          "step, no reference answers. Thinking is off and a reply holds at most 2,048 tokens, because an episode has to fit one "
-         "accelerator as a single token stream (section 6).", "",
-         "## 1. Runs", ""] + runs_table({k: v for k, v in runs.items() if not k.startswith("_")}) + ["",
-         "## 2. The secret split: trained against base on the same instances", "",
-         "Run `v07` trained on NoWrap-v1 levels 1 and 2 only. Its weights after 40 and after 60 steps were evaluated against the base "
-         "model on the secret split `test-iid`: 48 instances per cell, 2 episodes each, the same instances for both, the trainer's "
-         "harness, an episode limit of about 57,000 tokens (runs `v12`, `v15`; the base half is shared). NoWrap-v1 level 3 and "
-         "NullTissue-v0 were never trained on.", "", "### After 60 steps (the final weights)", ""] + r60_lines + ["",
-         "### After 40 steps", ""] + r40_lines + ["",
-         "### How the episodes ended", ""] + outcomes_section(base, t40, t60) + ["",
-         "### Length of the episodes", ""] + tokens_section(base, t40, t60) + ["",
-         "What the tables show, and what they do not:", "",
-         "- The trained level gains on instances the model never saw, and the gain is larger after 60 steps than after 40.",
-         "- Level 2 gains as well. It was a training cell, but it gave almost no passing rollout before step 30 (section 4): the "
-         "signal there appeared after level 1 had been learned.",
-         "- NullTissue-v0 level 0, another task family, gains without having been trained on. That level is the family's practice "
-         "level: its text states the method. What carried over is executing a stated method through the tools; the outcome table "
-         "shows fewer wrong deliveries and fewer episodes ended by rejected calls. No conversation of these episodes has been read "
-         "yet, so the mechanism is not established.",
-         "- Level 3 is at the edge of its interval and is not claimed.",
-         "- By the rule of the pre-registration this is \"improved on one environment\": one trained environment, two were required.", "",
-         "## 3. Evaluation during training (public dev split)", "",
-         "Passes / episodes per cell at each evaluation; 2 episodes per instance. When a run was preempted and restored a checkpoint, "
-         "the evaluation of the same weights was repeated and both are pooled here. " + repeat_sentence(logs["v07"]) +
-         " A single cell of a single look is a direction, not a number.", ""]
-    for k, note in (("v07", "NoWrap-v1 levels 1-2 on an episode limit of about 33,000 tokens: level-2 episodes are cut there, which is why its level-2 column understates section 2."),
-                    ("v09", "Four cells at once on the 57,000-token limit, same code as `v07`."),
-                    ("v13", "Continues the step-50 weights of `v07` on NoWrap-v1 levels 2 and 3 only, 57,000-token limit; level 1 is watched for forgetting."),
-                    ("v11", "NullTissue-v0 level 0 + NoWrap-v1 level 1 on an interim code state in which only the calculator's step limit was raised.")):
-        L += [f"### Run `{k}`", "", note, ""] + dev_section(logs[k]) + [""]
-    L += ["## 4. Training rollouts", "", "Passes / rollouts per cell in blocks of ten steps (8 groups of 8 rollouts per step; the sampler "
+         f"accelerator as a single token stream (section {SEC['calibration']}).", "",
+         f"## {SEC['runs']}. Runs", ""] + runs_table(d) + ["",
+         f"## {SEC['replications']}. Replications", "",
+         "Every finished training run, trained against the base model on the same instances of the secret split `test-iid`, in the "
+         "trainer's harness. One row per run; the trained level is the cell that every run trained on.", ""] + replications_section(rs) + [
+         "", "What the tables show, and what they do not:", ""] + findings(rs) + ["",
+         f"## {SEC['behaviour']}. What training does to behaviour", "",
+         "How the episodes of the secret split ended, base -> trained, per run and cell: passes, episodes ended by the rejected-call "
+         f"limit (outcome `{REJECTED}`), episodes cut by length (a reply cut by its token limit, or a full context), and the median "
+         "context of an episode in tokens.", ""] + behaviour_section(d, rs) + ["",
+         f"## {SEC['secret']}. The secret split, run by run", "",
+         f"### Run `{MAIN_RUN}`: the recipe on the published code", "",
+         f"Trained on {words(name(k) for k in main['trained_cells'])} for {main['steps']} steps on {_node(runs[MAIN_RUN])} with a {limit(MAIN_RUN)} "
+         f"episode limit, then read out by the run itself: {main['instances'][0]} instances per cell, {main['episodes']} episodes each.", ""]
+         + readout_section(main["result"], f"after {main['steps']} steps") + ["", "How its episodes ended:", ""]
+         + outcomes_section([("base", d["tests"][MAIN_RUN]["base"]), (f"step {main['steps']}", d["tests"][MAIN_RUN]["trained"])]) + ["",
+         f"### Run `{FIRST_RUN}`: the first result", "",
+         f"Trained on {words(name(k) for k in first['trained_cells'])} on {_node(runs[FIRST_RUN])} with a {limit(FIRST_RUN)} episode limit. Its "
+         f"weights after {early_step} and after {first['steps']} steps were evaluated against the base model by evaluation-only runs on a "
+         f"{limit(first['by'])} limit (runs `v12`, `{first['by']}`; the base half is shared).", "",
+         f"After {first['steps']} steps (the final weights):", ""] + readout_section(first["result"], f"after {first['steps']} steps") + ["",
+         f"After {early_step} steps:", ""] + readout_section(early, f"after {early_step} steps") + ["", "How its episodes ended:", ""]
+         + outcomes_section([("base", d["tests"][FIRST_RUN]["base"]), (f"step {early_step}", _test(d["early"])),
+                             (f"step {first['steps']}", d["tests"][FIRST_RUN]["trained"])]) + ["", "Length of its episodes:", ""]
+         + tokens_section([("base", d["tests"][FIRST_RUN]["base"]), (f"step {early_step}", _test(d["early"])),
+                           (f"step {first['steps']}", d["tests"][FIRST_RUN]["trained"])]) + [""])
+    for r in rs:
+        if r["run"] not in (MAIN_RUN, FIRST_RUN):
+            L += [f"### Run `{r['run']}`", "",
+                  f"Trained on {words(name(k) for k in r['trained_cells'])} for {r['steps']} steps (code {r['code']}); "
+                  f"{r['instances'][0]} instances per cell, {r['episodes']} episodes each.", ""] + readout_section(r["result"], f"after {r['steps']} steps") + [""]
+    L += [f"## {SEC['dev']}. Evaluation during training (public dev split)", "",
+          "Passes / episodes per cell at each evaluation; 2 episodes per instance. When a run was preempted and restored a checkpoint, "
+          "the evaluation of the same weights was repeated and both are pooled here. " + repeat_sentence(FIRST_RUN, logs[FIRST_RUN]) +
+          " A single cell of a single look is a direction, not a number.", ""]
+    notes = {
+        MAIN_RUN: f"The recipe on the published code, {limit(MAIN_RUN)} episode limit.",
+        FIRST_RUN: f"NoWrap-v1 levels 1-2 on a {limit(FIRST_RUN)} episode limit: level-2 episodes are cut there, which is why its level-2 column "
+                   f"understates its readout (section {SEC['secret']}).",
+        MANY_CELLS_RUN: f"Four cells at once on the {limit(MANY_CELLS_RUN)} limit, same code as `{FIRST_RUN}`.",
+        "v11": "NullTissue-v0 level 0 + NoWrap-v1 level 1 on an interim code state in which only the calculator's step limit was raised.",
+        LONGER_RUN: f"Continues the step-50 weights of `{FIRST_RUN}` on NoWrap-v1 levels 2 and 3 only, {limit(LONGER_RUN)} limit; level 1 is watched "
+                    f"for forgetting. {runs[LONGER_RUN]['state'][0].upper() + runs[LONGER_RUN]['state'][1:]}: the log ends at step {last_step(LONGER_RUN)}.",
+        STOPPED_RUN: f"NullTissue-v0 levels 0 and 1 from the base model on the corrected interface (it holds the episodes of `v16`). "
+                     f"{runs[STOPPED_RUN]['state'][0].upper() + runs[STOPPED_RUN]['state'][1:]}: in the log that rate is {stop_rate:.3f} at step {stop_step}.",
+        RECOUNT_RUN: f"The same cells on the code that counts rejected calls by class (commit {runs[RECOUNT_RUN]['code']}). "
+                     f"{runs[RECOUNT_RUN]['state'][0].upper() + runs[RECOUNT_RUN]['state'][1:]}: the log ends at step {last_step(RECOUNT_RUN)}.",
+    }
+    order = [k for k in notes if k in logs]
+    for k in order:
+        L += [f"### Run `{k}`", "", notes[k], ""] + dev_section(logs[k]) + [""]
+    L += [f"## {SEC['rollouts']}. Training rollouts", "", "Passes / rollouts per cell in blocks of ten steps (8 groups of 8 rollouts per step; the sampler "
           "chooses the cell of each group).", ""]
-    for k in ("v07", "v09", "v13", "v11"):
+    for k in order:
         L += [f"### Run `{k}`", ""] + train_section(logs[k]) + [""]
-    L += ["## 5. Where the untrained model stands", "",
+    L += [f"## {SEC['calibration']}. Where the untrained model stands", "",
           "Passes / episodes of the base model per cell in the chat harness (`mrgym calibrate`). `c01`: reasoning on (medium effort, "
-          "16,384-token replies), an earlier interface; " + c01_length(cals["c01"]) + " `c04`: thinking off, 2,048-token replies. `c05`: the same setting after the interface corrections of section 6 "
-          "(twice the instances).", ""] + calibration_section(cals) + ["",
+          "16,384-token replies), an earlier interface; " + c01_length(cals["c01"]) + " `c04`: thinking off, 2,048-token replies. `c05`: the same "
+          f"setting after the interface corrections of section {SEC['reads']} (twice the instances).", ""] + calibration_section(cals) + ["",
           "- With thinking off the model passes where the task text gives the method (NoWrap-v1 levels 0-1, NullTissue-v0 level 0) "
           "and almost nowhere else; with reasoning on it passes several of the unhinted cells. The tasks are within its reach; the "
           "setting that can be trained is the weak one.",
           "- The corrections moved the cells that the calculator had been blocking, and did not move the unhinted levels: there "
           "the gap is the method.",
-          "- ArtefactClinic-v0 in `c01` and `c04` was served from a build that was not thread-safe (section 6); those two columns "
+          f"- ArtefactClinic-v0 in `c01` and `c04` was served from a build that was not thread-safe (section {SEC['reads']}); those two columns "
           "are not valid for that family.", "",
-          "## 6. What reading the conversations found", "",
+          f"## {SEC['reads']}. What reading the conversations found", "",
           "Four reads of about 250 stored conversations of `c04` against the verifiers: [NoWrap levels 2-3](27b/reads/nowrap_l2_l3.md), "
           "[PhantomQA](27b/reads/phantomqa.md), [NullTissue, T1Transmit, BandFree, ProtocolToSpec](27b/reads/fitting_families.md), "
           "[SNRSpec, FatSuppress, ArtefactClinic](27b/reads/snrspec_fatsuppress_clinic.md). They were written against the code "
@@ -277,23 +554,40 @@ def build(d: dict | None = None) -> str:
           "other threads of the process were building.",
           "- What remains is method: without the hint the model looks at the object with the slow target sequence, probes at the "
           "target repetition time, or never measures the transmit field.",
-          "- An episode limit that is too small hides learning: on the 33,000-token limit level 2 looked dead in `v07`, on the "
-          "57,000-token limit the same weights pass it (sections 2 and 3).", "",
-          "## 7. Deviations from the pre-registration", "",
+          f"- An episode limit that is too small hides learning: on the {limit(FIRST_RUN)} limit level 2 looked dead in `{FIRST_RUN}`, on the "
+          f"{limit(first['by'])} limit the same weights pass it (sections {SEC['secret']} and {SEC['dev']}).", "",
+          f"## {SEC['deviations']}. Deviations from the pre-registration", "",
           "- Thinking off and 2,048-token replies instead of the planned reasoning setting: with reasoning an episode does not fit one accelerator.",
-          "- One trained environment (NoWrap-v1) in the run that carries the result; the plan requires two for \"it trained\".",
-          "- The readout cells of `v07` did not fit the episode limit of its node and its own readout stopped on its length check; the "
+          "- Trained environments that meet the rule, per run: " + ", ".join(f"{r['result']['verdict']['trained_environments_meeting_rule']} (`{r['run']}`)" for r in rs)
+          + f"; the plan requires {MIN_ENVS} for \"it trained\" (section {SEC['replications']}).",
+          f"- The readout cells of `{FIRST_RUN}` did not fit the episode limit of its node and its own readout stopped on its length check; the "
           "readout was made by separate evaluation-only runs on a larger limit, with the same instances and harness.",
-          "- The secret split was read at two checkpoints of the same run (steps 40 and 60); both are reported.",
-          "- 48 secret instances per cell instead of the planned number; one sampler seed.",
+          f"- The readout of `{MANY_CELLS_RUN}` stopped on its length check as well ({many_cut} of its {many_n} trained episodes were cut, "
+          f"{100 * many_cut / many_n:.0f} %); its two evaluation logs are complete and the paired readout here is computed from them.",
+          f"- The secret split was read {len(d['tests']) + 1} times with trained weights (`{FIRST_RUN}` after {early_step} and {first['steps']} steps, "
+          + ", ".join(f"`{r['run']}` after {r['steps']}" for r in rs if r["run"] != FIRST_RUN) + f") and {base_logs} times with the base model; "
+          "every reading is in this report. Where an evaluation log holds more than one attempt ("
+          + (", ".join(f"the base log of `{k}`: {n}" for k, n in attempts_in_base.items() if n > 1) or "none does") + "), the newest is used, as the "
+          "readout of the node scripts does.",
+          f"- {' or '.join(map(str, sizes))} secret instances per cell instead of the planned number; one sampler seed per run.",
+          f"- `v11` ran on {runs['v11']['code']}.",
           "- The evaluation table pools repeated looks at the same weights after a restart; the table the job itself printed kept the newer look only.", "",
-          "## 8. Limits", "",
-          "- One training run; no second seed. `v09` repeats the level-1 gain in direction on other hardware, on the dev split only.",
-          "- The transfer to NullTissue-v0 is on its practice level and on the interface before the corrections; on the corrected "
-          "interface the untrained model already stands higher in the chat harness (section 5), so the size of a training effect there is open.",
+          f"## {SEC['limits']}. Limits", "",
+          f"- {len(rs)} training runs from the base model have a readout. They differ in code, cells and node; none repeats another with a "
+          "second sampler seed.",
+          f"- The public dev split overstated the trained level in `{MAIN_RUN}`: its dev look at step {dev_step} gave {dev['passed']} / {dev['episodes']} "
+          f"({100 * dev['rate']:.0f} %), the secret split {secret['passed']} / {secret['episodes']} ({100 * secret['rate']:.0f} %). The secret-split "
+          "figure is the one to quote.",
+          f"- The gain on NullTissue-v0 is on its practice level, whose text states the method. The level without that text was read in "
+          f"{len(unhinted)} runs: " + ", ".join(unhinted) + ".",
+          f"- Training can make a cell worse while the pass-rate rule reports no harm (section {SEC['behaviour']}).",
           "- All tasks of the suite are measurement tasks by the suite's own open-loop control; nothing here is evidence about decision tasks.",
-          "- Six of the nine families give the thinking-off model no passing episode to learn from.", "",
-          "## 9. Reproduce", "",
+          f"- {dead} of the {families} scored families have every cell below {100 * learn.BANDS[0][2]:.0f} % for the thinking-off model in `c05`: "
+          "the reward has nothing to start from there.",
+          f"- {words(f'`{k}`' for k in training)} {'was' if len(training) == 1 else 'were'} still training when the files were copied ("
+          + ", ".join(f"`{k}` at step {last_step(k)}" for k in training) + ").",
+          "- No conversation of a readout episode has been read: the report counts how episodes ended, it does not explain why.", "",
+          f"## {SEC['reproduce']}. Reproduce", "",
           "```", "python docs/experiments/27b/report.py --check          # this report from the stored files",
           "python -m mrgym_verl.readout --base <test_base.jsonl> --trained <test_trained.jsonl> --untrained Scanner/NullTissue-v0 --min-envs 2",
           "bash integrations/verl/node/make_main.sh train <settings.env> <job.sh>   # the node script of a run; settings in runs.json", "```", "",
@@ -307,43 +601,34 @@ def _rate(eps):
     return dict(passed=sum(bool(r["passed"]) for r in eps), episodes=len(eps), rate=round(c["pass_rate"], 4), lo=round(c["lo"], 4), hi=round(c["hi"], 4))
 
 
-def _of(eps, key):
-    return [r for r in eps if (r["env_id"], r["level"]) == key]
-
-
 def _curve(log, key):
     looks = S._looks(log, "dev")
     at = lambda st: [r for r in _of(looks, key) if r["step"] == st]                                  # noqa: E731
     return [dict(step=st, cut=sum("length" in r["outcome"] for r in at(st)), **_rate(at(st))) for st in sorted({r["step"] for r in _of(looks, key)})]
 
 
-def _response_tokens(run):
-    """The response limit of a run, from its ``node`` line in runs.json (``... + 24,576 response tokens``)."""
-    return int(re.search(r"\+ ([\d,]+)", run["node"]).group(1).replace(",", ""))
-
-
-def _node(run):
-    return run["node"].split(";")[0]
-
-
 def figure_data(d: dict) -> dict:
-    """Everything the figure and the before / after table show, from the stored logs (rounded, so that the file is the
-    same on every machine)."""
-    test = lambda eps: [r for r in S._newest_attempt(eps) if r.get("phase") == "test"]              # noqa: E731
-    base, t60 = test(d["base"]), test(d["t60"])
-    r = R.readout(base, t60, UNTRAINED, "test", GAIN, LOWER, HARM, MIN_ENVS)
+    """Everything the figure and the front-page table show, from the stored logs (rounded, so that the file is the same
+    on every machine): the headline run's cells on the secret split, the trained level in every run that has a
+    readout, and the dev curves."""
+    rs = readouts(d)
+    main = rs[0]
+    t = d["tests"][MAIN_RUN]
     secret = []
-    for c in r["cells"]:
-        key, p = (c["env_id"], c["level"]), c["paired"]
-        secret.append(dict(cell=cell(dict(env_id=key[0], level=key[1])), label=PLAIN[key][0], row=PLAIN[key][1], before=_rate(_of(base, key)),
-                           after=_rate(_of(t60, key)), instances=p["instances"], diff=round(p["diff"], 4), lo=round(p["lo"], 4), hi=round(p["hi"], 4)))
-    l1, l2 = ("Scanner/NoWrap-v1", 1), ("Scanner/NoWrap-v1", 2)
-    curve = lambda run, key: dict(run=run, cell=cell(dict(env_id=key[0], level=key[1])), label=PLAIN[key][0], points=_curve(d["logs"][run], key))   # noqa: E731
-    v = r["verdict"]
-    return dict(schema="mrgym-27b-figure/1", version=FIGURE_VERSION, steps=max(r["step"] for r in t60), secret=secret,
-                rule=dict(met=v["trained_environments_meeting_rule"], needed=v["needed"]),
-                response_tokens=dict(training=_response_tokens(d["runs"][MAIN_RUN]), readout=_response_tokens(d["runs"]["v15"])),
-                dev=[curve(MAIN_RUN, l1), curve(MAIN_RUN, l2)], second=curve(SECOND_RUN, l1))
+    for key, c in sorted(main["cells"].items()):
+        p = c["paired"]
+        secret.append(dict(cell=name(key), label=PLAIN[key][0], row=PLAIN[key][1], before=_rate(_of(t["base"], key)), after=_rate(_of(t["trained"], key)),
+                           instances=p["instances"], diff=round(p["diff"], 4), lo=round(p["lo"], 4), hi=round(p["hi"], 4)))
+    curve = lambda run, key: dict(run=run, cell=name(key), label=PLAIN[key][0], points=_curve(d["logs"][run], key))   # noqa: E731
+    replications = []
+    for r in rs:
+        p, tt = r["cells"][L1]["paired"], d["tests"][r["run"]]
+        replications.append(dict(run=r["run"], code=r["code"].strip("`"), steps=r["steps"], instances=p["instances"], before=_rate(_of(tt["base"], L1)),
+                                 after=_rate(_of(tt["trained"], L1)), diff=round(p["diff"], 4), lo=round(p["lo"], 4), hi=round(p["hi"], 4)))
+    return dict(schema="mrgym-27b-figure/2", version=FIGURE_VERSION, run=MAIN_RUN, code=d["runs"][MAIN_RUN]["code"].strip("`"), steps=main["steps"],
+                secret=secret, replications=replications,
+                rule=dict(needed=main["result"]["verdict"]["needed"], met=[r["result"]["verdict"]["trained_environments_meeting_rule"] for r in rs]),
+                dev=[curve(MAIN_RUN, L1), curve(MAIN_RUN, L2)], earlier=[curve(r["run"], L1) for r in rs[1:]])
 
 
 BLUE, ORANGE = "#1c5cb5", "#e07b1a"                     # distinct for colour-blind readers and by lightness in greyscale
@@ -352,7 +637,8 @@ INK, INK2, MUTED, GRID = "#0b0b0b", "#4a4946", "#807e78", "#e1e0d9"
 
 def draw(data: dict, path: str) -> None:
     """The figure of the front page: left, before and after on the secret split with 95 % intervals; right, the public
-    dev instances during training. Two colours; every series is labelled where it is drawn."""
+    dev instances during training, the headline run thick and the earlier runs thin. Two colours; every series is
+    labelled where it is drawn."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -389,23 +675,22 @@ def draw(data: dict, path: str) -> None:
     ax.set_xlabel("episodes that pass", fontsize=8.5, color=INK2)
     one = data["secret"][0]
     fig.text(0.02, 0.93, "Before and after training, on secret test instances", fontsize=10.5, fontweight="bold", color=INK, va="center")
-    fig.text(0.02, 0.855, f"{one['instances']} instances x {one['before']['episodes'] // one['instances']} episodes per row, the same for both; "
+    fig.text(0.02, 0.855, f"run {data['run']}: {one['instances']} instances x {one['before']['episodes'] // one['instances']} episodes per row; "
              f"lines: 95 % intervals", fontsize=8, color=INK2, va="center")
     # ---- right: the public dev instances during training
     bx = fig.add_axes([0.575, 0.15, 0.30, 0.60])
     for y in (0, 25, 50, 75, 100):
         bx.axhline(y, color=GRID, lw=0.6, zorder=0)
-    sec = data["second"]["points"]
-    bx.plot([p["step"] for p in sec], [100 * p["rate"] for p in sec], color=BLUE, lw=1.0, zorder=2)
+    for series in data["earlier"]:
+        bx.plot([p["step"] for p in series["points"]], [100 * p["rate"] for p in series["points"]], color=BLUE, lw=0.9, alpha=0.75, zorder=2)
     for series, colour, marker in zip(data["dev"], (BLUE, ORANGE), ("o", "s")):
-        pts = series["points"]
-        bx.plot([p["step"] for p in pts], [100 * p["rate"] for p in pts], color=colour, lw=2.0, marker=marker, ms=6.5, mec="white", mew=1.4,
+        pts_ = series["points"]
+        bx.plot([p["step"] for p in pts_], [100 * p["rate"] for p in pts_], color=colour, lw=2.0, marker=marker, ms=6.5, mec="white", mew=1.4,
                 solid_joinstyle="round", zorder=3, clip_on=False)
-        bx.text(pts[-1]["step"] + 2.2, 100 * pts[-1]["rate"], series["label"], va="center", ha="left", fontsize=9, color=INK)
-        bx.text(pts[-1]["step"] + 2.2, 100 * pts[-1]["rate"] - 8.5, pct(pts[-1]["rate"]), va="center", ha="left", fontsize=8.5, color=INK2)
-    mid = sec[len(sec) // 2]
-    bx.annotate(f"second run ({data['second']['run']}): thin line", xy=(mid["step"], 100 * mid["rate"]), xytext=(mid["step"] + 3, 100 * mid["rate"] - 26),
-                fontsize=8, color=INK2, ha="left", va="center", arrowprops=dict(arrowstyle="-", color=MUTED, lw=0.6, shrinkA=1, shrinkB=2))
+        bx.text(pts_[-1]["step"] + 2.2, 100 * pts_[-1]["rate"], series["label"], va="center", ha="left", fontsize=9, color=INK)
+        bx.text(pts_[-1]["step"] + 2.2, 100 * pts_[-1]["rate"] - 8.5, pct(pts_[-1]["rate"]), va="center", ha="left", fontsize=8.5, color=INK2)
+    if data["earlier"]:
+        bx.text(3, 30, f"thin lines: the trained level in {len(data['earlier'])} earlier runs", fontsize=8, color=INK2, ha="left", va="center")
     last = max(p["step"] for s in data["dev"] for p in s["points"])
     bx.set_xlim(-2, last + 1); bx.set_ylim(-4, 104)
     bx.set_xticks(sorted({p["step"] for p in data["dev"][0]["points"]}))
@@ -414,12 +699,9 @@ def draw(data: dict, path: str) -> None:
         bx.spines[side].set_visible(False)
     bx.tick_params(length=0)
     bx.set_xlabel("training step", fontsize=8.5, color=INK2)
-    hard, per = data["dev"][1]["points"], sorted({p["episodes"] for p in data["dev"][0]["points"]})
-    limits = data["response_tokens"]
-    bx.text(1, 16.5, f"{sum(p['cut'] for p in hard)} of {sum(p['episodes'] for p in hard)} harder-level episodes were cut by\nthis run's "
-            f"{limits['training']:,}-token limit (left: {limits['readout']:,})", fontsize=7.5, color=MUTED, ha="left", va="center", linespacing=1.25)
+    per = sorted({p["episodes"] for p in data["dev"][0]["points"]})
     fig.text(0.535, 0.93, "During training, on unseen public instances", fontsize=10.5, fontweight="bold", color=INK, va="center")
-    fig.text(0.535, 0.855, f"run {data['dev'][0]['run']}; {' or '.join(map(str, per))} episodes per point", fontsize=8, color=INK2, va="center")
+    fig.text(0.535, 0.855, f"run {data['run']} (thick): {' or '.join(map(str, per))} episodes per point", fontsize=8, color=INK2, va="center")
     fig.savefig(path, dpi=160, facecolor="white", metadata={"Software": None})
     plt.close(fig)
 
@@ -437,40 +719,31 @@ def settings(path: str = RECIPE_ENV) -> dict:
     out = {}
     with open(path, encoding="utf-8") as f:
         for line in f:
-            words = shlex.split(line, comments=True)
-            words = words[1:] if words[:1] == ["export"] else words
-            if len(words) == 1 and re.match(r"[A-Za-z_][A-Za-z0-9_]*=", words[0]):
-                name, _, value = words[0].partition("=")
-                out[name] = value
+            parts = shlex.split(line, comments=True)
+            parts = parts[1:] if parts[:1] == ["export"] else parts
+            if len(parts) == 1 and re.match(r"[A-Za-z_][A-Za-z0-9_]*=", parts[0]):
+                key, _, value = parts[0].partition("=")
+                out[key] = value
     return out
 
 
-def _attempts(log):
-    """(attempts, node hours): per attempt from its start (the stamp in its id) to its last logged episode."""
-    stamp = lambda s, fmt: datetime.datetime.strptime(s, fmt)                                       # noqa: E731
-    last = {}
-    for r in log:
-        last[r["attempt"]] = max(last.get(r["attempt"], r["utc"]), r["utc"])
-    seconds = sum((stamp(u, "%Y-%m-%dT%H:%M:%SZ") - stamp(a.split("-")[0], "%Y%m%dT%H%M%SZ")).total_seconds() for a, u in last.items())
-    return len(last), seconds / 3600.0
-
-
 def training_block(data: dict, prefix: str, model: str) -> str:
-    name = model.split("/")[-1]
-    out = [f"**{name}, reinforcement learning only, {data['steps']} steps: tested on instances it never saw.**", "",
-           '<p align="center">',
-           f'  <img src="{prefix}assets/training_27b.png" width="900" alt="Pass rate of {name} before and after {data["steps"]} steps of '
+    short = model.split("/")[-1]
+    out = [f"**{short}, reinforcement learning only, {data['steps']} steps, the recipe below on the published code: tested on instances it never "
+           "saw.**", "", '<p align="center">',
+           f'  <img src="{prefix}assets/training_27b.png" width="900" alt="Pass rate of {short} before and after {data["steps"]} steps of '
            f'reinforcement learning on {len(data["secret"])} cells of the secret split, with 95 % intervals, and on public instances during training">',
            "</p>", ""]
     show = lambda x: f"{100 * x['rate']:.0f} % ({x['passed']} / {x['episodes']})"                   # noqa: E731
     out += table(["On secret test instances", "Before training", f"After {data['steps']} steps", "Gain in points [95 % interval]"],
-                 [[f"{c['row']} · `{c['cell']}`", show(c["before"]), show(c["after"]), f"{pts(c['diff'])} [{pts(c['lo'])}, {pts(c['hi'])}]"]
-                  for c in data["secret"]])
-    one = data["secret"][0]
-    out += ["", f"Evidence: one run, one seed, {one['instances']} secret instances x {one['before']['episodes'] // one['instances']} episodes per "
-                f"row, base and trained on the same instances; exploratory (the pre-registered rule needs {data['rule']['needed']} trained "
-                f"environments, {data['rule']['met']} was trained). The other family's row is a practice level whose text states the method. "
-                f"[Full report]({prefix}docs/experiments/RESULTS-27b.md)."]
+                 [[f"{c['row']} · `{c['cell']}`", show(c["before"]), show(c["after"]), gain(c)] for c in data["secret"]])
+    one, reps, met = data["secret"][0], data["replications"], data["rule"]["met"]
+    out += ["", f"Evidence: run `{data['run']}` at commit `{data['code']}`, {one['instances']} secret instances x "
+                f"{one['before']['episodes'] // one['instances']} episodes per row, base and trained on the same instances. The trained level's gain "
+                f"was measured in {len(reps)} independent training runs: " + ", ".join(f"{gain(r)} (`{r['run']}`)" for r in reps) + ". Exploratory: "
+                f"the pre-registered rule needs {data['rule']['needed']} trained environments, "
+                + (f"each run trained {met[0]} that meets it" if len(set(met)) == 1 else "the runs trained " + words(met) + " that meet it")
+                + f". The other family's row is a practice level whose text states the method. [Full report]({prefix}docs/experiments/RESULTS-27b.md)."]
     return "\n".join(out)
 
 
@@ -494,64 +767,74 @@ def needs_block(d: dict, env: dict, prefix: str) -> str:
     runs = d["runs"]
     plan = load(os.path.join("..", "plan.json"))
     gb = {c["name"]: c["gb"] for c in plan["hardware"]["cards"]}
-    card = lambda run: (lambda name: f"{_node(run)} ({gb[name]} GB each)")(_node(run).split()[-1])  # noqa: E731
+    card = lambda run: (lambda kind: f"{_node(run)} ({gb[kind]} GB each)")(_node(run).split()[-1])  # noqa: E731
     attempts, hours = _attempts(d["logs"][MAIN_RUN])
-    steps = max(r["step"] for r in d["logs"][MAIN_RUN] if r["phase"] == "train")
-    evals = [(_attempts(d[k])[1], len(d[k])) for k in ("base", "t60")]
+    steps = max(r["step"] for r in _train(d["logs"][MAIN_RUN]))
+    evals = [(_attempts(x)[1], len(x)) for x in d["tests"][MAIN_RUN]["raw"]]
     return "\n".join([
         f"- **Model:** `{env['MODEL_HF']}`, open weights. The trainer is [verl]({prefix}integrations/verl/README.md) at its pinned commit.",
-        f"- **One node with 8 accelerators.** Run `{MAIN_RUN}` trained on {card(runs[MAIN_RUN])} with {_response_tokens(runs[MAIN_RUN]):,}-token "
-        f"responses; the settings of this page ({int(env['MAX_RESPONSE_LEN']):,}-token responses) run on {card(runs[CHECK_RUN])}.",
-        f"- **Training:** {hours:.1f} node hours for {steps} steps (`{MAIN_RUN}`, {attempts} attempts after {attempts - 1} preemptions).",
-        f"- **Readout:** {sum(h for h, _ in evals):.1f} node hours for the base model and the final weights, {evals[0][1]} episodes each, on "
-        f"{_node(runs['v15'])}.",
+        f"- **One node with 8 accelerators.** Run `{MAIN_RUN}` used {card(runs[MAIN_RUN])} for the {_response_tokens(runs[MAIN_RUN]):,}-token responses "
+        f"of these settings; {_response_tokens(runs[FIRST_RUN]):,}-token responses fit {card(runs[FIRST_RUN])} (`{FIRST_RUN}`, pitfall 1).",
+        f"- **Training:** {hours:.1f} node hours for {steps} steps (`{MAIN_RUN}`, {attempts} attempt{'s' if attempts != 1 else ''} after {attempts - 1} preemption{'s' if attempts != 2 else ''}).",
+        f"- **Readout:** {sum(h for h, _ in evals):.1f} node hours for the base model and the final weights, {evals[0][1]} episodes each, on the same node.",
         "- Hours run from the start of each attempt to its last logged episode (the `utc` stamps of the stored logs); the first set-up "
         "of a node (environments, weights) is not in them."])
 
 
 def pitfalls_block(d: dict) -> str:
     logs, runs = d["logs"], d["runs"]
-    l1, l2 = ("Scanner/NoWrap-v1", 1), ("Scanner/NoWrap-v1", 2)
+    by = {r["run"]: r for r in readouts(d)}
+    main, many = by[MAIN_RUN], by[MANY_CELLS_RUN]
     look = lambda run, key, step: [r for r in _of(S._looks(logs[run], "dev"), key) if r["step"] == step]            # noqa: E731
-    train = lambda run, key, lo, hi: [r for r in _of(S._newest_attempt(logs[run]), key) if r["phase"] == "train" and lo <= r["step"] <= hi]   # noqa: E731
+    train = lambda run, key, lo, hi: [r for r in _of(_train(logs[run]), key) if lo <= r["step"] <= hi]              # noqa: E731
     step = min(r["step"] for r in S._looks(logs[LONGER_RUN], "dev"))                    # the weights the longer run started from
-    cut = sum("length" in r["outcome"] for r in look(MAIN_RUN, l2, step))
-    last = max(r["step"] for r in logs[MAIN_RUN] if r["phase"] == "train")
+    cut = sum("length" in r["outcome"] for r in look(FIRST_RUN, L2, step))
+    last = max(r["step"] for r in _train(logs[MAIN_RUN]))
     lo, hi = (round(100 * x) for x in learn.ENTRY_BAND)
-    looks9 = S._looks(logs[SECOND_RUN], "dev")
-    end9 = max(r["step"] for r in looks9)
-    others = [k for k in sorted({(r["env_id"], r["level"]) for r in looks9}) if k != l1]
-    groups = len({r["uid"] for r in S._newest_attempt(logs[SECOND_RUN]) if r["phase"] == "train" and r["step"] == 1})
-    stay = ", ".join(f"{cell(dict(env_id=k[0], level=k[1]))} {frac(look(SECOND_RUN, k, 0))} then {frac(look(SECOND_RUN, k, end9))}" for k in others)
+    groups = len({r["uid"] for r in _train(logs[MANY_CELLS_RUN]) if r["step"] == 1})
+    rest = [k for k in many["trained_cells"] if k != L1]
+    dev, secret, dev_step = dev_against_secret(d, main)
+    walled = [r for r in by.values() if HINTED in r["trained_cells"] and UNHINTED in r["cells"]][-1]
+    clean = [r for r in by.values() if HINTED in r["cells"] and HINTED not in r["trained_cells"]]
+    wall = walled["ended"][HINTED]
+    looks = S._looks(logs[LONGER_RUN], "dev")
+    late = sorted({r["step"] for r in looks})[-4:]
+    ends = [_ended([r for r in looks if r["step"] == st]) for st in late]
     return "\n".join([
-        f"1. **The episode token limit.** A limit that is too small hides learning. The step-{step} weights pass the harder level in "
-        f"{frac(look(MAIN_RUN, l2, step))} dev episodes on the {_response_tokens(runs[MAIN_RUN]):,}-token response limit ({cut} cut by length, "
-        f"run `{MAIN_RUN}`) and in {frac(look(LONGER_RUN, l2, step))} on the {_response_tokens(runs[LONGER_RUN]):,}-token limit (run `{LONGER_RUN}`).",
+        f"1. **The episode token limit.** A limit that is too small hides learning. The step-{step} weights of `{FIRST_RUN}` pass the harder level in "
+        f"{frac(look(FIRST_RUN, L2, step))} dev episodes on its {_response_tokens(runs[FIRST_RUN]):,}-token response limit ({cut} cut by length) "
+        f"and in {frac(look(LONGER_RUN, L2, step))} on the {_response_tokens(runs[LONGER_RUN]):,}-token limit (run `{LONGER_RUN}`).",
         f"2. **Start where there is signal.** The reward is pass or nothing, so a cell near zero gives no gradient: start where the untrained "
         f"model passes {lo}-{hi} % of the episodes with a pass and a failure in the same group, and keep the next level beside it. In "
-        f"`{MAIN_RUN}` the harder level gave {frac(train(MAIN_RUN, l2, 1, 10))} passing rollouts in steps 1-10 and "
-        f"{frac(train(MAIN_RUN, l2, last - 9, last))} in steps {last - 9}-{last}, after the first level had gone from "
-        f"{frac(train(MAIN_RUN, l1, 1, 10))} to {frac(train(MAIN_RUN, l1, last - 9, last))}.",
-        f"3. **Few cells per run.** `{SECOND_RUN}` trained {len(others) + 1} cells at {groups} groups per step: on dev the first level went from {frac(look(SECOND_RUN, l1, 0))} to {frac(look(SECOND_RUN, l1, end9))} by step {end9}, "
-        f"the others stayed near their start ({stay}).",
-        f"4. **One look is noise.** {repeat_sentence(logs[MAIN_RUN])} Judge by the paired readout on held-out instances, trained against "
-        "base on the same instances, not by one evaluation."])
+        f"`{MAIN_RUN}` the harder level gave {frac(train(MAIN_RUN, L2, 1, 10))} passing rollouts in steps 1-10 and "
+        f"{frac(train(MAIN_RUN, L2, last - 9, last))} in steps {last - 9}-{last}, after the first level had gone from "
+        f"{frac(train(MAIN_RUN, L1, 1, 10))} to {frac(train(MAIN_RUN, L1, last - 9, last))}.",
+        f"3. **Few cells per run.** `{MANY_CELLS_RUN}` trained {len(many['trained_cells'])} cells at {groups} groups per step: on the secret split the "
+        f"first level gained {gain(many['cells'][L1]['paired'])} points, the other {len(rest)} "
+        + ", ".join(f"{gain(many['cells'][k]['paired'])} ({name(k)})" for k in rest) + ".",
+        f"4. **One look is noise, and the dev split flatters.** {repeat_sentence(FIRST_RUN, logs[FIRST_RUN])} The last dev look of `{MAIN_RUN}` "
+        f"gave the trained level {dev['passed']} / {dev['episodes']}, its secret split {secret['passed']} / {secret['episodes']}. Judge by the "
+        "paired readout on held-out instances, trained against base on the same instances.",
+        f"5. **Do not train on a cell while its interface wall stands.** {name(HINTED)} ended {wall[0]['rejected']} of {wall[0]['episodes']} base "
+        f"episodes at the rejected-call limit. `{walled['run']}` trained on it and it got worse (passes {wall[0]['passed']} -> {wall[1]['passed']}, "
+        f"such endings {wall[0]['rejected']} -> {wall[1]['rejected']}); "
+        + words(f"`{r['run']}`" for r in clean) + " trained on the clean cell only and it improved (passes "
+        + ", ".join(f"{r['ended'][HINTED][0]['passed']} -> {r['ended'][HINTED][1]['passed']}" for r in clean) + ", such endings "
+        + ", ".join(f"{r['ended'][HINTED][0]['rejected']} -> {r['ended'][HINTED][1]['rejected']}" for r in clean) + ").",
+        f"6. **Episodes get longer late in training.** In `{LONGER_RUN}` the median context of the dev looks at steps {words(late)} is "
+        + ", ".join(f"{e['context']:,}" for e in ends) + " tokens and " + ", ".join(str(e["cut"]) for e in ends) + f" of {ends[0]['episodes']} episodes "
+        "are cut by length. Choose the checkpoint by the dev looks, not by the last step."])
 
 
 def status_block(d: dict) -> str:
     runs = d["runs"]
-    state = runs[CHECK_RUN]["state"].replace(" in this report", " yet")
-    out = (f"Verified on commit {runs[MAIN_RUN]['code']} (run `{MAIN_RUN}`, {_node(runs[MAIN_RUN])} with {_response_tokens(runs[MAIN_RUN]):,}-token "
-           f"responses; readout on {_node(runs['v15'])} at {_response_tokens(runs['v15']):,}). "
-           f"Check on the current code (commit {runs[CHECK_RUN]['code']}, run `{CHECK_RUN}`, {_node(runs[CHECK_RUN])}): {state}.")
-    log = d["logs"].get(CHECK_RUN)
-    if log:
-        looks = S._looks(log, "dev")
-        step = max(r["step"] for r in looks)
-        out += f" Its newest evaluation on public instances (step {step}): " + ", ".join(
-            f"{cell(dict(env_id=k[0], level=k[1]))} {frac([r for r in _of(looks, k) if r['step'] == step])}"
-            for k in sorted({(r["env_id"], r["level"]) for r in looks})) + "."
-    return out
+    main = runs[MAIN_RUN]
+    then = f"The recipe first ran on an earlier commit ({runs[FIRST_RUN]['code']}, run `{FIRST_RUN}`)."
+    if MAIN_RUN in d["tests"] and main["state"].startswith("finished"):
+        steps = max(r["step"] for r in d["tests"][MAIN_RUN]["trained"])
+        return (f"Verified on the published code: run `{MAIN_RUN}` at commit {main['code']} ({_node(main)}, {steps} steps, then its own readout). "
+                + then)
+    return f"Check on the published code (commit {main['code']}, run `{MAIN_RUN}`, {_node(main)}): {main['state']}. " + then
 
 
 def reach_block(d: dict) -> str:
@@ -560,23 +843,22 @@ def reach_block(d: dict) -> str:
     for c in cal["cells"]:
         by[learn.band(c["passed"] / c["n_episodes"])].append(c)
     out = []
-    for name, lo, hi in reversed(learn.BANDS):
-        cells = sorted(by.get(name, []), key=lambda c: (c["env_id"], c["level"]))
+    for band, lo, hi in reversed(learn.BANDS):
+        cells = sorted(by.get(band, []), key=lambda c: (c["env_id"], c["level"]))
         if not cells:
             continue
-        if name == "dead":
+        if band == "dead":
             shown = f"{len(cells)} cells of {len({c['env_id'] for c in cells})} families"
         else:
             shown = ", ".join(f"{cell(c)} ({c['passed']} / {c['n_episodes']})" for c in cells)
-        out.append([name, f"{100 * lo:.0f} - {100 * min(hi, 1.0):.0f} %", shown, learn.BAND_USE[name]])
-    first = ("Scanner/NoWrap-v1", 1)
-    chat = next(c for c in cal["cells"] if (c["env_id"], c["level"]) == first)
-    step0 = [r for r in _of(S._looks(d["logs"][MAIN_RUN], "dev"), first) if r["step"] == 0]
+        out.append([band, f"{100 * lo:.0f} - {100 * min(hi, 1.0):.0f} %", shown, learn.BAND_USE[band]])
+    chat = next(c for c in cal["cells"] if (c["env_id"], c["level"]) == L1)
+    step0 = [r for r in _of(S._looks(d["logs"][MAIN_RUN], "dev"), L1) if r["step"] == 0]
     return "\n".join(table(["Band", "Pass rate of the untrained model", "Cells (calibration `c05`: thinking off, chat harness, "
                             f"{cal['n']} instances x {cal['k']} episodes)", "Use"], out) + [
-        "", f"The trainer's token stream is stricter than the chat harness (a reply cut by the token limit ends the episode), and `{MAIN_RUN}` ran "
-            f"on an earlier interface: {cell(chat)} is {chat['passed']} / {chat['n_episodes']} in this calibration and was {frac(step0)} at step 0 of "
-            f"`{MAIN_RUN}`. The step-0 evaluation of a run is the number that decides."])
+        "", f"The trainer's token stream is stricter than the chat harness (a reply cut by the token limit ends the episode): {cell(chat)} is "
+            f"{chat['passed']} / {chat['n_episodes']} in this calibration and {frac(step0)} at step 0 of `{MAIN_RUN}`. The step-0 evaluation of a "
+            "run is the number that decides."])
 
 
 def blocks(d: dict, prefix: str) -> dict:
@@ -587,11 +869,11 @@ def blocks(d: dict, prefix: str) -> dict:
 
 def fill(text: str, bodies: dict, needed=()) -> str:
     """``text`` with every block of ``bodies`` it holds replaced (markers kept, as tools/generate.py writes them)."""
-    for name in needed:
-        if f"<!-- {name}:START -->" not in text:
-            raise SystemExit(f"the page has no {name} block")
-    for name, body in bodies.items():
-        pat = re.compile(rf"(<!-- {name}:START -->\n).*?(<!-- {name}:END -->)", re.S)
+    for block in needed:
+        if f"<!-- {block}:START -->" not in text:
+            raise SystemExit(f"the page has no {block} block")
+    for block, body in bodies.items():
+        pat = re.compile(rf"(<!-- {block}:START -->\n).*?(<!-- {block}:END -->)", re.S)
         text = pat.sub(lambda m, body=body: m.group(1) + body.rstrip() + "\n" + m.group(2), text)
     return text
 
