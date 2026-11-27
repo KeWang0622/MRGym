@@ -57,6 +57,12 @@ Field of view. The centre of the field of view moves the chirp-z transforms; a r
 turned axes (``world.turned``) and images that: no interpolation anywhere. Periodic motion (``world["motion"]``)
 modulates the k-space lines of one tissue class with the time at which each line is acquired.
 
+Sequences of the registry (``console.REGISTRY``). The six above have a closed form (``CLOSED_FORMS``) and are formed
+by ``Engine._form_steady``: one amplitude map per class, the same on every phase-encode line. A sequence whose entry
+says ``serves = "core"`` (fse, mese, megre, dwse; a console offers them when its card lists them) is formed by
+``scanner/served.py``: amplitudes from its block list through ``mrgym.core``, and for echo trains an amplitude that
+changes from line to line (``FORMATION``).
+
 Frame of the acquisition: arrays [pe, ro]. Master arrays are [y, x]; pe_dir = 'x' transposes them.
 Sign convention: a spin that precesses df faster than the reference gains positive phase; with ro_polarity = +1 it is
 displaced by -df / bandwidth_hz_per_px pixels along the readout axis (fat, df < 0, moves towards +readout).
@@ -497,7 +503,10 @@ class Engine:
     def amplitudes(self, rp, c):
         """Echo amplitudes of class ``c`` over its support: list over contrasts (afi: 2, otherwise 1) of arrays. For a
         fat class under fat saturation: the sum over its lines, each with its share (the amplitude at the centre of a
-        spin echo, where the lines are in phase)."""
+        spin echo, where the lines are in phase). A sequence served from the block-list core: one array per sample
+        of its cycle (every echo of a train), a spin echo with its T2 decay up to the echo."""
+        if console.REGISTRY[rp["sequence"]].serves == "core":            # one map per sample of the cycle (``served.amplitudes``)
+            return served.amplitudes(self, rp, c)
         lines, out = self._species(rp, c)
         if lines is None:
             return out
@@ -524,8 +533,8 @@ class Engine:
         """Noise-free k-space of one image. ``amps``: per-class amplitude arrays (one contrast of ``_species``): [support],
         or [line, support] for a class that is imaged line by line."""
         w, n, d, eff = self.w, self.n, self.d, self.effects
-        seq, epi = rp["sequence"], rp["sequence"] == "epi"
-        echo = "gre" if seq in ("spgr", "afi", "epi") else "se"
+        entry = console.REGISTRY[rp["sequence"]]
+        epi, echo = entry.readout == "epi", entry.echo                   # how the lines are read, how a class evolves around the echo
         ro_os = console.SYSTEM["ro_os"]
         k_ro, k_pe = ro_os * rp["matrix"], rp["lines_full"]
         fov_ro_os = ro_os * rp["fov_mm"]
@@ -675,19 +684,25 @@ class Engine:
         moving = bool(self.w.get("motion")) and "motion" in self.effects
         key = physics_key(rp, averages=moving)
         if key not in self._clean:
-            n_c = len(self.w["names"])
-            amps = [self._species(rp, c)[1] for c in range(n_c)]         # [class][contrast]
-            ks = []
-            for k in range(len(amps[0])):
-                for te in rp["echo_times_ms"]:
-                    one = [amps[c][k] for c in range(n_c)]
-                    ks.append(self.kspace(rp, te, one))
-                    if moving:
-                        ks[-1] = self._motion(ks[-1], rp, te, k, one, key)
+            ks = FORMATION[console.REGISTRY[rp["sequence"]].serves](self, rp, key, moving)
             if len(self._clean) >= self.cache_size:
                 self._clean.pop(next(iter(self._clean)))
             self._clean[key] = np.array(ks)
         return self._clean[key]
+
+    def _form_steady(self, rp, key, moving):
+        """Image formation of a sequence whose every image is one sample of a periodic state (the six with a closed
+        form): the amplitude of a class is one map, the same on every phase-encode line. List of k-spaces, in the
+        order of the sampling plan (``console.Sampling.images``)."""
+        n_c = len(self.w["names"])
+        amps = [self._species(rp, c)[1] for c in range(n_c)]             # [class][sample of the cycle]
+        ks = []
+        for k, te in console.sampling(rp).images:
+            one = [amps[c][k] for c in range(n_c)]
+            ks.append(self.kspace(rp, te, one))
+            if moving:
+                ks[-1] = self._motion(ks[-1], rp, te, k, one, key)
+        return ks
 
     def recon(self, ks, rp):
         """The console reconstruction, readout and phase oversampling removed. Complex [y, x].
@@ -768,3 +783,20 @@ class Engine:
         if not pl["accept"]:
             raise ValueError("; ".join(v["message"] for v in pl["violations"]))
         return dict(images=self.acquire(pl["realised"], rng), header=pl["header"], plan=pl)
+
+
+# How the k-space of a scan is formed, by where the registry says the amplitude of the sequence comes from
+# (``console.Sequence.serves``).
+FORMATION = {"closed form": Engine._form_steady}
+# The closed form behind each of the six (``Engine._species`` evaluates them at the local flip angle or through the
+# slice); the block list of the same sequence through ``mrgym.core`` is compared with it in ``mrgym validate``, rows J1 to J6.
+CLOSED_FORMS = dict(
+    spgr="kspace.gre_steady: RF-spoiled steady state on the phase graph (scanner/epg.py), ideal spoiling at tier 1 (signal.spgr)",
+    afi="kspace.gre_steady: dual-TR RF-spoiled steady state (scanner/epg.py), ideal spoiling at tier 1 (signal.afi)",
+    epi="kspace.gre_steady: the Ernst steady state (signal.spgr)",
+    se="signal.se / kspace.cycle_events: longitudinal steady state of the pulse chain, crushed refocusing pulse",
+    ir="signal.ir_se / kspace.cycle_events: the same after an inversion of the world's efficiency",
+    bssfp="signal.bssfp at the local off-resonance",
+)
+
+from . import served  # noqa: E402  (registers FORMATION["core"]; it needs the engine above)

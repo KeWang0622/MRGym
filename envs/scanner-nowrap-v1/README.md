@@ -3,7 +3,7 @@
 
 **B · Spatial encoding and reconstruction** · Fourier encoding · kind 2, set · isolates B9: Field of view: the sampling step of k-space; a larger object folds over. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 6 % (95 % bounds)
 
 The first decision of an examination. A hidden test object lies in the 1.5 T scanner. The agent looks (a localiser costs scan time), then prescribes the geometry of a spin-echo scan whose time grows with the number of phase-encode lines. The field of view can be moved and turned, so the fastest geometry depends on where the object lies, how large it is and which way it points.
 
@@ -70,9 +70,7 @@ Limits: 32 scanner requests and 40 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/NoWrap-v1 --n 300 --write` measures and stores it. The table below is that older result.
-
-Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/NoWrap-v1 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/NoWrap-v1 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
 | Policy | Must | Level 2 | Level 3 | What it does |
 |---|---|---|---|---|
@@ -83,15 +81,15 @@ Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate S
 | `brute_force` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | shrinks a centred square field of view scan by scan until the object touches its border |
 | `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's geometry with every length in centimetres |
 | `size_only` | ablation | 4/300 (1.3 %; 98.7 points below the reference, lower bound 97.6) | 3/300 (1.0 %; 99.0 points below the reference, lower bound 98.0) | the right size and direction, with the field of view left on the isocentre |
-| `centred_only` | ablation | 44/300 (14.7 %; 85.3 points below the reference, lower bound 82.0) | 12/300 (4.0 %; 96.0 points below the reference, lower bound 94.1) | the field of view left on the isocentre and enlarged until it holds the object (the v0 answer) |
+| `centred_only` | ablation | 47/300 (15.7 %; 84.3 points below the reference, lower bound 80.9) | 12/300 (4.0 %; 96.0 points below the reference, lower bound 94.1) | the field of view left on the isocentre and enlarged until it holds the object (the v0 answer) |
 | `no_swap` | ablation | 148/300 (49.3 %; 50.7 points below the reference, lower bound 45.9) | 46/300 (15.3 %; 84.7 points below the reference, lower bound 81.2) | moves the field of view but always phase-encodes along y and never turns it |
-| `no_turn` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 98/300 (32.7 %; 67.3 points below the reference, lower bound 62.9) | moves the field of view but never turns it |
+| `no_turn` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 99/300 (33.0 %; 67.0 points below the reference, lower bound 62.5) | moves the field of view but never turns it |
 | `open_loop` | reported | 300/300 (100.0 %) | 300/300 (100.0 %) | a fixed scan list and a fixed estimator: the reference itself (no scan depends on a measurement) |
 | `safe_max` | reported | 0/300 (0.0 %) | 0/300 (0.0 %) | one scan, then the safe geometry |
 
 Verdict per level: level 2 **admitted**; level 3 **admitted**.
 Blind ceiling (the must-fail policy that passes most often): level 2 `fixed_recipe#1` 4.0 % (upper bound 6.4 %); level 3 `fixed_recipe#1` 1.3 % (upper bound 3.0 %).
-Reference, error of its answer (median / 95th percentile): level 2 0.03774 / 0.0436; level 3 0.03774 / 0.07018; scan time used (median): level 2 10.5 s, level 3 10.5 s.
+Reference, error of its answer (median / 95th percentile): level 2 0.03705 / 0.04265; level 3 0.03774 / 0.0703; scan time used (median): level 2 10.5 s, level 3 10.5 s.
 
 ## Validity
 

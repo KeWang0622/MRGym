@@ -31,7 +31,8 @@ Environments
 Scanner
 
 - Fast spin echo, with its echo-train contrast and blurring, and a price that makes it a real choice against
-  spin echo.
+  spin echo. Built as a sequence of a console that lists it (`fse`, with `mese`, `megre` and `dwse`: served from the
+  signal core, [physics/core.md](physics/core.md), section 11); no environment offers it to an agent yet.
 - Multi-slice acquisition and its pricing: slices per repetition, cross-talk, coverage against time.
 - Slice profile. Excitation is a hard pulse today and the slice is ideal.
 - Receive arrays: several coils, correlated noise, parallel imaging and its noise penalty.

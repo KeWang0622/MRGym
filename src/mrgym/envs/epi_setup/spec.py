@@ -4,4 +4,4 @@
 current engine; then "admitted". A family whose gate rejects a level is "practice".
 """
 SPECS = [dict(id="Scanner/EPISetup-v0", entry_point="mrgym.envs.family:FamilyEnv", card="mrgym.envs.epi_setup.task:card",
-              kind="candidate", family="mrgym.envs.epi_setup", levels=(1, 2, 3), default_level=2, max_steps=72)]
+              kind="admitted", family="mrgym.envs.epi_setup", levels=(1, 2, 3), default_level=2, max_steps=72)]

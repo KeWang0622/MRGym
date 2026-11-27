@@ -12,7 +12,8 @@ Groups
               (``scanner/signal.py``, ``scanner/epg.py``, ``scanner/kspace.py``): the protocols and tissues of rows S1 to
               S15 and R1 to R12 of ``mrgym validate``. Where the engine itself approximates, the row says which side
               is exact. Rows Q16 to Q16d: the fat-saturation pulse of engine 0.3.0 as an event of the block list.
-  sequences   the sequences the scanner does not serve, each against at least two independent checks: closed forms
+  sequences   the sequences beyond the six (a console that lists them serves four: docs/physics/core.md, section 11),
+              each against at least two independent checks: closed forms
               (their source is named, with "paper not opened" where it was not read for this work), the isochromat ensemble, the
               engine's or the design layer's separately written code
 
@@ -39,7 +40,7 @@ from . import library as L
 from . import operators as O
 
 GROUPS = dict(agreement="The evaluators against each other, and the conventions", engine="The six served sequences against the engine",
-              sequences="Sequences the scanner does not serve")
+              sequences="Sequences beyond the six")
 D = math.radians
 
 
@@ -409,7 +410,9 @@ def _engine_world():
 
 def _served_amplitudes(eng, w, proto, per_class=3, model="flip"):
     """Largest relative difference between ``Engine.amplitudes`` and the core for a protocol, over ``per_class``
-    voxels of every tissue class of the world; the engine's number is divided by weight x proton density."""
+    voxels of every tissue class of the world; the engine's number is divided by weight x proton density. The block
+    list is the one the console's registry holds for the sequence (``console.REGISTRY[name].blocks``): the same
+    source as what a console serves from the core."""
     from ..scanner import console
     pl = console.plan(proto, w["console"])
     rp = pl["realised"]
@@ -423,13 +426,13 @@ def _served_amplitudes(eng, w, proto, per_class=3, model="flip"):
         served = [v[idx] / scale for v in eng.amplitudes(rp, c)]
         df = eng.df[sup][idx] if rp["sequence"] == "bssfp" else 0.0
         if tbw is None:
-            seq, labels = L.served(rp, inv_eff=w["system"]["inv_eff"])
+            seq, labels = console.REGISTRY[rp["sequence"]].blocks(rp, inv_eff=w["system"]["inv_eff"])
             sp = O.spins(cls["t1_ms"], cls["t2_ms"], b1=eng.b1[sup][idx], adc_um2_ms=cls["adc_um2_ms"], df_hz=df)
             got = periodic.steady_state(seq, sp)
             mine = [got.of(lab)[0] for lab in labels]
         else:
             sel = B.Selective(tbw, window, model=model)
-            seq, labels = L.served(rp, selective=sel, inv_eff=w["system"]["inv_eff"])
+            seq, labels = console.REGISTRY[rp["sequence"]].blocks(rp, selective=sel, inv_eff=w["system"]["inv_eff"])
             zeta, wz = O.slice_columns(tbw, two_sided=False, window=window)
             shp = (idx.size, zeta.size)
             sp = O.spins(cls["t1_ms"], cls["t2_ms"], b1=np.broadcast_to(eng.b1[sup][idx][:, None], shp), adc_um2_ms=cls["adc_um2_ms"],
@@ -474,11 +477,11 @@ def _served_saturated(proto, per_class=2):
                 sat = (q, rp["fatsat_delay_ms"])
                 want = served[0][j, i] / (w["weights"][c][sup][i] * cls["pd"])
                 if tbw is None:
-                    seq, labels = L.served(rp, inv_eff=sy["inv_eff"], sat=sat)
+                    seq, labels = console.REGISTRY[rp["sequence"]].blocks(rp, inv_eff=sy["inv_eff"], sat=sat)
                     mine = periodic.steady_state(seq, O.spins(cls["t1_ms"], cls["t2_ms"], b1=eng.b1[sup][i], adc_um2_ms=cls["adc_um2_ms"])).of(labels[0])[0, 0]
                 else:
                     sel = B.Selective(tbw, window, model="flip")
-                    seq, labels = L.served(rp, selective=sel, inv_eff=sy["inv_eff"], sat=sat)
+                    seq, labels = console.REGISTRY[rp["sequence"]].blocks(rp, selective=sel, inv_eff=sy["inv_eff"], sat=sat)
                     zeta, wz = O.slice_columns(tbw, two_sided=False, window=window)
                     sp = O.spins(cls["t1_ms"], cls["t2_ms"], b1=eng.b1[sup][i], adc_um2_ms=cls["adc_um2_ms"], zeta=zeta)
                     mine = np.sum(wz * O.column_phase(sel, rp["flip_deg"], sp).real * periodic.steady_state(seq, sp).of(labels[0])[0])

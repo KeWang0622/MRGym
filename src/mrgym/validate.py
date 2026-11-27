@@ -34,7 +34,8 @@ from .scanner import world as W
 
 D = np.deg2rad
 G = S.GAMMA_MHZ_PER_T
-GROUPS = dict(signal="Signal models", rf="Slice-selective excitation", encoding="Image formation in k-space", console="Console arithmetic")
+GROUPS = dict(signal="Signal models", rf="Slice-selective excitation", encoding="Image formation in k-space", console="Console arithmetic",
+              core="The block-list core behind the console")
 HARD = dict(excitation="nonselective")      # checks of a formula for one flip angle per voxel ask for the hard pulse
 
 
@@ -1094,6 +1095,49 @@ CHECKS = (check_closed_forms, check_ernst_angle, check_epg, check_spin_echo, che
 GROUP_OF = {check_bssfp_phase_cycle: ("signal", "rf"), check_saturation: ("signal", "encoding"), check_adjustments: ("encoding", "console"), check_closed_forms: "signal", check_ernst_angle: "signal", check_epg: "signal", check_spin_echo: "signal", check_bssfp: "signal",
             check_node_interpolation: "signal", check_rf_pulse: "rf", check_slice_integral: "rf", check_slice_models: "rf", check_slice_engine: "rf",
             check_console: "console", check_console_slice: "console"}
+
+
+# ================================================================================================== the core behind the console
+SHADOW = (                                  # (sequence, protocols: hard pulse and the default selective pulse, model of the slice columns, voxels per class)
+    ("spgr", (dict(tr_ms=8.0, flip_deg=30.0, spoiler_mt_ms_per_m=60.0, **HARD), dict(tr_ms=12.0, flip_deg=30.0)), "flip", 3),
+    ("afi", (dict(tr_ms=20.0, flip_deg=60.0, **HARD),), "flip", 2),
+    ("epi", (dict(tr_ms=2000.0, fat_sat=False, **HARD), dict(tr_ms=2000.0, fat_sat=False)), "flip", 3),
+    ("se", (dict(tr_ms=500.0, **HARD), dict(tr_ms=400.0)), "rotation", 3),
+    ("ir", (dict(tr_ms=2000.0, ti_ms=400.0, **HARD), dict(tr_ms=2000.0, ti_ms=400.0)), "rotation", 3),
+    ("bssfp", (dict(tr_ms=6.0, flip_deg=45.0, phase_cycle_deg=137.0, **HARD), dict(tr_ms=8.0, flip_deg=50.0)), "flip", 3),
+)
+
+
+def check_core_shadow():
+    """The six sequences with a closed form, in shadow: the block list the registry holds for each
+    (``console.REGISTRY[name].blocks``), solved by ``mrgym.core.periodic``, against what ``Engine.amplitudes`` serves.
+    Nothing is served from the core here; the rows show that it could be, and to what distance."""
+    from .core import validate as CV
+    w, eng = CV._engine_world()
+    rows = []
+    for i, (name, protocols, model, per_class) in enumerate(SHADOW):
+        worst = max(CV._served_amplitudes(eng, w, dict(p, sequence=name, matrix=64), per_class=per_class, model=model)[0] for p in protocols)
+        entry = console.REGISTRY[name]
+        rows.append(_row(f"J{i + 1}", "core", f"`{name}` in shadow: the registry's block list through the periodic solve of `mrgym.core`, "
+                         f"{'hard pulse and the default selective pulse' if len(protocols) > 1 else 'hard pulse'}, {per_class} voxels of each of "
+                         f"{len(w['names'])} materials of a phantom world with a B1 pattern (the registry says `serves = {entry.serves}`: the scan "
+                         "does not use the core)", "`Engine.amplitudes` (the closed form the engine serves; it interpolates over the flip angle, the "
+                         "core solves every voxel and slice column)", worst, 1e-4, f"{worst:.1e} relative"))
+    return rows
+
+
+CHECKS = CHECKS + (check_core_shadow,)
+GROUP_OF[check_core_shadow] = "core"
+
+
+def _served_checks():
+    """The checks of the sequences served from the core (``scanner/served_checks.py``; rows K2 on)."""
+    from .scanner import served_checks
+    return [row for fn in served_checks.CHECKS for row in fn()]
+
+
+CHECKS = CHECKS + (_served_checks,)
+GROUP_OF[_served_checks] = "core"
 
 
 def run(groups=None):

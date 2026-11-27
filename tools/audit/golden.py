@@ -59,7 +59,7 @@ def main(argv=None) -> int:
     status = 0
 
     # ---- engine digests
-    numbers = lambda d: {k: d[k] for k in ("images", "noisy", "prices", "array") if k in d} if d else {}       # noqa: E731
+    numbers = lambda d: {k: d[k] for k in ("images", "noisy", "prices", "array", "core") if k in d} if d else {}       # noqa: E731
     diff, added, removed = changed(numbers(old_e), numbers(new_e))
     same_engine = bool(old_e) and old_e["engine"] == new_e["engine"]
     same_stack = bool(old_e) and old_e["stack"] == new_e["stack"]

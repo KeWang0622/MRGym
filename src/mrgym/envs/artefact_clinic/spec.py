@@ -4,4 +4,4 @@
 current engine.
 """
 SPECS = [dict(id="Scanner/ArtefactClinic-v0", entry_point="mrgym.envs.family:FamilyEnv", card="mrgym.envs.artefact_clinic.task:card",
-              kind="candidate", family="mrgym.envs.artefact_clinic", levels=(1, 2, 3), default_level=2, max_steps=160)]
+              kind="admitted", family="mrgym.envs.artefact_clinic", levels=(1, 2, 3), default_level=2, max_steps=160)]

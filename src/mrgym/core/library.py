@@ -13,13 +13,15 @@ The six sequences the scanner serves, written as the model the engine computes t
           crushed pulse and an ideal spoiler ends the TR, so Mz of a column evolves as one number.
   ir      the same after an inversion of efficiency ``inv_eff`` that acts on Mz only.
   bssfp   balanced SSFP, sample at TR / 2, RF phase advancing by ``phase_inc_deg`` per TR.
-``served`` maps a realised protocol of the console to these.
+``served`` maps a realised protocol of the console to these, and to the block lists of the sequences a console serves
+from the core (fse, mese, megre, dwse; ``scanner/served.py``): it is the one source of both.
 Saturation (``sat=(q, delay_ms)`` of spgr, epi, se, ir): the engine's model of a spectrally selective saturation
 pulse for ONE resonance line, an event of every repetition that multiplies the longitudinal magnetisation by q
 ``delay_ms`` before the excitation (engine 0.3.0; q = 1 - efficiency x the share of the band the line lies in).
 The lines of fat are saturated differently, so a fat tissue is one block list per line.
 
-Eleven sequences the scanner does not serve, to show that a new sequence is data:
+Eleven more sequences, to show that a new sequence is data (a console that lists them serves fse, mese, megre and dwse
+from these block lists):
   fse, mese          CPMG echo train (constant or variable refocusing angles, real or ideal crushers); the echoes
                      feed k-space lines (``echo_of_line``) or a T2 fit
   megre              several gradient echoes after one pulse
@@ -55,6 +57,12 @@ def spoiler_cycle_mm(spoiler_mt_ms_per_m):
 
 def _refocus(sel):
     return None if sel is None else dataclasses.replace(sel, rephase=0.0, width=sel.width * REFOCUS_WIDTH)
+
+
+def refocusing_pulse(sel):
+    """The refocusing pulse that goes with the excitation pulse ``sel`` in every spin-echo sequence of this module:
+    the same shape on a slice ``REFOCUS_WIDTH`` times as thick, without a rephasing lobe."""
+    return _refocus(sel)
 
 
 # ---------------------------------------------------------------------------------------------- the six served
@@ -170,6 +178,24 @@ def served(rp, selective=None, inv_eff=1.0, tier=2, sat=None):
         return ir(rp["tr_ms"], rp["te_ms"], rp["ti_ms"], rp["flip_deg"], inv_eff, selective=selective, sat=sat), ("echo",)
     if name == "bssfp":
         return bssfp(rp["tr_ms"], rp["flip_deg"], rp["phase_cycle_deg"], selective=selective), ("echo",)
+    if sat is not None:
+        raise ValueError(f"no saturation pulse in the block list of {name}")
+    # ---- the sequences a console serves from the core (``scanner/served.py``)
+    if name in ("fse", "mese"):                                     # the train: real crushers, the stimulated echoes kept
+        n = rp["etl"] if name == "fse" else rp["n_echoes"]
+        make = fse if name == "fse" else mese
+        # ``refocus_deg``: one angle from the console; a realised protocol written by hand (the design layer) may
+        # carry one angle per echo, which ``fse`` takes as it is
+        return make(rp["tr_ms"], rp["echo_spacing_ms"], n, rp["refocus_deg"], excitation_deg=rp["flip_deg"], selective=selective), \
+            tuple(("echo", i) for i in range(n))
+    if name == "megre":                                             # the steady state of spgr; the echoes are read from it
+        kw = dict(spoiling="rf", phase_inc_deg=rp["rf_phase_increment_deg"], spoiler_mt_ms_per_m=rp["spoiler_mt_ms_per_m"]) if tier == 2 else dict(spoiling="ideal")
+        return dataclasses.replace(spgr(rp["tr_ms"], rp["flip_deg"], selective=selective, **kw), name="megre"), ("echo",)
+    if name == "dwse":
+        if not rp["b_value"]:                                       # no lobes: the spin echo between perfect crushers
+            return dataclasses.replace(se(rp["tr_ms"], rp["te_ms"], rp["flip_deg"], selective=selective), name="dwse"), ("echo",)
+        return dwse(rp["tr_ms"], rp["te_ms"], rp["diffusion_g_mt_m"], rp["diffusion_delta_ms"], rp["diffusion_separation_ms"], rp["diffusion_ramp_ms"],
+                    rp["diffusion_start_ms"], flip_deg=rp["flip_deg"], selective=selective), ("echo",)
     raise ValueError(f"no block list for sequence {name!r}")
 
 
@@ -199,17 +225,20 @@ def mese(tr_ms, esp_ms, n_echoes, refocus_deg=180.0, **kw):
     return dataclasses.replace(fse(tr_ms, esp_ms, n_echoes, refocus_deg, **kw), name="mese")
 
 
-def echo_of_line(lines, etl, esp_ms, te_eff_ms, order="linear"):
+def echo_of_line(lines, etl, esp_ms, te_eff_ms, order="linear", centre_line=None):
     """Which echo of an ``fse`` train fills every phase-encode line, and the effective echo time realised.
 
     The ``lines`` lines are split into ``etl`` bands of ceil(lines / etl) neighbouring lines (one line of every band
     per shot). "linear": the band of the centre line is filled by the echo nearest to ``te_eff_ms`` and the bands
     follow k-space monotonically, wrapping round; "centric": the first echo fills the centre band and later echoes
-    alternate outwards. Returns (echo index [lines], realised effective TE in ms, shots)."""
+    alternate outwards. ``centre_line``: the index of the line through the centre of k-space among the ``lines``
+    acquired ones (None: lines // 2; with partial Fourier it lies off the middle). Returns (echo index [lines],
+    realised effective TE in ms, shots)."""
     lines, etl = int(lines), int(etl)
     shots = int(math.ceil(lines / etl))
     band = np.minimum(np.arange(lines) // shots, etl - 1)
-    centre = int(band[lines // 2])
+    mid = lines // 2 if centre_line is None else int(centre_line)
+    centre = int(band[mid])
     if order == "linear":
         target = int(np.clip(round(te_eff_ms / esp_ms) - 1, 0, etl - 1))
         rank = (np.arange(etl) - centre + target) % etl
@@ -220,7 +249,7 @@ def echo_of_line(lines, etl, esp_ms, te_eff_ms, order="linear"):
     else:
         raise ValueError("order is linear or centric")
     echo = rank[band]
-    return echo, float((echo[lines // 2] + 1) * esp_ms), shots
+    return echo, float((echo[mid] + 1) * esp_ms), shots
 
 
 # ---------------------------------------------------------------------------------------------- gradient echoes
@@ -306,11 +335,13 @@ def diffusion_lobe(g_mt_m, delta_ms, ramp_ms):
     return dict(t=t, g=g, area=area, duration=dur, shape=shape, cycle_mm=1.0 / (CYCLES_PER_MM_PER_MT_M_MS * abs(area)))
 
 
-def dwse(tr_ms, te_ms, g_mt_m, delta_ms, big_delta_ms, ramp_ms=0.0, start_ms=0.0, repetitions=1):
+def dwse(tr_ms, te_ms, g_mt_m, delta_ms, big_delta_ms, ramp_ms=0.0, start_ms=0.0, repetitions=1, flip_deg=90.0, selective=None):
     """Stejskal-Tanner spin echo: excitation, a lobe starting ``start_ms`` later, the 180 at TE / 2, the same lobe
     starting ``big_delta_ms`` after the first, sample at TE, ideal crusher at the end of the TR. The cycle length of
     the sequence is the one over which a lobe dephases by one cycle, so the lobes are gradient blocks of 1 cycle with
-    the shape moments of the trapezoid. ``waveform`` gives the same program for ``mrgym.design.gradients.b_value``."""
+    the shape moments of the trapezoid. ``waveform`` gives the same program for ``mrgym.design.gradients.b_value``.
+    ``flip_deg``: the excitation angle, the refocusing pulse has twice that; ``selective``: the excitation pulse of a
+    slice, the refocusing pulse then plays on a slice 1.5 times as thick (as ``se``)."""
     lobe = diffusion_lobe(g_mt_m, delta_ms, ramp_ms)
     dur = lobe["duration"]
     gaps = (start_ms, te_ms / 2 - start_ms - dur, start_ms + big_delta_ms - te_ms / 2, te_ms - start_ms - big_delta_ms - dur, tr_ms - te_ms)
@@ -318,7 +349,8 @@ def dwse(tr_ms, te_ms, g_mt_m, delta_ms, big_delta_ms, ramp_ms=0.0, start_ms=0.0
         raise ValueError("the lobes do not fit: need start + duration <= TE / 2 <= start + Delta and start + Delta + duration <= TE <= TR")
     gaps = [max(0.0, v) for v in gaps]
     grad = B.gradient(1, ms=dur, shape=lobe["shape"])
-    body = [B.rf(90.0, 0.0), B.delay(gaps[0]), grad, B.delay(gaps[1]), B.rf(180.0, 90.0), B.delay(gaps[2]), grad, B.delay(gaps[3]),
+    body = [B.rf(flip_deg, 0.0, selective=selective), B.delay(gaps[0]), grad, B.delay(gaps[1]),
+            B.rf(2 * flip_deg, 90.0, selective=_refocus(selective)), B.delay(gaps[2]), grad, B.delay(gaps[3]),
             B.adc("echo"), B.delay(gaps[4]), B.crush()]
     return B.sequence([B.repeat(body, repetitions)], cycle_mm=lobe["cycle_mm"], name="dwse")
 
@@ -375,5 +407,5 @@ NEW = dict(fse=fse, mese=mese, megre=megre, spgr_lobe=spgr_lobe, dess=dess, mpra
            mt_spgr=mt_spgr)
 
 __all__ = ["NEW", "REFOCUS_WIDTH", "SERVED", "afi", "bssfp", "dess", "diffusion_lobe", "diffusion_waveform", "dwse", "echo_of_line", "epi", "fse",
-           "ir", "ir_gre", "megre", "mese", "mprage", "mt_spgr", "satrec", "se", "served", "spgr", "spgr_lobe", "spoiler_cycle_mm", "steam", "t2prep",
+           "ir", "ir_gre", "megre", "mese", "mprage", "mt_spgr", "refocusing_pulse", "satrec", "se", "served", "spgr", "spgr_lobe", "spoiler_cycle_mm", "steam", "t2prep",
            "t2prep_module"]

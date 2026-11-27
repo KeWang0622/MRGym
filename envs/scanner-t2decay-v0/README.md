@@ -3,11 +3,11 @@
 
 **A · Signal and contrast** · spins and relaxation · kind 1, measure · isolates A5: T2: decay of the transverse magnetisation, seen with a spin echo. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 98 %, no policy that ignores the object passes more than 2 % (95 % bounds)
 
 Subject A (signal and contrast), a single-skill measurement: T2 decay of the spin echo. Every echo time is a scan of its own. The slope of ln(signal) against echo time is -1 / T2 only if the recovery before the excitation is the same in every scan and the echoes at the noise floor are left out.
 
-Kind of task: **undetermined** (no stored gate result).
+Kind of task: **measurement** (reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)).
 
 ```python
 import mrgym
@@ -71,23 +71,27 @@ Limits: 40 scanner requests and 48 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/T2Decay-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/T2Decay-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | echo times with the recovery held fixed (tr_ms = TR0 + 0.75 x te_ms), a line through ln(signal), echoes at the noise floor left out |
-| `prior` | fail | no scan; the geometric mean of the told T2 range in every region |
-| `fixed_recipe` | fail | one token scan, then one constant T2 tuned on other worlds |
-| `one_image` | fail | one scan at te_ms 80; T2 from the brightness alone, the brightest region taken as the reference |
-| `brute_force` | fail | a ladder of echo times at one repetition time; the first echo time with the signal below 1 / e of the first echo, no fit |
-| `wrong_units` | fail | the reference's T2 in seconds |
-| `fixed_tr` | ablation | the reference's echo times at one repetition time (the recovery differs between the echoes) |
-| `no_floor` | ablation | the reference's scans, the line fitted through every echo (none left out at the noise floor) |
-| `open_loop` | reported | the reference (a fixed list of scans, a fixed estimator) |
-| `adaptive` | reported | level 3: two echo times first, two more placed from what they show (elsewhere the reference) |
-| `ideal_pulses` | reported | the reference with tr_ms = TR0 + te_ms (the rule for ideal pulses) |
-| `coarse` | reported | the reference on a 32 matrix with partial_fourier 0.6 |
-| `short_echoes` | reported | the reference with the echo times 12, 20 and 30 ms |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 299/300 (99.7 %; lower bound 98.4 %) | 299/300 (99.7 %; lower bound 98.4 %) | echo times with the recovery held fixed (tr_ms = TR0 + 0.75 x te_ms), a line through ln(signal), echoes at the noise floor left out |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; the geometric mean of the told T2 range in every region |
+| `fixed_recipe` | fail | 1/300 (0.3 %; upper bound 1.6 %) | 1/300 (0.3 %; upper bound 1.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then one constant T2 tuned on other worlds |
+| `one_image` | fail | 2/300 (0.7 %; upper bound 2.1 %) | 0/300 (0.0 %; upper bound 1.0 %) | 1/300 (0.3 %; upper bound 1.6 %) | one scan at te_ms 80; T2 from the brightness alone, the brightest region taken as the reference |
+| `brute_force` | fail | 1/300 (0.3 %; upper bound 1.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | a ladder of echo times at one repetition time; the first echo time with the signal below 1 / e of the first echo, no fit |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's T2 in seconds |
+| `fixed_tr` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 83/300 (27.7 %; 72.0 points below the reference, lower bound 67.7) | 101/300 (33.7 %; 66.0 points below the reference, lower bound 61.4) | the reference's echo times at one repetition time (the recovery differs between the echoes) |
+| `no_floor` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 283/300 (94.3 %; 5.3 points below the reference, lower bound 3.2) not required here | 50/300 (16.7 %; 83.0 points below the reference, lower bound 79.4) | the reference's scans, the line fitted through every echo (none left out at the noise floor) |
+| `open_loop` | reported | 300/300 (100.0 %) | 299/300 (99.7 %) | 299/300 (99.7 %) | the reference (a fixed list of scans, a fixed estimator) |
+| `adaptive` | reported | 300/300 (100.0 %) | 299/300 (99.7 %) | 300/300 (100.0 %) | level 3: two echo times first, two more placed from what they show (elsewhere the reference) |
+| `ideal_pulses` | reported | 300/300 (100.0 %) | 297/300 (99.0 %) | 285/300 (95.0 %) | the reference with tr_ms = TR0 + te_ms (the rule for ideal pulses) |
+| `coarse` | reported | 297/300 (99.0 %) | 299/300 (99.7 %) | 278/300 (92.7 %) | the reference on a 32 matrix with partial_fourier 0.6 |
+| `short_echoes` | reported | 300/300 (100.0 %) | 256/300 (85.3 %) | 284/300 (94.7 %) | the reference with the echo times 12, 20 and 30 ms |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `one_image` 0.7 % (upper bound 2.1 %); level 2 `fixed_recipe#0` 0.3 % (upper bound 1.6 %); level 3 `one_image` 0.3 % (upper bound 1.6 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.00475 / 0.01224; level 2 0.02142 / 0.05649; level 3 0.01529 / 0.03876; scan time used (median): level 1 316.7 s, level 2 81.6 s, level 3 159.5 s.
 
 ## Validity
 

@@ -5,7 +5,8 @@ How far each number was checked is tagged:
   [T]  the value is attributed to a table of the cited paper and was not re-checked against the full text for this
        release; treat it as "of the right size", not as a citation-grade number
   [C]  chosen by the authors of this package inside a plausible range; there is no source
-A number without a tag in its row is [C]; that includes every diffusion coefficient and most proton densities.
+A number without a tag in its row is [C]; that includes most proton densities. The diffusion coefficients have their
+own table of sources below (``ADC_SOURCES``): nine of them lie against a fetched abstract or a formula, sixteen are [C].
 Times in ms. PD relative to water = 1. T2' is derived: 1/T2' = 1/T2* - 1/T2. Fat rows carry the chemical shift.
 
 Sources (full records in docs/physics/references.md)
@@ -66,6 +67,70 @@ _T = [
     ("liver_lesion", 0.85,  1200,  1500,   120,   100,    70,    50,   1.60, 0),   # [C] (cyst-like / metastasis-like)
 ]
 NAMES = [r[0] for r in _T]
+
+# ---------------------------------------------------------------------------------------------- diffusion coefficients
+# The ADC column of ``_T`` (um^2/ms = 1e-3 mm^2/s) is older than this table and is read by every sequence in which
+# spins diffuse: the RF-spoiled steady state of ``spgr`` and ``afi`` (attenuation across the spoiler), and ``dwse``
+# (signal x exp(-b ADC)). A tissue has one coefficient, so ``dwse`` reads the same column; its numbers are NOT changed
+# here (a changed number would move the data of ``spgr``). What follows is additive: where each number stands against
+# a source, and the self-diffusion of water with temperature for phantom liquids. One free, isotropic coefficient
+# per class: no tensor, no kurtosis, no perfusion fraction (docs/physics/limits.md, block 3).
+#
+# name: (tag, source, (low, high) of the source in um^2/ms or None, what the source states)
+#   [A]  stated in the abstract of the cited paper, which was fetched for this release (Europe PMC, 2026-11-27); the
+#        interval is mean +- 1 SD of the abstract, or its stated range
+#   [R]  computed from a formula recalled from the cited paper, which was NOT opened; see ``water_adc_um2_ms``
+#   [C]  chosen by the authors of this package inside a plausible range; there is no source
+_HELENIUS = "Helenius 2002 (AJNR 23:194, PMID 11847041; 80 healthy adults, 1.5 T, b = 0 and 1000 s/mm^2)"
+_KILICKESMEZ = "Kilickesmez 2008 (Diagn Interv Radiol 14:83, PMID 18553281; 50 normal abdomens, b = 0, 500, 1000 s/mm^2)"
+ADC_SOURCES = dict(
+    wm=("A", _HELENIUS, (0.62, 0.79), "white matter 0.70 +- 0.03, range 0.62 to 0.79"),
+    gm=("A", _HELENIUS, (0.78, 1.09), "cortical grey matter 0.89 +- 0.04, range 0.78 to 1.09"),
+    deep_gm=("A", _HELENIUS, (0.64, 0.83), "deep grey matter 0.75 +- 0.03, range 0.64 to 0.83"),
+    csf=("R", "Holz 2000: free water at 37 C", (2.9, 3.2), "3.04 for free water at 37 C by the formula of ``water_adc_um2_ms``; CSF is taken as free water"),
+    liver=("A", _KILICKESMEZ, (1.14, 1.98), "1.34 +- 0.20 to 1.77 +- 0.21 over four segments"),
+    spleen=("A", _KILICKESMEZ, (0.90, 1.66), "1.28 +- 0.38"),
+    kidney_cortex=("A", _KILICKESMEZ, (1.86, 2.30), "2.08 +- 0.22"),
+    kidney_medulla=("A", _KILICKESMEZ, (1.76, 2.12), "1.94 +- 0.18"),
+    pancreas=("A", _KILICKESMEZ, (1.21, 1.97), "1.59 +- 0.38 (tail) to 1.68 +- 0.26 (body)"),
+    bowel_fluid=("C", None, None, "a fluid between tissue and free water"),
+    scalp_fat=("C", None, None, "lipid protons diffuse about two orders of magnitude more slowly than water"),
+    subcut_fat=("C", None, None, "as scalp_fat"), visceral_fat=("C", None, None, "as scalp_fat"),
+    diploe=("C", None, None, "fatty marrow"), marrow=("C", None, None, "fatty marrow"),
+    skull=("C", None, None, "cortical bone has practically no signal at any b-value"),
+    skin=("C", None, None, None), muscle=("C", None, None, None), abd_muscle=("C", None, None, None),
+    blood=("C", None, None, "no flow is modelled; the number stands for stationary blood"), cord=("C", None, None, None),
+    lesion_ms=("C", None, None, "a demyelinating plaque: above normal white matter"),
+    tumour=("C", None, None, None), oedema=("C", None, None, "vasogenic oedema: well above white matter"),
+    liver_lesion=("C", None, None, "cyst-like"),
+)
+# Phantom liquids (``anatomy.py``: the fills, vials and spheres of the QA, ACR and NIST worlds) carry 2.0 um^2/ms or a
+# draw around it: [C] declared, and 1 % below free water at 20 C by the formula below; the doping of a phantom solution
+# changes relaxation, not diffusion, at these concentrations (an assumption, not sourced).
+
+
+def water_adc_um2_ms(temp_c):
+    """Self-diffusion coefficient of water (um^2/ms) at ``temp_c`` degrees Celsius: D = D0 (T / Ts - 1)^gamma with
+    D0 = 1.635e-8 m^2/s, Ts = 215.05 K, gamma = 2.063, T in kelvin (the fit of Holz, Heil & Sacco 2000, Phys Chem Chem
+    Phys 2:4740, stated for 0 to 100 C). Tag [R]: the constants are recalled; the paper was not opened and its
+    abstract carries no numbers. What was checked: the formula gives 2.299 at 25 C, the value attributed to Mills
+    1973 (J Phys Chem 77:685; also not opened), 2.02 at 20 C and 3.04 at 37 C."""
+    t = float(temp_c) + 273.15
+    if not 273.15 <= t <= 373.15:
+        raise ValueError("the fit is stated for 0 to 100 degrees Celsius")
+    return 1.635e-8 * (t / 215.05 - 1.0) ** 2.063 * 1e9
+
+
+def adc_report(b0_t=3.0):
+    """Every tissue with its coefficient against its source: list of dict(name, adc_um2_ms, tag, source, low, high,
+    inside (None without an interval), note)."""
+    tab, out = table(b0_t), []
+    for name in NAMES:
+        tag, source, span, note = ADC_SOURCES[name]
+        adc = tab[name]["adc_um2_ms"]
+        out.append(dict(name=name, adc_um2_ms=adc, tag=tag, source=source, low=None if span is None else span[0], high=None if span is None else span[1],
+                        inside=None if span is None else bool(span[0] <= adc <= span[1]), note=note))
+    return out
 
 
 def table(b0_t):

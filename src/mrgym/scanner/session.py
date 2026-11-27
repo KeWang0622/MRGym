@@ -375,10 +375,11 @@ def scanner_card(cfg, exam):
                      "inversion_pulse_ms": s["inv_ms"], "time_raster_ms": s["raster_ms"],
                      "b1rms_limit_ut": exam["b1rms_limit_ut"], "readout_oversampling": s["ro_os"]},
         "sequences": {
-            name: {"description": console.DESCRIPTIONS[name],
+            name: {"description": console.REGISTRY[name].description,
                    "parameters": {k: _parameter_card(name, k, e, exam) for k, e in spec.items()}}
-            for name, spec in console.SEQUENCES.items()},
-        "outputs": {"images": "magnitude and phase (rad), float32, one image per contrast (afi: 2; spgr: n_echoes)",
+            for name, spec in console.offered(exam).items()},                # the six, and what else the card of this console lists
+        "outputs": {"images": "magnitude and phase (rad), float32, one image per contrast (afi: 2; spgr: n_echoes"
+                              + ("; mese, megre: n_echoes" if exam.get("sequences") else "") + ")",
                     "roi_readouts": "per requested circle {id, y_mm, x_mm, radius_mm}: n_pixels, mean_magnitude, "
                                     "sd_magnitude, complex_mean_magnitude, complex_mean_phase_rad, one value per image",
                     "header": "the console line of the scan: sequence, field, timing, geometry, bandwidth, scan time, "

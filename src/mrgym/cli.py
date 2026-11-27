@@ -324,11 +324,20 @@ TIMING_PROTOCOLS = (
     ("spgr", dict(sequence="spgr", tr_ms=30.0, flip_deg=20.0)), ("spgr, 4 echoes", dict(sequence="spgr", tr_ms=60.0, flip_deg=20.0, n_echoes=4)),
     ("afi", dict(sequence="afi", tr_ms=30.0, flip_deg=60.0)), ("se", dict(sequence="se", tr_ms=500.0)),
     ("ir", dict(sequence="ir", tr_ms=3000.0, ti_ms=800.0)), ("bssfp", dict(sequence="bssfp", tr_ms=8.0, flip_deg=40.0)),
-    ("epi", dict(sequence="epi", tr_ms=2000.0)))
+    ("epi", dict(sequence="epi", tr_ms=2000.0)),
+    # the sequences served from the block-list core (a console that lists them; ``scanner/served.py``)
+    ("fse, 8 echoes", dict(sequence="fse", tr_ms=3000.0, etl=8, te_ms=80.0, echo_spacing_ms=10.0, echo_order="linear")),
+    ("fse, 16 echoes", dict(sequence="fse", tr_ms=3000.0, etl=16, te_ms=80.0, echo_order="linear")),
+    ("fse, 32 echoes", dict(sequence="fse", tr_ms=3000.0, etl=32, te_ms=80.0, echo_order="linear")),
+    ("mese, 8 echoes", dict(sequence="mese", tr_ms=2000.0, n_echoes=8)), ("mese, 32 echoes", dict(sequence="mese", tr_ms=2000.0, n_echoes=32)),
+    ("megre, 4 echoes", dict(sequence="megre", tr_ms=60.0, flip_deg=20.0, n_echoes=4)),
+    ("megre, 16 echoes", dict(sequence="megre", tr_ms=120.0, flip_deg=20.0, n_echoes=16, bandwidth_hz_per_px=600.0)),
+    ("dwse, b 0", dict(sequence="dwse", tr_ms=3000.0, b_value=0.0)), ("dwse, b 1000", dict(sequence="dwse", tr_ms=3000.0, b_value=1000.0)))
 
 
-def timing_table(repeats=3, matrices=(64, 128, 256)):
-    """Seconds of computation per scan (median of ``repeats``, cold cache) and per world. Returns (rows, worlds)."""
+def timing_table(repeats=3, matrices=(64, 128, 256), cpu=False):
+    """Seconds of computation per scan (median of ``repeats``, cold cache) and per world. Returns (rows, worlds).
+    ``cpu``: processor seconds of this process instead of elapsed seconds (the number to read on a busy machine)."""
     import numpy as np
 
     from .scanner import console, kspace
@@ -337,10 +346,11 @@ def timing_table(repeats=3, matrices=(64, 128, 256)):
     worlds = {}
     for kind in ("brain", "abdomen", "qa"):
         t = time.perf_counter()
-        w = W.make_world(seed, dict(kind=kind))
+        w = W.make_world(seed, dict(kind=kind, console_sequences="all") if kind == "brain" else dict(kind=kind))
         worlds[kind] = time.perf_counter() - t
-        if kind == "brain":
+        if kind == "brain":                                             # its console lists every sequence; the world is the same
             eng = kspace.Engine(w)
+    clock = time.process_time if cpu else time.perf_counter
     rows = []
     for label, prot in TIMING_PROTOCOLS:
         row = [label]
@@ -353,16 +363,16 @@ def timing_table(repeats=3, matrices=(64, 128, 256)):
             for i in range(repeats):
                 eng._clean.clear()
                 eng._splat.clear()
-                t = time.perf_counter()
+                t = clock()
                 eng.acquire(pl["realised"], np.random.default_rng(i))
-                ts.append(time.perf_counter() - t)
+                ts.append(clock() - t)
             row.append(float(np.median(ts)))
         rows.append(row)
     return rows, worlds, matrices
 
 
 def cmd_timing(a):
-    rows, worlds, matrices = timing_table(a.repeats)
+    rows, worlds, matrices = timing_table(a.repeats, cpu=a.cpu)
     cell = lambda v: "refused" if v is None else f"{v:.2f}"   # noqa: E731
     if a.markdown:
         print("| Sequence | " + " | ".join(f"matrix {m}" for m in matrices) + " |")
@@ -374,7 +384,8 @@ def cmd_timing(a):
         for r in rows:
             print(f"{r[0]:18s}" + "".join(f"{cell(v):>12s}" for v in r[1:]))
     print("\nworld generation, once per episode: " + ", ".join(f"{k} {v:.2f} s" for k, v in worlds.items()))
-    print(f"brain phantom at 3 T, one thread, median of {a.repeats}, noise-free data not cached; a repeated protocol reuses it")
+    print(f"brain phantom at 3 T, one thread, median of {a.repeats}, {'processor' if a.cpu else 'elapsed'} seconds, noise-free data not cached; "
+          "a repeated protocol reuses it")
     return 0
 
 
@@ -481,7 +492,7 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("validate", help="physics checks against analytic formulas; with --perturb, an environment under perturbed physics")
     p.add_argument("--json", action="store_true")
-    p.add_argument("--group", action="append", choices=("signal", "rf", "encoding", "console"), help="only this group of checks (repeatable)")
+    p.add_argument("--group", action="append", choices=("signal", "rf", "encoding", "console", "core"), help="only this group of checks (repeatable)")
     p.add_argument("--perturb", metavar="ID", help="re-score the reference policy of this environment under physics perturbations")
     p.add_argument("--level", type=int, help="--perturb: level (default: the environment's default level)")
     p.add_argument("--n", type=int, default=30, help="--perturb: instances (default 30)")
@@ -495,6 +506,7 @@ def main(argv=None) -> int:
     p = sub.add_parser("timing", help="seconds per scan")
     p.add_argument("--repeats", type=int, default=3)
     p.add_argument("--markdown", action="store_true")
+    p.add_argument("--cpu", action="store_true", help="processor seconds of this process instead of elapsed seconds")
     p.set_defaults(fn=cmd_timing)
 
     p = sub.add_parser("serve", help="the scanner as an HTTP service: an agent plane and an operator plane")

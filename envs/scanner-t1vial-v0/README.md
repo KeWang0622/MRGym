@@ -3,11 +3,11 @@
 
 **A · Signal and contrast** · spins and relaxation · kind 1, measure · isolates A4: T1: recovery of the longitudinal magnetisation. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 96 %, no policy that ignores the object passes more than 2 % (95 % bounds)
 
-T1 by inversion recovery, the reference method of relaxometry, as one skill. At a fixed repetition time the signal of a vial is a - b exp(-TI / T1) with the true T1, whatever the repetition time, the inversion efficiency and the slice profile are, so three signed inversion times give T1. What has to be decided is the timing: the budget sets the repetition time, and the inversion times have to span the recovery of every vial. The transmitter is calibrated; Scanner/T1Transmit is the task with a transmit error. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.
+T1 by inversion recovery, the reference method of relaxometry, as one skill. At a fixed repetition time the signal of a vial is a - b exp(-TI / T1) with the true T1, whatever the repetition time, the inversion efficiency and the slice profile are, so three signed inversion times give T1. What has to be decided is the timing: the budget sets the repetition time, and the inversion times have to span the recovery of every vial. The transmitter is calibrated; Scanner/T1Transmit is the task with a transmit error. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0 at level 1, 0 at level 2, 0 at level 3; 300 instances per level; 25 points or more make a decision task).
 
-Kind of task: **undetermined** (no stored gate result).
+Kind of task: **measurement** (reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)).
 
 ```python
 import mrgym
@@ -72,20 +72,24 @@ Limits: 32 scanner requests and 40 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/T1Vial-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/T1Vial-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | inversion recovery, three or four inversion times spread over the recovery, signed three-parameter fit |
-| `prior` | fail | no scan; the geometric mean of the told T1 range in every region |
-| `fixed_recipe` | fail | one token scan, then one constant T1 for every region, tuned on other worlds |
-| `brute_force` | fail | inversion times on a grid; T1 = (inversion time of the smallest magnitude) / ln 2 |
-| `wrong_units` | fail | the reference's numbers in seconds |
-| `unsigned` | ablation | the reference's scans fitted to magnitudes, without the sign |
-| `full_recovery` | ablation | the reference's scans fitted with M (1 - 2 exp(-TI / T1)) (assumes full recovery and a complete inversion) |
-| `bunched_tis` | ablation | three inversion times around the expected nulls instead of spread over the recovery |
-| `level1_scans` | ablation | the three scans level 1 states, at every level |
-| `open_loop` | reported | the level's fixed scan list and the least-squares fit of the three-parameter curve |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 293/300 (97.7 %; lower bound 95.7 %) | 300/300 (100.0 %; lower bound 99.0 %) | inversion recovery, three or four inversion times spread over the recovery, signed three-parameter fit |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; the geometric mean of the told T1 range in every region |
+| `fixed_recipe` | fail | 1/300 (0.3 %; upper bound 1.6 %) | 2/300 (0.7 %; upper bound 2.1 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then one constant T1 for every region, tuned on other worlds |
+| `brute_force` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | inversion times on a grid; T1 = (inversion time of the smallest magnitude) / ln 2 |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's numbers in seconds |
+| `unsigned` | ablation | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | 0/300 (0.0 %; 97.7 points below the reference, lower bound 96.2) | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | the reference's scans fitted to magnitudes, without the sign |
+| `full_recovery` | ablation | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | 0/300 (0.0 %; 97.7 points below the reference, lower bound 96.2) | 39/300 (13.0 %; 87.0 points below the reference, lower bound 83.8) not required here | the reference's scans fitted with M (1 - 2 exp(-TI / T1)) (assumes full recovery and a complete inversion) |
+| `bunched_tis` | ablation | 174/300 (58.0 %; 42.0 points below the reference, lower bound 37.3) not required here | 190/300 (63.3 %; 34.3 points below the reference, lower bound 29.6) | 22/300 (7.3 %; 92.7 points below the reference, lower bound 90.2) not required here | three inversion times around the expected nulls instead of spread over the recovery |
+| `level1_scans` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 0/300 (0.0 %; 97.7 points below the reference, lower bound 96.2) | 105/300 (35.0 %; 65.0 points below the reference, lower bound 60.5) | the three scans level 1 states, at every level |
+| `open_loop` | reported | 300/300 (100.0 %) | 293/300 (97.7 %) | 300/300 (100.0 %) | the level's fixed scan list and the least-squares fit of the three-parameter curve |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#0` 0.3 % (upper bound 1.6 %); level 2 `fixed_recipe#2` 0.7 % (upper bound 2.1 %); level 3 `brute_force` 0.0 % (upper bound 1.0 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.01699 / 0.03964; level 2 0.024 / 0.08129; level 3 0.02031 / 0.03773; scan time used (median): level 1 157.5 s, level 2 98.1 s, level 3 698 s.
 
 ## Validity
 

@@ -206,5 +206,5 @@ def test_tune_outcome_and_the_declared_names():
     assert task.outcome(dict(checks=dict(deliverable_valid=True, t1_within_tolerance_R1=False, measured=True))) == "no_region_within"
     assert set(controls.policies()) == {controls.REFERENCE, *controls.MUST_FAIL, *controls.ABLATIONS, *controls.REPORTED}
     assert set(controls.DESCRIPTIONS) == set(controls.policies()) and all("\n" not in d and len(d) < 130 for d in controls.DESCRIPTIONS.values())
-    assert task.card()["id"] == ENV and mrgym.spec(ENV).kind == "candidate" and task.COMPETENCIES == ("parameter.ti", "parameter.tr")
+    assert task.card()["id"] == ENV and mrgym.spec(ENV).kind in ("candidate", "admitted") and task.COMPETENCIES == ("parameter.ti", "parameter.tr")
     assert [controls._level(task.make_instance(derive_seed(ENV, lv, "train", 0, environ={}), lv, task_id="t")["task"]) for lv in (1, 2, 3)] == [1, 2, 3]

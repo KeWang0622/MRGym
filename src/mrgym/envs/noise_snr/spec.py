@@ -4,4 +4,4 @@
 current engine; then "admitted". A family whose gate rejects a level is "practice".
 """
 SPECS = [dict(id="Scanner/NoiseSNR-v0", entry_point="mrgym.envs.family:FamilyEnv", card="mrgym.envs.noise_snr.task:card",
-              kind="candidate", family="mrgym.envs.noise_snr", levels=(1, 2, 3), default_level=2, max_steps=64)]
+              kind="admitted", family="mrgym.envs.noise_snr", levels=(1, 2, 3), default_level=2, max_steps=64)]

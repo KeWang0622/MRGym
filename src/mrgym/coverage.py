@@ -142,7 +142,9 @@ def validate_ids() -> set:
     import re
 
     from . import validate
-    return set(re.findall(r'_row\("([A-Z]+[0-9]+)"', inspect.getsource(validate)))
+    from .scanner import served_checks  # rows J7 on: the sequences served from the block-list core
+    shadow = {f"J{i + 1}" for i in range(len(validate.SHADOW))}          # rows J1 to J6 are made in a loop over ``validate.SHADOW``
+    return set(re.findall(r'_row\("([A-Z]+[0-9]+)"', inspect.getsource(validate) + inspect.getsource(served_checks))) | shadow
 
 
 def table() -> dict:

@@ -4,4 +4,4 @@
 current engine; then "admitted". A family whose gate rejects a level is "practice".
 """
 SPECS = [dict(id="Scanner/TransmitAdjust-v0", entry_point="mrgym.envs.family:FamilyEnv", card="mrgym.envs.transmit_adjust.task:card",
-              kind="candidate", family="mrgym.envs.transmit_adjust", levels=(1, 2, 3), default_level=2, max_steps=40)]
+              kind="admitted", family="mrgym.envs.transmit_adjust", levels=(1, 2, 3), default_level=2, max_steps=40)]

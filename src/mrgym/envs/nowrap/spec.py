@@ -7,4 +7,4 @@ Levels 0 and 1 are practice levels (``task.LEVELS[lv]["kind"] == "practice"``): 
 the gate by default and not covered by the claim. ``Scanner/NoWrap-v0`` is retired (``mrgym.envs``).
 """
 SPECS = [dict(id="Scanner/NoWrap-v1", entry_point="mrgym.envs.family:FamilyEnv", card="mrgym.envs.nowrap.task:card",
-              kind="candidate", family="mrgym.envs.nowrap", levels=(0, 1, 2, 3), default_level=2, max_steps=40)]
+              kind="admitted", family="mrgym.envs.nowrap", levels=(0, 1, 2, 3), default_level=2, max_steps=40)]

@@ -3,7 +3,7 @@
 
 **A · Signal and contrast** · sequences and steady states · kind 2, set · isolates A9: Inversion recovery: the signed signal and its null point (STIR, FLAIR). [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 97 %, no policy that ignores the object passes more than 3 % (95 % bounds)
 
 What FLAIR does to fluid and STIR does to fat. The inversion time that nulls a material depends on its T1, on the repetition time (recovery is incomplete when the next inversion arrives) and on how complete the inversion is, so it cannot be looked up: it has to be measured on this object and this system.
 
@@ -68,22 +68,20 @@ Limits: 40 scanner requests and 48 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/NullTissue-v0 --n 300 --write` measures and stores it. The table below is that older result.
-
-Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/NullTissue-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/NullTissue-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
 | Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
 |---|---|---|---|---|---|
-| `reference` | pass | 284/300 (94.7 %; lower bound 92.0 %) | 298/300 (99.3 %; lower bound 97.9 %) | 295/300 (98.3 %; lower bound 96.5 %) | three signed probes, fit of a - b exp(-TI / T1), transfer to the target repetition time, one check scan |
+| `reference` | pass | 295/300 (98.3 %; lower bound 96.5 %) | 299/300 (99.7 %; lower bound 98.4 %) | 297/300 (99.0 %; lower bound 97.4 %) | three signed probes, fit of a - b exp(-TI / T1), transfer to the target repetition time, one check scan |
 | `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; TI = ln 2 x the middle of the plausible T1 range |
 | `fixed_recipe` | fail | 3/300 (1.0 %; upper bound 2.6 %) | 1/300 (0.3 %; upper bound 1.6 %) | 1/300 (0.3 %; upper bound 1.6 %) | one token scan, then one constant inversion time tuned on other worlds |
-| `brute_force` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 1/300 (0.3 %; upper bound 1.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | probes on a fixed grid of inversion times, delivers the one with the smallest signal |
+| `brute_force` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | probes on a fixed grid of inversion times, delivers the one with the smallest signal |
 | `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's inversion time in seconds |
-| `textbook` | ablation | 198/300 (66.0 %; 28.7 points below the reference, lower bound 24.3) not required here | 42/300 (14.0 %; 85.3 points below the reference, lower bound 81.9) | 10/300 (3.3 %; 95.0 points below the reference, lower bound 92.7) | measures T1, then TI = ln 2 x T1 (ignores the repetition time and the inversion efficiency) |
+| `textbook` | ablation | 223/300 (74.3 %; 24.0 points below the reference, lower bound 19.9) not required here | 35/300 (11.7 %; 88.0 points below the reference, lower bound 84.9) | 8/300 (2.7 %; 96.3 points below the reference, lower bound 94.5) | measures T1, then TI = ln 2 x T1 (ignores the repetition time and the inversion efficiency) |
 
 Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
-Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#2` 1.0 % (upper bound 2.6 %); level 2 `brute_force` 0.3 % (upper bound 1.6 %); level 3 `fixed_recipe#2` 0.3 % (upper bound 1.6 %).
-Reference, error of its answer (median / 95th percentile): level 1 0.01386 / 0.05189; level 2 0.0125 / 0.03404; level 3 0.01277 / 0.03433; scan time used (median): level 1 116 s, level 2 176.6 s, level 3 180.4 s.
+Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#2` 1.0 % (upper bound 2.6 %); level 2 `fixed_recipe#2` 0.3 % (upper bound 1.6 %); level 3 `fixed_recipe#2` 0.3 % (upper bound 1.6 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.00717 / 0.02913; level 2 0.00661 / 0.01761; level 3 0.00878 / 0.0258; scan time used (median): level 1 118.9 s, level 2 151.9 s, level 3 153.2 s.
 
 ## Validity
 

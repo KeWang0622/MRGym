@@ -27,7 +27,8 @@ def test_every_validation_check_passes():
     rows, _ = validate.run()
     failed = [f"{r['id']} {r['check']}: {r['measured']}" for r in rows if not r["ok"]]
     assert not failed, failed
-    assert len(rows) >= 63 and {r["group"] for r in rows} == set(validate.GROUPS) == {"signal", "rf", "encoding", "console"}
+    # the fifth group, ``core``: the block-list core behind the console (shadow of the six, and the sequences served from it)
+    assert len(rows) >= 63 and {r["group"] for r in rows} == set(validate.GROUPS) == {"signal", "rf", "encoding", "console", "core"}
 
 
 # ------------------------------------------------------------------ worlds

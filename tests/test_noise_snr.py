@@ -110,11 +110,11 @@ def test_at_level_3_the_ghost_fills_the_corners_and_cancels_in_the_difference(gh
 # ---------------------------------------------------------------------------------------------- instances
 def test_the_family_is_registered_and_says_what_it_isolates():
     spec = mrgym.spec(ENV_ID)
-    assert (spec.kind, spec.levels, spec.default_level, spec.family) == ("candidate", (1, 2, 3), 2, "mrgym.envs.noise_snr")
+    assert spec.kind in ("candidate", "admitted") and (spec.levels, spec.default_level, spec.family) == ((1, 2, 3), 2, "mrgym.envs.noise_snr")
     assert (task.SUBJECT, task.KIND) == ("C", "measure") and isinstance(task.ISOLATES, str) and task.ISOLATES
     assert set(task.COMPETENCIES) <= set(coverage.ids()) and "qc.snr" in task.COMPETENCIES
     card = dict(task.card(), status="x", gate=None)
-    assert cards.lint(card) == [] and card["kind"] == "candidate" and set(card["levels"]) == {1, 2, 3}
+    assert cards.lint(card) == [] and card["kind"] in ("candidate", "admitted") and set(card["levels"]) == {1, 2, 3}
     assert [c["name"] for c in card["controls"]] == [controls.REFERENCE, *controls.MUST_FAIL, *controls.ABLATIONS, *controls.REPORTED]
     assert set(controls.DESCRIPTIONS) == set(controls.policies()) and all("\n" not in d for d in controls.DESCRIPTIONS.values())
     assert F.outcomes(task)[-3:] == ("no_region_within", "some_regions_within", "pass")

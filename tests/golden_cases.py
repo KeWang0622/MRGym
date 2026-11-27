@@ -12,6 +12,8 @@ and by ``tools/audit/golden.py``, which writes the files (nothing under ``tests/
     prices    lines and scan seconds of a grid of protocols (console arithmetic: equal on every stack)
     array     additive: a world with a receive array: its maps and noise covariance, coil images of both formations, a
               noisy accelerated scan through SENSE, the g map (``array_cases``)
+    core      additive: the sequences served from the block-list core (fse, mese, megre, dwse) on two worlds whose
+              console lists them: noise-free images, prices and header lines, one noisy session (``core_cases``)
 ``volume_digests.json``   the volume worlds (no scan): see ``VOLUME_WORLDS`` below
 ``compat_2d.json``        the 2D baseline recorded on v1: ``tests/compat_cases.py`` (checked here, written only there)
 ``task_snapshots.json``   a function of the engine AND of the task and control code of each id
@@ -193,9 +195,52 @@ def array_cases() -> dict:
     return out
 
 
+# The additive section ``core``: the sequences a console serves from the block-list core (``scanner/served.py``), on
+# worlds whose console card lists them. Nothing above depends on it: a world without ``console_sequences`` is the world
+# of before.
+CORE_PROTOCOLS = {
+    "fse": dict(sequence="fse", tr_ms=2500.0, etl=8, te_ms=60.0, echo_order="linear", matrix=64, refocus_deg=150.0),
+    "fse centric, partial Fourier, along x": dict(sequence="fse", tr_ms=2500.0, etl=12, echo_order="centric", matrix=64, partial_fourier=0.75, pe_dir="x",
+                                                  centre_x_mm=12.0),
+    "fse hard pulses": dict(sequence="fse", tr_ms=1500.0, etl=16, te_ms=40.0, echo_order="linear", matrix=64, excitation="nonselective"),
+    "mese": dict(sequence="mese", tr_ms=1500.0, n_echoes=8, matrix=64, rf_pulse="fast"),
+    "megre": dict(sequence="megre", tr_ms=60.0, flip_deg=20.0, n_echoes=4, matrix=64, ro_polarity=-1),
+    "megre bipolar": dict(sequence="megre", tr_ms=60.0, flip_deg=20.0, n_echoes=3, matrix=64, readout="bipolar", phase_fov=0.75),
+    "dwse b 0": dict(sequence="dwse", tr_ms=1500.0, b_value=0.0, matrix=64),
+    "dwse b 800": dict(sequence="dwse", tr_ms=1500.0, b_value=800.0, matrix=64, tx_scale=0.9),
+}
+CORE_WORLDS = (("brain", 3.0), ("qa_oil", 1.5))
+
+
+def core_cases(worlds=CORE_WORLDS, noisy=True) -> dict:
+    """``worlds``, ``noisy``: a part of the section (the test suite checks the first world; ``tools/audit/golden.py``
+    checks all of it)."""
+    out = dict(images={}, prices={})
+    for phantom, field in worlds:
+        eng = kspace.Engine(W.make_world(SEED, dict(WORLD_SPECS.get(phantom, dict(kind=phantom)), b0_t=field, n=GRID, console_sequences="all")))
+        for name, protocol in CORE_PROTOCOLS.items():
+            res = eng.scan(protocol)
+            out["images"][f"{phantom}/{field}T/{name}"] = _digest(res["images"])
+            if phantom == "brain":
+                out["prices"][name] = dict(lines=res["plan"]["realised"]["lines"], scan_s=res["plan"]["scan_s"], te_ms=res["plan"]["realised"]["te_ms"],
+                                           rf_power_percent=res["plan"]["limits"]["rf_power_percent"], header=res["plan"]["header"])
+    if not noisy:
+        return out
+    cfg = dict(task_id="golden-core", seed=SEED, world_spec=dict(kind="brain", n=GRID, console_sequences="all"), budget_s=1e5, max_requests=32, task=dict(regions=[]))
+    s = session.ScannerSession(cfg)
+    noisy = {}
+    for name in ("fse", "mese", "megre bipolar", "dwse b 800", "fse"):   # the second fse scan draws other noise
+        s.scan({"protocol": CORE_PROTOCOLS[name]})
+        ev = s.events[-1]
+        noisy[f"{len(noisy)}:{name}"] = dict(shape=ev["shape"], sha256=ev["data_sha256"], fingerprint=ev["fingerprint"])
+    noisy["chain_head"] = s.chain
+    out["noisy"] = noisy
+    return out
+
+
 def engine_digests() -> dict:
     return dict(engine=mrgym.ENGINE_VERSION, stack=stack(), images={k: image_case(k) for k in image_keys()},
-                noisy=noisy_session(), prices=prices(), array=array_cases())
+                noisy=noisy_session(), prices=prices(), array=array_cases(), core=core_cases())
 
 
 # ---------------------------------------------------------------------------------------------- volume worlds

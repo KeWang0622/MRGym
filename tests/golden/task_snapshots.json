@@ -1836,10 +1836,14 @@
      "when": "only at submit; 0 on every other step"
     },
     "scored_by": "Noise-free scans of the delivered protocols on the hidden object and the echo amplitudes on the marked regions over a drift of the centre frequency either way: every marked region of an image must keep its signal; the number of acquisitions and the bandwidth are compared with the best band-free protocol of the hidden object",
-    "summary": "What a frequency scout is for. The dark bands of balanced SSFP repeat every 1 / TR in frequency; where the marked regions fall in that pattern depends on the field, on the error of the frequency adjustment, on the material (oil sits 3.4 ppm below water) and on the repetition time, and how wide a band is depends on the material and on the excitation. The target is a 2D image: the slice profile of the selective pulse adds spins at smaller flip angles, whose signal peaks next to the band, so the band is narrower than the hard-pulse formula says and a band model has to carry the slice profile (a 3D acquisition with a hard pulse costs a multiple of the scan time and shows another band). A low bandwidth gives the least noise and the longest repetition time. The answer, for each of the two images, is the lowest bandwidth at which one phase cycle keeps every region clear of the bands with a margin for frequency drift, or the recognition that no single acquisition can, and then the pair of phase cycles that does. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined on this engine, the stored gate result is from mrgym-engine-0.2.0.",
-    "task_kind": "undetermined",
-    "task_kind_levels": {},
-    "task_kind_why": "the stored gate result is from mrgym-engine-0.2.0, the engine is mrgym-engine-0.3.0",
+    "summary": "What a frequency scout is for. The dark bands of balanced SSFP repeat every 1 / TR in frequency; where the marked regions fall in that pattern depends on the field, on the error of the frequency adjustment, on the material (oil sits 3.4 ppm below water) and on the repetition time, and how wide a band is depends on the material and on the excitation. The target is a 2D image: the slice profile of the selective pulse adds spins at smaller flip angles, whose signal peaks next to the band, so the band is narrower than the hard-pulse formula says and a band model has to carry the slice profile (a 3D acquisition with a hard pulse costs a multiple of the scan time and shows another band). A low bandwidth gives the least noise and the longest repetition time. The answer, for each of the two images, is the lowest bandwidth at which one phase cycle keeps every region clear of the bands with a margin for frequency drift, or the recognition that no single acquisition can, and then the pair of phase cycles that does. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: -1 at level 1, -0.7 at level 2, -0.3 at level 3; 300 instances per level; 25 points or more make a decision task).",
+    "task_kind": "measurement",
+    "task_kind_levels": {
+     "1": "measurement",
+     "2": "measurement",
+     "3": "measurement"
+    },
+    "task_kind_why": "reference minus open_loop, points of pass rate: -1 at level 1, -0.7 at level 2, -0.3 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
     "title": "Keep the dark bands of two balanced SSFP images off their marked regions",
     "told": ["the target images and the allowed bandwidths", "the regions of each image", "the three pass rules with every number", "the instrument datasheet (it gives the selective pulse)", "realised protocol, timing and cost of every plan and scan"],
     "world": {
@@ -2496,11 +2500,15 @@
      "when": "only at submit; 0 on every other step"
     },
     "scored_by": "Noise-free scans of the delivered protocol on the hidden object and their twins with one mechanism switched off: displacement of each region against the scan without the off-resonance field, its ghost against the scan without the gradient delay, wrap-around against a scan whose phase field of view holds the object, displaced fat against the scan without chemical shift, the SNR with the analytic noise of the hidden receiver; and no more averages than the fewest with which any allowed protocol meets all of it (exhaustive search on the hidden world)",
-    "summary": "Echo-planar imaging trades everything against everything: a long echo spacing has little noise and little ghost and a large displacement; a short phase field of view shortens the train and wraps; the phase-encode axis decides which regions ghost and where fat lands. The field, the gradient delay, the shape of the object and the noise are hidden, so the protocol has to be measured for. At the development gate (60 instances per level; its result is not stored) a fixed list of scans passed within three instances of the reference at each level, which makes this a measurement task: a signal-free scan for the noise, a two-echo gradient echo for the field and the shape of the object (at level 3 one more for the oil), an echo-planar scan at the highest bandwidth on each phase-encode axis for the gradient delay, and one echo-planar scan of a fixed protocol at each end of the echo-time window, then the reference's solver. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.",
+    "summary": "Echo-planar imaging trades everything against everything: a long echo spacing has little noise and little ghost and a large displacement; a short phase field of view shortens the train and wraps; the phase-encode axis decides which regions ghost and where fat lands. The field, the gradient delay, the shape of the object and the noise are hidden, so the protocol has to be measured for. At the development gate (60 instances per level; its result is not stored) a fixed list of scans passed within three instances of the reference at each level, which makes this a measurement task: a signal-free scan for the noise, a two-echo gradient echo for the field and the shape of the object (at level 3 one more for the oil), an echo-planar scan at the highest bandwidth on each phase-encode axis for the gradient delay, and one echo-planar scan of a fixed protocol at each end of the echo-time window, then the reference's solver. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0.7 at level 1, 1 at level 2, 8.7 at level 3; 300 instances per level; 25 points or more make a decision task).",
     "task_kind": {
-     "evidence": "no stored gate result",
-     "kind": "undetermined",
-     "levels": {}
+     "evidence": "reference minus open_loop, points of pass rate: 0.7 at level 1, 1 at level 2, 8.7 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
+     "kind": "measurement",
+     "levels": {
+      "1": "measurement",
+      "2": "measurement",
+      "3": "measurement"
+     }
     },
     "title": "Set up a single-shot EPI that meets its limits in the least scan time",
     "told": ["the fixed fields of the scan", "the regions", "every limit: echo-time window, pixel ceiling, displacement, ghost, wrap, fat, SNR floor", "the definition of SNR", "the instrument datasheet", "realised protocol, timing and cost of every plan and scan"],
@@ -3191,10 +3199,14 @@
      "when": "only at submit; 0 on every other step"
     },
     "scored_by": "Noise-free target scans on the hidden object: at the delivered angle every region must give at least 99.5 % of the largest signal it can give at any flip angle",
-    "summary": "The Ernst angle, on a scanner. The flip angle of the highest steady-state signal depends on TR / T1, and T1 is hidden. The textbook angle arccos(exp(-TR / T1)) is wrong for the 2D target scan even with the true T1: the slice profile moves the best nominal angle up by about a half, and at level 3 a hidden transmit scale moves it again. Two scans of the target and a signal model find it. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.",
-    "task_kind": "undetermined",
-    "task_kind_levels": {},
-    "task_kind_why": "no stored gate result",
+    "summary": "The Ernst angle, on a scanner. The flip angle of the highest steady-state signal depends on TR / T1, and T1 is hidden. The textbook angle arccos(exp(-TR / T1)) is wrong for the 2D target scan even with the true T1: the slice profile moves the best nominal angle up by about a half, and at level 3 a hidden transmit scale moves it again. Two scans of the target and a signal model find it. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0 at level 1, 0 at level 2, -0.3 at level 3; 300 instances per level; 25 points or more make a decision task).",
+    "task_kind": "measurement",
+    "task_kind_levels": {
+     "1": "measurement",
+     "2": "measurement",
+     "3": "measurement"
+    },
+    "task_kind_why": "reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, -0.3 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
     "title": "Find the flip angle of the highest signal for each marked vial",
     "told": ["the target scan and its repetition time", "the regions", "the T1 range 150 to 3000 ms", "the pass fraction", "whether the transmit calibration is correct", "level 1: two flip angles and the table of the 2D signal ratio", "the instrument datasheet", "realised protocol, timing and cost of every plan and scan"],
     "world": {
@@ -3770,8 +3782,8 @@
     },
     "scored_by": "The hidden mixture of every disc: each delivered fraction within 3 percentage points of it",
     "summary": "Subject A (signal and contrast), a single-skill measurement: the water-fat chemical shift as a quantity. The textbook formula (IP - OP) / (2 IP) reads low on a real spectrum with T2* decay and high where T1 weights the echoes. The task is to remove each error: a low flip angle, the fat vector of the six peaks, the decay between the echoes; and, where fat may be the larger part, the phase.",
-    "task_kind": "undetermined",
-    "task_kind_why": "no stored gate result",
+    "task_kind": "measurement",
+    "task_kind_why": "reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
     "title": "Fat fraction of water-fat mixtures from in-phase and opposed-phase echoes",
     "told": ["region centres and radii", "the six-peak fat spectrum and the field strength", "the range of the fat fractions", "a bound of the off-resonance", "the pass tolerance", "level 1: the method", "the instrument datasheet", "budget and request limits", "realised protocol, timing and cost of every plan and scan"],
     "world": {
@@ -5432,9 +5444,13 @@
     },
     "scored_by": "Re-scan on the hidden object against a twin without wrap-around: no aliased signal on the region, the region inside the image, scan time within 10 % of the fastest such geometry",
     "summary": "An object larger than the field of view folds over. The examination needs four regions free of wrap-around and does not care where else the image folds. The agent looks (a localiser costs scan time), finds where the object ends on the lines through each region, and prescribes the smallest phase field of view whose copies of the object miss the region. A field of view that holds the whole object is valid and too slow.",
-    "task_kind": "undetermined",
-    "task_kind_levels": {},
-    "task_kind_why": "no stored gate result",
+    "task_kind": "measurement",
+    "task_kind_levels": {
+     "1": "measurement",
+     "2": "measurement",
+     "3": "measurement"
+    },
+    "task_kind_why": "reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
     "title": "A small field of view whose wrap-around misses the region",
     "told": ["the target sequence with its readout field of view and matrix", "the four regions", "the pass rule and its time factor", "the instrument datasheet", "realised protocol, timing, limits and cost of every plan and scan", "any stored image, and the numbers along any line through it (the edges of the object have to be read from them)"],
     "world": {
@@ -6294,10 +6310,14 @@
      "when": "only at submit; 0 on every other step"
     },
     "scored_by": "The hidden field and centre-frequency error: each delivered offset within 3 Hz of their mean over the region; every region of oil named. The verifier scans nothing",
-    "summary": "The first adjustment of every examination, as a number. A gradient echo carries the phase 2 pi x offset x TE on top of the unknown phase of the receive coil, so the offset is in the phase difference of two echoes, modulo 1 / (the echo-time difference). A short difference covers a wide range and is less precise, a long one is more precise and wraps; fat lies 3.4 ppm below water and a frequency read on it is not the water frequency. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.",
-    "task_kind": "undetermined",
-    "task_kind_levels": {},
-    "task_kind_why": "no stored gate result",
+    "summary": "The first adjustment of every examination, as a number. A gradient echo carries the phase 2 pi x offset x TE on top of the unknown phase of the receive coil, so the offset is in the phase difference of two echoes, modulo 1 / (the echo-time difference). A short difference covers a wide range and is less precise, a long one is more precise and wraps; fat lies 3.4 ppm below water and a frequency read on it is not the water frequency. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0 at level 1, 0 at level 2, 0 at level 3; 300 instances per level; 25 points or more make a decision task).",
+    "task_kind": "measurement",
+    "task_kind_levels": {
+     "1": "measurement",
+     "2": "measurement",
+     "3": "measurement"
+    },
+    "task_kind_why": "reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
     "title": "Off-resonance of the water in marked regions (the frequency adjustment)",
     "told": ["region centres and radii", "the sign convention", "a bound of the offset", "that some regions hold oil (level 3)", "the tolerance", "the method (level 1)", "the instrument datasheet", "realised protocol, timing and cost of every plan and scan"],
     "world": {
@@ -6748,8 +6768,8 @@
     },
     "scored_by": "Noise-free scans of the delivered protocols against the same scans of the object at rest: no ghost on the tube's regions, and a scan time within 10 % of the fastest scan without one",
     "summary": "The line-to-line time axis. Periodic change over the phase-encode lines shows as copies of the changing material along the phase-encode axis, at a distance set by its rate, the repetition time and the averages. The rate is hidden: it is read from the ghost distance of a scan, and it decides how long the repetition time must be before the ghosts have left the regions.",
-    "task_kind": "undetermined",
-    "task_kind_why": "Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.",
+    "task_kind": "measurement",
+    "task_kind_why": "By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0 at level 1, 0 at level 2, 0 at level 3; 300 instances per level; 25 points or more make a decision task).",
     "title": "The fastest scan that keeps each tube's ghost off its regions",
     "told": ["the target scan and its repetition-time window", "tubes and regions", "the pass rule and its two thresholds", "the instrument datasheet", "realised protocol, timing and cost of every plan and scan", "any stored image, and the numbers along any line through it"],
     "world": {
@@ -10133,27 +10153,27 @@
       "1": {
        "gap_points": 0.0,
        "kind": "measurement",
-       "n": 60,
+       "n": 300,
        "open_loop": 1.0,
        "reference": 1.0
       },
       "2": {
        "gap_points": 0.0,
        "kind": "measurement",
-       "n": 60,
+       "n": 300,
        "open_loop": 1.0,
        "reference": 1.0
       },
       "3": {
-       "gap_points": 33.3,
-       "kind": "decision",
-       "n": 60,
-       "open_loop": 0.6667,
-       "reference": 1.0
+       "gap_points": 22.7,
+       "kind": "measurement",
+       "n": 300,
+       "open_loop": 0.77,
+       "reference": 0.9967
       }
      },
      "rule": "open_loop within 25 points of the reference = measurement task, else decision task",
-     "source": "mrgym gate Scanner/PhantomQA-v0 --n 60 --write on mrgym-engine-0.3.0, 2026-11-27"
+     "source": "mrgym gate Scanner/PhantomQA-v0 --n 300 --write on mrgym-engine-0.3.0, 2026-11-27"
     },
     "title": "Phantom QA: measure, judge and diagnose",
     "told": ["the phantom and its diameter", "the ACR T1 protocol of the site", "the definitions of the four quantities", "the limits and the tolerances", "the closed fault list with the test each fault moves", "the instrument datasheet", "realised protocol, timing and cost of every plan and scan"],
@@ -10927,9 +10947,9 @@
      "when": "only at submit; 0 on every other step"
     },
     "scored_by": "Noise-free scans of the delivered protocols on the hidden object with the analytic noise of the hidden receiver: a T1 contrast ratio, a T2 contrast ratio and an SNR must hold for each image, and the scan times of the two images together must stay within a limit",
-    "summary": "The everyday protocol question: the standard protocol misses the specification on this patient, what has to change? One scan of the standard protocol shows which requirement fails; the budget then pays for one more scan, and which one is worth making (another inversion time or another echo time) depends on the first. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed solver passes this many points below the reference: -1.7 at level 1, 0 at level 2, 20.7 at level 3; 300 instances per level; 25 points or more make a decision task).",
+    "summary": "The everyday protocol question: the standard protocol misses the specification on this patient, what has to change? One scan of the standard protocol shows which requirement fails; the budget then pays for one more scan, and which one is worth making (another inversion time or another echo time) depends on the first. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed solver passes this many points below the reference: -0.7 at level 1, 0 at level 2, 23.7 at level 3; 300 instances per level; 25 points or more make a decision task).",
     "task_kind": {
-     "evidence": "reference minus open_loop, points of pass rate: -1.7 at level 1, 0 at level 2, 20.7 at level 3 (n = 300 per level, engine mrgym-engine-0.2.0)",
+     "evidence": "reference minus open_loop, points of pass rate: -0.7 at level 1, 0 at level 2, 23.7 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
      "kind": "measurement",
      "levels": {
       "1": "measurement",
@@ -11741,9 +11761,13 @@
     },
     "scored_by": "Re-scan on the hidden object: whole object inside, the pair separated (dip of at least one half between the two peaks), an SNR floor, a scan-time cap, scan time within 20 % of the fastest such geometry",
     "summary": "The pixel follows from the detail. Three pairs of small bright features sit in signal-free inserts of a gel phantom; the spacing of each pair is hidden. The agent looks (a localiser costs scan time), measures the spacings and the size of the object, and prescribes for each pair the spin-echo scan with the coarsest pixel that still separates it. A pixel as large as the spacing does not: the point-spread function is a sinc.",
-    "task_kind": "undetermined",
-    "task_kind_levels": {},
-    "task_kind_why": "no stored gate result",
+    "task_kind": "measurement",
+    "task_kind_levels": {
+     "1": "measurement",
+     "2": "measurement",
+     "3": "measurement"
+    },
+    "task_kind_why": "reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
     "title": "The fastest scan that separates a detail",
     "told": ["the target sequence", "the marked regions (a circle around each pair, a reference circle in the gel)", "the pass rule: dip, SNR floor, time cap, time factor", "the instrument datasheet", "realised protocol, timing, limits and cost of every plan and scan", "any stored image, and the numbers along any line through it"],
     "world": {
@@ -12908,9 +12932,9 @@
      "when": "only at submit; 0 on every other step"
     },
     "scored_by": "Noise-free scans of the delivered protocols on the hidden object with the analytic noise of the hidden receiver: every marked region must reach its required SNR, in a scan time within a stated factor of the shortest that does (exhaustive search on the hidden world)",
-    "summary": "The everyday protocol question: this much SNR at this pixel size, as fast as possible. Signal and noise have to be measured on cheap scans and scaled with the SNR laws (voxel volume, lines, averages, bandwidth); the repetition time trades recovery of the hidden T1 against time, the bandwidth trades noise against decay of the hidden T2 over a longer echo time, and averages come in integers. This is a measurement task: a fixed list of scans with a fixed solver passes within 25 points of the reference at every level (reference minus open loop, points: 0 at level 1, -0.7 at level 2, 0.3 at level 3; 300 instances per level).",
+    "summary": "The everyday protocol question: this much SNR at this pixel size, as fast as possible. Signal and noise have to be measured on cheap scans and scaled with the SNR laws (voxel volume, lines, averages, bandwidth); the repetition time trades recovery of the hidden T1 against time, the bandwidth trades noise against decay of the hidden T2 over a longer echo time, and averages come in integers. This is a measurement task: a fixed list of scans with a fixed solver passes within 25 points of the reference at every level (reference minus open loop, points: 0 at level 1, 1 at level 2, 0 at level 3; 300 instances per level).",
     "task_kind": {
-     "evidence": "reference minus open_loop, points of pass rate: 0 at level 1, -0.7 at level 2, 0.3 at level 3 (n = 300 per level, engine mrgym-engine-0.2.0)",
+     "evidence": "reference minus open_loop, points of pass rate: 0 at level 1, 1 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
      "kind": "measurement"
     },
     "title": "Meet a signal-to-noise requirement in the shortest scan time",
@@ -13615,8 +13639,8 @@
     },
     "scored_by": "Noise-free fat and water images of the delivered scans on the hidden object: fat off the region, a signal-to-noise floor, and a signal-to-noise ratio within 88 % of the best setting that keeps the fat off",
     "summary": "The readout as a time axis. Fat is displaced along the frequency-encode axis by its frequency difference divided by the bandwidth per pixel, to the side the readout direction sets. A higher bandwidth shrinks the displacement and costs signal-to-noise ratio. How much room the fat has, and on which side, is hidden: it is measured on images in which the fat is already displaced.",
-    "task_kind": "undetermined",
-    "task_kind_why": "Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.",
+    "task_kind": "measurement",
+    "task_kind_why": "By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0 at level 1, 0 at level 2, 0 at level 3; 300 instances per level; 25 points or more make a decision task).",
     "title": "Keep displaced fat off each marked region",
     "told": ["the target scan", "the regions and their signal-to-noise floors", "the pass rule and its two thresholds", "the instrument datasheet (field strength, fat shift)", "realised protocol, timing and cost of every plan and scan", "any stored image, and the numbers along any line through it"],
     "world": {
@@ -15261,10 +15285,14 @@
      "when": "only at submit; 0 on every other step"
     },
     "scored_by": "The hidden T1 of every vial: each delivered value within a factor 1.1 of it",
-    "summary": "T1 by inversion recovery, the reference method of relaxometry, as one skill. At a fixed repetition time the signal of a vial is a - b exp(-TI / T1) with the true T1, whatever the repetition time, the inversion efficiency and the slice profile are, so three signed inversion times give T1. What has to be decided is the timing: the budget sets the repetition time, and the inversion times have to span the recovery of every vial. The transmitter is calibrated; Scanner/T1Transmit is the task with a transmit error. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.",
-    "task_kind": "undetermined",
-    "task_kind_levels": {},
-    "task_kind_why": "no stored gate result",
+    "summary": "T1 by inversion recovery, the reference method of relaxometry, as one skill. At a fixed repetition time the signal of a vial is a - b exp(-TI / T1) with the true T1, whatever the repetition time, the inversion efficiency and the slice profile are, so three signed inversion times give T1. What has to be decided is the timing: the budget sets the repetition time, and the inversion times have to span the recovery of every vial. The transmitter is calibrated; Scanner/T1Transmit is the task with a transmit error. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0 at level 1, 0 at level 2, 0 at level 3; 300 instances per level; 25 points or more make a decision task).",
+    "task_kind": "measurement",
+    "task_kind_levels": {
+     "1": "measurement",
+     "2": "measurement",
+     "3": "measurement"
+    },
+    "task_kind_why": "reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
     "title": "Measure T1 of each marked vial",
     "told": ["the regions", "the T1 range of the level", "level 3: the least spread of the marked T1 values", "that the transmit calibration is correct", "the pass tolerance", "level 1: three scans and the equation for T1", "the instrument datasheet", "realised protocol, timing and cost of every plan and scan"],
     "world": {
@@ -15749,8 +15777,8 @@
     },
     "scored_by": "The hidden T2 of every marked vial: each delivered value within a factor 1.1 of it",
     "summary": "Subject A (signal and contrast), a single-skill measurement: T2 decay of the spin echo. Every echo time is a scan of its own. The slope of ln(signal) against echo time is -1 / T2 only if the recovery before the excitation is the same in every scan and the echoes at the noise floor are left out.",
-    "task_kind": "undetermined",
-    "task_kind_why": "no stored gate result",
+    "task_kind": "measurement",
+    "task_kind_why": "reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
     "title": "T2 of marked vials from spin echoes",
     "told": ["region centres and radii", "the range of T2 (level 1: 40 to 200 ms; level 2: 40 to 200 ms; level 3: 15 to 400 ms) and of T1 (300 to 2500 ms)", "the pass tolerance", "level 1: the method", "the instrument datasheet", "budget and request limits", "realised protocol, timing and cost of every plan and scan"],
     "world": {
@@ -16188,10 +16216,14 @@
      "when": "only at submit; 0 on every other step"
     },
     "scored_by": "The hidden transmit gain and transmit pattern: each delivered factor within 4 % of their product, averaged over the region. The verifier scans nothing",
-    "summary": "The second adjustment of every examination, as a number per region. The textbook dual-TR formula returns the flip angle only where every voxel has one flip angle and the spoiling is strong: on this scanner the 2D (slice-selective) version reads low and the 3D version with the default spoiling reads high in materials with a long T2 (controls `afi_2d` and `default_spoiling`). Which measurement is valid is stated in the datasheet and is the content of the task. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.",
-    "task_kind": "undetermined",
-    "task_kind_levels": {},
-    "task_kind_why": "no stored gate result",
+    "summary": "The second adjustment of every examination, as a number per region. The textbook dual-TR formula returns the flip angle only where every voxel has one flip angle and the spoiling is strong: on this scanner the 2D (slice-selective) version reads low and the 3D version with the default spoiling reads high in materials with a long T2 (controls `afi_2d` and `default_spoiling`). Which measurement is valid is stated in the datasheet and is the content of the task. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0.3 at level 1, 0.3 at level 2, 1.3 at level 3; 300 instances per level; 25 points or more make a decision task).",
+    "task_kind": "measurement",
+    "task_kind_levels": {
+     "1": "measurement",
+     "2": "measurement",
+     "3": "measurement"
+    },
+    "task_kind_why": "reference minus open_loop, points of pass rate: 0.3 at level 1, 0.3 at level 2, 1.3 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
     "title": "Flip-angle factor in marked regions (the transmit adjustment)",
     "told": ["region centres and radii", "a bound of the factor", "the tolerance", "the method (level 1)", "the instrument datasheet (slice profile, spoiling)", "realised protocol, timing and cost of every plan and scan"],
     "world": {

@@ -3,11 +3,11 @@
 
 **D · Image quality and artefacts** · artefacts · kind 2, set · isolates D16: Ghosts of periodic motion along the phase-encode axis. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 4 % (95 % bounds)
 
 The line-to-line time axis. Periodic change over the phase-encode lines shows as copies of the changing material along the phase-encode axis, at a distance set by its rate, the repetition time and the averages. The rate is hidden: it is read from the ghost distance of a scan, and it decides how long the repetition time must be before the ghosts have left the regions.
 
-Kind of task: **undetermined** (Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.).
+Kind of task: **measurement** (By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0 at level 1, 0 at level 2, 0 at level 3; 300 instances per level; 25 points or more make a decision task).).
 
 ```python
 import mrgym
@@ -70,19 +70,23 @@ Limits: 48 scanner requests and 64 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/GhostAside-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/GhostAside-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | the target scan at the shortest TR with either axis; ghost distance -> rate; per axis the first TR that puts the ghost clear of the region; the faster axis, plus 5 % |
-| `prior` | fail | no scan; the shortest repetition time, pe_dir y |
-| `shortest_tr` | fail | one token scan, then the shortest repetition time, pe_dir y |
-| `fixed_recipe` | fail | one token scan, then a constant repetition time and axis, or an assumed rate or ghost position in the law with the told distances, tuned on other worlds |
-| `sweep` | fail | the target scan at two repetition times with pe_dir y; per tube the one at which its two regions look more alike |
-| `wrong_units` | fail | the reference's repetition time in seconds |
-| `fixed_axis` | ablation | the reference with pe_dir y only |
-| `assume_ghost` | ablation | the reference without asking whether a ghost lies on the tube's regions at all |
-| `open_loop` | reported | the reference: a fixed scan list and a fixed estimator |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | the target scan at the shortest TR with either axis; ghost distance -> rate; per axis the first TR that puts the ghost clear of the region; the faster axis, plus 5 % |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; the shortest repetition time, pe_dir y |
+| `shortest_tr` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then the shortest repetition time, pe_dir y |
+| `fixed_recipe` | fail | 6/300 (2.0 %; upper bound 3.9 %) | 3/300 (1.0 %; upper bound 2.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then a constant repetition time and axis, or an assumed rate or ghost position in the law with the told distances, tuned on other worlds |
+| `sweep` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the target scan at two repetition times with pe_dir y; per tube the one at which its two regions look more alike |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's repetition time in seconds |
+| `fixed_axis` | ablation | 42/300 (14.0 %; 86.0 points below the reference, lower bound 82.7) | 31/300 (10.3 %; 89.7 points below the reference, lower bound 86.8) | 69/300 (23.0 %; 77.0 points below the reference, lower bound 73.0) | the reference with pe_dir y only |
+| `assume_ghost` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 146/300 (48.7 %; 51.3 points below the reference, lower bound 46.6) | the reference without asking whether a ghost lies on the tube's regions at all |
+| `open_loop` | reported | 300/300 (100.0 %) | 300/300 (100.0 %) | 300/300 (100.0 %) | the reference: a fixed scan list and a fixed estimator |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#0` 2.0 % (upper bound 3.9 %); level 2 `fixed_recipe#0` 1.0 % (upper bound 2.6 %); level 3 `fixed_recipe#0` 0.0 % (upper bound 1.0 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.00319 / 0.00522; level 2 0.00327 / 0.00517; level 3 0.00291 / 0.00472; scan time used (median): level 1 83.4 s, level 2 83.4 s, level 3 83.4 s.
 
 ## Validity
 

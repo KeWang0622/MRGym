@@ -3,7 +3,7 @@
 
 **C · The system** · RF chain · kind 1, measure · isolates C12: Receiver noise: its level and its dependence on bandwidth. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 3 % (95 % bounds)
 
 One test of acceptance and quality control, on its own. The signal is read off the image; the noise is not: the pixel scatter inside a region holds the coil shading, and the background of a magnitude image is Rayleigh distributed and carries ghosts. The standards answer with two acquisitions and their difference image (noise = SD of the difference / sqrt(2)) or with a background region and the factor 0.655. At level 3 the phantom fills the field of view and a ghost covers the background, so of these two only the first is left.
 
@@ -71,22 +71,26 @@ Limits: 40 scanner requests and 64 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/NoiseSNR-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/NoiseSNR-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | the protocol twice; noise = SD of the pixel-by-pixel difference on eight lines / sqrt(2); signal = region mean |
-| `prior` | fail | no scan; a typical SNR for every region |
-| `fixed_recipe` | fail | one token scan, then the SNR values of another world (or its ratios to the console's relative-SNR figure) |
-| `wrong_units` | fail | the reference's answer in decibels |
-| `brute_force` | fail | a bandwidth sweep; per region the largest mean / SD of its pixels |
-| `signal_sd` | fail | one scan; mean / SD of the pixels of each region |
-| `no_rayleigh` | fail | one scan; noise = SD of the four background corners without the factor 0.655 |
-| `header_snr` | fail | the console's relative-SNR figure as the answer |
-| `no_sqrt2` | ablation | the reference with noise = SD of the difference image, not divided by sqrt(2) |
-| `background` | ablation | one scan; noise = SD of the four background corners / 0.655 |
-| `open_loop` | reported | a fixed scan list (the protocol twice) and the reference's estimator |
-| `neighbours` | reported | one scan; noise = SD of the differences of neighbouring pixels on eight lines / sqrt(2) |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | the protocol twice; noise = SD of the pixel-by-pixel difference on eight lines / sqrt(2); signal = region mean |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; a typical SNR for every region |
+| `fixed_recipe` | fail | 3/300 (1.0 %; upper bound 2.6 %) | 2/300 (0.7 %; upper bound 2.1 %) | 2/300 (0.7 %; upper bound 2.1 %) | one token scan, then the SNR values of another world (or its ratios to the console's relative-SNR figure) |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's answer in decibels |
+| `brute_force` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | a bandwidth sweep; per region the largest mean / SD of its pixels |
+| `signal_sd` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one scan; mean / SD of the pixels of each region |
+| `no_rayleigh` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one scan; noise = SD of the four background corners without the factor 0.655 |
+| `header_snr` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the console's relative-SNR figure as the answer |
+| `no_sqrt2` | ablation | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | the reference with noise = SD of the difference image, not divided by sqrt(2) |
+| `background` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 1/300 (0.3 %; 99.7 points below the reference, lower bound 99.1) | one scan; noise = SD of the four background corners / 0.655 |
+| `open_loop` | reported | 300/300 (100.0 %) | 300/300 (100.0 %) | 300/300 (100.0 %) | a fixed scan list (the protocol twice) and the reference's estimator |
+| `neighbours` | reported | 236/300 (78.7 %) | 239/300 (79.7 %) | 139/300 (46.3 %) | one scan; noise = SD of the differences of neighbouring pixels on eight lines / sqrt(2) |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#0` 1.0 % (upper bound 2.6 %); level 2 `fixed_recipe#1` 0.7 % (upper bound 2.1 %); level 3 `fixed_recipe#1` 0.7 % (upper bound 2.1 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.01566 / 0.04554; level 2 0.01565 / 0.04924; level 3 0.01508 / 0.04653; scan time used (median): level 1 275.4 s, level 2 276 s, level 3 276 s.
 
 ## Validity
 

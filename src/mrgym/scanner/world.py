@@ -359,6 +359,8 @@ def _build(seed, sp, layout_only=False, rot_deg=0.0, base=None):
                         b1rms_limit_ut=B1RMS_LIMIT_UT[b0_t], b0_t=b0_t)
     if sp.get("console_system"):                                        # console constants of this scanner (e.g. overhead_s per scan)
         w["console"]["system"] = dict(sp["console_system"])
+    if sp.get("console_sequences"):                                     # sequences this console offers beyond the six: a list of names, or "all"
+        w["console"]["sequences"] = sp["console_sequences"] if isinstance(sp["console_sequences"], str) else list(sp["console_sequences"])
     w.setdefault("regions", [])
     if sp.get("motion"):
         w["motion"] = make_motion(sp["motion"], w, s)

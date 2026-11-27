@@ -21,7 +21,7 @@ def _cfg(level, seed):
 
 def test_the_family_is_registered_with_three_levels():
     spec = mrgym.spec(ENV_ID)
-    assert (spec.kind, spec.levels, spec.family, spec.max_steps) == ("candidate", (1, 2, 3), "mrgym.envs.phantom_qa", 64)   # no gate on engine 0.3.0 yet
+    assert spec.kind in ("candidate", "admitted") and (spec.levels, spec.family, spec.max_steps) == ((1, 2, 3), "mrgym.envs.phantom_qa", 64)
     assert task.ENV_ID == ENV_ID and set(task.LEVELS) == {1, 2, 3}
     assert {f: v["test"] for f, v in task.FAULTS.items()} == {f: t for t, fs in task.GROUPS.items() for f in fs}
     assert all(len(fs) >= 2 for fs in task.GROUPS.values())             # no test names its fault

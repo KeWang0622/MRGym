@@ -3,11 +3,11 @@
 
 **A · Signal and contrast** · sequences and steady states · kind 2, set · isolates A10: Spoiled gradient echo: the steady state and the Ernst angle. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 95 %, no policy that ignores the object passes more than 3 % (95 % bounds)
 
-The Ernst angle, on a scanner. The flip angle of the highest steady-state signal depends on TR / T1, and T1 is hidden. The textbook angle arccos(exp(-TR / T1)) is wrong for the 2D target scan even with the true T1: the slice profile moves the best nominal angle up by about a half, and at level 3 a hidden transmit scale moves it again. Two scans of the target and a signal model find it. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.
+The Ernst angle, on a scanner. The flip angle of the highest steady-state signal depends on TR / T1, and T1 is hidden. The textbook angle arccos(exp(-TR / T1)) is wrong for the 2D target scan even with the true T1: the slice profile moves the best nominal angle up by about a half, and at level 3 a hidden transmit scale moves it again. Two scans of the target and a signal model find it. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0 at level 1, 0 at level 2, -0.3 at level 3; 300 instances per level; 25 points or more make a decision task).
 
-Kind of task: **undetermined** (no stored gate result).
+Kind of task: **measurement** (reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, -0.3 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)).
 
 ```python
 import mrgym
@@ -72,19 +72,23 @@ Limits: 24 scanner requests and 32 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/ErnstFlip-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/ErnstFlip-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | two scans of the target at a low and a high flip angle; level 1: the stated table; else a fit of the 2D signal curve |
-| `prior` | fail | no scan; the best angle of a material in the middle of the told T1 range |
-| `fixed_recipe` | fail | one token scan, then one constant angle or the best angle of one constant T1, tuned on other worlds |
-| `brute_force` | fail | two scans at the pair of angles that suits most vials; per region the scanned angle with the larger signal |
-| `epi_sweep` | fail | six single-shot scans at 50 ms repetition time; per region the scanned angle with the largest signal |
-| `wrong_units` | fail | the reference's angles in radians |
-| `textbook` | ablation | the reference's T1, then the textbook angle arccos(exp(-TR / T1)) (ignores the slice profile) |
-| `ignores_profile` | ablation | the reference's scans fitted with the one-angle Ernst formula; the maximum of that curve |
-| `open_loop` | reported | a fixed scan list (two scans, one average) and a fixed estimator (the 2D fit) |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | 292/300 (97.3 %; lower bound 95.2 %) | two scans of the target at a low and a high flip angle; level 1: the stated table; else a fit of the 2D signal curve |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; the best angle of a material in the middle of the told T1 range |
+| `fixed_recipe` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then one constant angle or the best angle of one constant T1, tuned on other worlds |
+| `brute_force` | fail | 5/300 (1.7 %; upper bound 3.5 %) | 5/300 (1.7 %; upper bound 3.5 %) | 1/300 (0.3 %; upper bound 1.6 %) | two scans at the pair of angles that suits most vials; per region the scanned angle with the larger signal |
+| `epi_sweep` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | six single-shot scans at 50 ms repetition time; per region the scanned angle with the largest signal |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's angles in radians |
+| `textbook` | ablation | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | 0/300 (0.0 %; 97.3 points below the reference, lower bound 95.8) | the reference's T1, then the textbook angle arccos(exp(-TR / T1)) (ignores the slice profile) |
+| `ignores_profile` | ablation | 24/300 (8.0 %; 92.0 points below the reference, lower bound 89.4) | 40/300 (13.3 %; 86.7 points below the reference, lower bound 83.4) | 20/300 (6.7 %; 90.7 points below the reference, lower bound 87.9) | the reference's scans fitted with the one-angle Ernst formula; the maximum of that curve |
+| `open_loop` | reported | 300/300 (100.0 %) | 300/300 (100.0 %) | 293/300 (97.7 %) | a fixed scan list (two scans, one average) and a fixed estimator (the 2D fit) |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `brute_force` 1.7 % (upper bound 3.5 %); level 2 `brute_force` 1.7 % (upper bound 3.5 %); level 3 `brute_force` 0.3 % (upper bound 1.6 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.00026 / 0.00124; level 2 0.00025 / 0.00105; level 3 0.0007 / 0.0035; scan time used (median): level 1 15.2 s, level 2 19.4 s, level 3 19.4 s.
 
 ## Validity
 

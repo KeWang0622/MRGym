@@ -242,4 +242,4 @@ def test_outcome_and_the_declared_names():
     assert controls.REFERENCE == "reference" and set(controls.policies()) == {controls.REFERENCE, *controls.MUST_FAIL, *controls.ABLATIONS, *controls.REPORTED}
     assert set(controls.DESCRIPTIONS) == set(controls.policies()) and "open_loop" in controls.REPORTED
     assert all("\n" not in d and len(d) < 130 for d in controls.DESCRIPTIONS.values())
-    assert task.card()["id"] == ENV and mrgym.spec(ENV).kind == "candidate" and task.COMPETENCIES == ("parameter.flip_angle", "qc.transmit_gain")
+    assert task.card()["id"] == ENV and mrgym.spec(ENV).kind in ("candidate", "admitted") and task.COMPETENCIES == ("parameter.flip_angle", "qc.transmit_gain")

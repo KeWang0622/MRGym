@@ -3,11 +3,11 @@
 
 **C · The system** · RF chain · kind 1, measure · isolates C6: Transmit field: the flip angle actually reached, its pattern, flip-angle mapping. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 3 % (95 % bounds)
 
-The second adjustment of every examination, as a number per region. The textbook dual-TR formula returns the flip angle only where every voxel has one flip angle and the spoiling is strong: on this scanner the 2D (slice-selective) version reads low and the 3D version with the default spoiling reads high in materials with a long T2 (controls `afi_2d` and `default_spoiling`). Which measurement is valid is stated in the datasheet and is the content of the task. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.
+The second adjustment of every examination, as a number per region. The textbook dual-TR formula returns the flip angle only where every voxel has one flip angle and the spoiling is strong: on this scanner the 2D (slice-selective) version reads low and the 3D version with the default spoiling reads high in materials with a long T2 (controls `afi_2d` and `default_spoiling`). Which measurement is valid is stated in the datasheet and is the content of the task. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0.3 at level 1, 0.3 at level 2, 1.3 at level 3; 300 instances per level; 25 points or more make a decision task).
 
-Kind of task: **undetermined** (no stored gate result).
+Kind of task: **measurement** (reference minus open_loop, points of pass rate: 0.3 at level 1, 0.3 at level 2, 1.3 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)).
 
 ```python
 import mrgym
@@ -70,19 +70,23 @@ Limits: 32 scanner requests and 40 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/TransmitAdjust-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/TransmitAdjust-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | non-selective dual-TR scan with strong spoiling, cut to the budget by partial Fourier; the dual-TR formula |
-| `prior` | fail | no scan; 1.0 in every region |
-| `fixed_recipe` | fail | one token scan, then a constant times a bowl around the isocentre, tuned on other worlds |
-| `wrong_units` | fail | the reference's factors in percent |
-| `afi_2d` | fail | the same dual-TR scan slice-selective (2D) with the same formula |
-| `flip_sweep` | fail | 2D gradient echoes at five nominal flip angles; the largest signal is taken for 90 degrees actual |
-| `untrimmed` | ablation | the level-1 protocol as stated, whatever the budget |
-| `open_loop` | reported | a fixed scan list (the reference's protocol at its smallest partial Fourier) and the same formula |
-| `default_spoiling` | reported | the reference with the console's default spoiler moment and RF phase increment |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | non-selective dual-TR scan with strong spoiling, cut to the budget by partial Fourier; the dual-TR formula |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; 1.0 in every region |
+| `fixed_recipe` | fail | 4/300 (1.3 %; upper bound 3.0 %) | 3/300 (1.0 %; upper bound 2.6 %) | 2/300 (0.7 %; upper bound 2.1 %) | one token scan, then a constant times a bowl around the isocentre, tuned on other worlds |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's factors in percent |
+| `afi_2d` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the same dual-TR scan slice-selective (2D) with the same formula |
+| `flip_sweep` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 2D gradient echoes at five nominal flip angles; the largest signal is taken for 90 degrees actual |
+| `untrimmed` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | the level-1 protocol as stated, whatever the budget |
+| `open_loop` | reported | 299/300 (99.7 %) | 299/300 (99.7 %) | 296/300 (98.7 %) | a fixed scan list (the reference's protocol at its smallest partial Fourier) and the same formula |
+| `default_spoiling` | reported | 201/300 (67.0 %) | 205/300 (68.3 %) | 173/300 (57.7 %) | the reference with the console's default spoiler moment and RF phase increment |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#1` 1.3 % (upper bound 3.0 %); level 2 `fixed_recipe#0` 1.0 % (upper bound 2.6 %); level 3 `fixed_recipe#0` 0.7 % (upper bound 2.1 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.01239 / 0.02233; level 2 0.01252 / 0.02177; level 3 0.0151 / 0.02771; scan time used (median): level 1 83.8 s, level 2 83.8 s, level 3 62.2 s.
 
 ## Validity
 

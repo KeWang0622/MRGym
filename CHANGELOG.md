@@ -14,6 +14,52 @@ Three versions travel with every number:
 
 ## Unreleased
 
+### The signal core behind the console: a sequence registry, and four sequences served from block lists
+
+No engine bump, no environment id touched, no fingerprint moved. The rule (docs/VERSIONING.md): the engine id changes
+when the same seed and protocol can give other data. Every protocol a console accepted before gives the bytes it
+gave (`tests/test_compat_2d_unchanged.py`; `python tools/audit/golden.py --check`: 0 changed in images, noisy scans,
+prices, array, task snapshots and the 2D baseline; `python -m mrgym.compat.fingerprint --check`: 25 ids current).
+What is new is reachable only with a console card that lists it (`exam["sequences"]`, world spec
+`console_sequences`), which no world of before has: new protocols on new consoles, added to the golden file as the
+section `core` (104 entries).
+
+- **The seam** (commit "The seam"). `console.REGISTRY`: one entry per sequence with its parameters, timing rule
+  (which returns the RF pulses of a cycle and the cycles per average), sampling plan, where its amplitude comes from
+  and its block list. `console.plan` is three stages; `Engine.clean_kspace` forms a scan by the entry. The six keep
+  their closed forms and their code path. `mrgym validate` has a fifth group, `core`: rows J1 to J6 solve the
+  registry's block list of each of the six with `mrgym.core` and compare with what the engine serves (shadow, not
+  serving); the rows Q of `python -m mrgym.core.validate` take their block lists from the registry.
+- **Image formation with an amplitude that changes from line to line** (`scanner/served.py::form_lines`): exact as a
+  definition (the weight of line p is the amplitude of the sample that fills it), fast by one low-rank factorisation
+  of (class, transmit node) x (sample of the cycle, readout sample), transformed along the phase-encode axis first.
+  The truncation is bounded per k-space sample by 0.05 standard deviations of the receiver noise at 64 averages.
+- **Four sequences on a console that lists them**: `fse` (echo-train length, echo spacing, effective echo time,
+  centric or linear order, one refocusing angle), `mese` (one image per echo), `megre` (2 to 16 gradient echoes,
+  monopolar or bipolar), `dwse` (b-value from the gradient limits; signal x exp(-b D)). Parameters, refusals with
+  nearest valid values, scan time, RF power and header lines in `console.py`; the manual in
+  `scanner/datasheet_core.md` ([docs/scanner-core.md](docs/scanner-core.md)); 34 validation rows (J7 to J40) against
+  closed forms, the isochromat ensemble of the core, the phase graph of the design layer, a direct Fourier sum, the
+  integral of the gradient waveform and the engine's own `spgr` and `se`.
+- **An echo train reduces exactly to its refocusing flip angle** (docs/physics/core.md, section 11): the echoes and
+  the periodic Mz of every slice column follow in closed form from three single shots on Chebyshev points of the
+  cosine of that angle. This replaced the solve of every column, which is slower and, on the engine's slice columns
+  and transmit nodes, was off by up to 6e-3 for long trains.
+- **Tissue data, additive.** `tissue.ADC_SOURCES`: where each diffusion coefficient stands against a fetched abstract
+  (9 of 25) or is declared (16); `tissue.water_adc_um2_ms` for phantom liquids. No number of the table changed: the
+  spoiling model of `spgr` reads the same column. Found: the liver's 1.10 um^2/ms lies below its source (1.34 to 1.77).
+- **Measured data.** Rung M3b of `tools/measured/run_all.py` runs the console's `mese` on the nine tubes of
+  Ben-Eliezer 2015: with the published ratio of the two slices the measured T2 error (+50.5, +55.3, +82.6 %) lies
+  between the two pulse shapes (+45.2 / +53.6, +51.1 / +61.6, +77.6 / +90.4 %); as served (refocusing slice 1.5 times
+  the excitation slice) it is 6.0 to 18.4 points lower, now known difference 8.
+- **Declared, with sizes** (docs/physics/limits.md, blocks 3a, 8, 8a): an ideal crusher ends every repetition of
+  `fse`, `mese` and `dwse` (it leaves out 7e-3 of an echo at T1 900 ms, 0.16 for a fluid at TR 1500 ms); one
+  refocusing angle per train; at most 32 echoes (`megre`: 16) and matrix 256 for the trains, for computing time (1.3 to
+  6 s per scan on a busy machine, against 0.4 to 0.65 s for `se`); no fat saturation, no motion; isotropic free diffusion.
+- **Not in this entry.** The tool layer of the environments (`envs/scanner_env.py`) does not offer the four sequences:
+  no task can reach them yet. `satrec`, a generalised `ir`, a prepared gradient-echo train, magnetisation transfer,
+  DESS, a real spoiler and STEAM are not served (core.md, section 11, says what each needs).
+
 ### Engine 0.3.0 joined with what was built beside it
 
 Engine 0.3.0 (the entry below) was made on a tree that did not yet hold eleven task families, the signal core, the

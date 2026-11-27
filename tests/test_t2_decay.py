@@ -181,7 +181,7 @@ def _cfg(level, seed):
 
 def test_registration_and_the_constants_of_the_map():
     spec = mrgym.spec(ENV_ID)
-    assert (spec.kind, spec.family, tuple(spec.levels), spec.default_level) == ("candidate", "mrgym.envs.t2_decay", (1, 2, 3), 2)
+    assert spec.kind in ("candidate", "admitted") and (spec.family, tuple(spec.levels), spec.default_level) == ("mrgym.envs.t2_decay", (1, 2, 3), 2)
     assert (task.SUBJECT, task.KIND, task.ISOLATES) == ("A", "measure", "T2 decay of the spin echo")
     assert set(task.COMPETENCIES) <= set(coverage.ids())
     assert set(controls.policies()) == {controls.REFERENCE, *controls.MUST_FAIL, *controls.ABLATIONS, *controls.REPORTED}

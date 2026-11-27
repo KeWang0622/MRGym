@@ -3,11 +3,11 @@
 
 **D · Image quality and artefacts** · artefacts · kind 3, trade · isolates D11: Distortion by off-resonance: displacement, stretching, pile-up. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 95 %, no policy that ignores the object passes more than 6 % (95 % bounds)
 
-Echo-planar imaging trades everything against everything: a long echo spacing has little noise and little ghost and a large displacement; a short phase field of view shortens the train and wraps; the phase-encode axis decides which regions ghost and where fat lands. The field, the gradient delay, the shape of the object and the noise are hidden, so the protocol has to be measured for. At the development gate (60 instances per level; its result is not stored) a fixed list of scans passed within three instances of the reference at each level, which makes this a measurement task: a signal-free scan for the noise, a two-echo gradient echo for the field and the shape of the object (at level 3 one more for the oil), an echo-planar scan at the highest bandwidth on each phase-encode axis for the gradient delay, and one echo-planar scan of a fixed protocol at each end of the echo-time window, then the reference's solver. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.
+Echo-planar imaging trades everything against everything: a long echo spacing has little noise and little ghost and a large displacement; a short phase field of view shortens the train and wraps; the phase-encode axis decides which regions ghost and where fat lands. The field, the gradient delay, the shape of the object and the noise are hidden, so the protocol has to be measured for. At the development gate (60 instances per level; its result is not stored) a fixed list of scans passed within three instances of the reference at each level, which makes this a measurement task: a signal-free scan for the noise, a two-echo gradient echo for the field and the shape of the object (at level 3 one more for the oil), an echo-planar scan at the highest bandwidth on each phase-encode axis for the gradient delay, and one echo-planar scan of a fixed protocol at each end of the echo-time window, then the reference's solver. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0.7 at level 1, 1 at level 2, 8.7 at level 3; 300 instances per level; 25 points or more make a decision task).
 
-Kind of task: **{'kind': 'undetermined', 'levels': {}, 'evidence': 'no stored gate result'}**.
+Kind of task: **{'kind': 'measurement', 'levels': {'1': 'measurement', '2': 'measurement', '3': 'measurement'}, 'evidence': 'reference minus open_loop, points of pass rate: 0.7 at level 1, 1 at level 2, 8.7 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)'}**.
 
 ```python
 import mrgym
@@ -73,22 +73,26 @@ Limits: 64 scanner requests and 72 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/EPISetup-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/EPISetup-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | field map, object extent, noise and gradient delay from four scans of its own; per phase-encode axis the shortest phase field of view and the lowest bandwidth within the displacement limit; the best candidate is run once for its averages |
-| `prior` | fail | no scan; the console's default EPI |
-| `default_epi` | fail | one token scan, then the console's default EPI |
-| `fastest_epi` | fail | one token scan, then the EPI with the shortest echo train (highest bandwidth, one average) |
-| `fixed_recipe` | fail | one token scan, then the best constant protocol tuned on other worlds |
-| `wrong_units` | fail | the reference with the off-resonance in rad/s read as Hz |
-| `sweep` | fail | EPIs at five bandwidths, the lowest whose measured ghost is within the limit; no field map, no model |
-| `ignore_field` | ablation | the reference without the field map: the lowest bandwidth the echo-time window allows |
-| `ignore_ghost` | ablation | the reference without the delay measurement: the largest predicted SNR whatever the ghost |
-| `square_fov` | ablation | the reference with the full phase field of view on the isocentre |
-| `ignore_fat` | ablation | the reference without looking for the oil (level 3) |
-| `open_loop` | reported | a fixed list of scans; the SNR of the chosen protocol is scaled from two EPIs of a fixed protocol with the SNR laws |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 293/300 (97.7 %; lower bound 95.7 %) | 295/300 (98.3 %; lower bound 96.5 %) | 292/300 (97.3 %; lower bound 95.2 %) | field map, object extent, noise and gradient delay from four scans of its own; per phase-encode axis the shortest phase field of view and the lowest bandwidth within the displacement limit; the best candidate is run once for its averages |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; the console's default EPI |
+| `default_epi` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then the console's default EPI |
+| `fastest_epi` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then the EPI with the shortest echo train (highest bandwidth, one average) |
+| `fixed_recipe` | fail | 8/300 (2.7 %; upper bound 4.8 %) | 10/300 (3.3 %; upper bound 5.6 %) | 12/300 (4.0 %; upper bound 6.4 %) | one token scan, then the best constant protocol tuned on other worlds |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference with the off-resonance in rad/s read as Hz |
+| `sweep` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | EPIs at five bandwidths, the lowest whose measured ghost is within the limit; no field map, no model |
+| `ignore_field` | ablation | 0/300 (0.0 %; 97.7 points below the reference, lower bound 96.2) | 0/300 (0.0 %; 98.3 points below the reference, lower bound 97.1) | 0/300 (0.0 %; 97.3 points below the reference, lower bound 95.8) | the reference without the field map: the lowest bandwidth the echo-time window allows |
+| `ignore_ghost` | ablation | 181/300 (60.3 %; 37.3 points below the reference, lower bound 32.6) | 174/300 (58.0 %; 40.3 points below the reference, lower bound 35.6) | 213/300 (71.0 %; 26.3 points below the reference, lower bound 22.0) not required here | the reference without the delay measurement: the largest predicted SNR whatever the ghost |
+| `square_fov` | ablation | 1/300 (0.3 %; 97.3 points below the reference, lower bound 95.8) | 2/300 (0.7 %; 97.7 points below the reference, lower bound 96.2) | 3/300 (1.0 %; 96.3 points below the reference, lower bound 94.5) | the reference with the full phase field of view on the isocentre |
+| `ignore_fat` | ablation | 293/300 (97.7 %; 0.0 points below the reference, lower bound 0.0) not required here | 295/300 (98.3 %; 0.0 points below the reference, lower bound 0.0) not required here | 147/300 (49.0 %; 48.3 points below the reference, lower bound 43.6) | the reference without looking for the oil (level 3) |
+| `open_loop` | reported | 291/300 (97.0 %) | 292/300 (97.3 %) | 266/300 (88.7 %) | a fixed list of scans; the SNR of the chosen protocol is scaled from two EPIs of a fixed protocol with the SNR laws |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#2` 2.7 % (upper bound 4.8 %); level 2 `fixed_recipe#1` 3.3 % (upper bound 5.6 %); level 3 `fixed_recipe#2` 4.0 % (upper bound 6.4 %).
+Reference, error of its answer (median / 95th percentile): level 1 0 / 0; level 2 0 / 0; level 3 0 / 0; scan time used (median): level 1 58 s, level 2 58 s, level 3 65.7 s.
 
 ## Validity
 

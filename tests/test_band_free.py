@@ -238,7 +238,7 @@ def test_statement_prints_every_number_of_the_pass_rule_and_hides_the_world():
     assert all(r["id"] in text for r in t["regions"]) and [i for ids in t["images"].values() for i in ids] == [r["id"] for r in t["regions"]]
     public = (text + str(t) + str(task.submit_schema(cfg))).lower()
     assert not any(word in public for word in ("b0_hz", "seed", "attempt", "oil", "fat", "n_oil")), "the oil region is not told"
-    assert mrgym.spec(ENV).kind == "candidate" and set(mrgym.card(ENV)) >= {"task_kind", "task_kind_why", "controls", "levels", "reward"}
+    assert mrgym.spec(ENV).kind in ("candidate", "admitted") and set(mrgym.card(ENV)) >= {"task_kind", "task_kind_why", "controls", "levels", "reward"}
     assert set(task.COMPETENCIES) <= set(coverage.ids()) and mrgym.card(ENV)["competencies"] == list(task.COMPETENCIES)
 
 

@@ -62,7 +62,7 @@ MUTANTS = [
     ("M06", "physics", "gradient echo decays with T2, not T2*", S + "signal.py",
      'f = np.exp(-t_ms / cls["t2s_ms"])', 'f = np.exp(-t_ms / cls["t2_ms"])'),
     ("M07", "scoring", "scan time ignores partial Fourier (lines_full for lines)", S + "console.py",
-     'acq, dummy_s = cycle * lines * p["averages"] * partitions / 1e3', 'acq, dummy_s = cycle * lines_full * p["averages"] * partitions / 1e3'),
+     'n_echo=1, shots=lines, echo_times=None', 'n_echo=1, shots=lines_full, echo_times=None'),     # the cycles per average of a line-by-line scan
     ("M08", "scoring", 'the "at least one scan" gate dropped from the reward (NoWrap-v0 had its own; every family shares this one)', E + "family.py",
      'measured=bool(rep["scans"] > 0))', 'measured=True)'),
     ("M09", "scoring", "T1Transmit: the error of a region is signed (a T1 far too short passes)", E + "t1_transmit/task.py",

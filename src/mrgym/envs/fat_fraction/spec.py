@@ -5,4 +5,4 @@ current engine. The family is a measurement task: the reference plays one fixed 
 gate table reports that under ``open_loop``.
 """
 SPECS = [dict(id="Scanner/FatFraction-v0", entry_point="mrgym.envs.family:FamilyEnv", card="mrgym.envs.fat_fraction.task:card",
-              kind="candidate", family="mrgym.envs.fat_fraction", levels=(1, 2, 3), default_level=2, max_steps=48)]
+              kind="admitted", family="mrgym.envs.fat_fraction", levels=(1, 2, 3), default_level=2, max_steps=48)]

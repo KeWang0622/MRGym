@@ -3,7 +3,7 @@
 
 **A · Signal and contrast** · quantitative mapping · kind 1, measure · isolates A29: Relaxation-time mapping: T1, T2 and T2* from a series of scans, and what biases them. [The map](../../docs/tasks.md)
 
-**Status:** PRACTICE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
+**Status:** PRACTICE: level(s) 1 admitted; ignores_profile loses only 9.7 points against the reference (lower bound 6.8 < 25)
 
 A hidden QA phantom (gel body and 4 to 7 vials) on the 3 T scanner. The agent must deliver T1 per marked region within a scan-time budget. The answer is wrong unless the transmit-field error is mapped and corrected, the slice profile of a 2D scan is modelled (or a non-selective 3D acquisition is paid for) and the gradient-echo protocol keeps spoiling errors small.
 
@@ -74,26 +74,24 @@ Limits: 48 scanner requests and 64 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/T1Transmit-v1 --n 300 --write` measures and stores it. The table below is that older result.
-
-Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/T1Transmit-v1 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/T1Transmit-v1 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
 | Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
 |---|---|---|---|---|---|
-| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | 299/300 (99.7 %; lower bound 98.4 %) | B1 map, two gradient echoes, joint fit; the slice profile is avoided (3D) where the budget allows, else modelled |
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | B1 map, two gradient echoes, joint fit; the slice profile is avoided (3D) where the budget allows, else modelled |
 | `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; the geometric mean of the told T1 range in every region |
 | `fixed_recipe` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then one constant T1 for every region, tuned on other worlds |
 | `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's numbers in seconds |
-| `ignores_profile` | ablation | 289/300 (96.3 %; 3.7 points below the reference, lower bound 1.9) not required here | 273/300 (91.0 %; 9.0 points below the reference, lower bound 6.3) NOT CLEARED | 230/300 (76.7 %; 23.0 points below the reference, lower bound 18.9) NOT CLEARED | 2D scans fitted with the one-angle closed forms (the v0 reference) |
-| `blind_vfa` | ablation | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | 0/300 (0.0 %; 99.7 points below the reference, lower bound 99.1) | two gradient echoes at nominal flip angles, no B1 map (confounder-blind) |
-| `open_loop` | reported | 299/300 (99.7 %) | 298/300 (99.3 %) | 299/300 (99.7 %) | a fixed scan list and a fixed estimator: the 2D protocol with fixed averages, the profile-aware fit |
-| `profile_2d` | reported | 300/300 (100.0 %) | 300/300 (100.0 %) | 299/300 (99.7 %) | 2D scans with the slice-profile model at every level |
+| `ignores_profile` | ablation | 287/300 (95.7 %; 4.3 points below the reference, lower bound 2.4) not required here | 271/300 (90.3 %; 9.7 points below the reference, lower bound 6.9) NOT CLEARED | 243/300 (81.0 %; 19.0 points below the reference, lower bound 15.3) NOT CLEARED | 2D scans fitted with the one-angle closed forms (the v0 reference) |
+| `blind_vfa` | ablation | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | two gradient echoes at nominal flip angles, no B1 map (confounder-blind) |
+| `open_loop` | reported | 297/300 (99.0 %) | 297/300 (99.0 %) | 299/300 (99.7 %) | a fixed scan list and a fixed estimator: the 2D protocol with fixed averages, the profile-aware fit |
+| `profile_2d` | reported | 300/300 (100.0 %) | 300/300 (100.0 %) | 300/300 (100.0 %) | 2D scans with the slice-profile model at every level |
 | `nonselective_3d` | reported | 300/300 (100.0 %) | 0/300 (0.0 %) | 0/300 (0.0 %) | the non-selective 3D acquisition at every level; the prior answer where it does not fit the budget |
-| `ir_only` | reported | 41/300 (13.7 %) | 0/300 (0.0 %) | 0/300 (0.0 %) | inversion recovery only, as much as fits |
+| `ir_only` | reported | 48/300 (16.0 %) | 0/300 (0.0 %) | 0/300 (0.0 %) | inversion recovery only, as much as fits |
 
-Verdict per level: level 1 **admitted**; level 2 **practice** (ignores_profile loses only 9.0 points against the reference (lower bound 6.3 < 25)); level 3 **practice** (ignores_profile loses only 23.0 points against the reference (lower bound 18.9 < 25)).
+Verdict per level: level 1 **admitted**; level 2 **practice** (ignores_profile loses only 9.7 points against the reference (lower bound 6.8 < 25)); level 3 **practice** (ignores_profile loses only 19.0 points against the reference (lower bound 15.3 < 25)).
 Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#0` 0.0 % (upper bound 1.0 %); level 2 `fixed_recipe#0` 0.0 % (upper bound 1.0 %); level 3 `fixed_recipe#0` 0.0 % (upper bound 1.0 %).
-Reference, error of its answer (median / 95th percentile): level 1 0.0081 / 0.01787; level 2 0.01677 / 0.04384; level 3 0.02404 / 0.05987; scan time used (median): level 1 266.9 s, level 2 78.7 s, level 3 51.9 s.
+Reference, error of its answer (median / 95th percentile): level 1 0.00808 / 0.01733; level 2 0.01808 / 0.04103; level 3 0.02227 / 0.05493; scan time used (median): level 1 266.9 s, level 2 78.7 s, level 3 51.9 s.
 
 ## Validity
 

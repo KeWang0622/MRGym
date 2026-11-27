@@ -232,9 +232,10 @@ def test_the_page_under_docs_is_current_and_its_counts_are_those_of_coverage():
 def test_what_is_not_formed_waits_for_one_of_seven_pieces_or_for_ordinary_work():
     names = [name for name, _ in M.ENABLERS]
     assert names == ["3D world", "receive array", "spin systems", "field model", "core in the console", "realistic anatomy", "measured data"]
-    # the signal core exists as a library (``mrgym.core``): what its piece still asks for is serving it, and the page says so
+    # the signal core (``mrgym.core``) is behind the console for four sequences: its piece says what that is and what is left
     what = dict(M.ENABLERS)["core in the console"]
-    assert "exists as a library" in what and "still to do" in what and "block-list core" not in M.doc_page() + M.text_table(M.table(str(ROOT)))
+    assert "is behind the console" in what and "on a console whose card lists them" in what and "still to do: the tool layer of the environments" in what
+    assert "block-list core" not in M.doc_page() + M.text_table(M.table(str(ROOT)))
     # so do the spin systems (``mrgym.spins``): what is left is the voxel and the sequence
     what = dict(M.ENABLERS)["spin systems"]
     assert "exists as a library" in what and "still to do: a voxel that holds metabolites in the scanner world and a spectroscopy sequence in the console" in what
@@ -273,14 +274,21 @@ def test_what_the_signal_core_computes_is_computed_or_stays_in_part():
     by_id = M.items()
     assert by_id["A20"].status == "computed" and {"core:X6", "core:X6b", "core:M2", "core:M3"} <= set(by_id["A20"].evidence)
     assert "one pool of protons" in by_id["A20"].reason and "chemical exchange between its evaluators only" in by_id["A20"].reason
-    for i in ("A13", "A14", "A15", "A21"):                              # computed before, by the design layer or a formula: further rows
+    for i in ("A13", "A15"):                                            # computed before, by the design layer or a formula: further rows
         assert by_id[i].status == "computed" and any(e.startswith("core:") and M.package_row(e) for e in by_id[i].evidence), i
+    # echo trains, diffusion weighting and the order of the lines: served by a console whose card lists the sequences, so "in part",
+    # with rows of ``mrgym validate`` (group core) beside the rows of the packages; they still wait for the tool layer of the environments
+    for i in ("A14", "A21", "B19"):
+        assert by_id[i].status == "partial" and by_id[i].needs == "core in the console" and "console" in by_id[i].reason, i
+        assert any(re.match(r"^J\d+$", e) for e in by_id[i].evidence), i
+    assert all(any(e.startswith("core:") and M.package_row(e) for e in by_id[i].evidence) for i in ("A14", "A21"))
     assert by_id["C20"].status == "partial" and any(e.startswith("core:") and M.package_row(e) for e in by_id["C20"].evidence)
-    assert "the console does not serve these yet" in by_id["C20"].reason
-    for i in ("A19", "A22", "B19"):                                     # spatial saturation, flow, the order of the lines
+    assert "an ideal one at its end" in by_id["C20"].reason and "served by no sequence" in by_id["C20"].reason
+    for i in ("A19", "A22"):                                            # spatial saturation, flow
         assert by_id[i].status == "absent" and not by_id[i].evidence, i
     cell = M._evidence_text(by_id["A21"].evidence)
-    assert cell == "`python -m mrgym.design.validate` G5, G6, E10; `python -m mrgym.core.validate` X7, N11, N11c, N12"
+    assert cell == ("`mrgym validate` J31, J32, J33, J35, J36, J15; `python -m mrgym.design.validate` G5, G6, E10; "
+                    "`python -m mrgym.core.validate` X7, N11, N11c, N12")
     assert f"| A21 | {cell} |" in M.doc_page() and "`python -m mrgym.core.validate` ([core](physics/core.md))" in M.doc_page()
 
 

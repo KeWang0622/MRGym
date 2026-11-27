@@ -3,11 +3,11 @@
 
 **C · The system** · quality control · kind 1, measure · isolates C31: From a failed test to its cause. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 98 %, no policy that ignores the object passes more than 3 % (95 % bounds)
 
 The physicist's part of phantom QA. Each test of the guidance can be failed by more than one fault (a gradient miscalibration or a shim error; the transmit field or a receive element; signal instability or a loose phantom), so the QA scan says which test fails and a second scan, chosen for that test, says why.
 
-Kind of task: **{'rule': 'open_loop within 25 points of the reference = measurement task, else decision task', 'levels': {'1': {'kind': 'measurement', 'reference': 1.0, 'open_loop': 1.0, 'gap_points': 0.0, 'n': 60}, '2': {'kind': 'measurement', 'reference': 1.0, 'open_loop': 1.0, 'gap_points': 0.0, 'n': 60}, '3': {'kind': 'decision', 'reference': 1.0, 'open_loop': 0.6667, 'gap_points': 33.3, 'n': 60}}, 'source': 'mrgym gate Scanner/PhantomQA-v0 --n 60 --write on mrgym-engine-0.3.0, 2026-11-27'}**.
+Kind of task: **{'rule': 'open_loop within 25 points of the reference = measurement task, else decision task', 'levels': {'1': {'kind': 'measurement', 'reference': 1.0, 'open_loop': 1.0, 'gap_points': 0.0, 'n': 300}, '2': {'kind': 'measurement', 'reference': 1.0, 'open_loop': 1.0, 'gap_points': 0.0, 'n': 300}, '3': {'kind': 'measurement', 'reference': 0.9967, 'open_loop': 0.77, 'gap_points': 22.7, 'n': 300}}, 'source': 'mrgym gate Scanner/PhantomQA-v0 --n 300 --write on mrgym-engine-0.3.0, 2026-11-27'}**.
 
 ```python
 import mrgym
@@ -71,24 +71,22 @@ Limits: 64 scanner requests and 64 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/PhantomQA-v0 --n 300 --write` measures and stores it. The table below is that older result.
-
-Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/PhantomQA-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/PhantomQA-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
 | Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
 |---|---|---|---|---|---|
-| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | QA scan, the four quantities by profile and read_regions, then one short scan per failed test that needs it |
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | 299/300 (99.7 %; lower bound 98.4 %) | QA scan, the four quantities by profile and read_regions, then one short scan per failed test that needs it |
 | `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; nominal values, every test passes, no fault |
 | `fixed_recipe` | fail | 5/300 (1.7 %; upper bound 3.5 %) | 4/300 (1.3 %; upper bound 3.0 %) | 2/300 (0.7 %; upper bound 2.1 %) | one token scan, then the most frequent answer on other worlds |
 | `brute_force` | fail | 4/300 (1.3 %; upper bound 3.0 %) | 4/300 (1.3 %; upper bound 3.0 %) | 3/300 (1.0 %; upper bound 2.6 %) | measures like the reference, then names every fault that moves a failed test |
 | `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's answer in cm, as a fraction and in percent |
-| `no_discrimination` | ablation | 155/300 (51.7 %; 48.3 points below the reference, lower bound 43.6) | 184/300 (61.3 %; 38.7 points below the reference, lower bound 34.0) | 113/300 (37.7 %; 62.3 points below the reference, lower bound 57.7) | the reference without the discriminating step: the first fault of each failed test |
-| `single_fault` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 3/300 (1.0 %; 99.0 points below the reference, lower bound 98.0) | the reference that stops at the first failed test |
-| `open_loop` | reported | 300/300 (100.0 %) | 300/300 (100.0 %) | 232/300 (77.3 %) | a fixed scan list (QA scan, readout-swapped scan, flip-angle map, as far as the budget goes) and the reference's estimator |
+| `no_discrimination` | ablation | 155/300 (51.7 %; 48.3 points below the reference, lower bound 43.6) | 184/300 (61.3 %; 38.7 points below the reference, lower bound 34.0) | 113/300 (37.7 %; 62.0 points below the reference, lower bound 57.4) | the reference without the discriminating step: the first fault of each failed test |
+| `single_fault` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 3/300 (1.0 %; 98.7 points below the reference, lower bound 97.6) | the reference that stops at the first failed test |
+| `open_loop` | reported | 300/300 (100.0 %) | 300/300 (100.0 %) | 231/300 (77.0 %) | a fixed scan list (QA scan, readout-swapped scan, flip-angle map, as far as the budget goes) and the reference's estimator |
 
 Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
 Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#1` 1.7 % (upper bound 3.5 %); level 2 `brute_force` 1.3 % (upper bound 3.0 %); level 3 `brute_force` 1.0 % (upper bound 2.6 %).
-Reference, error of its answer (median / 95th percentile): level 1 0.03745 / 0.49412; level 2 0.12145 / 0.33701; level 3 0.15052 / 0.41508; scan time used (median): level 1 138.4 s, level 2 138.4 s, level 3 138.4 s.
+Reference, error of its answer (median / 95th percentile): level 1 0.03713 / 0.49022; level 2 0.11935 / 0.34667; level 3 0.15317 / 0.42412; scan time used (median): level 1 138.4 s, level 2 138.4 s, level 3 138.4 s.
 
 ## Validity
 

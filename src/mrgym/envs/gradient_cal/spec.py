@@ -7,4 +7,4 @@ Level 0 is a practice level (``task.LEVELS[0]["kind"] == "practice"``): it is re
 not run it by default and the admitted claim does not cover it.
 """
 SPECS = [dict(id="Scanner/GradientCal-v0", entry_point="mrgym.envs.family:FamilyEnv", card="mrgym.envs.gradient_cal.task:card",
-              kind="candidate", family="mrgym.envs.gradient_cal", levels=(0, 1, 2, 3), default_level=2, max_steps=64)]
+              kind="admitted", family="mrgym.envs.gradient_cal", levels=(0, 1, 2, 3), default_level=2, max_steps=64)]

@@ -3,11 +3,11 @@
 
 **A · Signal and contrast** · quantitative mapping · kind 1, measure · isolates A30: Fat fraction from in-phase and opposed-phase echoes (Dixon). [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 98 %, no policy that ignores the object passes more than 2 % (95 % bounds)
 
 Subject A (signal and contrast), a single-skill measurement: the water-fat chemical shift as a quantity. The textbook formula (IP - OP) / (2 IP) reads low on a real spectrum with T2* decay and high where T1 weights the echoes. The task is to remove each error: a low flip angle, the fat vector of the six peaks, the decay between the echoes; and, where fat may be the larger part, the phase.
 
-Kind of task: **undetermined** (no stored gate result).
+Kind of task: **measurement** (reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)).
 
 ```python
 import mrgym
@@ -73,23 +73,27 @@ Limits: 40 scanner requests and 48 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/FatFraction-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/FatFraction-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | six echoes at a flip angle of 3 degrees; level 1: the stated arithmetic; else a fit of water, fat (six peaks), decay and off-resonance to the complex echoes |
-| `prior` | fail | no scan; the middle of the told range in every disc |
-| `fixed_recipe` | fail | one token scan, then one constant fraction tuned on other worlds |
-| `two_point` | fail | the textbook formula (IP - OP) / (2 IP) on two echoes at a flip angle of 3 degrees |
-| `two_point_high_flip` | fail | the textbook formula at a flip angle of 20 degrees, where T1 offsets part of its error |
-| `one_image` | fail | the opposed-phase echo alone, read against the brightest disc |
-| `brute_force` | fail | eight echoes; the depth of the beat of the magnitude, no model |
-| `wrong_units` | fail | the reference's fraction as a number between 0 and 1 |
-| `high_flip` | ablation | the reference at a flip angle of 20 degrees |
-| `single_peak` | ablation | the reference's fit with one fat line at -3.4 ppm |
-| `magnitude_only` | ablation | the stated method (magnitudes; fat taken as the smaller part) |
-| `open_loop` | reported | the reference (one fixed scan, one fixed estimator) |
-| `no_decay` | reported | the reference's fit without the decay between the echoes |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 299/300 (99.7 %; lower bound 98.4 %) | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | six echoes at a flip angle of 3 degrees; level 1: the stated arithmetic; else a fit of water, fat (six peaks), decay and off-resonance to the complex echoes |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; the middle of the told range in every disc |
+| `fixed_recipe` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 1/300 (0.3 %; upper bound 1.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then one constant fraction tuned on other worlds |
+| `two_point` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the textbook formula (IP - OP) / (2 IP) on two echoes at a flip angle of 3 degrees |
+| `two_point_high_flip` | fail | 1/300 (0.3 %; upper bound 1.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the textbook formula at a flip angle of 20 degrees, where T1 offsets part of its error |
+| `one_image` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the opposed-phase echo alone, read against the brightest disc |
+| `brute_force` | fail | 1/300 (0.3 %; upper bound 1.6 %) | 1/300 (0.3 %; upper bound 1.6 %) | 1/300 (0.3 %; upper bound 1.6 %) | eight echoes; the depth of the beat of the magnitude, no model |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's fraction as a number between 0 and 1 |
+| `high_flip` | ablation | 25/300 (8.3 %; 91.3 points below the reference, lower bound 88.6) | 24/300 (8.0 %; 92.0 points below the reference, lower bound 89.4) | 30/300 (10.0 %; 90.0 points below the reference, lower bound 87.1) | the reference at a flip angle of 20 degrees |
+| `single_peak` | ablation | 0/300 (0.0 %; 99.7 points below the reference, lower bound 99.1) | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | the reference's fit with one fat line at -3.4 ppm |
+| `magnitude_only` | ablation | 299/300 (99.7 %; 0.0 points below the reference, lower bound 0.0) not required here | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 38/300 (12.7 %; 87.3 points below the reference, lower bound 84.2) | the stated method (magnitudes; fat taken as the smaller part) |
+| `open_loop` | reported | 299/300 (99.7 %) | 300/300 (100.0 %) | 300/300 (100.0 %) | the reference (one fixed scan, one fixed estimator) |
+| `no_decay` | reported | 34/300 (11.3 %) | 56/300 (18.7 %) | 84/300 (28.0 %) | the reference's fit without the decay between the echoes |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `brute_force` 0.3 % (upper bound 1.6 %); level 2 `brute_force` 0.3 % (upper bound 1.6 %); level 3 `brute_force` 0.3 % (upper bound 1.6 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.85351 / 1.57371; level 2 1.00619 / 1.6908; level 3 1.19291 / 2.13811; scan time used (median): level 1 30.1 s, level 2 30.1 s, level 3 30.1 s.
 
 ## Validity
 

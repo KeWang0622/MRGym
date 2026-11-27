@@ -136,8 +136,12 @@ ENABLERS = (
     ("field model", "Maxwell's equations on the slice for a body and a coil (B1+, B1-, SAR, RF shimming) exist as a library, in two "
                     "dimensions; still to do: the scanner imaging and pricing RF with these fields instead of its declared patterns, "
                     "and the third dimension"),
-    ("core in the console", "the signal core over lists of blocks (Bloch ensemble, phase graphs, periodic solve) exists as a library; "
-                            "still to do: the engine forming images from it, so that the console serves its sequences"),
+    ("core in the console", "the signal core over lists of blocks (Bloch ensemble, phase graphs, periodic solve) is behind the console: a "
+                            "sequence registry, image formation with an amplitude that changes from line to line, and four sequences (fast "
+                            "and multi-echo spin echo, multi-echo gradient echo, diffusion-weighted spin echo) on a console whose card "
+                            "lists them; still to do: the tool layer of the environments offering them to an agent, the other sequences "
+                            "of the core's library (prepared trains, two pools, real spoilers, what survives a repetition), and the six "
+                            "sequences of every console on the core"),
     ("realistic anatomy", "textured digital anatomy instead of classes of one value each"),
     ("measured data", "statistics of public phantom sessions on real scanners are compared with the engine in a table that anyone "
                       "can rebuild; still to do: a scan of the same object with the console's sequences, compared pixel by pixel"),
@@ -229,10 +233,13 @@ _BLOCKS = (
                   "from equilibrium or along a prepared train; the scanner serves every line at the steady state",
                   _X + "12_approach_to_steady_state.py", "design:E9", "core:N8",
                   "tests/test_core_evaluators.py::test_the_periodic_state_is_a_fixed_point", needs="core in the console"),
-        _computed("A14", "Echo trains: fast (turbo) spin echo, echo train length, effective echo time", "A7 B8",
-                  "the design layer and the signal core compute the echoes of a train of refocusing pulses, stimulated echoes "
-                  "included, and the core its periodic state over repetitions; no console sequence has an echo train, so no image is "
-                  "formed from one", "design:E2 design:E3 design:E4", "core:N1 core:N1b core:N1c core:N2", n=8, needs="core in the console"),
+        _partial("A14", "Echo trains: fast (turbo) spin echo, echo train length, effective echo time", "A7 B8",
+                 "a console whose card lists them serves a fast spin echo and a multi-echo spin echo from the signal core: echo-train "
+                 "length, echo spacing, effective echo time, T2 blurring, the stimulated echoes of the slice profile and of the transmit "
+                 "field, the RF power of the train. One refocusing angle per train, an ideal crusher at the end of the repetition, at "
+                 "most 32 echoes, fat without J coupling. No shipped environment has such a console, and the tool layer of the "
+                 "environments does not offer the sequences yet", "J7 J8 J9 J12 J16 J17 J18 J20 J37 J38", "design:E2 design:E3 design:E4",
+                 "core:N1 core:N1b core:N1c core:N2", "measured:M3b", n=8, needs="core in the console"),
         _computed("A15", "Magnetisation preparation: saturation recovery, T2 preparation, prepared gradient echo", "A9 A10",
                   "an inversion-prepared gradient echo exists as a checked formula, and the signal core computes a prepared train of "
                   "gradient echoes, T2 preparation and saturation recovery from lists of blocks; the console prepares with inversion "
@@ -253,11 +260,13 @@ _BLOCKS = (
                   "core:X6 core:X6b core:M2 core:M3", n=4, needs="core in the console"),
     )),
     ("A", "contrast beyond relaxation", (
-        _computed("A21", "Diffusion weighting: b-value, apparent diffusion coefficient, tensor", "A7 B1",
-                  "the design layer computes the b-value and b-tensor of a gradient program and the attenuated echo, and the signal "
-                  "core the diffusion-weighted spin echo and stimulated echo from lists of blocks, for one free, isotropic coefficient; "
-                  "no console sequence is diffusion-weighted (tissues have a diffusion coefficient that acts on the spoiling of "
-                  "gradient echoes only)", "design:G5 design:G6 design:E10", "core:X7 core:N11 core:N11c core:N12", n=9, needs="core in the console"),
+        _partial("A21", "Diffusion weighting: b-value, apparent diffusion coefficient, tensor", "A7 B1",
+                 "a console whose card lists it serves a diffusion-weighted spin echo from the signal core: the b-value of the lobes "
+                 "it plays, the echo time they cost, signal x exp(-b D) for the one free, isotropic coefficient of a tissue. No tensor "
+                 "(the design layer computes the b-tensor of a gradient program), no kurtosis, no perfusion fraction, no stimulated-echo "
+                 "or echo-planar readout; 16 of the 25 coefficients of the tissue table are declared. No shipped environment has such "
+                 "a console", "J31 J32 J33 J35 J36 J15", "design:G5 design:G6 design:E10", "core:X7 core:N11 core:N11c core:N12", n=9,
+                 needs="core in the console"),
         _absent("A22", "Flow: inflow, time-of-flight angiography, velocity encoding", "A10 B1 B2",
                 "nothing flows: blood is a static tissue", n=8, needs="core in the console"),
         _absent("A23", "Contrast agents: relaxivity and concentration", "A4 A5",
@@ -334,8 +343,10 @@ _BLOCKS = (
         _formed("B17", "Partial Fourier: acquiring part of k-space", "B8 B11", "K15 K29 K30 K37", n=7),
         _formed("B18", "Echo-planar readout: echo spacing, bandwidth along phase, distortion", "B8 B13 B14",
                 "K12", _X + "10_epi_distortion.py", n=9),
-        _absent("B19", "Segmented acquisition and the order of the lines", "B8",
-                "lines are acquired in one order, one per repetition (echo-planar: one shot)", n=7, needs="core in the console"),
+        _partial("B19", "Segmented acquisition and the order of the lines", "B8",
+                 "the fast spin echo of a console that lists it fills k-space in shots of one line per echo, in centric or linear "
+                 "order, and the image is formed with the amplitude of each line; every other sequence acquires its lines in one "
+                 "order, one per repetition (echo-planar: one shot)", "J12 J16 J17 J39", n=7, needs="core in the console"),
         _partial("B20", "Three-dimensional encoding: a second phase-encode axis, the slab", "B2 B7",
                  "a non-selective 3D scan is priced and its central partition is imaged; no slab profile, no fold along "
                  "the slab", "C7 C8", n=7, needs="3D world"),
@@ -433,9 +444,11 @@ _BLOCKS = (
         _absent("C19", "Eddy currents and concomitant fields", "C15", "gradients are played as ideal trapezoids", n=6),
         _partial("C20", "Spoiler and crusher gradients: the moment and what survives it", "A11 B1",
                  "the spoiler moment of a gradient echo is a parameter and acts on the signal; the crushers of a spin echo are "
-                 "ideal: what they dephase is gone, so there is no stimulated echo. The signal core computes real crushers with the "
-                 "stimulated echoes they leave, and a spoiler played as a lobe with its own duration; the console does not serve "
-                 "these yet", "S6 S8", "core:Q7 core:N1 core:N12 core:N13 core:N5 core:N6 core:N6c", needs="core in the console"),
+                 "ideal: what they dephase is gone, so there is no stimulated echo. The echo trains and the diffusion-weighted spin "
+                 "echo of a console that lists them play real crushers inside a repetition, with the stimulated echoes they leave, and "
+                 "an ideal one at its end (what that leaves out is measured: up to 0.16 of an echo for a fluid). A spoiler played "
+                 "as a lobe with its own duration is computed by the signal core and served by no sequence",
+                 "S6 S8", "J8 J20 J23 J24", "core:Q7 core:N1 core:N12 core:N13 core:N5 core:N6 core:N6c", needs="core in the console"),
         _computed("C21", "Gradient programs: lobes, moments and their nulling, the shortest waveform inside the limits", "C15 C20",
                   "the design layer computes moments, k-space and limit checks of a gradient program and the shortest lobe for "
                   "given moments; the console builds its own trapezoids and no waveform can be entered",
@@ -490,7 +503,7 @@ _BLOCKS = (
                 "the system does not change during a session; a repeated scan differs by its noise only"),
         _partial("C33", "Agreement with measurement: a phantom on a real scanner against the same phantom here", "C28 C29",
                  "statistics of images, region signals and fitted values of public phantom sessions are compared with the engine's model of the same protocol "
-                 "(for an echo train, which the console does not have, with the design layer), and the differences found are listed; "
+                 "(for an echo train with the design layer and with the multi-echo spin echo of the console), and the differences found are listed; "
                  "no image of the console's sequences has been compared pixel by pixel with a scan of the same object",
                  *(f"measured:{rung}" for rung in ("M0", "M1", "M2", "M2b", "M3b", "M4/M8", "M5", "M6", "M7", "M9")), needs="measured data"),
     )),

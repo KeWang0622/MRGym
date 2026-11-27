@@ -3,11 +3,11 @@
 
 **D · Image quality and artefacts** · quality · kind 2, set · isolates D5: SNR, resolution and scan time: what each costs the others. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 97 %, no policy that ignores the object passes more than 3 % (95 % bounds)
 
-The everyday protocol question: this much SNR at this pixel size, as fast as possible. Signal and noise have to be measured on cheap scans and scaled with the SNR laws (voxel volume, lines, averages, bandwidth); the repetition time trades recovery of the hidden T1 against time, the bandwidth trades noise against decay of the hidden T2 over a longer echo time, and averages come in integers. This is a measurement task: a fixed list of scans with a fixed solver passes within 25 points of the reference at every level (reference minus open loop, points: 0 at level 1, -0.7 at level 2, 0.3 at level 3; 300 instances per level).
+The everyday protocol question: this much SNR at this pixel size, as fast as possible. Signal and noise have to be measured on cheap scans and scaled with the SNR laws (voxel volume, lines, averages, bandwidth); the repetition time trades recovery of the hidden T1 against time, the bandwidth trades noise against decay of the hidden T2 over a longer echo time, and averages come in integers. This is a measurement task: a fixed list of scans with a fixed solver passes within 25 points of the reference at every level (reference minus open loop, points: 0 at level 1, 1 at level 2, 0 at level 3; 300 instances per level).
 
-Kind of task: **{'kind': 'measurement', 'evidence': 'reference minus open_loop, points of pass rate: 0 at level 1, -0.7 at level 2, 0.3 at level 3 (n = 300 per level, engine mrgym-engine-0.2.0)'}**.
+Kind of task: **{'kind': 'measurement', 'evidence': 'reference minus open_loop, points of pass rate: 0 at level 1, 1 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)'}**.
 
 ```python
 import mrgym
@@ -70,28 +70,26 @@ Limits: 40 scanner requests and 48 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/SNRSpec-v0 --n 300 --write` measures and stores it. The table below is that older result.
-
-Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/SNRSpec-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/SNRSpec-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
 | Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
 |---|---|---|---|---|---|
-| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 295/300 (98.3 %; lower bound 96.5 %) | 299/300 (99.7 %; lower bound 98.4 %) | noise, recovery curve (T1 and its shape) and T2 of every region from cheap scans; SNR laws; joint search of repetition time, averages and bandwidth with a 3 % margin |
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 297/300 (99.0 %; lower bound 97.4 %) | 297/300 (99.0 %; lower bound 97.4 %) | noise, recovery curve (T1 and its shape) and T2 of every region from cheap scans; SNR laws; joint search of repetition time, averages and bandwidth with a 3 % margin |
 | `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; one typical protocol for both images |
 | `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference with the noise read as the SD of the background magnitude (0.655 of the channel SD) |
 | `fixed_recipe` | fail | 5/300 (1.7 %; upper bound 3.5 %) | 1/300 (0.3 %; upper bound 1.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then the best pair of constant protocols tuned on other worlds |
 | `spec_only` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 1/300 (0.3 %; upper bound 1.6 %) | one token scan, then the best protocol per (matrix, range of the required SNR) of each image, tuned on other worlds |
 | `brute_force` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one scan of each image itself on the whole budget, averages squared from the SNR read off it |
-| `tr_fixed` | ablation | 1/300 (0.3 %; 99.7 points below the reference, lower bound 99.1) | 7/300 (2.3 %; 96.0 points below the reference, lower bound 94.0) | 0/300 (0.0 %; 99.7 points below the reference, lower bound 99.1) | one scout at a fixed repetition time scaled with the SNR laws, averages squared (no T1) |
-| `rule_of_thumb` | ablation | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | 25/300 (8.3 %; 90.0 points below the reference, lower bound 87.1) | 0/300 (0.0 %; 99.7 points below the reference, lower bound 99.1) | measures T1, then TR = 1.3 x T1 and the smallest sufficient number of averages |
-| `single_average` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 0/300 (0.0 %; 98.3 points below the reference, lower bound 97.1) | 8/300 (2.7 %; 97.0 points below the reference, lower bound 95.4) | the reference restricted to one average and the narrowest bandwidth |
-| `lowest_bandwidth` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 295/300 (98.3 %; 0.0 points below the reference, lower bound 0.0) not required here | 36/300 (12.0 %; 87.7 points below the reference, lower bound 84.5) | the reference restricted to the narrowest bandwidth (no T2) |
-| `open_loop` | reported | 300/300 (100.0 %) | 297/300 (99.0 %) | 298/300 (99.3 %) | the reference's scans as a fixed list, then the same solver |
-| `ideal_pulses` | reported | 300/300 (100.0 %) | 295/300 (98.3 %) | 297/300 (99.0 %) | the reference with the recovery curve of ideal 90 and 180 degree pulses |
+| `tr_fixed` | ablation | 1/300 (0.3 %; 99.7 points below the reference, lower bound 99.1) | 8/300 (2.7 %; 96.3 points below the reference, lower bound 94.5) | 1/300 (0.3 %; 98.7 points below the reference, lower bound 97.6) | one scout at a fixed repetition time scaled with the SNR laws, averages squared (no T1) |
+| `rule_of_thumb` | ablation | 1/300 (0.3 %; 99.7 points below the reference, lower bound 99.1) | 24/300 (8.0 %; 91.0 points below the reference, lower bound 88.2) | 0/300 (0.0 %; 99.0 points below the reference, lower bound 98.0) | measures T1, then TR = 1.3 x T1 and the smallest sufficient number of averages |
+| `single_average` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 0/300 (0.0 %; 99.0 points below the reference, lower bound 98.0) | 7/300 (2.3 %; 96.7 points below the reference, lower bound 95.0) | the reference restricted to one average and the narrowest bandwidth |
+| `lowest_bandwidth` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 297/300 (99.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 35/300 (11.7 %; 87.3 points below the reference, lower bound 84.2) | the reference restricted to the narrowest bandwidth (no T2) |
+| `open_loop` | reported | 300/300 (100.0 %) | 294/300 (98.0 %) | 297/300 (99.0 %) | the reference's scans as a fixed list, then the same solver |
+| `ideal_pulses` | reported | 300/300 (100.0 %) | 297/300 (99.0 %) | 297/300 (99.0 %) | the reference with the recovery curve of ideal 90 and 180 degree pulses |
 
 Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
 Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#0` 1.7 % (upper bound 3.5 %); level 2 `fixed_recipe#0` 0.3 % (upper bound 1.6 %); level 3 `spec_only` 0.3 % (upper bound 1.6 %).
-Reference, error of its answer (median / 95th percentile): level 1 179.832 / 359.194; level 2 1709.72 / 3236.01; level 3 884.898 / 2763.66; scan time used (median): level 1 280.6 s, level 2 280.6 s, level 3 280.6 s.
+Reference, error of its answer (median / 95th percentile): level 1 178.834 / 355.672; level 2 1706.4 / 3229.28; level 3 893.673 / 2758.85; scan time used (median): level 1 277.8 s, level 2 274.9 s, level 3 280.6 s.
 
 ## Validity
 

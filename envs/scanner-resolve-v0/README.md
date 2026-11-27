@@ -3,11 +3,11 @@
 
 **B · Spatial encoding and reconstruction** · Fourier encoding · kind 2, set · isolates B10: Matrix, pixel and voxel: resolution is the extent of k-space. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 97 %, no policy that ignores the object passes more than 2 % (95 % bounds)
 
 The pixel follows from the detail. Three pairs of small bright features sit in signal-free inserts of a gel phantom; the spacing of each pair is hidden. The agent looks (a localiser costs scan time), measures the spacings and the size of the object, and prescribes for each pair the spin-echo scan with the coarsest pixel that still separates it. A pixel as large as the spacing does not: the point-spread function is a sinc.
 
-Kind of task: **undetermined** (no stored gate result).
+Kind of task: **measurement** (reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)).
 
 ```python
 import mrgym
@@ -70,20 +70,24 @@ Limits: 32 scanner requests and 40 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/Resolve-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/Resolve-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | one 1 mm localiser; spacing of each pair from the two peaks of a profile; pixel = 0.55 x spacing; smallest field of view that holds the object |
-| `prior` | fail | no scan; a geometry that holds any object, with a pixel of 2 mm |
-| `console_default` | fail | one token scan, then the console's default field of view and matrix |
-| `fixed_recipe` | fail | one token scan, then one constant geometry (axis, pixel, lines) for every pair, tuned on other worlds |
-| `sweep` | fail | scans at a fixed list of pixels and delivers the coarsest at which its own image shows two peaks |
-| `wrong_units` | fail | the reference's geometry with the field of view in centimetres |
-| `pixel_is_spacing` | ablation | the reference with the pixel set to the measured spacing |
-| `fixed_axis` | ablation | the reference with the phase-encode axis always along y |
-| `half_spacing` | reported | the reference with the pixel set to half the measured spacing |
-| `open_loop` | reported | a fixed scan list and a fixed estimator: the reference itself (no scan depends on a measurement) |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 298/300 (99.3 %; lower bound 97.9 %) | 297/300 (99.0 %; lower bound 97.4 %) | 298/300 (99.3 %; lower bound 97.9 %) | one 1 mm localiser; spacing of each pair from the two peaks of a profile; pixel = 0.55 x spacing; smallest field of view that holds the object |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; a geometry that holds any object, with a pixel of 2 mm |
+| `console_default` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then the console's default field of view and matrix |
+| `fixed_recipe` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 1/300 (0.3 %; upper bound 1.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then one constant geometry (axis, pixel, lines) for every pair, tuned on other worlds |
+| `sweep` | fail | 2/300 (0.7 %; upper bound 2.1 %) | 1/300 (0.3 %; upper bound 1.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | scans at a fixed list of pixels and delivers the coarsest at which its own image shows two peaks |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's geometry with the field of view in centimetres |
+| `pixel_is_spacing` | ablation | 0/300 (0.0 %; 99.3 points below the reference, lower bound 98.6) | 0/300 (0.0 %; 99.0 points below the reference, lower bound 98.0) | 0/300 (0.0 %; 99.3 points below the reference, lower bound 98.6) | the reference with the pixel set to the measured spacing |
+| `fixed_axis` | ablation | 298/300 (99.3 %; 0.0 points below the reference, lower bound 0.0) not required here | 297/300 (99.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 162/300 (54.0 %; 45.3 points below the reference, lower bound 40.6) | the reference with the phase-encode axis always along y |
+| `half_spacing` | reported | 178/300 (59.3 %) | 162/300 (54.0 %) | 164/300 (54.7 %) | the reference with the pixel set to half the measured spacing |
+| `open_loop` | reported | 298/300 (99.3 %) | 297/300 (99.0 %) | 298/300 (99.3 %) | a fixed scan list and a fixed estimator: the reference itself (no scan depends on a measurement) |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `sweep` 0.7 % (upper bound 2.1 %); level 2 `fixed_recipe#1` 0.3 % (upper bound 1.6 %); level 3 `console_default` 0.0 % (upper bound 1.0 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.10256 / 0.1482; level 2 0.10256 / 0.14545; level 3 0.10526 / 0.1455; scan time used (median): level 1 12.6 s, level 2 12.6 s, level 3 12.6 s.
 
 ## Validity
 

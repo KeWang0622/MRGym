@@ -21,7 +21,7 @@ LOCALISER = {"sequence": "spgr", "tr_ms": 11.0, "flip_deg": 10.0, "fov_mm": 288.
 # ------------------------------------------------------------------ registry
 def test_registry_lists_the_ids_with_their_kind():
     assert {EXPLORE, NOWRAP, T1} <= set(mrgym.list_envs()) and mrgym.list_envs() == mrgym.list_envs("Scanner")
-    assert [mrgym.spec(i).kind for i in (EXPLORE, NOWRAP, T1)] == ["sandbox", "candidate", "practice"]      # NoWrap: no gate on engine 0.3.0 yet
+    assert [mrgym.spec(i).kind for i in (EXPLORE, NOWRAP, T1)] == ["sandbox", "admitted", "practice"]       # NoWrap: admitted by its stored gate on engine 0.3.0
     assert all(mrgym.spec(i).kind in cards.KINDS for i in mrgym.list_envs())
     assert mrgym.spec(T1).levels == (1, 2, 3) and mrgym.spec(NOWRAP).levels == (0, 1, 2, 3) and mrgym.spec(NOWRAP).version == 1
     assert gate.claim_levels(mrgym.spec(NOWRAP)) == [2, 3] and gate.claim_levels(mrgym.spec(T1)) == [1, 2, 3]

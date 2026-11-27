@@ -3,7 +3,7 @@
 
 **D · Image quality and artefacts** · artefacts · kind 3, trade · isolates D21: Telling artefacts from the object, and choosing a remedy by its price. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 7 % (95 % bounds)
 
 An examination with look-alike findings: chemical-shift displacement, opposed-phase cancellation, truncation ringing, wrap-around, a motion ghost, susceptibility signal loss, or the object itself. At levels 1 and 2 one experiment separates each pair (other bandwidth, other echo time, finer matrix, more phase field of view). At level 3 the findings of an episode look alike, two experiments tell the three possibilities of a look apart (half the slice and the in-phase echo; phase oversampling and one average), the budget holds the first look and two experiments, and two remedies have a dose that an experiment measures. Every remedy costs scan time or signal-to-noise ratio, and the requirements do not leave room for all of them. How images are read: the reference policy reads single pixels of stored images inside each finding. A text-only agent gets the same numbers from `read_regions`: a circle of radius 1 mm on a pixel centre (centre + (i - n // 2) x field of view / n) returns that pixel alone when pixels are larger than 1 mm, which holds for every experiment of the reference (matrix at most 224 on a 240 mm field of view); 16 circles per call, free of charge. At level 3 the reference also reads two phase images (`view` with kind phase; `read_regions` returns the complex mean of a circle): the complex difference of the complaint and the one-average scan along the phase-encode line of a ghost finding shows where its copies went. Task kind by the stored gate: level 1 a measurement task, level 2 a measurement task, level 3 a measurement task (measurement: a fixed scan list with a fixed estimator passes within 25 points of the reference).
 
@@ -70,9 +70,7 @@ Limits: 64 scanner requests and 160 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/ArtefactClinic-v0 --n 300 --write` measures and stores it. The table below is that older result.
-
-Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/ArtefactClinic-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/ArtefactClinic-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
 | Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
 |---|---|---|---|---|---|
@@ -82,7 +80,7 @@ Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate S
 | `remedy_battery` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one scan, then every remedy of the catalogue at once; one cause named |
 | `brute_force` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | full-length scans of the complaint and of one remedy after the other while the budget lasts; no model, no cheap experiment |
 | `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's answer with the echo time in seconds |
-| `first_look` | ablation | 121/300 (40.3 %; 59.7 points below the reference, lower bound 55.0) | 58/300 (19.3 %; 80.7 points below the reference, lower bound 76.9) | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | diagnosis from the complaint image alone (signal and texture of each finding; at level 3 the most probable causes of its look), no differential experiment |
+| `first_look` | ablation | 121/300 (40.3 %; 59.7 points below the reference, lower bound 55.0) | 56/300 (18.7 %; 81.3 points below the reference, lower bound 77.6) | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | diagnosis from the complaint image alone (signal and texture of each finding; at level 3 the most probable causes of its look), no differential experiment |
 | `told_cause_fixed_dose` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 12/300 (4.0 %; 96.0 points below the reference, lower bound 94.1) | is told the hidden causes; applies the first-line remedy of each at the catalogue's dose, whatever the examination locks, no measured dose |
 | `half_budget` | ablation | 5/300 (1.7 %; 98.3 points below the reference, lower bound 97.1) | 23/300 (7.7 %; 92.3 points below the reference, lower bound 89.8) | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) not required here | the reference with half of the scan time |
 | `battery_within_budget` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 152/300 (50.7 %; 49.3 points below the reference, lower bound 44.6) | the minimal battery in the open loop's order as far as the budget goes, without the first look |
@@ -91,7 +89,7 @@ Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate S
 
 Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
 Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#0` 1.7 % (upper bound 3.5 %); level 2 `fixed_recipe#2` 4.3 % (upper bound 6.8 %); level 3 `brute_force` 0.0 % (upper bound 1.0 %).
-Reference, error of its answer (median / 95th percentile): level 1 0.7478 / 0.84133; level 2 0.7307 / 0.84301; level 3 0.4172 / 0.79293; scan time used (median): level 1 52.6 s, level 2 52.5 s, level 3 26.2 s.
+Reference, error of its answer (median / 95th percentile): level 1 0.74775 / 0.8412; level 2 0.7299 / 0.8432; level 3 0.4172 / 0.79293; scan time used (median): level 1 52.6 s, level 2 52.5 s, level 3 26.2 s.
 
 ## Validity
 

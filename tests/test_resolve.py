@@ -330,4 +330,4 @@ def test_the_card_is_complete():
     assert card["id"] == ENV_ID and set(card["levels"]) == {1, 2, 3} and card["practice_levels"] == []
     assert [c["name"] for c in card["controls"]] == ["reference", *controls.MUST_FAIL, *controls.ABLATIONS, *controls.REPORTED]
     assert set(task.COMPETENCIES) <= {r[0] for r in coverage._ROWS} and card["competencies"] == list(task.COMPETENCIES)
-    assert mrgym.spec(ENV_ID).kind == "candidate" and task.OUTCOMES == ("object_cut_off", "not_separated", "snr_too_low", "over_time_cap", "too_slow")
+    assert mrgym.spec(ENV_ID).kind in ("candidate", "admitted") and task.OUTCOMES == ("object_cut_off", "not_separated", "snr_too_low", "over_time_cap", "too_slow")

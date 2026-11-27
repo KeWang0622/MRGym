@@ -3,11 +3,11 @@
 
 **B · Spatial encoding and reconstruction** · Fourier encoding · kind 3, trade · isolates B13: Off-resonance during the readout: displacement = frequency / bandwidth. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 3 % (95 % bounds)
 
 The readout as a time axis. Fat is displaced along the frequency-encode axis by its frequency difference divided by the bandwidth per pixel, to the side the readout direction sets. A higher bandwidth shrinks the displacement and costs signal-to-noise ratio. How much room the fat has, and on which side, is hidden: it is measured on images in which the fat is already displaced.
 
-Kind of task: **undetermined** (Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.).
+Kind of task: **measurement** (By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0 at level 1, 0 at level 2, 0 at level 3; 300 instances per level; 25 points or more make a decision task).).
 
 ```python
 import mrgym
@@ -70,21 +70,25 @@ Limits: 48 scanner requests and 64 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/ShiftFree-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/ShiftFree-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | two scans of opposite readout direction per axis at one low bandwidth, profiles through every region: room and displacement per fat border, then the bandwidth that uses 0.9 of the room |
-| `prior` | fail | no scan; the console defaults (300 Hz per pixel, ro_polarity 1, pe_dir y) |
-| `default_bandwidth` | fail | one token scan, then the console defaults |
-| `highest_bandwidth` | fail | one token scan, then the highest bandwidth the gradients allow at this geometry |
-| `fixed_recipe` | fail | one token scan, then one bandwidth, readout direction and axis for every region, tuned on other worlds |
-| `sweep` | fail | three scans at fixed bandwidths with ro_polarity 1; per region the lowest of them at which its signal has not risen |
-| `wrong_units` | fail | the reference's bandwidth in kHz per pixel |
-| `one_direction` | ablation | measures like the reference, always delivers ro_polarity 1 |
-| `fixed_axis` | ablation | measures along x only and keeps pe_dir y |
-| `open_loop` | reported | the reference: a fixed scan list and a fixed estimator |
-| `header_shift` | reported | the reference with the displacement from the printed water-fat shift instead of the measured one |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | two scans of opposite readout direction per axis at one low bandwidth, profiles through every region: room and displacement per fat border, then the bandwidth that uses 0.9 of the room |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; the console defaults (300 Hz per pixel, ro_polarity 1, pe_dir y) |
+| `default_bandwidth` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then the console defaults |
+| `highest_bandwidth` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then the highest bandwidth the gradients allow at this geometry |
+| `fixed_recipe` | fail | 2/300 (0.7 %; upper bound 2.1 %) | 3/300 (1.0 %; upper bound 2.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then one bandwidth, readout direction and axis for every region, tuned on other worlds |
+| `sweep` | fail | 1/300 (0.3 %; upper bound 1.6 %) | 1/300 (0.3 %; upper bound 1.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | three scans at fixed bandwidths with ro_polarity 1; per region the lowest of them at which its signal has not risen |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's bandwidth in kHz per pixel |
+| `one_direction` | ablation | 30/300 (10.0 %; 90.0 points below the reference, lower bound 87.1) | 39/300 (13.0 %; 87.0 points below the reference, lower bound 83.8) | 27/300 (9.0 %; 91.0 points below the reference, lower bound 88.3) | measures like the reference, always delivers ro_polarity 1 |
+| `fixed_axis` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 33/300 (11.0 %; 89.0 points below the reference, lower bound 86.0) | measures along x only and keeps pe_dir y |
+| `open_loop` | reported | 300/300 (100.0 %) | 300/300 (100.0 %) | 300/300 (100.0 %) | the reference: a fixed scan list and a fixed estimator |
+| `header_shift` | reported | 294/300 (98.0 %) | 295/300 (98.3 %) | 294/300 (98.0 %) | the reference with the displacement from the printed water-fat shift instead of the measured one |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#0` 0.7 % (upper bound 2.1 %); level 2 `fixed_recipe#0` 1.0 % (upper bound 2.6 %); level 3 `default_bandwidth` 0.0 % (upper bound 1.0 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.02476 / 0.03665; level 2 0.02571 / 0.03594; level 3 0.02501 / 0.03496; scan time used (median): level 1 63.9 s, level 2 63.9 s, level 3 127.8 s.
 
 ## Validity
 

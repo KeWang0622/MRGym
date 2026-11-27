@@ -3,7 +3,7 @@
 
 **C · The system** · gradient chain · kind 1, measure · isolates C16: Gradient calibration: the scale of the image. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 3 % (95 % bounds)
 
 The geometry test of quality control as a calibration. A length read off an image is the true length times the gradient's scale only where the edge is found between the pixels, where the main field does not displace it (the phase-encode axis, or a pair of opposite readout polarities), and where the gradient is linear (near the isocentre).
 
@@ -72,20 +72,24 @@ Limits: 40 scanner requests and 64 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/GradientCal-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/GradientCal-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | two scans with swapped axes; each length on the phase-encode axis; edges at half of the local plateau, interpolated; with non-linear gradients the bar pairs as well, extrapolated to the isocentre |
-| `prior` | fail | no scan; both scales 1.000 |
-| `fixed_recipe` | fail | one token scan, then the pair of scales of another world |
-| `wrong_units` | fail | the reference's answer as the error in percent |
-| `brute_force` | fail | a bandwidth sweep in one orientation; both diameters averaged over the sweep |
-| `pixel_count` | fail | one coarse scan; diameter = pixels above half the maximum x the pixel size |
-| `single_scan` | fail | the reference's first scan alone, both diameters read on it |
-| `diameter_only` | ablation | the reference without the bars: scale = diameter / 190 mm |
-| `open_loop` | reported | a fixed scan list (two scans with swapped axes) and the reference's estimator |
-| `max_bandwidth` | reported | one scan at the strongest readout gradient the console accepts, both diameters read on it |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | two scans with swapped axes; each length on the phase-encode axis; edges at half of the local plateau, interpolated; with non-linear gradients the bar pairs as well, extrapolated to the isocentre |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; both scales 1.000 |
+| `fixed_recipe` | fail | 2/300 (0.7 %; upper bound 2.1 %) | 3/300 (1.0 %; upper bound 2.6 %) | 2/300 (0.7 %; upper bound 2.1 %) | one token scan, then the pair of scales of another world |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's answer as the error in percent |
+| `brute_force` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | a bandwidth sweep in one orientation; both diameters averaged over the sweep |
+| `pixel_count` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one coarse scan; diameter = pixels above half the maximum x the pixel size |
+| `single_scan` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's first scan alone, both diameters read on it |
+| `diameter_only` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | the reference without the bars: scale = diameter / 190 mm |
+| `open_loop` | reported | 300/300 (100.0 %) | 300/300 (100.0 %) | 300/300 (100.0 %) | a fixed scan list (two scans with swapped axes) and the reference's estimator |
+| `max_bandwidth` | reported | 0/300 (0.0 %) | 0/300 (0.0 %) | 0/300 (0.0 %) | one scan at the strongest readout gradient the console accepts, both diameters read on it |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#0` 0.7 % (upper bound 2.1 %); level 2 `fixed_recipe#2` 1.0 % (upper bound 2.6 %); level 3 `fixed_recipe#0` 0.7 % (upper bound 2.1 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.00068 / 0.00111; level 2 0.00061 / 0.0011; level 3 0.00037 / 0.00101; scan time used (median): level 1 52.2 s, level 2 52.2 s, level 3 52.2 s.
 
 ## Validity
 

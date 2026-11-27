@@ -1,9 +1,10 @@
 # The signal core: a sequence as a list of blocks, evaluated from the Bloch equation
 
 `mrgym.core` computes the signal of a pulse sequence that is written as a list of blocks. It is a library next to the
-scanner engine. Nothing in the scanner uses it yet: `mrgym.scanner` still computes each of its six sequences from
-that sequence's own closed-form steady state. The core reproduces those six from block lists (section 9, group
-"engine") and adds eleven sequences that the scanner does not serve. It holds no state and serves no task.
+scanner engine. `mrgym.scanner` still computes each of its six sequences from that sequence's own closed-form steady
+state; the core reproduces those six from block lists (section 9, group "engine"; in shadow at the console, section
+11) and holds eleven more sequences. Four of them (`fse`, `mese`, `megre`, `dwse`) are served by a console whose card
+lists them: section 11 says how. The core holds no state and serves no task.
 
 Read [conventions.md](conventions.md) and [design.md](design.md) first; the sign conventions here are theirs
 (section 8).
@@ -273,7 +274,7 @@ paper that was not opened for this work, the row says so and names the independe
 | Q16d | fat saturation as the engine SERVES it, line by line (`Engine._species`): spgr (hard and selective, RF spoiled), se, ir, epi on an abdomen world at 1.5 T, 2 voxels of each of 3 fat tissues x 6 lines; the lines keep 5 to 100 % of their longitudinal magnetisation at the pulse | `library.served` with the saturation of each line as an event (the share of the band a line receives is the engine's, `kspace.sat_band`). The engine interpolates over the flip angle and over q; the core solves every line, voxel and column. For the RF-spoiled spgr the core plays the spoiler before the saturation pulse and the engine spreads it over the whole TR: with the diffusion of fat the two models differ by the size printed here; se, ir and epi agree to the engine's interpolation (1e-8) | 1.2e-05 relative | ≤ 1.0e-04 | pass |
 | Q15 | two-angle variable-flip-angle T1 on a slice with the nominal angles in the fit (row R12): the two slice signals | `kspace.slice_signal` with ideal spoiling; the bias they give is -37 to -76 % (published: 40 to 80 % underestimation, Svedin & Parker 2017) | 2.9e-14 relative | ≤ 1.0e-12 | pass |
 
-### Sequences the scanner does not serve
+### Sequences beyond the six
 
 | # | Quantity | Closed form or independent method | Largest error | Tolerance | |
 |---|---|---|---|---|---|
@@ -404,4 +405,116 @@ Reading it against a budget of about a second per scan, for the amplitudes alone
   order kept, and after 500 TR the long-T1 tissues have not arrived. The periodic solve is what makes these
   sequences affordable.
 
-Not measured here: the cost of forming an image from amplitudes that differ from line to line.
+The cost of forming an image from amplitudes that differ from line to line: section 11.
+
+## 11. How the console uses the core
+
+**One registry.** `scanner/console.py::REGISTRY` holds one entry per sequence (`console.Sequence`): the parameters
+with their ranges, the timing rule (a function of the plan context that returns echo and repetition times, the RF
+pulses of a cycle for the RF power, and the cycles per average), the sampling plan (`console.Sampling`: which image
+is made from which sample of the cycle, which sample fills which phase-encode line), where the amplitude comes from
+(`serves`: "closed form" or "core"), and the block list of a realised protocol (`Sequence.blocks`, which is
+`core.library.served`: one source for what is served and for what is compared). `console.plan` is three stages
+(`_prescribe`, the entry's timing rule, `_conclude`); `Engine.clean_kspace` forms the k-space of a scan by the
+entry (`kspace.FORMATION`).
+
+**The six stay where they were.** Their entries say `serves = "closed form"`: the code path and every byte of a scan
+are those of engine 0.3.0 (`tests/test_compat_2d_unchanged.py`, the golden digests and the id fingerprints are
+untouched). Their block lists run in shadow: rows J1 to J6 of `mrgym validate --group core` solve the registry's
+block list of each with `core.periodic` and compare with `Engine.amplitudes`.
+
+**A console offers what its card lists.** `console.offered(exam)`: the six, and the sequences named by
+`exam["sequences"]` (world spec `console_sequences`, a list or "all"). A card without the key is the console of
+before: its schema, its refusals and its scanner card do not change, so no environment id moves. The tool layer of
+the environments (`envs/scanner_env.py`: help topics, examples) does not know the four yet; `Engine.scan`, the
+session (`ScannerSession`, log and replay) and the console do. Their manual is the supplement
+[scanner-core.md](../scanner-core.md) (`scanner/datasheet_core.md`).
+
+**Amplitudes** (`scanner/served.py::table`), per tissue class on Chebyshev nodes of the transmit scale:
+
+| Sequence | Block list | How it is solved | Check |
+|---|---|---|---|
+| `fse`, `mese` | `library.fse` / `mese`: real crushers of one cycle either side of every refocusing pulse, an ideal crusher at the end of the repetition | reduced exactly to the refocusing flip angle (below): three single shots of `core.epg` on (echoes + 3) Chebyshev points of its cosine | J7 to J11, J19 to J24 |
+| `dwse` | `library.dwse`: the lobes as gradient blocks with their shape moments; b = 0: `library.se` | `core.periodic` on every slice column | J31 to J36, J15 |
+| `megre` | `library.spgr` (the steady state of the engine's `spgr`; the echoes are read by the readout stage) | `core.periodic`: ideal spoiling in every slice column, the departure from it on 16 nodes of the flip angle | J25 to J30 |
+
+**An echo train reduces to one angle.** In a train with equal delays and equal crushers either side of every
+refocusing pulse, a refocusing rotation (a, b) acts on the sampled echoes as the hard pulse of flip angle
+θ = 2 asin|b| about the transverse axis of phase arg(b) + 90°: the phase of a is a turn about z that is the same
+before and after the pulse, a precession, and every pathway that is sampled at order 0 has refocused it. The states
+split into two families that the pulses never mix, since a pulse couples F_k, conj(F_−k) and Z_k of one |k| and a
+crusher moves every F by one: the family that starts from the transverse magnetisation after the excitation (odd
+orders at the pulses: the echoes and the gratings Z_odd) and the family that starts from the longitudinal
+magnetisation (even orders at the pulses: free induction decays that are never at order 0 when an echo is sampled,
+and Mz itself). With m0 and c0 the transverse and the longitudinal magnetisation right after the excitation per unit
+of Mz before it, in the frame in which the refocusing axis is y,
+
+    echo_n = Mz (u A_n(θ) + v B_n(θ)),  u = −Im m0, v = Re m0;      Mz of the next repetition = c0 P(θ) Mz + R(θ),
+
+and A_n, B_n, P, R are polynomials of degree ≤ n in cos θ. Three single shots (excitation about x, about y, none) on
+n + 3 Chebyshev points therefore give them without interpolation error, the periodic Mz is R / (1 − c0 P), and the
+echoes of every slice column and transmit scale follow from the two rotations of that column. Row J8 compares with
+the periodic solve of every column (1.8e-15), row J9 with the isochromat ensemble, row J20 with the phase graph of
+the design layer. An independent review re-derived the statement and confirmed it with its own isochromat ensemble
+for general rotations (3e-15); it does not hold when the refocusing rotation changes along the train, and such a
+train (one angle per echo: the seam for the design layer) is solved on every column instead. What the reduction
+bought: the integral through the slice and the dependence on the transmit scale oscillate with the echo number; on
+the engine's own slice columns a train of 32 echoes was off by 6e-3, and 9 transmit nodes by 5e-4. With the
+reduction 4 times the columns and up to 72 nodes cost nothing (rows J10, J11).
+
+**Image formation with an amplitude that changes from line to line** (`served.form_lines`). With a(c, j, s) the
+table (class c, node j, sample s), s(p) the sample that fills line p, g_c(x) the evolution of class c along the
+readout, one factorisation a(c, j, s) g_c(x) = Σ_t U[c, j, t] H[t, s, x] + R of a small matrix gives
+S(p, x) = Σ_t H[t, s(p), x] K[image of U_t](p, x): one coefficient image per term, transformed along the
+phase-encode axis first. The rank is the smallest for which
+κ max_(s,x) Σ_c mass_c Λ_c max_j |R[c, j, s, x]| ≤ 0.05 standard deviations of the receiver noise of one k-space
+sample at 64 averages (κ: gain of the displacement operator; mass_c: the largest sample class c can make; Λ_c: the
+Lebesgue constant of the interpolation over the transmit scale). Row J12: every sample against the Fourier sum line
+by line (7e-15); J13: the truncation error is 0.13 to 0.28 of its bound; J14: in the image, where the errors of the
+samples add coherently, a pixel is off by 0.016 of its noise at 64 averages; J16, J17: the T2 blurring of `fse` is
+the point-spread function it should be.
+
+**Seconds per scan.** `mrgym timing --cpu` (processor seconds of one process, brain world at 3 T, noise-free data
+not cached). Measured on a machine that ran some forty other processes on a quota of 32 cores: read the rows
+against `se`, not as absolute numbers.
+
+<!-- timing of the core sequences: begin -->
+| Sequence | matrix 64 | matrix 128 | matrix 256 |
+|---|---:|---:|---:|
+| spgr | 0.47 | 0.36 | 0.49 |
+| spgr, 4 echoes | 1.31 | 1.44 | 1.53 |
+| afi | 1.23 | 0.85 | 1.01 |
+| se | 0.41 | 0.64 | 0.65 |
+| ir | 0.44 | 0.54 | 0.60 |
+| bssfp | 0.80 | 0.95 | 0.86 |
+| epi | 1.17 | 1.46 | refused |
+| fse, 8 echoes | 1.26 | 1.27 | 1.94 |
+| fse, 16 echoes | 1.52 | 1.76 | 2.54 |
+| fse, 32 echoes | 2.56 | 2.50 | 3.00 |
+| mese, 8 echoes | 1.41 | 1.38 | 2.13 |
+| mese, 32 echoes | 2.73 | 3.12 | 5.33 |
+| megre, 4 echoes | 1.29 | 1.33 | 1.58 |
+| megre, 16 echoes | 4.07 | 4.53 | 5.96 |
+| dwse, b 0 | 0.44 | 0.47 | 0.57 |
+| dwse, b 1000 | 0.40 | 0.42 | 0.49 |
+<!-- timing of the core sequences: end -->
+
+(Median of 2. A second run of the same command gave `fse, 16 echoes` 1.81 to 2.63, `mese, 32 echoes` 3.24 to 5.37
+and `se` 0.40 to 0.61: the load of the machine moves a number by a third. Not re-timed on a quiet machine.) A scan of `dwse` costs what `se` costs;
+`megre` costs what `spgr` costs per echo; an echo train costs 3 to 4 times a spin echo at 16 echoes and 5 to 8 times
+at 32, most of it in the transforms of the 15 to 45 coefficient images.
+
+Limits the console sets for these sequences, each refused with its reason: `fse` and `mese` at most 32 echoes and
+matrix 256; `megre` at most 16 echoes.
+
+**Not served, and what each would need.**
+
+| Sequence of the library | Why not in this package | What it needs |
+|---|---|---|
+| `mprage` (inversion-prepared gradient-echo train), `satrec`, `t2prep` | not built: time | a timing rule and a sampling plan (lines per shot, order); the amplitude is one number per line and class with ideal spoiling, so `form_lines` takes it as it is |
+| `ir` with an inversion that depends on T2 (known difference 13 of [measured.md](measured.md)) | the core has no relaxation during a pulse | a block that carries the result of `design.rotation.bloch`, which is not a rotation |
+| `mt_spgr` | each tissue of the world is one pool | a bound fraction, an exchange rate and a bound-pool T2 per tissue class, with sources; the saturation pulse in the timing and the RF power |
+| `dess`, `spgr_lobe` (a real spoiler) | 0.85 and 1.3 s per 510 columns in the periodic solve | the flip-angle nodes of `megre` (exact for these sequences too); for `dess` the readout evolution of the second echo |
+| `steam` | three selective pulses per column: no reduction to one angle | cheap per column; a timing rule (TE, TM) and crushers on a second axis |
+| gratings that survive the repetition in `fse`, `mese`, `dwse` (rows J23, J24: 7e-3 at T1 900 ms, 0.16 for a fluid at TR 1500 ms) | the reduction rests on the ideal crusher | the odd-order gratings as part of the periodic state: a linear system of about 2 n unknowns per column |
+| the six on the core | every served number would move at 1e-12 or more | one engine version with a table of differences |

@@ -3,11 +3,11 @@
 
 **B · Spatial encoding and reconstruction** · coverage of k-space · kind 2, set · isolates B15: Rectangular field of view and phase oversampling. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 97 %, no policy that ignores the object passes more than 3 % (95 % bounds)
 
 An object larger than the field of view folds over. The examination needs four regions free of wrap-around and does not care where else the image folds. The agent looks (a localiser costs scan time), finds where the object ends on the lines through each region, and prescribes the smallest phase field of view whose copies of the object miss the region. A field of view that holds the whole object is valid and too slow.
 
-Kind of task: **undetermined** (no stored gate result).
+Kind of task: **measurement** (reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)).
 
 ```python
 import mrgym
@@ -70,23 +70,27 @@ Limits: 32 scanner requests and 40 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/FoldAway-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/FoldAway-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | one localiser; per region the ends of the object on the lines through it; fold-free phase field of view plus 2 pixels, along the better direction |
-| `prior` | fail | no scan; the full phase field of view, centred on each region |
-| `fixed_recipe` | fail | one token scan, then one geometry from the task text alone (axis and lines), tuned on other worlds |
-| `whole_object` | fail | the NoWrap answer: the phase field of view holds the whole object along its narrowest direction |
-| `region_only` | fail | one token scan, then the smallest phase field of view of the console, centred on the region |
-| `sweep` | fail | one full scan and one small-field-of-view probe per region; keeps the small one where the region's signal did not change |
-| `wrong_units` | fail | the reference's geometry with the phase field of view in millimetres |
-| `fixed_axis` | ablation | the reference with the phase-encode axis always along y, never turned |
-| `whole_extent` | ablation | the reference with the ends of the whole object instead of its ends on the lines through the region |
-| `no_turn` | ablation | the reference with the better of the two upright axes, never turned |
-| `no_margin` | ablation | the reference without the pixels kept for the ringing of the folded edge |
-| `stated_method` | reported | the method level 1 states: one fold-free extent per region from the outermost ends of the object over its width, plus 2 pixels |
-| `open_loop` | reported | a fixed scan list and a fixed estimator: the reference itself (no scan depends on a measurement) |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 297/300 (99.0 %; lower bound 97.4 %) | 298/300 (99.3 %; lower bound 97.9 %) | one localiser; per region the ends of the object on the lines through it; fold-free phase field of view plus 2 pixels, along the better direction |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; the full phase field of view, centred on each region |
+| `fixed_recipe` | fail | 4/300 (1.3 %; upper bound 3.0 %) | 1/300 (0.3 %; upper bound 1.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then one geometry from the task text alone (axis and lines), tuned on other worlds |
+| `whole_object` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the NoWrap answer: the phase field of view holds the whole object along its narrowest direction |
+| `region_only` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then the smallest phase field of view of the console, centred on the region |
+| `sweep` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one full scan and one small-field-of-view probe per region; keeps the small one where the region's signal did not change |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | the reference's geometry with the phase field of view in millimetres |
+| `fixed_axis` | ablation | 70/300 (23.3 %; 76.7 points below the reference, lower bound 72.6) | 68/300 (22.7 %; 76.3 points below the reference, lower bound 72.2) | 1/300 (0.3 %; 99.0 points below the reference, lower bound 98.0) | the reference with the phase-encode axis always along y, never turned |
+| `whole_extent` | ablation | 124/300 (41.3 %; 58.7 points below the reference, lower bound 54.0) | 123/300 (41.0 %; 58.0 points below the reference, lower bound 53.2) | 32/300 (10.7 %; 88.7 points below the reference, lower bound 85.6) | the reference with the ends of the whole object instead of its ends on the lines through the region |
+| `no_turn` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 297/300 (99.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 16/300 (5.3 %; 94.0 points below the reference, lower bound 91.7) | the reference with the better of the two upright axes, never turned |
+| `no_margin` | ablation | 229/300 (76.3 %; 23.7 points below the reference, lower bound 19.6) not required here | 31/300 (10.3 %; 88.7 points below the reference, lower bound 85.6) | 36/300 (12.0 %; 87.3 points below the reference, lower bound 84.2) | the reference without the pixels kept for the ringing of the folded edge |
+| `stated_method` | reported | 300/300 (100.0 %) | 300/300 (100.0 %) | 300/300 (100.0 %) | the method level 1 states: one fold-free extent per region from the outermost ends of the object over its width, plus 2 pixels |
+| `open_loop` | reported | 300/300 (100.0 %) | 297/300 (99.0 %) | 298/300 (99.3 %) | a fixed scan list and a fixed estimator: the reference itself (no scan depends on a measurement) |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#1` 1.3 % (upper bound 3.0 %); level 2 `fixed_recipe#1` 0.3 % (upper bound 1.6 %); level 3 `fixed_recipe#0` 0.0 % (upper bound 1.0 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.04211 / 0.06897; level 2 0.02381 / 0.02985; level 3 0.02597 / 0.03077; scan time used (median): level 1 10.5 s, level 2 10.5 s, level 3 10.5 s.
 
 ## Validity
 

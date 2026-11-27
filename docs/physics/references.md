@@ -117,6 +117,29 @@ slice gradient (`rf.fwhm_factor`) are derivations of this package, checked again
 (rows S16, S17, R13, R14 of `mrgym validate`); no publication is cited for them. The six-line fat spectrum is the
 model of Hernando 2017 (labelled Hamilton 2011 until engine 0.2.0; `tests/test_cited_tables.py`).
 
+## Added with the sequences served from the block-list core
+
+Named in `scanner/tissue.py` (the sources of the diffusion coefficients), `scanner/console.py` and
+`scanner/served_checks.py`. The two records of diffusion in tissue were fetched from Europe PMC on 2026-11-27 and
+their **abstracts** read: the values of `tissue.ADC_SOURCES` tagged [A] are the numbers of those abstracts. The
+two records of water were fetched from Crossref on the same day; **neither paper was opened and neither record has
+an abstract**: the formula of `tissue.water_adc_um2_ms` is recalled, tagged [R], and was checked only against the
+value at 25 °C that is attributed to the second paper.
+
+| Reference | Record | Used in | Checked against |
+|---|---|---|---|
+| Helenius 2002 | J. Helenius, L. Soinne, J. Perkiö, O. Salonen, A. Kangasmäki, M. Kaste, R. A. Carano, H. J. Aronen, T. Tatlisumak. Diffusion-weighted MR imaging in normal human brains in various age groups. *AJNR American Journal of Neuroradiology* 23(2):194-199, 2002. PMID 11847041 (no DOI in the record) | `scanner/tissue.py` (`ADC_SOURCES`: white matter, cortical and deep grey matter) | abstract: 0.70 ± 0.03, 0.89 ± 0.04, 0.75 ± 0.03 × 10⁻³ mm²/s with their ranges; the table's 0.75, 0.85, 0.80 lie inside the ranges |
+| Kılıçkesmez 2008 | O. Kılıçkesmez, G. Yirik, S. Bayramoğlu, T. Cimilli, S. Aydin. Non-breath-hold high b-value diffusion-weighted MRI with parallel imaging technique: apparent diffusion coefficient determination in normal abdominal organs. *Diagnostic and Interventional Radiology* 14(2):83-87, 2008. PMID 18553281 (no DOI in the record) | `scanner/tissue.py` (`ADC_SOURCES`: liver, spleen, kidney cortex and medulla, pancreas) | abstract: liver 1.34 to 1.77, spleen 1.28 ± 0.38, kidney 2.08 ± 0.22 and 1.94 ± 0.18, pancreas 1.59 to 1.68 × 10⁻³ mm²/s; the table's spleen, kidney and pancreas lie within one SD, **its liver (1.10) lies below the abstract's range** |
+| Holz 2000 | M. Holz, S. R. Heil, A. Sacco. Temperature-dependent self-diffusion coefficients of water and six selected molecular liquids for calibration in accurate 1H NMR PFG measurements. *Physical Chemistry Chemical Physics* 2(20):4740-4742, 2000. doi:10.1039/b005319h | `scanner/tissue.py` (`water_adc_um2_ms`; cerebrospinal fluid as free water at 37 °C) | not opened; the recalled fit gives 2.299 µm²/ms at 25 °C |
+| Mills 1973 | R. Mills. Self-diffusion in normal and heavy water in the range 1-45°. *The Journal of Physical Chemistry* 77(5):685-688, 1973. doi:10.1021/j100624a025 | `scanner/tissue.py` (the value at 25 °C that the fit above is checked against) | not opened |
+| Stejskal & Tanner 1965 | E. O. Stejskal, J. E. Tanner. Spin diffusion measurements: spin echoes in the presence of a time-dependent field gradient. *The Journal of Chemical Physics* 42(1):288-292, 1965. doi:10.1063/1.1695690 (record not fetched for this release) | `scanner/console.py` (`diffusion_b`, `_time_dwse`), `scanner/served_checks.py` (J31 to J33) | not compared with the paper; the trapezoid form is checked against the integral of the waveform (J32) and against a separately written integral by the independent review |
+
+The reduction of an echo train to its refocusing flip angle (`served.train_response`) and the bound of the line
+basis (`served.line_basis`) are derivations of this package, checked against separately written calculations (rows
+J8, J9, J12, J13, J20 of `mrgym validate`) and re-derived by an independent review; no publication is cited for
+them. The echo formulas of two echoes in the datasheet supplement are those attributed to Hennig 1988 above (row N1
+of the core).
+
 ## Reference objects and the examined outline
 
 Documents that were opened and read for the phantom worlds (`anatomy.acr`, `anatomy.nist_t1`), the QA command

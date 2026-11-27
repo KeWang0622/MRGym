@@ -4,7 +4,7 @@ What is in the box: the demo, the scanner, an episode, speed, limits and where t
 [README](../README.md) is the short version; the [scanner manual](scanner.md) is what the agent reads.
 
 <!-- COUNTS:START -->
-| 6 sequences | 5 phantoms | 2 field strengths | 25 tissue rows, each with a source tag | 79 physics checks | 23 environments (candidate, practice, sandbox) |
+| 6 sequences | 5 phantoms | 2 field strengths | 25 tissue rows, each with a source tag | 119 physics checks | 23 environments (admitted, candidate, practice, sandbox) |
 |---|---|---|---|---|---|
 <!-- COUNTS:END -->
 
@@ -150,7 +150,8 @@ What this does not show.
 - Simulated objects only: a pass does not establish that an agent can operate a real scanner.
 - No independent expert review of any environment.
 - The generator is public: the secret split hides instances behind a key, not the task.
-- One slice, one receive channel, no fast spin echo, no motion: [limits.md](physics/limits.md).
+- One slice, one receive channel, no echo train in any environment (a console can list one), no motion:
+  [limits.md](physics/limits.md).
 - The gate shows that the listed shortcuts fail, not that no shortcut exists.
 - Training: exploratory first runs, one sampler seed each: [their limits](experiments/RESULTS-27b.md).
 

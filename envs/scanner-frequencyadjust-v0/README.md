@@ -3,11 +3,11 @@
 
 **C · The system** · static field · kind 1, measure · isolates C3: Centre frequency and its adjustment. [The map](../../docs/tasks.md)
 
-**Status:** CANDIDATE: the gate has not been run (no stored result)
+**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 3 % (95 % bounds)
 
-The first adjustment of every examination, as a number. A gradient echo carries the phase 2 pi x offset x TE on top of the unknown phase of the receive coil, so the offset is in the phase difference of two echoes, modulo 1 / (the echo-time difference). A short difference covers a wide range and is less precise, a long one is more precise and wraps; fat lies 3.4 ppm below water and a frequency read on it is not the water frequency. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.
+The first adjustment of every examination, as a number. A gradient echo carries the phase 2 pi x offset x TE on top of the unknown phase of the receive coil, so the offset is in the phase difference of two echoes, modulo 1 / (the echo-time difference). A short difference covers a wide range and is less precise, a long one is more precise and wraps; fat lies 3.4 ppm below water and a frequency read on it is not the water frequency. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0 at level 1, 0 at level 2, 0 at level 3; 300 instances per level; 25 points or more make a decision task).
 
-Kind of task: **undetermined** (no stored gate result).
+Kind of task: **measurement** (reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)).
 
 ```python
 import mrgym
@@ -72,18 +72,22 @@ Limits: 32 scanner requests and 40 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/FrequencyAdjust-v0 --n 300 --write` measures and stores it.
+Run 2026-11-27 on engine `mrgym-engine-0.3.0`, package 0.1.0.dev0: `mrgym gate Scanner/FrequencyAdjust-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
-| Policy | Must | What it does |
-|---|---|---|
-| `reference` | pass | multi-echo spgr, phase differences on a ladder of echo-time differences (0.3 ms to two echo spacings); oil named by its shift |
-| `prior` | fail | no scan; 0 Hz in every region |
-| `fixed_recipe` | fail | one token scan, then one constant offset for every region, tuned on other worlds |
-| `wrong_units` | fail | the reference's offsets in rad/s (the phase slope, not divided by 2 pi) |
-| `one_echo_sweep` | fail | three single-echo scans; phase / (2 pi TE) of each, averaged (the receive phase is ignored) |
-| `single_spacing` | ablation | two echoes 2 ms apart, no ladder: the method stated at level 1 |
-| `lock_on_fat` | ablation | the reference without the species step: a number for every region |
-| `open_loop` | reported | both scans at every level and the reference's estimator (a fixed scan list) |
+| Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
+|---|---|---|---|---|---|
+| `reference` | pass | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | 300/300 (100.0 %; lower bound 99.0 %) | multi-echo spgr, phase differences on a ladder of echo-time differences (0.3 ms to two echo spacings); oil named by its shift |
+| `prior` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | no scan; 0 Hz in every region |
+| `fixed_recipe` | fail | 3/300 (1.0 %; upper bound 2.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | one token scan, then one constant offset for every region, tuned on other worlds |
+| `wrong_units` | fail | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | 1/300 (0.3 %; upper bound 1.6 %) | the reference's offsets in rad/s (the phase slope, not divided by 2 pi) |
+| `one_echo_sweep` | fail | 1/300 (0.3 %; upper bound 1.6 %) | 0/300 (0.0 %; upper bound 1.0 %) | 0/300 (0.0 %; upper bound 1.0 %) | three single-echo scans; phase / (2 pi TE) of each, averaged (the receive phase is ignored) |
+| `single_spacing` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 144/300 (48.0 %; 52.0 points below the reference, lower bound 47.2) | 11/300 (3.7 %; 96.3 points below the reference, lower bound 94.5) | two echoes 2 ms apart, no ladder: the method stated at level 1 |
+| `lock_on_fat` | ablation | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 300/300 (100.0 %; 0.0 points below the reference, lower bound 0.0) not required here | 0/300 (0.0 %; 100.0 points below the reference, lower bound 100.0) | the reference without the species step: a number for every region |
+| `open_loop` | reported | 300/300 (100.0 %) | 300/300 (100.0 %) | 300/300 (100.0 %) | both scans at every level and the reference's estimator (a fixed scan list) |
+
+Verdict per level: level 1 **admitted**; level 2 **admitted**; level 3 **admitted**.
+Blind ceiling (the must-fail policy that passes most often): level 1 `fixed_recipe#1` 1.0 % (upper bound 2.6 %); level 2 `fixed_recipe#0` 0.0 % (upper bound 1.0 %); level 3 `wrong_units` 0.3 % (upper bound 1.6 %).
+Reference, error of its answer (median / 95th percentile): level 1 0.46195 / 1.01428; level 2 0.74031 / 1.65799; level 3 0.47164 / 1.40218; scan time used (median): level 1 8.9 s, level 2 17.9 s, level 3 17.9 s.
 
 ## Validity
 

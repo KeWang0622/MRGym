@@ -24,7 +24,8 @@ in a body has been compared at all.
 
 **Out of scope.** MR Gym computes a stated model. Not
 modelled, and not testable with `mrgym validate --perturb`: magnetisation transfer and exchange; restricted or
-anisotropic diffusion; flow, perfusion, physiological motion (one periodic line-modulation model exists, block 7);
+anisotropic diffusion (free isotropic diffusion weighting exists on a console that lists `dwse`, block 3a); flow,
+perfusion, physiological motion (one periodic line-modulation model exists, block 7);
 eddy currents, concomitant fields, gradient impulse response; SAR in W/kg, local SAR, nerve stimulation; B0 drift
 and heating; anything through the slice beyond independent columns (one 2D world: no slice positioning, no
 multi-slice cross-talk, no slab profile or slab wrap in the 3D mode); parallel transmit; vendor pulses (the
@@ -41,6 +42,7 @@ python examples/textbook/12_approach_to_steady_state.py    # first sampled line 
 python examples/textbook/13_slice_profile_vfa.py           # two-angle T1 on a 2D slice against 3D
 mrgym validate --group rf                                  # the slice-selective pulse and the slice integral (rows R1 to R15)
 mrgym validate --group encoding                            # image formation: partial Fourier (K29, K30), fat saturation (K28, K31, K32)
+mrgym validate --group core                                # the block-list core behind the console: shadow of the six (J1 to J6), fse, mese, megre, dwse (J7 to J40)
 python tools/external/run_all.py                           # the external ladder (rows L1.1 to L3.10)
 python tools/measured/run_all.py                           # the comparison with measured data (rungs M0 to M9; minutes)
 mrgym timing                                               # seconds of computation per scan
@@ -152,6 +154,9 @@ of the main fat line, T1 of sphere 5 of the NIST plate: `tests/test_cited_tables
   and 180 degree pulses one dummy cycle reaches the periodic state. With a transmit factor of 0.8 or 1.2 the first
   line of white matter at TR 500 ms is 21.8 % below or 13.2 % above it, and each further cycle multiplies the
   error by -0.14 or +0.14. The transients of the RF-spoiled steady state and of `bssfp` are not measured.
+  The sequences served from the block-list core (blocks 3a and 8) are served at the periodic state of the
+  REPETITION too, after one dummy repetition; inside a repetition the echoes of a train are computed one after the
+  other, so the change of the signal along an echo train is in the data.
 - **For a task.** Low-flip-angle data of long-T1 material are cleaner here than on a scanner. A variable-flip-angle
   protocol needs no preparation time beyond what the console charges.
 - **Planned.** Listed on the roadmap as not simulated; no date.
@@ -169,9 +174,39 @@ of the main fat line, T1 of sphere 5 of the NIST plate: `tests/test_cited_tables
   for six tissues at 3 T, flip 5 to 60 degrees, TR 8 to 30 ms, RF increment 117 degrees: 0.965 to 1.293 at
   100 mT·ms/m, 0.878 to 1.001 at 300, 0.944 to 1.001 at 600. The error of the diffusion model itself is not
   measured: rows S5 to S8 of `mrgym validate` check the solver, not the model.
+  `megre` (a console that lists it) is this steady state read at 2 to 16 echo times: row J25 of
+  `mrgym validate --group core` holds its amplitudes within 1e-6 of those of `spgr`, row J26 its images. A bipolar
+  readout alternates the direction of the displacement along the readout and nothing else: there is no phase error
+  between odd and even echoes (the gradient delay of the system acts on `epi` only).
 - **For a task.** The deviation from the Ernst formula is the model's answer. Its direction and rough size are
   credible; its exact value for a given tissue is not established.
 - **Planned.** Not on the roadmap.
+
+## 3a. Diffusion weighting (`dwse`): one free, isotropic coefficient per class
+
+- **Simplified.** On a console that lists `dwse`, a pair of trapezoid lobes either side of the refocusing pulse
+  multiplies the spin echo of every tissue class by exp(-b D), D being the one diffusion coefficient of the class
+  (`tissue.py`, the column the spoiling model of block 3 reads). The lobes are sized from the console's gradient
+  limits and lengthen the minimum echo time; the b-value the console states is the integral of the waveform it
+  plays. Diffusion is free and isotropic, so `diffusion_dir` does not change the data. Left out: the tensor,
+  kurtosis and the perfusion fraction; the b-value of the imaging gradients and their cross terms with the lobes;
+  eddy currents and the heating of the gradient coil; a shorter echo time by lobes that are not placed next to the
+  refocusing pulse (0.1 ms at the default geometry, 6.5 ms at 50 Hz per pixel); the phase errors that motion gives a line-by-line
+  diffusion-weighted spin echo (nothing moves here, and a moving world is refused, block 7). The lobes are taken to
+  crush completely whatever their size, and an ideal crusher ends the repetition (block 8a). The readout is one
+  line per repetition, not the echo-planar readout that diffusion imaging uses on a scanner.
+- **A real scanner** measures an apparent coefficient that depends on direction, diffusion time and b-value, and
+  reads it with a single-shot echo-planar train.
+- **Size here.** `mrgym validate --group core`: the stated b-value against the integral of the waveform and
+  against the request (J31, 1e-6), against the trapezoid closed form (J32) and against the sum the core
+  attenuates with (J33); the coefficient read back from two images of a disc (J35, 1e-9); b = 0 against `se`
+  (J15). The minimum echo time at the default geometry is 8.38, 29.44, 47.32, 58.56, 72.74, 82.7 ms for b = 0,
+  100, 500, 1000, 2000, 3000 s/mm^2 (J36). Of the 25 coefficients of the tissue table 9 lie against a fetched
+  abstract or a formula and 16 are declared; the liver's 1.10 um^2/ms lies below the 1.34 to 1.77 of its source
+  (`python -c "from mrgym.scanner import tissue; [print(r) for r in tissue.adc_report()]"`).
+- **For a task.** The trade of b-value against echo time, T2 shine-through and the noise floor at high b behave as
+  the formulas say. A coefficient measured here is the table's number, not a tissue's.
+- **Planned.** The tensor comes with the 3D world; no date.
 
 ## 4. Single slice
 
@@ -250,23 +285,48 @@ of the main fat line, T1 of sphere 5 of the NIST plate: `tests/test_cited_tables
 - **Size here.** Rows K25 to K27 of `mrgym validate`: copies at `lines x frac(f x TR x averages)` pixels within
   half a pixel, their amplitude within 5 % of `(depth / 2) x |sin(pi f TR averages) / (averages x sin(pi f TR))|`,
   a frozen displacement within 0.05 mm. Agreement with a moving object in a scanner is not measured.
+  The sequences served from the block-list core (`fse`, `mese`, `megre`, `dwse`) do not model movers: a scan of
+  one of them on a world with movers raises an error (`tests/test_served.py`).
 - **For a task.** Ghost position and amplitude respond to TR, averages and the phase-encode direction as the
   formulas say, including the fact that averaging is not a 1 / sqrt(averages) remedy. Anything that needs spin
   history (inflow, saturation of moving blood) is absent.
 - **Planned.** Not on the roadmap.
 
-## 8. No fast spin echo
+## 8. Echo trains (`fse`, `mese`): only on a console that lists them, and idealised
 
-- **Simplified.** `se` and `ir` acquire one phase-encode line per TR.
-- **A real scanner** uses echo trains for T2-weighted and FLAIR imaging and pays with blurring and RF power.
-- **Size here.** `mrgym scan sequence=se tr_ms=3000 te_ms=90 matrix=256` prints TA 12:54.0 and SAR 1 %.
-  `mrgym scan sequence=ir tr_ms=9000 ti_ms=2500 te_ms=90 matrix=256` prints TA 38:36.0 and SAR 2 %. The RF power
-  limit comes into reach only for short TR and large flip angles:
-  `mrgym scan sequence=bssfp tr_ms=4.5 flip_deg=90 matrix=64 bandwidth_hz_per_px=1000 rf_pulse=fast` is refused
-  at 3 T with 153 % of the limit and prints, with `--field 1.5`, SAR 38 %.
-- **For a task.** Scan time, not RF power, limits T2-weighted and FLAIR protocols. The trade of echo-train length
-  against blurring and power does not exist.
-- **Planned.** On the roadmap ("Fast spin echo").
+- **Simplified.** A console offers the six sequences of before unless its card lists more (`console.offered`;
+  world spec `console_sequences`). No shipped environment lists any, so there `se` and `ir` still acquire one
+  phase-encode line per TR and the words of real consoles for an echo train are refused as before. A console that
+  lists `fse` or `mese` serves them from the block-list core ([core.md](core.md), section 11): 90 degree
+  excitation, a train of refocusing pulses of ONE nominal angle with equal crushers either side, every pulse the
+  rotation of the console's windowed sinc at each slice column (the refocusing pulse on 1.5 times the slice), so the
+  stimulated echoes of imperfect refocusing are in the echoes. Idealised: pulses are instantaneous and without
+  relaxation; an ideal crusher ends every repetition (block 8a); nothing diffuses between the crushers; fat is one
+  species with its T1 and T2 (no J coupling, so fat is not brighter than in `se`); there is no magnetisation
+  transfer, no eddy-current phase error between odd and even echoes, no fat saturation and no moving object
+  (block 7). The amplitude changes from line to line; the image is formed from a low-rank factorisation of that
+  dependence whose truncation error is bounded by 0.05 standard deviations of the receiver noise of one k-space
+  sample at 64 averages (in the image, where the errors of the samples add coherently: measured 0.016 of the noise
+  of a pixel at 64 averages, row J14). The transmit scale of a voxel enters by interpolation over Chebyshev nodes. Limits of the
+  simulation, refused with a reason: at most 32 echoes, matrix at most 256 (a scan costs 1.3 to 5.3 s of computing
+  on a busy machine, `mrgym timing --cpu`; [core.md](core.md), section 11).
+- **A real scanner** uses echo trains for T2-weighted and FLAIR imaging and pays with blurring and RF power; its
+  trains have variable refocusing angles, and fat is bright in them.
+- **Size here.** `mrgym validate --group core`. Exact pulses against the closed form (J7, 1e-12); the slice
+  against the rotation of every column (J8), against the isochromat ensemble (J9) and, for `mese`, against the
+  phase graph of the design layer (J20); interpolation over the transmit scale (J10, 2e-6 of the largest echo) and
+  the integral through the slice (J11, 1e-7); k-space against the Fourier sum line by line (J12) and the truncation
+  against its bound (J13, J14); T2 blurring within 5 % of 2 ETL ESP / (pi T2) pixels and within 1 % of the
+  transform of the modulation (J16, J17); the effective echo time (J18); scan time and RF power (J37, J38). A train
+  of 16 pulses of 180 degrees every 140 ms is refused at 3 T for RF power (J40). Against a published measurement of
+  the T2 error of a multi-echo spin echo: [measured.md](measured.md), rung M3b (6.0 to 18.4 points below it as
+  served; the measurement is bracketed with the published ratio of the two slices).
+- **For a task.** On a console without the sequences: scan time, not RF power, limits T2-weighted protocols, and
+  the trade of echo-train length against blurring and power does not exist. On a console with them it exists, with
+  the idealisations above; a T2 fitted to `mese` echoes carries the stimulated-echo bias of this slice profile,
+  not of a product pulse.
+- **Planned.** Variable refocusing angles through the design layer (the block list takes one angle per echo
+  already); no date.
 
 ## 8a. Spin echoes: crushed means gone
 
@@ -280,6 +340,13 @@ of the main fat line, T1 of sphere 5 of the NIST plate: `tests/test_cited_tables
 - **Size here.** Row L1.4 of `python tools/external/run_all.py`: with the grating kept, the independent integrator
   gives -2 to +39 % of the served signal in its five cases (TR 300 to 2000 ms, T1 500 to 1200 ms, B1 80 to
   115 %). The served model itself agrees with the integrator to the tolerance of that row.
+  `fse`, `mese` and `dwse` keep every pathway INSIDE a repetition (real crushers of one cycle; the stimulated
+  echoes of a train are served) and end the repetition with the same ideal crusher: only Mz of each column
+  survives to the next excitation. Rows J23 and J24 of `mrgym validate --group core` measure what that leaves out
+  for a train of 18 echoes, with the design layer's phase graph that keeps the gratings: up to 6.8e-3 of the
+  largest echo at TR 1500 ms and T1 900 ms; for a fluid (T1 4000 ms, T2 2000 ms) 0.162, 0.080 and 0.028 of it at
+  TR 1500, 3000 and 6000 ms. The signal of cerebrospinal fluid in `fse` and `mese` at a TR below about 6 s is
+  therefore not that of a scanner with a constant spoiler.
 - **For a task.** Spin-echo signal against TR and B1 is that of a sequence whose crushers work perfectly between
   repetitions. An absolute spin-echo signal at short TR should not be carried over to a scanner.
 - **Planned.** Not on the roadmap.
@@ -404,7 +471,8 @@ of the main fat line, T1 of sphere 5 of the NIST plate: `tests/test_cited_tables
   within +-20 % per vial (`anatomy.QA_SPEC["oil_t1_jitter"]`), so that the inversion time that nulls oil differs
   between worlds.
 - **A real scanner** measures what the subject has.
-- **Size here.** Not measured. [references.md](references.md) states how far each source was checked.
+- **Size here.** Not measured. [references.md](references.md) states how far each source was checked. The diffusion
+  coefficients have their own table of sources (`tissue.ADC_SOURCES`; block 3a).
 - **For a task.** Values are of the right size. Do not quote them as literature values, and do not expect a
   tissue to be recognisable from its numbers alone.
 - **Planned.** Not on the roadmap.

@@ -1268,5 +1268,7 @@ def build(seed, sp, layout_only=False, rot_deg=0.0, base=None):
     w["console"] = dict(fov_mm=EXAM_FOV_MM[kind], min_pixel_mm=round(2.0 * extent / n, 3), b1rms_limit_ut=W.B1RMS_LIMIT_UT[b0_t], b0_t=b0_t)
     if sp.get("console_system"):
         w["console"]["system"] = dict(sp["console_system"])
+    if sp.get("console_sequences"):                                     # as in ``world._build``
+        w["console"]["sequences"] = sp["console_sequences"] if isinstance(sp["console_sequences"], str) else list(sp["console_sequences"])
     w.update(rot_deg=float(rot_deg), gnl=None, source=dict(kind="seed", seed=seed, spec=sp))
     return w

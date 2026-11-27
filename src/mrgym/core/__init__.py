@@ -8,7 +8,8 @@
 ``library``    sequences as data: the six the scanner serves and eleven it does not
 ``validate``   every number against a closed form or an independent computation: ``python -m mrgym.core.validate``
 
-Nothing here feeds the scanner yet: ``mrgym.scanner`` is imported by ``validate`` only, to compare.
+The scanner uses it for the sequences a console serves from block lists (``scanner/served.py``: fse, mese, megre,
+dwse); here ``mrgym.scanner`` is imported by ``validate`` only, to compare.
 Principles, conventions and the validation table: docs/physics/core.md.
 """
 from . import bloch, blocks, epg, library, operators, periodic

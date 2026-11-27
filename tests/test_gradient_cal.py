@@ -116,7 +116,7 @@ def test_under_non_linear_gradients_the_edge_of_the_disc_is_not_at_the_scale_of_
 # ---------------------------------------------------------------------------------------------- instances
 def test_the_family_is_registered_and_says_what_it_isolates():
     spec = mrgym.spec(ENV_ID)
-    assert (spec.kind, spec.levels, spec.default_level, spec.family) == ("candidate", (0, 1, 2, 3), 2, "mrgym.envs.gradient_cal")
+    assert spec.kind in ("candidate", "admitted") and (spec.levels, spec.default_level, spec.family) == ((0, 1, 2, 3), 2, "mrgym.envs.gradient_cal")
     assert (task.SUBJECT, task.KIND) == ("C", "measure") and isinstance(task.ISOLATES, str) and task.ISOLATES
     assert set(task.COMPETENCIES) <= set(coverage.ids()) and "qc.geometric_accuracy" in task.COMPETENCIES
     assert (task.DIAMETER_MM, task.BAR_MM, task.BARS_MM) == (190.0, 1.2, (7.5, 22.5, 37.5, 52.5))
