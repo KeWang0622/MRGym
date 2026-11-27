@@ -38,7 +38,7 @@ have zero width when every episode fails.
   variance of a cell mean is `p (1 - p) (rho + (1 - rho) / K) / M`: for a fixed number of episodes, one episode per
   instance is the most precise design. Two is the smallest number that also gives retest agreement, the
   between-instance share of variance and pass^2.
-- **Instances.** The `report` suite ([results/manifests/report.json](../results/manifests/report.json)): string seeds
+- **Instances.** The `report` suite ([results/manifests/report.json](results/manifests/report.json)): string seeds
   `report:<i>`, disjoint by prefix from the seeds of the gate (`gate:<i>`), of tuning (`tune:<set>:<i>`) and of
   checkpoint selection (`val:<i>`). Every agent plays the whole list; a row with another list is another table.
 - **Sampling.** The temperature is the provider's documented default, sent explicitly and recorded. It is not tuned,
@@ -98,7 +98,7 @@ for low discrimination.
 
 ## 6. Reliability
 
-`mrgym stats reliability` and the generated section of [results/README.md](../results/README.md) report, per agent and
+`mrgym stats reliability` and the generated section of [results/README.md](results/README.md) report, per agent and
 environment: the between-instance share of variance (one-way ICC with its F interval), the effective sample size,
 retest agreement and pass^2; per environment over the model panel: the separation of the agents, Cronbach's alpha
 and the split-half correlation (only with five or more models that pass anything), dead instances, the classical

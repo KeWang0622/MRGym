@@ -14,6 +14,30 @@ Three versions travel with every number:
 
 ## Unreleased
 
+### The repository is laid out for someone who wants to use the environment
+
+No reward, no scan data and no id changes.
+
+- **Front page.** `README.md` is short: what it is, install and use, the tasks, how to add one, whether training works,
+  the docs. What it held before is on [docs/TOUR.md](docs/TOUR.md) (demo transcript, inventory, figures, timing, limits,
+  repository map); the full environment table is [envs/README.md](envs/README.md), the training table
+  [docs/RECIPE.md](docs/RECIPE.md). New page: [docs/ADDING_A_TASK.md](docs/ADDING_A_TASK.md), with a runnable skeleton in
+  `examples/new_family/`.
+- **Moved.** `DATASHEET.md` to `docs/DATASHEET.md`; `conformance/` to `tools/conformance/` (`make conformance` is
+  unchanged); `results/README.md`, `results/results.json`, `results/run_config.json` and `results/manifests/` to
+  `docs/results/`.
+- **Removed: `results/episodes/`.** The 1,400 raw episode records of the pilot runs (package 0.1.0, engine
+  `mrgym-engine-0.1.0`, the retired ids `Scanner/NoWrap-v0` and `Scanner/T1Transmit-v0`, schema 1 without
+  conversations). Commit `294ae25` is the last one that holds them. Their rows stay in `docs/results/`.
+  `mrgym results --check --dir docs/results` now checks that archive for what it is: the table against `results.json`,
+  with the statement that nothing was compared with records.
+- **Removed: `datasets/`.** It was the output of `mrgym export harbor`, which writes it again in half a minute. Each
+  export draws new instance seeds, so the folder is not reproduced byte for byte; the 21 instances that were
+  committed are in commit `294ae25`. `datasets/` is now ignored by git.
+- **Removed: `extras/recon_repair/`.** A code-repair task set that was not part of `mrgym`, did not import it and
+  was used by nothing here. Commit `294ae25` is the last one that holds it.
+- `python tools/check_links.py` checks every relative link of the Markdown pages; `make check` runs it.
+
 ### A refused call is charged by its class: this changes when an episode ends
 
 A call refused with class `shape` or `vocabulary` (for how it is written) is a rejected call, and a call refused with

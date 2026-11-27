@@ -385,16 +385,15 @@ def test_results_check_passes_on_a_fresh_build_and_fails_after_an_edit(replay, c
     capsys.readouterr()
 
 
-def test_committed_results_match_their_records():
-    """The results folder of the repository: the stored table and JSON are a fresh build from the records, and the
-    page says so in plain words for as long as no language model has been run."""
-    folder = os.path.join(ROOT, "results")
-    if not os.path.isdir(os.path.join(folder, "episodes")):
-        pytest.skip("no results folder in this checkout")
-    assert results.check(folder) == []
-    stored = runner._read(os.path.join(folder, "results.json"))
-    assert stored["records"] == len(glob.glob(os.path.join(folder, summarize.PATTERN))) > 0
-    assert stored["agents"]["stub"] == [], "rows of the test endpoint do not belong in the published results"
+def test_the_committed_archive_holds_no_row_of_the_test_endpoint():
+    """The archive of the repository (docs/results): its table is the one its results.json renders to, and it holds
+    what was run, never a row of the stub endpoint."""
+    folder = os.path.join(ROOT, "docs", "results")
+    if not os.path.exists(os.path.join(folder, "results.json")):
+        pytest.skip("needs a checkout: docs/ is not part of the wheel")
+    drift, broken, stored = results.audit_archive(folder)
+    assert drift == [] and broken == []
+    assert stored["agents"]["stub"] == [], "rows of the test endpoint do not belong in the stored results"
     with open(os.path.join(folder, "README.md"), encoding="utf-8") as f:
         readme = f.read()
     assert "No language model has been run" not in readme               # what was run is read from the generated dateline

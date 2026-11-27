@@ -1,0 +1,1511 @@
+[
+ {
+  "id": "A1",
+  "theme": "A",
+  "item": "The skill is stated and mapped to the task",
+  "source": "GYM design questions; BB design 1-2",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "card_states_the_skill"
+  }
+ },
+ {
+  "id": "A2",
+  "theme": "A",
+  "item": "Standard lifecycle; passes Gymnasium `check_env`",
+  "source": "GYM",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "gymnasium_check_env"
+  },
+  "action": "ship a Gymnasium adapter that passes `check_env` with 0 warnings on every registered id"
+ },
+ {
+  "id": "A3",
+  "theme": "A",
+  "item": "Action and observation contract is declared and machine-checked",
+  "source": "OE 29, 34; HB structured_data_schema",
+  "tier": null,
+  "check": {
+   "kind": "check",
+   "lines": [
+    "tool schemas stay inside the portable JSON-Schema subset",
+    "tools serialise as openai / mcp / anthropic"
+   ],
+   "scored_only": false
+  }
+ },
+ {
+  "id": "A4",
+  "theme": "A",
+  "item": "Episode end is defined and told to the agent",
+  "source": "GYM; project checklist",
+  "tier": null,
+  "check": {
+   "kind": "check",
+   "lines": [
+    "max_steps truncates with reward 0",
+    "the terminal tool ends the episode"
+   ],
+   "scored_only": false
+  }
+ },
+ {
+  "id": "A5",
+  "theme": "A",
+  "item": "Reward range declared; reward finite and inside it",
+  "source": "OE 23; METR scoring",
+  "tier": null,
+  "check": {
+   "kind": "check",
+   "lines": [
+    "reward is a finite float in the declared range"
+   ],
+   "scored_only": false
+  }
+ },
+ {
+  "id": "A6",
+  "theme": "A",
+  "item": "Instruction and scoring agree: every gate is stated, every stated requirement is checked",
+  "source": "HB behavior_in_*; TBS well_specified, test_instruction_alignment; project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "rules_in_statement"
+  },
+  "action": "render every number the verifier uses into the reset text and the card from one table `task.RULES`"
+ },
+ {
+  "id": "A7",
+  "theme": "A",
+  "item": "Deliverable schema with units",
+  "source": "HB structured_data_schema; TBS; project checklist",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "deliverable_has_units"
+  }
+ },
+ {
+  "id": "A8",
+  "theme": "A",
+  "item": "Outcomes are graded, not process",
+  "source": "TBS outcome_verified",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "outcome_not_process"
+  },
+  "action": "none planned: the family rule keeps the measurement gate (lead's decision 1); a no-scan pass is excluded by the gate's blind ceiling"
+ },
+ {
+  "id": "A9",
+  "theme": "A",
+  "item": "Seeded reset gives a reproducible stream of distinct episodes",
+  "source": "GYM reset(seed)",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "reset_stream"
+  },
+  "action": "make `Env.reset()` without a seed draw the next world from a generator seeded by the constructor seed"
+ },
+ {
+  "id": "A10",
+  "theme": "A",
+  "item": "Permanent, versioned ids",
+  "source": "GYM id grammar; OE 43",
+  "tier": null,
+  "check": {
+   "kind": "tests",
+   "names": [
+    "test_a_retired_id_is_never_reused_and_a_served_id_cannot_be_retired",
+    "test_an_id_without_a_version_suffix_stays_an_error",
+    "test_every_registered_id_has_the_fingerprint_that_is_stored_for_it",
+    "test_registry_lists_the_ids_with_their_kind"
+   ]
+  }
+ },
+ {
+  "id": "A11",
+  "theme": "A",
+  "item": "`state()` carries episode id and counters and nothing hidden",
+  "source": "OE 31",
+  "tier": null,
+  "check": {
+   "kind": "check",
+   "lines": [
+    "no seed, true T1, transmit gain, noise level or frequency offset in any observation or in state"
+   ],
+   "scored_only": false
+  }
+ },
+ {
+  "id": "B1",
+  "theme": "B",
+  "item": "A correct solution earns the maximum (oracle)",
+  "source": "OE 25; VF gold = 1.0; project checklist; HB solvable",
+  "tier": null,
+  "check": {
+   "kind": "check",
+   "lines": [
+    "reference policy reaches the reward threshold through the tools"
+   ],
+   "scored_only": true
+  }
+ },
+ {
+  "id": "B2",
+  "theme": "B",
+  "item": "The reference passes through the agent's interface on >= 200 fresh instances",
+  "source": "project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "reference_on_fresh_instances"
+  },
+  "action": "store the gate (`mrgym gate <id> --n 300 --write`) for every scored id"
+ },
+ {
+  "id": "B3",
+  "theme": "B",
+  "item": "A second, independently written reference",
+  "source": "project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "second_reference"
+  },
+  "action": "write a second reference without reading the first, as `controls.reference_b`"
+ },
+ {
+  "id": "B4",
+  "theme": "B",
+  "item": "Doing nothing earns exactly the floor; the gap to the oracle is at least 0.1 of the range",
+  "source": "OE 25 floor gap; VF noop = 0.0; project checklist",
+  "tier": null,
+  "check": {
+   "kind": "check",
+   "lines": [
+    "no-scan prior answer earns the floor"
+   ],
+   "scored_only": true
+  }
+ },
+ {
+  "id": "B5",
+  "theme": "B",
+  "item": "Degenerate deliverables: reward 0, a specific diagnostic, no crash; tolerant parsing",
+  "source": "project checklist; METR scoring",
+  "tier": null,
+  "check": {
+   "kind": "tests",
+   "names": [
+    "test_bad_calls_are_observations_and_cost_nothing",
+    "test_step_never_raises_on_malformed_numbers_or_shapes",
+    "test_step_survives_hostile_calls_after_a_scan",
+    "test_typed_arguments_may_arrive_as_strings"
+   ]
+  }
+ },
+ {
+  "id": "B6",
+  "theme": "B",
+  "item": "Known-wrong variants of the reference are all rejected (unit, sign, convention mutants; >= 8)",
+  "source": "project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "mutants"
+  },
+  "action": ">= 8 mutants per family listed in `controls.MUTANTS`"
+ },
+ {
+  "id": "B7",
+  "theme": "B",
+  "item": "Boundary pair: just inside passes, just outside fails",
+  "source": "project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "tests_matching",
+   "pattern": "boundary|just_inside|just_outside|tolerance_edge"
+  },
+  "action": "ship a test of a boundary pair per family (name it test_*boundary*)"
+ },
+ {
+  "id": "B8",
+  "theme": "B",
+  "item": "Verifier is deterministic",
+  "source": "OE 39; project checklist; TBS deterministic_reproducible",
+  "tier": null,
+  "check": {
+   "kind": "tests",
+   "names": [
+    "test_the_noise_free_scan_is_deterministic",
+    "test_same_seed_same_episode_other_seed_other_world",
+    "test_replay_is_bit_exact_on_the_same_stack"
+   ]
+  }
+ },
+ {
+  "id": "B9",
+  "theme": "B",
+  "item": "The verifier does not use the formula the agent is given",
+  "source": "project checklist; TBS verifier_correctness",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "verifier_rescans"
+  }
+ },
+ {
+  "id": "B10",
+  "theme": "B",
+  "item": "No LLM judge in the reward",
+  "source": "METR scoring; NG",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "no_llm_or_network_in_scoring"
+  }
+ },
+ {
+  "id": "B11",
+  "theme": "B",
+  "item": "Provenance of the ground truth and of every tolerance is written down",
+  "source": "TBS ground_truth_provenance; project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "tolerance_provenance"
+  },
+  "action": "a `tolerances` table on the card: constant, value, derivation"
+ },
+ {
+  "id": "B12",
+  "theme": "B",
+  "item": "Verifier error rate measured by an expert on sampled rollouts",
+  "source": "project checklist",
+  "tier": "OWN",
+  "check": {
+   "kind": "evidence",
+   "action": "the owner labels 50 sampled rollouts (25 pass, 25 fail) and records false-pass and false-fail counts"
+  },
+  "action": "the owner labels 50 sampled rollouts (25 pass, 25 fail) and records false-pass and false-fail counts"
+ },
+ {
+  "id": "B13",
+  "theme": "B",
+  "item": "Blind expert solve or expert review of the task",
+  "source": "project checklist; EP blind solve; TBS reviewable",
+  "tier": "OWN",
+  "check": {
+   "kind": "evidence",
+   "action": "the owner solves 5 instances per family blind through `mrgym play`, or an MR physicist reviews each task; the episodes are stored"
+  },
+  "action": "the owner solves 5 instances per family blind through `mrgym play`, or an MR physicist reviews each task; the episodes are stored"
+ },
+ {
+  "id": "B14",
+  "theme": "B",
+  "item": "Verification by execution, not by text patterns",
+  "source": "TBS functional_verification",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "verifier_rescans"
+  }
+ },
+ {
+  "id": "C1",
+  "theme": "C",
+  "item": "Nothing hidden reaches the agent; tested",
+  "source": "OE 22, 30; project checklist; TBS answer_leakage",
+  "tier": null,
+  "check": {
+   "kind": "tests",
+   "names": [
+    "test_info_card_states_the_public_instrument_only",
+    "test_http_service_has_no_route_to_truth_or_reset",
+    "test_the_service_wants_the_token_and_serves_nothing_derived_from_the_seed",
+    "test_the_hidden_seed_stays_out_of_everything_the_agent_can_read",
+    "test_check_passes_for_every_registered_id",
+    "test_every_agent_route_needs_the_token_and_operator_routes_are_not_on_the_agent_port"
+   ]
+  }
+ },
+ {
+  "id": "C2",
+  "theme": "C",
+  "item": "The best constant answer fails at family level (NeutronGym: one-sided 95 % upper bound <= 20 %)",
+  "source": "NG fixed-action probe; project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "best_constant_fails"
+  },
+  "action": "store the gate; the tuned constant answer must have an upper bound <= 20 %"
+ },
+ {
+  "id": "C3",
+  "theme": "C",
+  "item": "A rule that copies numbers from the prompt fails",
+  "source": "NG copy rule; project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "copy_rule_fails"
+  },
+  "action": "store the gate: its tuned statement-only policy (`fixed_recipe`) must be cleared at every level"
+ },
+ {
+  "id": "C4",
+  "theme": "C",
+  "item": "Another instance's answer fails (replay)",
+  "source": "NG swap probe; project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "swap_fails"
+  },
+  "action": "add a swap probe to the gate result (`swap.rate`)"
+ },
+ {
+  "id": "C5",
+  "theme": "C",
+  "item": "The world cannot be rebuilt from public material (seed attack)",
+  "source": "project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "seed_attack"
+  },
+  "action": "a `seed_attacker` policy in every family; it must pass 0 instances of a secret split"
+ },
+ {
+  "id": "C6",
+  "theme": "C",
+  "item": "A blind sweep inside the budget fails (<= 10 %)",
+  "source": "project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "blind_sweep_fails"
+  },
+  "action": "store the gate; the blind sweep must have an upper bound <= 10 %"
+ },
+ {
+  "id": "C7",
+  "theme": "C",
+  "item": "A policy that ignores the task's designated decision fails",
+  "source": "project checklist; TBS graded_instances_discriminate",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "decision_blind_fails"
+  },
+  "action": "store the gate with the family's ablations"
+ },
+ {
+  "id": "C8",
+  "theme": "C",
+  "item": "Budget and log cannot be tampered with",
+  "source": "TBS grader_tampering, constraint_evasion; project checklist",
+  "tier": null,
+  "check": {
+   "kind": "tests",
+   "names": [
+    "test_a_restart_cannot_refill_the_budget",
+    "test_replay_rejects_forged_reordered_and_foreign_logs",
+    "test_the_verifier_gives_the_floor_for_a_log_that_is_cut_edited_foreign_unanchored_or_unsealed",
+    "test_cut_log_and_restart_refills_nothing",
+    "test_unsealed_log_is_reported_as_such"
+   ]
+  }
+ },
+ {
+  "id": "C9",
+  "theme": "C",
+  "item": "The verifier is isolated from agent code",
+  "source": "OE 19, 21; TBS verifier_execution_isolation; HB anti_cheating",
+  "tier": "T2",
+  "check": {
+   "kind": "native",
+   "fn": "verifier_isolated"
+  },
+  "action": "CI with Docker: `make conformance DOCKER=1` runs `harbor run -a oracle|nop` and the Compose lint rules"
+ },
+ {
+  "id": "C10",
+  "theme": "C",
+  "item": "Adversarial cheat trials with a model",
+  "source": "TBS cheat-analysis; project checklist; OE 26",
+  "tier": "MOD",
+  "check": {
+   "kind": "evidence",
+   "action": "10 trials per family with a frontier model told to cheat, judged with the Terminal-Bench-Science cheat-analysis rubric; transcripts stored"
+  },
+  "action": "10 trials per family with a frontier model told to cheat, judged with the Terminal-Bench-Science cheat-analysis rubric; transcripts stored"
+ },
+ {
+  "id": "C11",
+  "theme": "C",
+  "item": "Found shortcuts become regression controls; canary string",
+  "source": "OE 28; project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "canary_and_honeypot"
+  },
+  "action": "a decoy answer flagged in `info[\"honeypot\"]` and `conformance/shortcuts.json`"
+ },
+ {
+  "id": "C12",
+  "theme": "C",
+  "item": "Concentration of passing answers is reported",
+  "source": "NG concentration diagnostic",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "concentration_reported"
+  },
+  "action": "the gate reports the concentration of passing answers (`concentration`)"
+ },
+ {
+  "id": "C13",
+  "theme": "C",
+  "item": "A high reward means the task was solved",
+  "source": "EP soundness; project checklist; OE 27",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "reward_means_solved"
+  },
+  "action": "retire the graded `-v0` rewards; every family uses the pass-only rule"
+ },
+ {
+  "id": "D1",
+  "theme": "D",
+  "item": "The model to be trained starts inside the learnable band (>= 2-3 %, or >= 1 in 64)",
+  "source": "EP; OE 13; project checklist",
+  "tier": "MOD",
+  "check": {
+   "kind": "evidence",
+   "action": ">= 100 episodes per cell on the current ids for the model to be trained; pass rate >= 3 % (or >= 1 in 64)"
+  },
+  "action": ">= 100 episodes per cell on the current ids for the model to be trained; pass rate >= 3 % (or >= 1 in 64)"
+ },
+ {
+  "id": "D2",
+  "theme": "D",
+  "item": "Headroom for strong models",
+  "source": "OE 15",
+  "tier": "MOD",
+  "check": {
+   "kind": "evidence",
+   "action": ">= 100 episodes per cell for 2 frontier models; the best is below 90 % on the top level"
+  },
+  "action": ">= 100 episodes per cell for 2 frontier models; the best is below 90 % on the top level"
+ },
+ {
+  "id": "D3",
+  "theme": "D",
+  "item": "A spread of difficulty across tasks",
+  "source": "EP smooth gradient; METR uniform difficulty",
+  "tier": "MOD",
+  "check": {
+   "kind": "evidence",
+   "action": ">= 3 families whose pass rate for the reference model lies between 5 % and 80 %"
+  },
+  "action": ">= 3 families whose pass rate for the reference model lies between 5 % and 80 %"
+ },
+ {
+  "id": "D4",
+  "theme": "D",
+  "item": "Declared difficulty knobs move the pass rate monotonically",
+  "source": "project checklist; OE 14",
+  "tier": "MOD",
+  "check": {
+   "kind": "evidence",
+   "action": "each level step lowers the reference model's pass rate by >= 10 points with separated Wilson intervals"
+  },
+  "action": "each level step lowers the reference model's pass rate by >= 10 points with separated Wilson intervals"
+ },
+ {
+  "id": "D5",
+  "theme": "D",
+  "item": "Hard for the right reason (domain skill, not interface or convention)",
+  "source": "TBS essential_difficulty; METR",
+  "tier": "MOD",
+  "check": {
+   "kind": "evidence",
+   "action": ">= 70 % of sampled failures of the reference model are domain errors, not interface errors (labelled sample)"
+  },
+  "action": ">= 70 % of sampled failures of the reference model are domain errors, not interface errors (labelled sample)"
+ },
+ {
+  "id": "D6",
+  "theme": "D",
+  "item": "Training on the reward improves held-out performance (shown)",
+  "source": "OE 17; NG; EP",
+  "tier": "TRN",
+  "check": {
+   "kind": "evidence",
+   "action": "one training run evaluated on held-out seeds against the control policies"
+  },
+  "action": "one training run evaluated on held-out seeds against the control policies"
+ },
+ {
+  "id": "D7",
+  "theme": "D",
+  "item": "Reward has usable signal and bounded noise",
+  "source": "OE 16; NG partial-credit ladder",
+  "tier": "MOD",
+  "check": {
+   "kind": "evidence",
+   "action": "reward > 0 in >= 5 % of the trainee's episodes, measured on >= 100 episodes per cell"
+  },
+  "action": "reward > 0 in >= 5 % of the trainee's episodes, measured on >= 100 episodes per cell"
+ },
+ {
+  "id": "D8",
+  "theme": "D",
+  "item": "The task needs multi-step work",
+  "source": "TBS agentic; METR difficulty",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "multi_step"
+  },
+  "action": "flagship families need >= 8 necessary tool calls"
+ },
+ {
+  "id": "D9",
+  "theme": "D",
+  "item": "Expert time estimate or human baseline",
+  "source": "TBS expert_time_estimate; BB human level",
+  "tier": "OWN",
+  "check": {
+   "kind": "evidence",
+   "action": "the owner states `expert_time_estimate_hours` per family"
+  },
+  "action": "the owner states `expert_time_estimate_hours` per family"
+ },
+ {
+  "id": "E1",
+  "theme": "E",
+  "item": "Several task families",
+  "source": "EP diversity; METR diverse bottlenecks",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "several_families"
+  },
+  "action": ">= 4 families admitted by a stored gate"
+ },
+ {
+  "id": "E2",
+  "theme": "E",
+  "item": "Enough gated instances to train on (>= 200 at admission)",
+  "source": "project checklist; EP",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "enough_gated_instances"
+  },
+  "action": "store the gate on >= 200 fresh instances per level for every admitted id"
+ },
+ {
+  "id": "E3",
+  "theme": "E",
+  "item": "Procedural generator, unlimited seeded instances",
+  "source": "NG; project checklist",
+  "tier": null,
+  "check": {
+   "kind": "tests",
+   "names": [
+    "test_world_is_a_function_of_the_seed",
+    "test_same_seed_same_episode_other_seed_other_world",
+    "test_two_exports_share_neither_a_seed_nor_a_token_and_nothing_public_is_a_function_of_the_seed"
+   ]
+  }
+ },
+ {
+  "id": "E4",
+  "theme": "E",
+  "item": "The instance changes the right answer",
+  "source": "NG; project checklist",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "instance_changes_answer"
+  }
+ },
+ {
+  "id": "E5",
+  "theme": "E",
+  "item": "Held-out split or held-out parameter regime",
+  "source": "NG; project checklist; OE 42",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "heldout"
+  },
+  "action": "declare a held-out parameter regime on the card (`heldout_regime`) and store a result row for it"
+ },
+ {
+  "id": "E6",
+  "theme": "E",
+  "item": "Tasks share and compose skills",
+  "source": "EP compositional",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "shared_tools"
+  },
+  "action": ">= 2 admitted families on the shared tools"
+ },
+ {
+  "id": "F1",
+  "theme": "F",
+  "item": "Quick start that runs",
+  "source": "BB; VF README",
+  "tier": null,
+  "check": {
+   "kind": "cmd",
+   "cmd": "{PY} tools/run_readme_commands.py",
+   "expect": null,
+   "timeout": 1800
+  }
+ },
+ {
+  "id": "F2",
+  "theme": "F",
+  "item": "Environment card: given, deliverable, reward rule, limits, knobs",
+  "source": "VF README rule; BB evaluation metric",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "cards_complete"
+  }
+ },
+ {
+  "id": "F3",
+  "theme": "F",
+  "item": "Limitations",
+  "source": "BB",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "docs/TOUR.md",
+     "contains": [
+      "^## Limits"
+     ]
+    },
+    {
+     "path": "docs/physics/limits.md",
+     "contains": [
+      "\\w"
+     ]
+    },
+    {
+     "path": "docs/DATASHEET.md",
+     "contains": [
+      "known limits"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "F4",
+  "theme": "F",
+  "item": "Design and construction process",
+  "source": "BB",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "docs/DESIGN.md",
+     "contains": [
+      "\\w"
+     ]
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "contains": [
+      "^## Add an environment"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "F5",
+  "theme": "F",
+  "item": "Datasheet or standard metadata",
+  "source": "BB standardized documentation, Croissant",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "standard_metadata"
+  },
+  "action": "docs/DATASHEET.md in the seven Datasheets sections; BENCHMARK_CARD.md; docs/croissant/*.json"
+ },
+ {
+  "id": "F6",
+  "theme": "F",
+  "item": "How to read the score",
+  "source": "BB",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "docs/TOUR.md",
+     "contains": [
+      "^## Results"
+     ]
+    },
+    {
+     "path": "docs/results/README.md",
+     "contains": [
+      "interval",
+      "How the .*rows were produced"
+     ]
+    },
+    {
+     "path": "docs/DATASHEET.md",
+     "contains": [
+      "Not intended"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "F7",
+  "theme": "F",
+  "item": "Documents agree with the current tree",
+  "source": "verifiers AGENTS.md \"Docs reflect main\"",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "docs_agree"
+  },
+  "action": "regenerate the stale file named in the detail"
+ },
+ {
+  "id": "F8",
+  "theme": "F",
+  "item": "Domain expertise and literature",
+  "source": "BB",
+  "tier": "OWN",
+  "check": {
+   "kind": "evidence",
+   "action": "REVIEW.md signed per family by the owner or a named MR physicist: who reviewed what, when"
+  },
+  "action": "REVIEW.md signed per family by the owner or a named MR physicist: who reviewed what, when"
+ },
+ {
+  "id": "F9",
+  "theme": "F",
+  "item": "Per-task explanation of difficulty, solution and verification",
+  "source": "TBS *_explanation_quality",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "per_task_explanations"
+  },
+  "action": "add Difficulty, Reference solution and Verification sections to the environment cards"
+ },
+ {
+  "id": "F10",
+  "theme": "F",
+  "item": "Code is documented",
+  "source": "BB",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "code_documented"
+  }
+ },
+ {
+  "id": "G1",
+  "theme": "G",
+  "item": "Seed control",
+  "source": "OE 36; GYM",
+  "tier": null,
+  "check": {
+   "kind": "check",
+   "lines": [
+    "another seed -> another world"
+   ],
+   "scored_only": false
+  }
+ },
+ {
+  "id": "G2",
+  "theme": "G",
+  "item": "Same seed and actions give the same episode",
+  "source": "OE 37; GYM step determinism",
+  "tier": null,
+  "check": {
+   "kind": "check",
+   "lines": [
+    "same seed and calls -> identical transcript and log head"
+   ],
+   "scored_only": false
+  }
+ },
+ {
+  "id": "G3",
+  "theme": "G",
+  "item": "Reproducible across stacks or hosts",
+  "source": "OE 38",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "cross_stack"
+  }
+ },
+ {
+  "id": "G4",
+  "theme": "G",
+  "item": "A stored episode replays",
+  "source": "OE 44",
+  "tier": null,
+  "check": {
+   "kind": "check",
+   "lines": [
+    "the scanner log of the episode replays"
+   ],
+   "scored_only": false
+  }
+ },
+ {
+  "id": "G5",
+  "theme": "G",
+  "item": "Dependencies pinned",
+  "source": "OE 41; HB pinned_dependencies; harbor lint unpinned-python-dependency",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "dependencies_pinned"
+  },
+  "action": "`uv lock`; after a release, install with hashes in the Dockerfiles"
+ },
+ {
+  "id": "G6",
+  "theme": "G",
+  "item": "Every number names its versions",
+  "source": "OE 43; project checklist",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "results_name_versions"
+  }
+ },
+ {
+  "id": "G7",
+  "theme": "G",
+  "item": "A command regenerates the reported tables from stored records",
+  "source": "BB replication script",
+  "tier": null,
+  "check": {
+   "kind": "cmd",
+   "cmd": "{PY} -m mrgym.cli results --check --dir docs/results && {PY} tools/generate.py --check",
+   "expect": null
+  }
+ },
+ {
+  "id": "G8",
+  "theme": "G",
+  "item": "No live service at run or verification time",
+  "source": "TBS deterministic_reproducible; METR consistency",
+  "tier": null,
+  "check": {
+   "kind": "tests",
+   "names": [
+    "test_importing_the_package_loads_only_the_core",
+    "test_the_command_line_loads_only_the_core"
+   ]
+  }
+ },
+ {
+  "id": "G9",
+  "theme": "G",
+  "item": "Intervals on reported rates",
+  "source": "BB statistical significance",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "docs/results/README.md",
+     "contains": [
+      "Wilson",
+      "95 % interval"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "G10",
+  "theme": "G",
+  "item": "Per-episode evidence is published",
+  "source": "NG; OE 32",
+  "tier": "MOD",
+  "check": {
+   "kind": "native",
+   "fn": "episode_evidence"
+  },
+  "action": "store the conversation and the scanner log of every model episode behind a number"
+ },
+ {
+  "id": "H1",
+  "theme": "H",
+  "item": "Released on a package index",
+  "source": "BB release; VF pyproject",
+  "tier": "OWN",
+  "check": {
+   "kind": "online",
+   "what": "pypi",
+   "action": "upload the release to PyPI (owner account, trusted publisher)"
+  },
+  "action": "upload the release to PyPI (owner account, trusted publisher)"
+ },
+ {
+  "id": "H2",
+  "theme": "H",
+  "item": "Wheel builds and installs clean with minimal dependencies",
+  "source": "OE 1 (reproducible build)",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "wheel_installs"
+  }
+ },
+ {
+  "id": "H3",
+  "theme": "H",
+  "item": "Registered with Gymnasium",
+  "source": "GYM registration",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "gymnasium_registered"
+  },
+  "action": "register every id with Gymnasium on `import mrgym.compat.gymnasium`"
+ },
+ {
+  "id": "H4",
+  "theme": "H",
+  "item": "OpenEnv package that validates",
+  "source": "OE validate",
+  "tier": "T2",
+  "check": {
+   "kind": "native",
+   "fn": "openenv_package"
+  },
+  "action": "CI with Docker: `openenv validate --level runtime`"
+ },
+ {
+  "id": "H5",
+  "theme": "H",
+  "item": "verifiers package",
+  "source": "VF",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "verifiers_package"
+  },
+  "action": "ship a verifiers taskset package for which `vf-validate` reports valid_rate 1.0 (gold and no-op)"
+ },
+ {
+  "id": "H6",
+  "theme": "H",
+  "item": "Harbor task export, clean under `harbor lint`",
+  "source": "HB",
+  "tier": "T2",
+  "check": {
+   "kind": "native",
+   "fn": "harbor_export"
+  },
+  "action": "CI with Docker: Compose lint rules, `harbor run -a oracle|nop`; needs mrgym on a package index for the image build"
+ },
+ {
+  "id": "H7",
+  "theme": "H",
+  "item": "Container image with declared resources and timeouts",
+  "source": "OE 10-12; TBS resource_configuration",
+  "tier": "T2",
+  "check": {
+   "kind": "native",
+   "fn": "container_images"
+  },
+  "action": "CI with Docker: build the images"
+ },
+ {
+  "id": "H8",
+  "theme": "H",
+  "item": "Works with API models and local models",
+  "source": "BB",
+  "tier": null,
+  "check": {
+   "kind": "tests",
+   "names": [
+    "test_command_line_runs_a_model_and_a_policy_into_one_folder",
+    "test_endpoint_habits_do_not_change_the_episode",
+    "test_chat_rollout_with_a_scripted_stand_in"
+   ]
+  }
+ },
+ {
+  "id": "H9",
+  "theme": "H",
+  "item": "Continuous integration is running",
+  "source": "BB build status",
+  "tier": "T2",
+  "check": {
+   "kind": "online",
+   "what": "ci",
+   "action": "a GitHub token with the workflow scope; tests.yml and conformance.yml green on main"
+  },
+  "action": "a GitHub token with the workflow scope; tests.yml and conformance.yml green on main"
+ },
+ {
+  "id": "H10",
+  "theme": "H",
+  "item": "Fast enough for RL",
+  "source": "OE scales on infra",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "fast_enough"
+  }
+ },
+ {
+  "id": "H11",
+  "theme": "H",
+  "item": "A trainer integration ships",
+  "source": "EP; OE",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "trainer_integration"
+  },
+  "action": "ship `examples/train/` with a trainer config naming `mrgym-scanner` and a smoke run"
+ },
+ {
+  "id": "H12",
+  "theme": "H",
+  "item": "Concurrent sessions",
+  "source": "OE",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "concurrent_sessions"
+  }
+ },
+ {
+  "id": "I1",
+  "theme": "I",
+  "item": "No-op or random floor reported",
+  "source": "BB random level",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "controls_reported"
+  },
+  "action": "store control-policy results (the gate) for every scored id"
+ },
+ {
+  "id": "I2",
+  "theme": "I",
+  "item": "Shortcut baselines reported next to the results",
+  "source": "NG; project checklist",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "controls_reported"
+  },
+  "action": "store control-policy results (the gate) for every scored id"
+ },
+ {
+  "id": "I3",
+  "theme": "I",
+  "item": "Reference ceiling reported",
+  "source": "BB floors and ceilings",
+  "tier": "T1",
+  "check": {
+   "kind": "native",
+   "fn": "controls_reported"
+  },
+  "action": "store control-policy results (the gate) for every scored id"
+ },
+ {
+  "id": "I4",
+  "theme": "I",
+  "item": "Model baselines with counts and intervals",
+  "source": "BB; VF outputs rule (>= 5 examples x 3 rollouts, some reward > 0)",
+  "tier": null,
+  "check": {
+   "kind": "native",
+   "fn": "model_baselines"
+  },
+  "action": "rerun the model baselines on the current ids"
+ },
+ {
+  "id": "I5",
+  "theme": "I",
+  "item": "Human expert baseline",
+  "source": "BB human level",
+  "tier": "OWN",
+  "check": {
+   "kind": "evidence",
+   "action": "the owner plays 10 instances per family; stored as policy `human:<name>`"
+  },
+  "action": "the owner plays 10 instances per family; stored as policy `human:<name>`"
+ },
+ {
+  "id": "I6",
+  "theme": "I",
+  "item": "Base rates of the open models one would train",
+  "source": "EP",
+  "tier": "MOD",
+  "check": {
+   "kind": "native",
+   "fn": "open_model_rates"
+  },
+  "action": "ship the open-model records under results/ and rerun them on the current ids"
+ },
+ {
+  "id": "I7",
+  "theme": "I",
+  "item": "Infrastructure failure rate reported",
+  "source": "project checklist",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "docs/results/README.md",
+     "contains": [
+      "Infra errors"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "J1",
+  "theme": "J",
+  "item": "Changelog and versioning rule",
+  "source": "BB; OE 43",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "CHANGELOG.md",
+     "contains": [
+      "## Unreleased",
+      "re-scored|re-run"
+     ]
+    },
+    {
+     "path": "docs/VERSIONING.md",
+     "contains": [
+      "RetiredEnv",
+      "fingerprint"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "J2",
+  "theme": "J",
+  "item": "Feedback channel",
+  "source": "BB",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": ".github/ISSUE_TEMPLATE/*.yml",
+     "contains": [
+      "\\w"
+     ],
+     "min": 3
+    },
+    {
+     "path": ".github/CODEOWNERS",
+     "contains": [
+      "\\w"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "J3",
+  "theme": "J",
+  "item": "Rule for re-grading stored results when the verifier changes",
+  "source": "project checklist; HB regrade",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "CHANGELOG.md",
+     "contains": [
+      "re-scored"
+     ]
+    },
+    {
+     "path": ".github/PULL_REQUEST_TEMPLATE.md",
+     "contains": [
+      "re-scored"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "J4",
+  "theme": "J",
+  "item": "Code checked as usable within the last year",
+  "source": "BB",
+  "tier": "T2",
+  "check": {
+   "kind": "native",
+   "fn": "recently_checked"
+  },
+  "action": "CI green on the host (see H9)"
+ },
+ {
+  "id": "J5",
+  "theme": "J",
+  "item": "Tagged releases",
+  "source": "BB release requirements",
+  "tier": "OWN",
+  "check": {
+   "kind": "cmd",
+   "cmd": "git tag -l 'v*' | grep -q .",
+   "expect": null
+  },
+  "action": "tag the release"
+ },
+ {
+  "id": "J6",
+  "theme": "J",
+  "item": "Contribution guide that includes the quality gate",
+  "source": "TBS CONTRIBUTING; VF AGENTS.md",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "CONTRIBUTING.md",
+     "contains": [
+      "^## Add an environment",
+      "gate"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "J7",
+  "theme": "J",
+  "item": "Channel for reporting exploits",
+  "source": "TBS; project checklist",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "SECURITY.md",
+     "contains": [
+      "^## Report privately"
+     ]
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "contains": [
+      "^## Report a shortcut"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "J8",
+  "theme": "J",
+  "item": "Peer review or outside use",
+  "source": "BB peer-reviewed venue",
+  "tier": "TRN",
+  "check": {
+   "kind": "evidence",
+   "action": "outside use: an inspect_evals register entry, a Harbor or Prime hub listing, or a peer-reviewed submission"
+  },
+  "action": "outside use: an inspect_evals register entry, a Harbor or Prime hub listing, or a peer-reviewed submission"
+ },
+ {
+  "id": "K1",
+  "theme": "K",
+  "item": "Licence",
+  "source": "BB",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "LICENSE",
+     "contains": [
+      "Apache License"
+     ]
+    },
+    {
+     "path": "pyproject.toml",
+     "contains": [
+      "license = \"Apache-2.0\""
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "K2",
+  "theme": "K",
+  "item": "Data provenance; no personal data",
+  "source": "BB data sources",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "docs/DATASHEET.md",
+     "contains": [
+      "Every world is simulated",
+      "No patient data"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "K3",
+  "theme": "K",
+  "item": "The task is safe",
+  "source": "METR safety; TBS task_security",
+  "tier": null,
+  "check": {
+   "kind": "tests",
+   "names": [
+    "test_importing_the_package_loads_only_the_core",
+    "test_http_service_has_no_route_to_truth_or_reset"
+   ]
+  }
+ },
+ {
+  "id": "K4",
+  "theme": "K",
+  "item": "Intended use and misuse stated",
+  "source": "BB score interpretation",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "docs/DATASHEET.md",
+     "contains": [
+      "Intended use",
+      "Not intended"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "id": "K5",
+  "theme": "K",
+  "item": "Guard against contaminating a held-out benchmark",
+  "source": "BB training_on_test_set, canary",
+  "tier": null,
+  "check": {
+   "kind": "tests",
+   "names": [
+    "test_the_benchmark_canary_is_nowhere_in_the_tree",
+    "test_no_environment_id_uses_a_benchmark_domain_code",
+    "test_no_environment_folder_uses_a_benchmark_domain_code",
+    "test_no_path_is_laid_out_like_the_benchmark"
+   ]
+  }
+ },
+ {
+  "id": "K6",
+  "theme": "K",
+  "item": "No secrets, no malicious code",
+  "source": "TBS task_security",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": ".pre-commit-config.yaml",
+     "contains": [
+      "detect-private-key"
+     ]
+    }
+   ],
+   "then": {
+    "kind": "tests",
+    "names": [
+     "test_no_workshop_residue_in_the_tree"
+    ]
+   }
+  }
+ },
+ {
+  "id": "K7",
+  "theme": "K",
+  "item": "Persistent identifier",
+  "source": "BB",
+  "tier": "OWN",
+  "check": {
+   "kind": "cmd",
+   "cmd": "grep -Eq '^doi:' CITATION.cff",
+   "expect": null
+  },
+  "action": "Zenodo DOI in CITATION.cff"
+ },
+ {
+  "id": "K8",
+  "theme": "K",
+  "item": "Authorship and review status disclosed",
+  "source": "BB documentation of construction",
+  "tier": null,
+  "check": {
+   "kind": "files",
+   "require": [
+    {
+     "path": "docs/DATASHEET.md",
+     "contains": [
+      "## Purpose and authorship",
+      "review"
+     ]
+    }
+   ]
+  }
+ }
+]

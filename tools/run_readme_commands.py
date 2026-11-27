@@ -1,4 +1,4 @@
-"""Run every command shown in a bash block of README.md, verbatim, and report exit code and wall time.
+"""Run every command shown in a bash block of README.md and docs/TOUR.md, verbatim, and report exit code and wall time.
 
     python tools/run_readme_commands.py                 # from the repository root, after `pip install -e .`
     python tools/run_readme_commands.py --markdown
@@ -18,11 +18,14 @@ import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SETUP = ("git clone ", "cd MRGym", "pip install -e .")
+PAGES = ("README.md", os.path.join("docs", "TOUR.md"))            # the front page and the page its commands moved to
 
 
-def commands(path):
-    with open(path, encoding="utf-8") as f:
-        text = f.read()
+def commands(*paths):
+    text = ""
+    for path in paths:
+        with open(path, encoding="utf-8") as f:
+            text += f.read() + "\n"
     out = []
     for block in re.findall(r"```bash\n(.*?)```", text, re.S):
         out += [ln.strip() for ln in block.splitlines() if ln.strip() and not ln.strip().startswith("#")]
@@ -31,12 +34,12 @@ def commands(path):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--file", default=os.path.join(ROOT, "README.md"))
+    ap.add_argument("--file", nargs="+", default=[os.path.join(ROOT, p) for p in PAGES])
     ap.add_argument("--markdown", action="store_true")
     a = ap.parse_args(argv)
     env = dict(os.environ, PATH=os.path.dirname(sys.executable) + os.pathsep + os.environ.get("PATH", ""))
     rows, failed = [], 0
-    for cmd in commands(a.file):
+    for cmd in dict.fromkeys(commands(*a.file)):                     # a command shown on both pages runs once
         if cmd.startswith(SETUP):
             rows.append((cmd, "set-up, not run", ""))
             continue

@@ -379,10 +379,13 @@ SUITE_COMMANDS = re.compile(r"^\s*(pip install (-U )?pytest\b.*|pytest\b.*|pytho
 
 
 def readme_without_the_suite(work) -> tuple[str, list]:
-    """A copy of README.md without the commands that run the test suite (the ``suite`` row runs it, one file per
-    process; a second run of everything in one process is what this audit avoids). Returns (path, the lines left out)."""
-    with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as f:
-        lines = f.read().split("\n")
+    """A copy of README.md and docs/TOUR.md (the pages whose commands are run) without the commands that run the test
+    suite (the ``suite`` row runs it, one file per process; a second run of everything in one process is what this
+    audit avoids). Returns (path, the lines left out)."""
+    lines = []
+    for rel in ("README.md", os.path.join("docs", "TOUR.md")):
+        with open(os.path.join(ROOT, rel), encoding="utf-8") as f:
+            lines += f.read().split("\n")
     left_out = [ln.strip() for ln in lines if SUITE_COMMANDS.match(ln)]
     path = os.path.join(work, "README.without-suite.md")
     with open(path, "w", encoding="utf-8") as f:
@@ -395,7 +398,7 @@ def step_generated(work):
     steps = {}
     readme, left_out = readme_without_the_suite(work)
     for name, cmd in (("tools/generate.py --check", [PY, "tools/generate.py", "--check"]),
-                      ("mrgym results --check", [PY, "-m", "mrgym.cli", "results", "--check"]),
+                      ("mrgym results --check --dir docs/results", [PY, "-m", "mrgym.cli", "results", "--check", "--dir", "docs/results"]),
                       ("tools/run_readme_commands.py", [PY, "tools/run_readme_commands.py", "--file", readme])):
         c, out, _ = sh(cmd, env=dict(PATH=os.path.dirname(PY) + os.pathsep + os.environ.get("PATH", "")))
         steps[name] = c == 0
@@ -403,7 +406,7 @@ def step_generated(work):
             named = [ln.strip() for ln in out.splitlines() if ln.startswith("FAILED:") or "[audit] killed" in ln]
             steps[name + " (output)"] = named or out.strip().splitlines()[-6:]
     ok = all(v for k, v in steps.items() if not k.endswith("(output)"))
-    return row("pass" if ok else "fail", "python tools/generate.py --check; mrgym results --check; python tools/run_readme_commands.py",
+    return row("pass" if ok else "fail", "python tools/generate.py --check; mrgym results --check --dir docs/results; python tools/run_readme_commands.py",
                round(time.time() - t0, 1), steps=steps, readme_commands_left_to_the_suite_row=left_out)
 
 

@@ -4,17 +4,17 @@
     python tools/generate.py --check    write nothing; exit 1 if a generated file or block differs
     python tools/generate.py --timing   also re-measure the scan timing table in the README (machine dependent)
 
-Generated: envs/ (index.json, README.md, one card per environment id), docs/scanner.md (the datasheet shipped in the
-package), docs/physics/validation.md (from ``mrgym validate``), and the marked blocks of README.md (inventory counts,
-the demo transcript, the environment table, the results table, the timing table), and every
-``<!-- STAT:key -->...<!-- /STAT -->`` span of README.md, DATASHEET.md and docs/*.md, filled from results/results.json,
-and their POWER and GATE_OC blocks (the power table of the designs and the operating characteristic of the gate).
-Numbers that depend on the machine (measured errors at rounding level, timings) are written but not compared by
-``--check``.
+Generated: envs/ (index.json, README.md with the full environment table, one card per environment id), docs/scanner.md
+(the datasheet shipped in the package), docs/physics/validation.md (from ``mrgym validate``), the marked blocks listed
+in ``BLOCKS`` (README.md: the task table; docs/TOUR.md: inventory counts, the demo transcript, the results line,
+the timing table), and every ``<!-- STAT:key -->...<!-- /STAT -->`` span of README.md and docs/*.md, filled from
+docs/results/results.json, and their POWER and GATE_OC blocks (the power table of the designs and the operating
+characteristic of the gate). Numbers that depend on the machine (measured errors at rounding level, timings) are
+written but not compared by ``--check``.
 
-Both modes also apply the reporting rules of ``mrgym.stats.lint`` to the hand-written text of README.md, DATASHEET.md,
-results/README.md, docs/*.md and envs/*/README.md, and exit 1 when one is broken: a rate typed by hand, a comparison
-of two agents without its planned test, "always" about a rate without a bound.
+Both modes also apply the reporting rules of ``mrgym.stats.lint`` to the hand-written text of README.md,
+docs/results/README.md, docs/*.md and envs/*/README.md, and exit 1 when one is broken: a rate typed by hand, a
+comparison of two agents without its planned test, "always" about a rate without a bound.
 """
 from __future__ import annotations
 
@@ -28,6 +28,25 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RESULTS = "docs/results"                                   # the stored results: an archive of pilot rows (its README says what is kept)
+# page -> the generated blocks it must hold (TIMING is rewritten only with --timing)
+BLOCKS = {"README.md": ("TASKS",), "docs/TOUR.md": ("COUNTS", "DEMO", "RESULTS", "TIMING")}
+# The front page says in plain words what is done in each task. A family that is not listed here is shown with the title
+# of its card, so a new family needs no edit of this file.
+WHAT_YOU_DO = {
+    "Scanner/NoWrap-v1": "find the smallest, fastest field of view around the object",
+    "Scanner/NullTissue-v0": "find the inversion time that makes each vial dark",
+    "Scanner/FatSuppress-v0": "choose the fat suppression that works in each region",
+    "Scanner/BandFree-v0": "keep the dark bands of balanced SSFP off the object",
+    "Scanner/SNRSpec-v0": "reach a required signal-to-noise ratio in the least scan time",
+    "Scanner/PhantomQA-v0": "run the phantom quality tests and name what is broken",
+    "Scanner/ArtefactClinic-v0": "say what causes each artefact and fix the protocol",
+    "Scanner/ProtocolToSpec-v0": "turn written requirements into a protocol that meets them",
+    "Scanner/T1Transmit-v1": "measure T1 when the transmit field is miscalibrated",
+    "Scanner/Explore-v0": "scan freely; nothing is asked and nothing is scored",
+}
+# The front page uses plain words for the kind of the registry; envs/README.md and docs/ADDING_A_TASK.md define the kinds.
+STATUS = dict(admitted="ready", candidate="experimental", practice="experimental", sandbox="no score")
 
 
 def _read(rel):
@@ -102,6 +121,23 @@ def env_cards():
     return out, table
 
 
+def tasks_table():
+    """The task table of the front page: one row per registered id, linked to its card, with what is done in the task
+    in at most ten plain words (``WHAT_YOU_DO``, else the title of the card) and a status from the kind of the registry
+    (``STATUS``). Ready tasks first."""
+    import mrgym
+    from mrgym import cards
+    order = list(STATUS)
+    ids = sorted(mrgym.list_envs(), key=lambda i: (order.index(mrgym.spec(i).kind), list(WHAT_YOU_DO).index(i) if i in WHAT_YOU_DO else len(WHAT_YOU_DO), i))
+    rows = []
+    for env_id in ids:
+        text = WHAT_YOU_DO.get(env_id) or mrgym.card(env_id)["title"]
+        if len(text.split()) > 10:
+            raise SystemExit(f"the front-page line of {env_id} has more than ten words: {text!r}")
+        rows.append(f"| [`{env_id}`](envs/{cards.slug(env_id)}/) | {text} | {STATUS[mrgym.spec(env_id).kind]} |")
+    return "\n".join(["| Task | What you do | Status |", "|---|---|---|"] + rows)
+
+
 def datasheet():
     text = importlib.resources.files("mrgym.scanner").joinpath("datasheet.md").read_text(encoding="utf-8")
     return "<!-- Generated by tools/generate.py: a copy of src/mrgym/scanner/datasheet.md, the text the agent is given. -->\n" + text
@@ -157,11 +193,13 @@ def demo():
 
 
 def results_block():
-    """A compact view of results/results.json for the README: the published rows only, one table per environment,
-    each cell as ``k/N (rate; 95 % interval)`` with the instance count in the header. Pilot rows are not shown here:
-    they stand under their own heading in results/README.md."""
+    """A compact view of the stored results.json for docs/TOUR.md: the published rows only, one table per
+    environment, each cell as ``k/N (rate; 95 % interval)`` with the instance count in the header. Pilot rows are not
+    shown here: they stand under their own heading in the README of the results folder. Links are relative to docs/."""
     from mrgym.agents import summarize
-    raw = _read("results/results.json")
+    from mrgym.registry import retired
+    raw = _read(f"{RESULTS}/results.json")
+    page = RESULTS.split("/", 1)[1] + "/README.md"
     if not raw:
         return "No results have been generated yet: `mrgym run-agent` writes episode records, `mrgym results` builds the table."
     r = json.loads(raw)
@@ -170,13 +208,15 @@ def results_block():
     played = "-" if not played else played[0] if played[0] == played[-1] else f"{played[0]} to {played[-1]}"
     if not rows:
         d = r["design"]
+        old = " on retired ids" if r["environments"] and all(i in retired for i in r["environments"]) else ""
+        kept = "" if os.path.isdir(os.path.join(ROOT, RESULTS, "episodes")) else "; the records themselves are not stored"
         return (f"No row is published yet. A published row needs at least {d['published_min_instances']} instances per environment, "
                 f"{d['published_min_episodes']} episodes per instance for a model, and records that store the whole conversation. "
-                f"{r['pilot_records']} pilot episode records (played {played}, UTC) are listed with their intervals in "
-                "[results/README.md](results/README.md); no comparison is computed from them.")
+                f"The rows of {r['pilot_records']} pilot episode records (played {played} UTC{old}{kept}) are listed with their "
+                f"intervals in [{page}]({page}); no comparison is computed from them.")
     out = [f"{r['published_records']} published episode records, played {played} (UTC) on engine `{', '.join(r['engines'])}`, package "
            f"{', '.join(r['package_versions'])}. Cells are `passed/episodes (rate; 95 % interval over instances)`. The full table, the "
-           "planned comparisons, reliability and cost are in [results/README.md](results/README.md).", ""]
+           f"planned comparisons, reliability and cost are in [{page}]({page}).", ""]
     for env_id in sorted({x["env_id"] for x in rows}):
         part = [x for x in rows if x["env_id"] == env_id]
         out += [f"**`{env_id}`** ({max(x['instances'] for x in part)} instances)", "", "| Agent | Kind | Passed | Regret: median / 95th pct |", "|---|---|---:|---:|"]
@@ -185,7 +225,7 @@ def results_block():
     return "\n".join(out).rstrip()
 
 
-LINTED = ("README.md", "DATASHEET.md", "results/README.md", "docs/*.md", "envs/*/README.md")
+LINTED = ("README.md", f"{RESULTS}/README.md", "docs/*.md", "envs/*/README.md")
 
 
 def lint_docs(files):
@@ -195,7 +235,7 @@ def lint_docs(files):
     import glob
 
     from mrgym.stats import lint
-    raw = _read("results/results.json")
+    raw = _read(f"{RESULTS}/results.json")
     summary = json.loads(raw) if raw else None
     out = []
     for pattern in LINTED:
@@ -217,13 +257,13 @@ def stats_blocks(text):
 
 
 def fill_stats(rel, text):
-    """``text`` with every ``<!-- STAT:key -->...<!-- /STAT -->`` span filled from results/results.json."""
+    """``text`` with every ``<!-- STAT:key -->...<!-- /STAT -->`` span filled from the stored results.json."""
     from mrgym import results
-    raw = _read("results/results.json")
+    raw = _read(f"{RESULTS}/results.json")
     if "<!-- STAT:" not in text:
         return text
     if not raw:
-        raise SystemExit(f"{rel} has STAT spans but results/results.json does not exist")
+        raise SystemExit(f"{rel} has STAT spans but {RESULTS}/results.json does not exist")
     try:
         return results.fill_stat_spans(text, json.loads(raw))
     except KeyError as e:
@@ -248,19 +288,24 @@ def main(argv=None):
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--timing", action="store_true")
     a = ap.parse_args(argv)
-    files, env_table = env_cards()
+    files, _ = env_cards()
     files["docs/scanner.md"] = datasheet()
     val_md, rows = validation()
     files["docs/physics/validation.md"] = val_md
-    readme = _read("README.md") or ""
-    new = readme
-    for name, body in (("COUNTS", counts(rows)), ("DEMO", demo()), ("ENVS", env_table), ("RESULTS", results_block())):
-        if f"<!-- {name}:START -->" in new:
-            new = _block(new, name, body)
-    if a.timing and "<!-- TIMING:START -->" in new:
-        new = _block(new, "TIMING", timing_block())
-    files["README.md"] = fill_stats("README.md", new)
-    for rel in ["DATASHEET.md"] + sorted(os.path.join("docs", n) for n in os.listdir(os.path.join(ROOT, "docs")) if n.endswith(".md")):
+    bodies = dict(TASKS=tasks_table, COUNTS=lambda: counts(rows), DEMO=demo, RESULTS=results_block)
+    if a.timing:
+        bodies["TIMING"] = timing_block
+    for rel, names in BLOCKS.items():
+        text = _read(rel)
+        if text is None:
+            raise SystemExit(f"{rel} does not exist; it holds the generated blocks {', '.join(names)}")
+        for name in names:
+            if f"<!-- {name}:START -->" not in text:
+                raise SystemExit(f"{rel} has no {name} block")
+            if name in bodies:
+                text = _block(text, name, bodies[name]())
+        files[rel] = fill_stats(rel, stats_blocks(text))
+    for rel in sorted(os.path.join("docs", n).replace(os.sep, "/") for n in os.listdir(os.path.join(ROOT, "docs")) if n.endswith(".md")):
         text = _read(rel)
         if text is not None and rel not in files and ("<!-- STAT:" in text or "<!-- POWER:START -->" in text or "<!-- GATE_OC:START -->" in text):
             files[rel] = fill_stats(rel, stats_blocks(text))          # hand-written pages: only their marked parts are generated

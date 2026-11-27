@@ -33,6 +33,9 @@ Measured by `make conformance` on 2026-11-25T04:16Z at commit `63548ea+uncommitt
 Adapter parity (`tests/test_adapters_parity.py`, 3 seeds per id, in each framework's environment): harbor equal to the native API; gymnasium equal to the native API; openenv equal to the native API; verifiers equal to the native API; inspect equal to the native API.
 <!-- END GENERATED: conformance -->
 
+The Harbor tasks are generated, not committed: `mrgym export harbor` writes them to `datasets/` in about half a
+minute. Every export draws new instances; `mrgym export harbor --check` re-renders a folder from its stored seeds.
+
 ## What needs Docker and was not run where the state above was measured
 
 - `harbor lint` with the Compose rules (it needs the Docker CLI with the Compose plugin; no daemon). Without them

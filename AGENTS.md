@@ -28,8 +28,8 @@ access, credentials or a model.
 |---|---|
 | `make test` | the test suite (`python -m pytest`) |
 | `make lint` | `ruff check` |
-| `make generate` | regenerates the environment cards under `envs/` and the tables in the README (`python tools/generate.py`) |
-| `make check` | fails when a generated file is stale, when the results table does not match the saved records, or when `mrgym check` fails on a registered id |
+| `make generate` | regenerates the environment cards under `envs/` and the generated tables of the README and `docs/TOUR.md` (`python tools/generate.py`) |
+| `make check` | fails when a generated file is stale, when a link of a page is broken, when the results archive does not match its table, or when `mrgym check` fails on a registered id |
 | `make figures` | redraws the figures (`python tools/figures/make_all.py`; needs matplotlib) |
 | `mrgym validate` | physics checks against analytic formulas, as a table |
 | `mrgym check <id>` | what must hold before an id is published; compares its kind with the stored gate result |
@@ -39,7 +39,7 @@ access, credentials or a model.
 
 - **Ids are permanent.** An environment id is never renamed, renumbered or reused. A change that can move a reward
   registers the next `-vN`; the old id keeps its meaning.
-- **Generated files are regenerated, not edited.** Cards under `envs/`, the tables between markers in the README
+- **Generated files are regenerated, not edited.** Cards under `envs/`, the tables between markers in the README and in `docs/`
   and the results table come from `make generate`. Edit the source and run it again.
 - **Every number in the README and in `docs/` comes from a command.** State the command. Do not type a number
   from a terminal into a document, and do not round one by hand.

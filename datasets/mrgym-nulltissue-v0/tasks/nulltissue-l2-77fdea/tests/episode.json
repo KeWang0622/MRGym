@@ -1,6 +1,0 @@
-{
- "env_id": "Scanner/NullTissue-v0",
- "level": 2,
- "seed": "dfa885467bb71c12be87c977cd1c581a",
- "split": "test-iid"
-}

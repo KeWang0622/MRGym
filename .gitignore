@@ -15,3 +15,5 @@ docs/_build/
 .coverage
 .coverage.*
 /mutants/
+# written by `mrgym export harbor` (generated; each export draws new instances)
+/datasets/

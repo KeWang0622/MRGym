@@ -242,7 +242,7 @@ def test_canary_is_in_exported_records_and_never_in_agent_visible_text():
     assert step.info["log_head"]["canary"] == keys.CANARY                # the receipt is an exported record
     visible = obs.text + json.dumps(obs.data) + "".join(e["text"] for e in env.transcript()) + json.dumps(env.tools("openai"))
     assert "CANARY" not in visible.upper()
-    for doc in ("DATASHEET.md", "SECURITY.md"):
-        path = os.path.join(os.path.dirname(HERE), doc)
+    for doc in ("docs/DATASHEET.md", "SECURITY.md"):
+        path = os.path.join(os.path.dirname(HERE), *doc.split("/"))
         if os.path.exists(path):                                         # absent when the tests run against an installed wheel
             assert keys.CANARY in open(path, encoding="utf-8").read(), doc

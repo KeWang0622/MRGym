@@ -1,6 +1,0 @@
-{
- "engine": "mrgym-engine-0.2.0",
- "env_id": "Scanner/ProtocolToSpec-v0",
- "level": 3,
- "mrgym": "0.1.0.dev0"
-}

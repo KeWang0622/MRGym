@@ -84,19 +84,14 @@ include = [
     "/docs",
     "/envs",
     "/examples",
-    "/results",
     "/tools",
     "/integrations",
     "/recipes",
-    "/datasets",
-    "/conformance",
-    "/extras",
     "/assets",
     "/AGENTS.md",
     "/CHANGELOG.md",
     "/CITATION.cff",
     "/CONTRIBUTING.md",
-    "/DATASHEET.md",
     "/Makefile",
     "/SECURITY.md",
     "/.pre-commit-config.yaml",
@@ -116,7 +111,6 @@ markers = [
 line-length = 120
 target-version = "py310"
 src = ["src", "tests"]
-extend-exclude = ["extras"]
 
 [tool.ruff.lint]
 select = [
@@ -140,7 +134,6 @@ known-first-party = ["mrgym"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["B011", "B023"]
-"extras/*" = ["E", "F", "W", "I", "B", "UP", "NPY"]
 
 # ---- mutation gate (tools/audit/mutation.py; `make mutation`). Scope: the code that decides a reward or a gate verdict.
 # mutmut mutates code inside functions only: module-level constants are pinned by tests/golden/scoring_constants.json

@@ -1,6 +1,0 @@
-{
- "env_id": "Scanner/SNRSpec-v0",
- "level": 2,
- "seed": "e905492c8172c14849f72b51b0e6b1a6",
- "split": "test-iid"
-}

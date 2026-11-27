@@ -1,4 +1,4 @@
-"""The conformance registry and its arithmetic (``conformance/``). The checkers themselves run in ``make conformance``;
+"""The conformance registry and its arithmetic (``tools/conformance/``). The checkers themselves run in ``make conformance``;
 these tests keep the registry well-formed and the scoring rules honest, and cost nothing."""
 import importlib.util
 import json
@@ -8,8 +8,8 @@ import sys
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CONF = os.path.join(ROOT, "conformance")
-pytestmark = pytest.mark.skipif(not os.path.isdir(CONF), reason="needs a checkout: conformance/ is not part of the wheel")
+CONF = os.path.join(ROOT, "tools", "conformance")
+pytestmark = pytest.mark.skipif(not os.path.isdir(CONF), reason="needs a checkout: tools/ is not part of the wheel")
 
 
 def _load(name):
@@ -84,7 +84,7 @@ def test_a_checker_that_crashes_is_a_failed_item_with_the_reason(run):
 
 def test_evidence_needs_every_key_and_a_named_person_where_the_item_is_about_human_judgement(run, tmp_path, monkeypatch):
     K = run.K
-    monkeypatch.setattr(K, "ROOT", str(tmp_path))
+    monkeypatch.setattr(K, "HERE", str(tmp_path / "conformance"))        # evidence files stand next to the checkers
     os.makedirs(tmp_path / "conformance" / "evidence")
     path = tmp_path / "conformance" / "evidence" / "B12.json"
     assert K.kind_evidence(None, dict(action="label 50 rollouts"), "B12")[0] == "FAIL"

@@ -13,7 +13,7 @@ help:
 	@echo "make test       run the tests"
 	@echo "make lint       ruff check"
 	@echo "make generate   regenerate the environment cards under envs/ and the README tables"
-	@echo "make check      fail if a generated file or the results table is stale, or if an id fails its gate"
+	@echo "make check      fail if a generated file, the results archive or a link is stale, or if an id fails its gate"
 	@echo "make validate   physics checks against analytic formulas, as a table"
 	@echo "make figures    redraw the figures (needs matplotlib)"
 	@echo "make conformance  every validator, then the 11-theme scorecard (exit 1 below 90 %); DOCKER=1 / ONLINE=1 add what needs them"
@@ -38,7 +38,8 @@ generate:
 
 check:
 	$(PYTHON) tools/generate.py --check
-	$(MRGYM) results --check
+	$(PYTHON) tools/check_links.py
+	$(MRGYM) results --check --dir docs/results
 	@for id in $(IDS); do echo "mrgym check $$id"; $(MRGYM) check $$id || exit 1; done
 
 validate:
@@ -48,9 +49,9 @@ figures:
 	$(PYTHON) tools/figures/make_all.py
 
 # Each framework's validator runs in its own environment; CONF_GYM, CONF_VF, CONF_INSPECT, CONF_OPENENV and CONF_HARBOR
-# override the default throw-away `uv run --isolated` environments (see conformance/README.md).
+# override the default throw-away `uv run --isolated` environments (see tools/conformance/README.md).
 conformance:
-	$(PYTHON) conformance/run.py $(if $(DOCKER),--docker) $(if $(ONLINE),--online)
+	$(PYTHON) tools/conformance/run.py $(if $(DOCKER),--docker) $(if $(ONLINE),--online)
 
 # ---- test strength (tools/audit/). `make audit` exits 0 only if every row of the report passes.
 audit:

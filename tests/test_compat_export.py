@@ -218,14 +218,13 @@ def test_the_command_of_the_sidecar_image_starts_the_service_and_the_oracle_play
     assert json.loads(out.stdout)["log_head"] == native["log_head"]
 
 
-def test_the_committed_harbor_sample_and_openenv_package_are_current():
-    datasets = os.path.join(ROOT, "datasets")
-    if not os.path.isdir(datasets):
-        pytest.skip("needs a checkout: datasets/ is not part of the wheel")
-    assert export.check_harbor(datasets) == []
-    for t in export.harbor_tasks(datasets):
-        assert harbor.lint(t) == [], t
-    assert export.check_openenv(os.path.join(ROOT, "integrations", "openenv", "mrgym_scanner_env")) == []
+def test_the_committed_openenv_package_is_current():
+    """The Harbor export is not committed (``mrgym export harbor`` writes it; the ``tasks`` fixture checks a fresh one).
+    The OpenEnv package is, and must be what the registry renders to."""
+    package = os.path.join(ROOT, "integrations", "openenv", "mrgym_scanner_env")
+    if not os.path.isdir(package):
+        pytest.skip("needs a checkout: integrations/ is not part of the wheel")
+    assert export.check_openenv(package) == []
 
 
 def test_export_openenv_declares_the_tools_of_every_id(tmp_path):

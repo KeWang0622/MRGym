@@ -1,6 +1,6 @@
-"""The report of the first 27B training runs, the figure of the front page and the generated blocks of README.md and
-docs/RECIPE.md are what docs/experiments/27b/report.py writes from the stored result files; the recipe's settings
-file is one the node scripts accept."""
+"""The report of the first 27B training runs, the figure and the two sentences of the front page and the generated
+blocks of docs/RECIPE.md are what docs/experiments/27b/report.py writes from the stored result files; the recipe's
+settings file is one the node scripts accept."""
 import copy
 import gzip
 import importlib.util
@@ -89,15 +89,16 @@ def _paired(base, trained, cell):
     return 100 * sum(a[k] - b[k] for k in a) / len(a)
 
 
-def test_the_front_page_shows_the_recipe_run_counted_from_its_logs(report, stored):
+def test_the_recipe_page_shows_the_recipe_run_counted_from_its_logs_and_the_front_page_two_sentences_of_it(report, stored):
     """The headline is the run on the published code. Passes and episodes of every row are counted here from the
-    stored files without the report's own functions, and are the ones the run's own readout printed."""
+    stored files without the report's own functions, and are the ones the run's own readout printed. The table is on
+    the recipe page; the front page holds the figure and two sentences with the same counts."""
     assert report.MAIN_RUN == "v17" and stored["runs"]["v17"]["code"] == "`18089f2`" and stored["runs"]["v17"]["state"] == "finished"
     base, trained = (_counts(_log(n)) for n in READOUT_FILES["v17"])
     assert (base, trained) == ({("NoWrap-v1", 1): (47, 96), ("NoWrap-v1", 2): (5, 96), ("NoWrap-v1", 3): (0, 96), ("NullTissue-v0", 0): (32, 96)},
                                {("NoWrap-v1", 1): (79, 96), ("NoWrap-v1", 2): (21, 96), ("NoWrap-v1", 3): (4, 96), ("NullTissue-v0", 0): (74, 96)})
     readme, recipe = _read("README.md"), _read("docs", "RECIPE.md")
-    block = _block(readme, "TRAINING")
+    block = _block(recipe, "TRAINING")
     rows = [ln for ln in block.splitlines() if ln.startswith("| ") and "`" in ln]
     assert len(rows) == len(base) == 4
     for (env, level), (k, n) in base.items():
@@ -109,13 +110,21 @@ def test_the_front_page_shows_the_recipe_run_counted_from_its_logs(report, store
     evidence = next(ln for ln in block.splitlines() if ln.startswith("Evidence:"))
     assert "run `v17` at commit `18089f2`" in evidence and "48 secret instances x 2 episodes per row, base and trained on the same instances" in evidence
     assert f"measured in {len(READOUT_FILES)} independent training runs" in evidence and "Exploratory" in evidence
-    assert "(docs/experiments/RESULTS-27b.md)" in evidence
+    assert "(../docs/experiments/RESULTS-27b.md)" in evidence
     gains = [f"{_paired(_log(b), _log(t), ('NoWrap-v1', 1)):+.1f} [" for b, t in READOUT_FILES.values()]
     places = [evidence.index(g) for g in gains]
     assert places == sorted(places) and [evidence[evidence.index("(`", p):][:7] for p in places] == [f"(`{k}`)" for k in READOUT_FILES]
-    assert 'src="assets/training_27b.png"' in block and 'src="../assets/training_27b.png"' in _block(recipe, "TRAINING")
-    # the same table on the recipe page; only the links differ
-    assert [ln for ln in _block(recipe, "TRAINING").splitlines() if ln.startswith("|")] == [ln for ln in block.splitlines() if ln.startswith("|")]
+    assert 'src="../assets/training_27b.png"' in block
+    # the front page: the figure, then the passes of the trained level and of the family that was never trained, no table
+    front = _block(readme, "TRAINING")
+    said = " ".join(front.split())
+    assert 'src="assets/training_27b.png"' in front and not [ln for ln in front.splitlines() if ln.startswith("|")]
+    (k1, n), (t1, _), (k0, _), (t0, _) = base[("NoWrap-v1", 1)], trained[("NoWrap-v1", 1)], base[("NullTissue-v0", 0)], trained[("NullTissue-v0", 0)]
+    assert f"On {n} test episodes with objects it had never seen, the level it trained on went from {k1} passes to {t1}" in said
+    assert f"an easy level of a task it never trained on from {k0} to {t0}." in said
+    assert "first runs on one task, and training on a second task did not work" in said             # the one honest line
+    assert "[the recipe](docs/RECIPE.md)" in said and "[the full report](docs/experiments/RESULTS-27b.md)" in said
+    assert len(front.strip().splitlines()) <= 10 and not any(ln[:1].isdigit() and ". " in ln[:5] for ln in front.splitlines())
     for rel, (old, new) in report.pages(stored).items():
         assert old == new, f"{rel}: a generated block is stale; run docs/experiments/27b/report.py"
 
@@ -200,7 +209,7 @@ def test_the_recipe_line_and_the_pitfalls_follow_the_stored_runs(report, stored)
     runs = stored["runs"]
     line = report.status_block(stored)
     assert line.startswith(f"Verified on the published code: run `v17` at commit {runs['v17']['code']} (") and runs["v07"]["code"] in line
-    assert _block(_read("README.md"), "RECIPE_STATUS").strip() == line == _block(_read("docs", "RECIPE.md"), "RECIPE_STATUS").strip()
+    assert line == _block(_read("docs", "RECIPE.md"), "RECIPE_STATUS").strip() and "RECIPE_STATUS" not in _read("README.md")
     unfinished = dict(stored, runs=dict(runs, v17=dict(runs["v17"], state="training")))
     assert report.status_block(unfinished).startswith(f"Check on the published code (commit {runs['v17']['code']}, run `v17`, 8 x H200): training.")
     recipe = _read("docs", "RECIPE.md")
@@ -283,8 +292,8 @@ def test_the_recipe_file_is_one_the_node_scripts_accept(report, tmp_path):
     # the run list and the settings block say the same
     node = report.stored()["runs"]["v17"]["node"]
     assert f"{int(env['MAX_PROMPT_LEN']):,} + {int(env['MAX_RESPONSE_LEN']):,} tokens" in node
-    block = _block(_read("README.md"), "RECIPE_SETTINGS")
-    assert block == _block(_read("docs", "RECIPE.md"), "RECIPE_SETTINGS").replace("](../recipes/", "](recipes/")
+    block = _block(_read("docs", "RECIPE.md"), "RECIPE_SETTINGS")                 # the settings are on the recipe page only
+    assert "](../recipes/qwen3.8-27b-nowrap.env)" in block and "RECIPE_SETTINGS" not in _read("README.md")
     for k in ("MODEL_HF", "TRAIN_ARMS", "TEST_ARMS", "LR", "LORA_RANK"):
         assert env[k] in block
     # make_main.sh writes a job script from it, and bash reads the values this test read
@@ -304,25 +313,19 @@ def test_the_recipe_file_is_one_the_node_scripts_accept(report, tmp_path):
     assert subprocess.run(["bash", MAKE_MAIN, "train", str(missing), str(tmp_path / "x.sh")], capture_output=True, text=True).returncode == 2
 
 
-def test_the_front_page_says_what_it_is_before_it_shows_training_and_keeps_every_generated_block():
+def test_the_front_page_says_what_it_is_before_it_shows_training_and_the_recipe_page_keeps_every_block():
     readme, recipe = _read("README.md"), _read("docs", "RECIPE.md")
-    order = [readme.index(h) for h in ('<img src="assets/hero.png"', "## What it is", "## Try it", "## The tasks",
-                                       "## Does training on it work?", "## The recipe")]
-    assert order == sorted(order)                       # the scanner and what it does first, the training result and the recipe after
-    top = readme[:order[-1]]
-    lines_before_training = readme[:order[4]].count("\n")
-    assert lines_before_training <= 150, f"{lines_before_training} lines before the training result"
+    heads = ("## What it is", "## Install and use", "## Tasks", "## Add a task", "## Does training work?", "## Docs", "## Cite")
+    assert [ln for ln in readme.splitlines() if ln.startswith("#")] == list(heads)          # these sections, in this order, and no other
+    order = [readme.index('<img src="assets/hero.png"')] + [readme.index(h) for h in heads]
+    assert order == sorted(order)                       # the scanner and what it does first, the training result after
     assert "mrgym demo" in readme[order[2]:order[3]] and "import mrgym" in readme[order[2]:order[3]]
-    tail = readme[order[-1]:]
-    assert "(docs/RECIPE.md)" in tail
-    for name in ("RECIPE_SETTINGS", "RECIPE_STATUS"):
-        assert f"<!-- {name}:START -->" in tail
-    assert "<!-- TRAINING:START -->" in readme[order[4]:order[5]]
-    for name in ("COUNTS", "DEMO", "ENVS", "RESULTS", "TIMING"):
-        assert f"<!-- {name}:START -->" in readme
-    assert readme.count("<details>") == readme.count("</details>") >= 8
-    top = readme
+    training = readme[order[5]:order[6]]
+    assert "<!-- TRAINING:START -->" in training and "(docs/RECIPE.md)" in training
+    assert len(readme.rstrip("\n").split("\n")) <= 120 and "<details>" not in readme
+    for name in ("TRAINING", "RECIPE_NEEDS", "RECIPE_SETTINGS", "RECIPE_PITFALLS", "RECIPE_STATUS", "RECIPE_REACH"):
+        assert f"<!-- {name}:START -->" in recipe
     lo, hi = (round(100 * x) for x in learn.ENTRY_BAND)
-    assert f"{lo}-{hi} %" in top and f"{lo}-{hi} %" in _block(recipe, "RECIPE_PITFALLS")       # the band of mrgym.learn, not a typed one
+    assert f"{lo}-{hi} %" in _block(recipe, "RECIPE_PITFALLS")                              # the band of mrgym.learn, not a typed one
     assert len(recipe.rstrip("\n").split("\n")) <= 120
     assert "RECIPE.md" in _read("docs", "README.md")

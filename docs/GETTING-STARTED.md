@@ -67,11 +67,11 @@ obs, reward, terminated, truncated, info = env.step({"name": "plan", "arguments"
 `--dry-run` prints what the model would receive and calls nothing.
 
 ```bash
-mrgym run-agent --env Scanner/NoWrap-v1 --levels 2,3 --seeds 0-23 --model MODEL --base-url URL --out results --dry-run
-mrgym results --check
+mrgym run-agent --env Scanner/NoWrap-v1 --levels 2,3 --seeds 0-23 --model MODEL --base-url URL --out runs/first --dry-run
+mrgym results --dir runs/first        # after a run without --dry-run: the table of that folder
 ```
 
-[results/README.md](../results/README.md) gives the full command and the table it feeds.
+[results/README.md](results/README.md) gives the full command and the table it feeds.
 
 ## 5. Record and view
 

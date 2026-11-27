@@ -1,17 +1,23 @@
 # Documentation
 
-| I want to | Start here |
-|---|---|
-| install and run one episode | [GETTING-STARTED.md](GETTING-STARTED.md) |
-| know what the agent is told about the instrument | [scanner.md](scanner.md) |
-| see the environments and their gate results | [../envs/](../envs/) |
-| check the physics | [physics/validation.md](physics/validation.md), [physics/conventions.md](physics/conventions.md) |
-| know what is simplified | [physics/limits.md](physics/limits.md) |
-| find a reference | [physics/references.md](physics/references.md) |
-| see the reference phantoms, the QA tests and the fault x test matrix | [physics/phantoms.md](physics/phantoms.md) |
-| see which examined competency an environment exercises | [community/competency_map.md](community/competency_map.md) |
-| understand why it is built this way | [DESIGN.md](DESIGN.md) |
-| report a number | [PROTOCOL.md](PROTOCOL.md), [../results/](../results/) |
-| train a model on an environment | the recipe: [RECIPE.md](RECIPE.md); [TRAINING.md](TRAINING.md), [experiments/PREREG-learnability.md](experiments/PREREG-learnability.md), [experiments/PREREG-27b.md](experiments/PREREG-27b.md), first results: [experiments/RESULTS-27b.md](experiments/RESULTS-27b.md) |
-| add an environment | [../CONTRIBUTING.md](../CONTRIBUTING.md) |
-| know what is planned | [ROADMAP.md](ROADMAP.md) |
+- [Getting started](GETTING-STARTED.md): install, run one episode
+- [Scanner manual](scanner.md): what the agent is told
+- [A tour](TOUR.md): demo, scanner, speed, limits
+- [The tasks](../envs/README.md): one card per task
+- [Adding a task](ADDING_A_TASK.md): three files and a check
+- [Design](DESIGN.md): why it is built so
+- [Physics validation](physics/validation.md): the scanner against formulas
+- [Training a model](RECIPE.md): the recipe, cost, pitfalls
+- [Reporting results](PROTOCOL.md): how to report a number
+- [Versioning](VERSIONING.md): package, engine, task ids
+
+More, by topic:
+
+- Physics: [conventions](physics/conventions.md), [what is simplified](physics/limits.md),
+  [references](physics/references.md), [phantoms and QA tests](physics/phantoms.md),
+  [comparison with other simulators](physics/external.md)
+- Training: [signals and curricula](TRAINING.md), [the full report](experiments/RESULTS-27b.md), the plans written
+  before the runs ([learnability](experiments/PREREG-learnability.md), [27B](experiments/PREREG-27b.md))
+- Results: [analysis plan](ANALYSIS_PLAN.md), [archive of the pilot runs](results/README.md)
+- Project: [datasheet](DATASHEET.md), [roadmap](ROADMAP.md), [competency map](community/competency_map.md),
+  [contributing](../CONTRIBUTING.md), [security](../SECURITY.md)

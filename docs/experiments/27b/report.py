@@ -17,10 +17,11 @@ text between the tables is written here; it states settings and no result of its
 The same numbers go to the front page. ``assets/training_27b.png`` is drawn from ``figure_data()``, which is stored
 beside it as ``assets/training_27b.json``: ``--check`` compares that file with the stored logs, not the image bytes
 (``FIGURE_VERSION`` is in it, so a change of the drawing makes the stored figure stale too). The blocks
-``<!-- NAME:START -->`` ... ``<!-- NAME:END -->`` of README.md and docs/RECIPE.md listed in ``PAGES`` are written here:
-the before / after table of the headline run (``MAIN_RUN``), the settings of ``recipes/qwen3.8-27b-nowrap.env``, what
-the run cost (from the ``utc`` stamps of its logs), the pitfalls with their numbers, and which commit the recipe was
-run on (from ``runs.json``).
+``<!-- NAME:START -->`` ... ``<!-- NAME:END -->`` of README.md and docs/RECIPE.md listed in ``PAGES`` are written here.
+The front page holds the figure and two plain sentences with two links (the trained level and the family that was
+never trained, before and after, of the headline run ``MAIN_RUN``): ``front_block``. The recipe page holds the before / after
+table of that run, the settings of ``recipes/qwen3.8-27b-nowrap.env``, what the run cost (from the ``utc`` stamps of
+its logs), the pitfalls with their numbers, and which commit the recipe was run on (from ``runs.json``).
 """
 from __future__ import annotations
 
@@ -69,8 +70,9 @@ PLAIN = {L1: ("trained level", "Trained level"),
          L2: ("harder level", "Harder level (trained; reward only late)"),
          L3: ("never-trained level", "Never-trained level"),
          HINTED: ("another task family (never trained)", "Another task family (never trained)")}
-# page -> (prefix of a link to the repository root, the blocks it must hold)
-PAGES = {"README.md": ("", ("TRAINING", "RECIPE_SETTINGS", "RECIPE_STATUS")),
+# page -> (prefix of a link to the repository root, the blocks it must hold); README.md holds the short TRAINING block
+FRONT = "README.md"
+PAGES = {FRONT: ("", ("TRAINING",)),
          "docs/RECIPE.md": ("../", ("TRAINING", "RECIPE_NEEDS", "RECIPE_SETTINGS", "RECIPE_PITFALLS", "RECIPE_STATUS", "RECIPE_REACH"))}
 # the sections of the report, in order; the text refers to them by these names so that a number never goes stale
 SECTIONS = ("runs", "replications", "line", "behaviour", "second", "secret", "dev", "rollouts", "calibration", "reads", "deviations", "limits",
@@ -858,13 +860,42 @@ def settings(path: str = RECIPE_ENV) -> dict:
     return out
 
 
+def _figure(data: dict, prefix: str, short: str) -> list[str]:
+    return ['<p align="center">',
+            f'  <img src="{prefix}assets/training_27b.png" width="900" alt="Pass rate of {short} before and after {data["steps"]} steps of '
+            f'reinforcement learning on {len(data["secret"])} cells of the secret split, with 95 % intervals, and on public instances during training">',
+            "</p>"]
+
+
+def front_block(data: dict, prefix: str, model: str) -> str:
+    """The TRAINING block of the front page: the figure, two plain sentences, two links. The first sentence gives the
+    passes before and after training on the level that was trained and on the easy level of the family that was never
+    trained (its task text states the method), on the secret split; the second says how much evidence that is. The
+    table with every cell and its interval is on the recipe page and in the report."""
+    import textwrap
+    short = model.split("/")[-1]
+    by = {c["cell"]: c for c in data["secret"]}
+    trained, other = by[name(L1)], by[name(HINTED)]
+    n = trained["before"]["episodes"]
+    assert all(c[k]["episodes"] == n for c in (trained, other) for k in ("before", "after"))
+    text = (f"{short} was trained for {data['steps']} steps by reinforcement learning, on the reward alone. On {n} test episodes with "
+            f"objects it had never seen, the level it trained on went from {trained['before']['passed']} passes to "
+            f"{trained['after']['passed']}, and an easy level of a task it never trained on from {other['before']['passed']} to "
+            f"{other['after']['passed']}. These are first runs on one task, and training on a second task did not work: "
+            f"[the recipe]({prefix}docs/RECIPE.md) and [the full report]({prefix}docs/experiments/RESULTS-27b.md) have the details.")
+    return "\n".join([
+        '<p align="center">',
+        f'  <img src="{prefix}assets/training_27b.png" width="900"',
+        f'       alt="Pass rate of {short} before and after {data["steps"]} steps of reinforcement learning, on test objects it had never seen">',
+        "</p>", "",
+        *next(lines for lines in (textwrap.wrap(text, width=w, break_long_words=False, break_on_hyphens=False) for w in range(124, 80, -4))
+              if not any(re.match(r"\d+\. |[-+*] ", ln) for ln in lines))])     # no line that Markdown could read as a list item
+
+
 def training_block(data: dict, prefix: str, model: str) -> str:
     short = model.split("/")[-1]
     out = [f"**{short}, reinforcement learning only, {data['steps']} steps, the recipe below on the published code: tested on instances it never "
-           "saw.**", "", '<p align="center">',
-           f'  <img src="{prefix}assets/training_27b.png" width="900" alt="Pass rate of {short} before and after {data["steps"]} steps of '
-           f'reinforcement learning on {len(data["secret"])} cells of the secret split, with 95 % intervals, and on public instances during training">',
-           "</p>", ""]
+           "saw.**", "", *_figure(data, prefix, short), ""]
     show = lambda x: f"{100 * x['rate']:.0f} % ({x['passed']} / {x['episodes']})"                   # noqa: E731
     out += table(["On secret test instances", "Before training", f"After {data['steps']} steps", "Gain in points [95 % interval]"],
                  [[f"{c['row']} · `{c['cell']}`", show(c["before"]), show(c["after"]), gain(c)] for c in data["secret"]])
@@ -998,9 +1029,9 @@ def reach_block(d: dict, prefix: str) -> str:
             f"[what happened]({prefix}docs/experiments/RESULTS-27b.md#{slug(str(SEC['second']) + '. ' + TITLES['second'])})."])
 
 
-def blocks(d: dict, prefix: str) -> dict:
+def blocks(d: dict, prefix: str, front: bool = False) -> dict:
     env, data = settings(), figure_data(d)
-    return dict(TRAINING=training_block(data, prefix, env["MODEL_HF"]), RECIPE_SETTINGS=settings_block(env, prefix), RECIPE_STATUS=status_block(d),
+    return dict(TRAINING=(front_block if front else training_block)(data, prefix, env["MODEL_HF"]), RECIPE_SETTINGS=settings_block(env, prefix), RECIPE_STATUS=status_block(d),
                 RECIPE_NEEDS=needs_block(d, env, prefix), RECIPE_PITFALLS=pitfalls_block(d), RECIPE_REACH=reach_block(d, prefix))
 
 
@@ -1025,7 +1056,7 @@ def pages(d: dict) -> dict:
         except FileNotFoundError:
             out[rel] = (None, None)
             continue
-        out[rel] = (old, fill(old, blocks(d, prefix), needed))
+        out[rel] = (old, fill(old, {k: v for k, v in blocks(d, prefix, front=rel == FRONT).items() if k in needed}, needed))
     return out
 
 

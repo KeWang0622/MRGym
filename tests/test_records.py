@@ -206,7 +206,7 @@ def test_canary_is_one_constant():
     assert canary.CANARY.startswith("MRGYM-CANARY GUID ") and len(canary.CANARY.split()[-1]) == 36
     assert record.CANARY == canary.CANARY and canary.stamp({})["canary"] == canary.CANARY
     assert "26b5c67b" not in canary.CANARY                                   # not the string of another benchmark
-    with open(os.path.join(ROOT, "results", "results.json"), encoding="utf-8") as f:
+    with open(os.path.join(ROOT, "docs", "results", "results.json"), encoding="utf-8") as f:
         assert json.load(f)["canary"] == canary.CANARY
 
 
@@ -228,20 +228,41 @@ def test_small_runs_are_pilot_rows(run, capsys):
     assert "No row is published yet" in text and "### Pilot rows (not published)" in text and "8/8 (100.0 %; " in text and "one-sided bound >= " in text
 
 
-def test_stored_records_of_schema_1_are_pilot_and_not_published():
-    directory = os.path.join(ROOT, "results")
-    recs = summarize.load(directory)
-    assert len(recs) == 1400 and all(r["record_schema"] == 1 and r["tier"] == "pilot" for r in recs)
+def test_the_pilot_archive_holds_no_records_and_its_check_says_so(tmp_path, capsys):
+    """docs/results is what is left of the pilot runs on the retired ids: the table and its JSON, no episode records.
+    The check compares the two with each other and never says it matched records."""
+    import shutil
+
+    from mrgym.registry import retired
+    directory = os.path.join(ROOT, "docs", "results")
+    assert not os.path.isdir(os.path.join(directory, "episodes")) and summarize.load(directory) == []
     with open(os.path.join(directory, "results.json"), encoding="utf-8") as f:
         s = json.load(f)
-    assert s["schema"] == "mrgym-results/2" and (s["published_records"], s["pilot_records"]) == (0, 1400)
+    assert s["schema"] == "mrgym-results/2" and (s["records"], s["published_records"], s["pilot_records"]) == (1400, 0, 1400)
     assert s["rows"] and all(r["tier"] == "pilot" and r["tier_reason"] == "schema 1" for r in s["rows"]) and s["comparisons"] == []
-    assert s["reliability"]["cells"] == []
-    drift, broken, fresh = results.audit(directory)
-    assert drift == [] and broken == [] and fresh == s
-    with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as f:
+    assert s["reliability"]["cells"] == [] and set(s["environments"]) <= set(retired) and s["engines"] == ["mrgym-engine-0.1.0"]
+    assert results.audit_archive(directory) == ([], [], s)
+    assert cli.main(["results", "--dir", directory, "--check"]) == 0
+    out = capsys.readouterr().out
+    assert "an archive without episode records, so nothing was compared with records" in out and "match the" not in out
+    assert cli.main(["results", "--dir", directory, "--quiet"]) == 1 and "no episode records" in capsys.readouterr().out    # nothing to rebuild from
+    with open(os.path.join(directory, "README.md"), encoding="utf-8") as f:
+        page = f.read()
+    assert "Nothing is published yet" in page and "is the last one that holds them" in page
+    # a table that is not the one of the stored JSON is drift; without the JSON there is nothing to check
+    copy = str(tmp_path / "archive")
+    os.makedirs(copy)
+    for name in ("results.json", "README.md"):
+        shutil.copy(os.path.join(directory, name), copy)
+    assert cli.main(["results", "--dir", copy, "--check"]) == 0
+    with open(os.path.join(copy, "README.md"), "w", encoding="utf-8") as f:
+        f.write(page.replace("| reference | scripted | 48 | 48/48", "| reference | scripted | 48 | 47/48", 1))
+    assert cli.main(["results", "--dir", copy, "--check"]) == 1 and "is not what the stored results.json renders to" in capsys.readouterr().out
+    os.remove(os.path.join(copy, "results.json"))
+    assert results.audit_archive(copy) is None and cli.main(["results", "--dir", copy, "--check"]) == 1
+    with open(os.path.join(ROOT, "docs", "TOUR.md"), encoding="utf-8") as f:
         block = f.read().split("<!-- RESULTS:START -->")[1].split("<!-- RESULTS:END -->")[0]
-    assert "No row is published yet" in block and not any(m in block for m in s["agents"]["model"])   # pilot rows are absent from the README table
+    assert "No row is published yet" in block and not any(m in block for m in s["agents"]["model"])   # pilot rows are absent from the overview
 
 
 # ------------------------------------------------------------------ a run of the published design
@@ -465,7 +486,7 @@ def test_stat_spans_are_filled_from_results():
 
 # ------------------------------------------------------------------ manifests
 def test_stored_manifests_are_frozen():
-    directory = os.path.join(ROOT, "results", "manifests")
+    directory = os.path.join(ROOT, "docs", "results", "manifests")
     sizes = dict(report=300, validation=200, smoke=12)
     sizes["public-test"] = 100
     seen = {}

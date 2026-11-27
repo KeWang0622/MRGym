@@ -97,8 +97,8 @@ jobs:
         run: mrgym validate
       - name: Generated files are current
         run: python tools/generate.py --check
-      - name: Results table matches the saved records
-        run: mrgym results --check
+      - name: The results archive is the table of its results.json
+        run: mrgym results --check --dir docs/results
 
   test-os:
     name: Tests (${{ matrix.os }})

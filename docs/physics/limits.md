@@ -42,6 +42,24 @@ python -c "from mrgym.scanner import session; print(session.REPLAY_RTOL, session
 
 ---
 
+## 0. Known errors in engine 0.2.0 (fix in progress)
+
+These four are not simplifications. They are wrong, an audit against textbook physics found them on 2026-11-26, and
+a corrected engine with a test for each is being prepared. The numbers are from that audit, not from a command in
+this repository; the tests arrive with the fix. Until then, treat results that depend on them with care.
+
+| What the engine does | What a scanner does | Tasks it can affect |
+|---|---|---|
+| Partial Fourier shortens the scan and *raises* the measured SNR (spin echo, matrix 64: 35.5 / 27.5 / 21.5 s give region SNR 256 / 289 / 316 at fractions 1 / 0.75 / 0.55). | Fewer acquired lines never give more SNR at the same resolution: zero filling blurs, conjugate synthesis loses about the square root of the fraction. | any task where the agent may set `partial_fourier` |
+| A perfect fat-saturation pulse removes all six fat peaks. | A spectrally selective pulse saturates the peaks inside its band. About a fifth of the modelled fat spectrum lies outside a 1.3 ppm band, part of it next to water. | `Scanner/FatSuppress-v0` |
+| The fat-saturation factor is the same at every TR and flip angle. | Fat recovers between the saturation pulse and the excitation, and the steady state depends on TR, the T1 of fat and the flip angle. | `Scanner/FatSuppress-v0` |
+| `rf_pulse=fast` excites a slice 1.2 to 1.4 times the prescribed `slice_mm`. | The console calibrates the slice gradient so that the width at half maximum equals the prescription for every pulse. | any task where the agent may set `rf_pulse` |
+
+The training result on the front page was measured on `Scanner/NoWrap-v1` and `Scanner/NullTissue-v0`. Whether any
+of the four enters those episodes has not been checked yet.
+
+---
+
 ## 1. Slice selection: independent columns, one pulse shape
 
 - **Simplified.** A selective scan (`excitation: selective`, the default) excites the slice with a Hann-windowed

@@ -95,5 +95,3 @@ Exported records and documents that hold task content carry this string, for peo
 
 It is never put into text an agent reads, and it protects nothing by itself. Please do not train on files that
 carry it.
-
-`extras/recon_repair/` is outside this model. Its README states its own limits.

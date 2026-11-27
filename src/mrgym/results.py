@@ -5,6 +5,9 @@
     mrgym results --check            write nothing; exit 1 if the stored table or JSON differs from a fresh build, if a
                                      published row breaks a reporting rule (R1-R13, D1), or if a stored conversation is
                                      missing or does not have the hash stored in its record
+    mrgym results --check --dir D    D holds results.json and README.md but no episodes/ (an archive: the records
+                                     were removed): compares the README table with results.json and applies the
+                                     rules to both; says that nothing was compared with records
     mrgym results --check --lint F   apply the reporting rules to the given files only (a results.json, or Markdown
                                      with --context results.json); prints ``file:line: rule: message``
     mrgym results --register-plan --models a,b    write analysis_plan.json before the first episode of a run
@@ -121,6 +124,21 @@ def audit(directory: str = DEFAULT_DIR) -> tuple[list[str], list[str], dict]:
                     out.append(f"{os.path.join(directory, r['_dir'], 'record.json')}:1: R13 ({lint.RULES['R13']}): {problem}")
     if bad > 20:
         out.append(f"{directory}: R13 ({lint.RULES['R13']}): {bad - 20} more records without a verifiable conversation")
+    return drift, out, summary
+
+
+def audit_archive(directory: str = DEFAULT_DIR) -> tuple[list[str], list[str], dict] | None:
+    """The check of a folder that holds ``results.json`` and no ``episodes/``: an archive, whose records were removed.
+    None when there is no ``results.json``. Nothing here is compared with episode records: the stored JSON is taken as
+    it is, the README must hold the table that this JSON renders to, and the reporting rules are applied to both."""
+    raw = _read(os.path.join(directory, "results.json"))
+    if raw is None:
+        return None
+    summary = json.loads(raw)
+    fresh = build(directory, summary)
+    drift = [name for name, text in fresh.items() if _read(os.path.join(directory, name)) != text]
+    out = [lint.format_violation(os.path.join(directory, "results.json"), v) for v in lint.lint_results(summary, raw)]
+    out += [lint.format_violation(os.path.join(directory, "README.md"), v) for v in lint.lint_text(fresh["README.md"], summary)]
     return drift, out, summary
 
 
@@ -317,6 +335,18 @@ def cmd_results(a) -> int:
             f.write("\n")
         print("written:", path)
         return 0
+    archive = audit_archive(a.dir) if a.check and not os.path.isdir(os.path.join(a.dir, "episodes")) else None
+    if archive:
+        drift, broken, s = archive
+        for name in drift:
+            print(f"drift: {os.path.join(a.dir, name)} is not what the stored results.json renders to")
+        for line in broken:
+            print(line)
+        if not drift and not broken:
+            print(f"{a.dir}: an archive without episode records, so nothing was compared with records. README.md holds the table "
+                  f"of results.json ({s['records']} records when it was built: {s['published_records']} published, "
+                  f"{s['pilot_records']} pilot); no reporting rule is broken")
+        return 1 if drift or broken else 0
     if not os.path.isdir(os.path.join(a.dir, "episodes")):
         print(f"mrgym results: no episode records under {os.path.join(a.dir, 'episodes')}; run mrgym run-agent --out {a.dir} first")
         return 1

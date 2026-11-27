@@ -20,7 +20,7 @@ Python 3.10 or newer. `make help` lists the other targets.
 
 1. Tests that pass: `make test` and `make lint`. Tests need no network, no credentials and no model. A change of
    scoring, gate or engine code also passes `make audit` (below).
-2. Generated files regenerated, not edited: `make generate`, then `make check`.
+2. Generated files regenerated, not edited: `make generate`, then `make check` (it also checks the links of the pages).
 3. An answer to the question in the pull-request template: can this change any reward or any scan data?
 4. A line under "Unreleased" in [CHANGELOG.md](CHANGELOG.md) when a user could notice the change.
 5. Numbers that come from a command, with the command. A physics change comes with `mrgym validate`; an environment
@@ -75,9 +75,11 @@ console arithmetic and noise streams.
 
 ## Add an environment
 
-An environment is a job done on the scanner: a hidden world, a scan-time budget, a deliverable and a pass rule. A
-task family is a sub-package `src/mrgym/envs/<family>/`; the worked example is `src/mrgym/envs/null_tissue/`, and
-`src/mrgym/envs/family.py` states the contract. (`nowrap` and `t1_transmit` predate it and are kept as they are.)
+An environment is a job done on the scanner: a hidden world, a scan-time budget, a deliverable and a pass rule.
+**Start with [docs/ADDING_A_TASK.md](docs/ADDING_A_TASK.md)**: it walks through a small family that runs
+(`examples/new_family/`). A task family is a sub-package `src/mrgym/envs/<family>/`; the full-size example is
+`src/mrgym/envs/null_tissue/`, and `src/mrgym/envs/family.py` states the contract. (`nowrap` and `t1_transmit` predate
+it and are kept as they are.)
 
 1. **`task.py`.** The world spec per level, `make_instance(seed, level, task_id)`, `statement(cfg)`,
    `submit_schema(cfg)`, `check(cfg, answer, exam)` (why a deliverable cannot be evaluated, or `None`),
@@ -96,7 +98,7 @@ task family is a sub-package `src/mrgym/envs/<family>/`; the worked example is `
    mrgym gate <id> --n 300 --write
    ```
 6. **Run the structural check.** `mrgym check <id>` must pass.
-7. **Regenerate.** `python tools/generate.py` rewrites the card under `envs/` and the table in the README.
+7. **Regenerate.** `python tools/generate.py` rewrites the card under `envs/` and the task table of the README.
 8. **Changelog.** Add a line under "Unreleased". If a reward of a released id can change, register a new `-vN` and
    leave the old id as it is.
 

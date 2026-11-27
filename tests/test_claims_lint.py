@@ -74,7 +74,7 @@ def test_valid_fixtures_pass(capsys):
 def test_sentences_an_earlier_review_found_false(capsys):
     code, out = run_lint(capsys, "M1_no_model_has_been_run.md")
     assert code == 1 and ": R1 (" in out and ":5:" in out
-    repo = os.path.join(ROOT, "results", "results.json")                   # models played a subset of the scripted rows' seeds
+    repo = os.path.join(ROOT, "docs", "results", "results.json")                   # models played a subset of the scripted rows' seeds
     code, out = run_lint(capsys, "M4_same_instances.md", context=repo)
     assert code == 1 and ": R4 (" in out and "different seed sets" in out
     code, out = run_lint(capsys, "M4_same_instances.md", context=None)
@@ -93,18 +93,18 @@ def load_generate():
 def test_the_repository_passes_and_reinserting_the_sentences_fails():
     generate = load_generate()
     assert generate.lint_docs({}) == []
-    with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as f:
+    with open(os.path.join(ROOT, "docs", "TOUR.md"), encoding="utf-8") as f:       # the page that holds the results block
         readme = f.read()
-    with open(os.path.join(ROOT, "results", "results.json"), encoding="utf-8") as f:
+    with open(os.path.join(ROOT, "docs", "results", "results.json"), encoding="utf-8") as f:
         summary = json.load(f)
     assert lint.lint_text(readme, summary) == []
-    anchor = "<!-- RESULTS:START -->\n"                                       # the results section of the page, wherever it is folded
+    anchor = "<!-- RESULTS:START -->\n"
     m1 = readme.replace(anchor, "No language model has been run yet.\n\n" + anchor)
     m4 = readme.replace(anchor, "Rows of kind `model` are language models; every agent plays the same instances.\n\n" + anchor)
     assert m1 != readme and [v["rule"] for v in lint.lint_text(m1, summary)] == ["R1"]
     assert [v["rule"] for v in lint.lint_text(m4, summary)] == ["R4"]
-    found = generate.lint_docs({"README.md": m1})
-    assert len(found) == 1 and found[0].startswith("README.md:") and ": R1 (" in found[0]
+    found = generate.lint_docs({"docs/TOUR.md": m1})
+    assert len(found) == 1 and found[0].startswith("docs/TOUR.md:") and ": R1 (" in found[0]
     line = int(found[0].split(":")[1])
     assert m1.split("\n")[line - 1] == "No language model has been run yet."
     block = results.START + "\nkimi-k3 passes 9/20 and is better than claude-haiku-5-5.\n" + results.END
@@ -160,9 +160,9 @@ def test_documents_state_the_constants_of_the_code():
     assert f"{power.PUBLISHED_MIN_INSTANCES} instances per environment and {power.PUBLISHED_MIN_EPISODES} episodes per instance" in plan
     assert f"fewer than {power.PILOT_BELOW} instances" in plan and f"at most {100 * gate.ALPHA:.0f} %" in plan
     assert power.power_markdown() in plan and power.gate_text() in plan           # the generated blocks are current
-    with open(os.path.join(ROOT, "results", "README.md"), encoding="utf-8") as f:
+    with open(os.path.join(ROOT, "docs", "results", "README.md"), encoding="utf-8") as f:
         page = f.read()
     for rule in lint.RULES:
         assert f"| {rule} |" in page, rule
-    with open(os.path.join(ROOT, "DATASHEET.md"), encoding="utf-8") as f:
+    with open(os.path.join(ROOT, "docs", "DATASHEET.md"), encoding="utf-8") as f:
         assert power.power_markdown() in f.read()
