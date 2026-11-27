@@ -62,6 +62,8 @@ The agent sees the task text and the results of its own tool calls, nothing else
 |---|---|---|---|
 | [`Scanner/Explore-v0`](envs/scanner-explore-v0/) | scan freely; nothing is asked and nothing is scored | - | no score |
 | **A · Signal and contrast**: what signal a tissue gives | | | |
+| [`Scanner/T2Decay-v0`](envs/scanner-t2decay-v0/) | measure the T2 of each vial | measure | experimental |
+| [`Scanner/FatFraction-v0`](envs/scanner-fatfraction-v0/) | measure the fat fraction of each mixture | measure | experimental |
 | [`Scanner/T1Transmit-v1`](envs/scanner-t1transmit-v1/) | measure T1 when the transmit field is miscalibrated | measure | experimental |
 | [`Scanner/NullTissue-v0`](envs/scanner-nulltissue-v0/) | find the inversion time that makes each vial dark | set | ready |
 | [`Scanner/FatSuppress-v0`](envs/scanner-fatsuppress-v0/) | choose the fat suppression that works in each region | set | ready |
@@ -79,7 +81,7 @@ The agent sees the task text and the results of its own tool calls, nothing else
 
 A task is ready when it has been checked on 300 fresh objects: a scripted solution passes, and shortcuts that ignore the
 object fail. Each task has levels of difficulty (`mrgym list`); [envs/](envs/README.md) has the full table.
-[The map](docs/tasks.md) lists 110 pieces of MR physics: the scanner forms 61, and 11 have a task of their own.
+[The map](docs/tasks.md) lists 112 pieces of MR physics: the scanner forms 61, and 13 have a task of their own.
 <!-- TASKS:END -->
 
 ## Add a task

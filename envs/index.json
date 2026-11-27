@@ -75,6 +75,26 @@
    "gate": null
   },
   {
+   "id": "Scanner/FatFraction-v0",
+   "folder": "scanner-fatfraction-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Fat fraction of water-fat mixtures from in-phase and opposed-phase echoes",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": "undetermined",
+   "gate": null
+  },
+  {
    "id": "Scanner/FatSuppress-v0",
    "folder": "scanner-fatsuppress-v0",
    "kind": "admitted",
@@ -331,6 +351,26 @@
      "3": "practice"
     }
    }
+  },
+  {
+   "id": "Scanner/T2Decay-v0",
+   "folder": "scanner-t2decay-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "T2 of marked vials from spin echoes",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": "undetermined",
+   "gate": null
   },
   {
    "id": "Scanner/TransmitAdjust-v0",

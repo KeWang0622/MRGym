@@ -39,9 +39,22 @@ def test_every_formed_item_names_checks_that_exist():
     assert not missing, missing
     assert not any(i.evidence for i in M.ITEMS if i.status == "absent")
     forms = {"validate" if M._VALIDATE_ROW.match(e) else e.split("/")[0].split(" ")[0].split(":")[0] for i in shown for e in i.evidence}
-    assert forms == {"validate", "design", "tests", "examples", "mrgym"}             # the five kinds of check, all in use
-    assert {e for i in M.ITEMS for e in i.evidence if e.startswith("design:")} <= {f"design:{r}" for r in M.design_ids()} and len(M.design_ids()) > 60
-    for wrong in ("K999", "design:Z9", "tests/test_scanner.py::test_that_does_not_exist", "tests/no_such_file.py::test_x",
+    # the kinds of check, all in use: the rows of ``mrgym validate``, those of every validated package, tests, examples, commands
+    assert forms == {"validate", *M.EVIDENCE_PACKAGES, "tests", "examples", "mrgym"} and list(M.EVIDENCE_PACKAGES)[:3] == ["design", "core", "spins"]
+    for prefix in M.EVIDENCE_PACKAGES:
+        cited = {e for i in M.ITEMS for e in i.evidence if e.startswith(prefix + ":")}
+        assert cited and cited <= {f"{prefix}:{r}" for r in M.package_ids(prefix)} and all(M.package_row(e)[0] == prefix for e in cited), prefix
+    assert len(M.package_ids("design")) > 60
+    # the ids read from the source of ``mrgym.core.validate`` and of ``mrgym.spins.validate`` are the rows of the tables in
+    # docs/physics/, which tests/test_core_validate.py and tests/test_spins_validate.py hold equal to what the commands print
+    for prefix, rows in (("core", 81), ("spins", 69)):
+        table = (ROOT / "docs" / M.EVIDENCE_PACKAGES[prefix][2]).read_text(encoding="utf-8").split("<!-- validation table: begin -->")[1].split("<!-- validation table: end -->")[0]
+        assert M.package_ids(prefix) == set(re.findall(r"^\| ([A-Z]+\d+[a-z]?) \|", table, re.M)) and len(M.package_ids(prefix)) == rows, prefix
+    assert M.evidence_exists("core:N1", str(ROOT)) is True and M.evidence_exists("core:E9", str(ROOT)) is False     # E9 is a row of the design layer only
+    assert M.evidence_exists("spins:S7", str(ROOT)) is True and M.evidence_exists("spins:N1", str(ROOT)) is False   # N1 is a row of the signal core only
+    assert M.evidence_exists("spins:M4c", str(ROOT)) is True            # a row that the source names in a loop, not as ``_row("M4c"``
+    assert M._evidence(("K6 K22", "design:E3 core:N1b", "spins:S7 K6", "mrgym qa acr")) == ("K6", "K22", "design:E3", "core:N1b", "spins:S7", "K6", "mrgym qa acr")
+    for wrong in ("K999", "design:Z9", "core:Z9", "core:N99", "spins:Z9", "em:P1", "tests/test_scanner.py::test_that_does_not_exist", "tests/no_such_file.py::test_x",
                   "examples/textbook/99_nothing.py", "mrgym qa acr --fault no_such_fault"):
         assert M.evidence_exists(wrong, str(ROOT)) is False, wrong
     assert M.evidence_exists("tests/test_scanner.py::test_plan_never_depends_on_the_world", "/nonexistent") is None     # no checkout: cannot say
@@ -194,6 +207,10 @@ def test_the_page_under_docs_is_current_and_its_counts_are_those_of_coverage():
     assert groups == {(name or M.ORDINARY)[0].upper() + (name or M.ORDINARY)[1:]: ids for name, ids in waits.items() if ids}
     n_piece = sum(len(v) for k, v in waits.items() if k)
     assert f"{n_piece + len(waits[''])} items. {n_piece} of them wait for one of {len(M.ENABLERS)} pieces of engine work; the other {len(waits[''])} take" in last
+    # "computed ... and checks it against a closed form or a second method": every computed item names a row of a validated
+    # package, and the list links the table of the checks, where those packages are named once
+    assert f"[the checks](#{M._anchor(M.CHECKS_HEADING)}) name the rows." in last and f"\n## {M.CHECKS_HEADING}\n" in page
+    assert all(any(M.package_row(e) for e in i.evidence) for i in M.ITEMS if i.status == "computed")
     for i in M.ITEMS:                                                   # "computed" is said beside the item, in the same list
         if i.status in ("computed", "absent"):
             row = next(_cells(ln) for ln in last.splitlines() if ln.startswith(f"| {i.id} | "))
@@ -202,7 +219,13 @@ def test_the_page_under_docs_is_current_and_its_counts_are_those_of_coverage():
 
 def test_what_is_not_formed_waits_for_one_of_seven_pieces_or_for_ordinary_work():
     names = [name for name, _ in M.ENABLERS]
-    assert names == ["3D world", "receive array", "spin systems", "field model", "block-list core", "realistic anatomy", "measured data"]
+    assert names == ["3D world", "receive array", "spin systems", "field model", "core in the console", "realistic anatomy", "measured data"]
+    # the signal core exists as a library (``mrgym.core``): what its piece still asks for is serving it, and the page says so
+    what = dict(M.ENABLERS)["core in the console"]
+    assert "exists as a library" in what and "still to do" in what and "block-list core" not in M.doc_page() + M.text_table(M.table(str(ROOT)))
+    # so do the spin systems (``mrgym.spins``): what is left is the voxel and the sequence
+    what = dict(M.ENABLERS)["spin systems"]
+    assert "exists as a library" in what and "still to do: a voxel that holds metabolites in the scanner world and a spectroscopy sequence in the console" in what
     waits = M.waiting()
     assert list(waits) == names + [""] and all(waits[name] for name in names)                    # every piece unlocks something that is listed
     by_id = M.items()
@@ -215,6 +238,82 @@ def test_what_is_not_formed_waits_for_one_of_seven_pieces_or_for_ordinary_work()
         with pytest.MonkeyPatch.context() as m:
             m.setattr(M, "ITEMS", patched)
             assert any("needs is one of" in p for p in M.validate(str(ROOT))), status
+
+
+def test_what_the_signal_core_computes_is_computed_or_stays_in_part():
+    """Two exchanging pools are computed by the core and served by no sequence; what the console serves in part stays
+    "in part" with the core's rows beside it; what no row of the core covers stays "not yet"."""
+    by_id = M.items()
+    assert by_id["A20"].status == "computed" and {"core:X6", "core:X6b", "core:M2", "core:M3"} <= set(by_id["A20"].evidence)
+    assert "one pool of protons" in by_id["A20"].reason and "chemical exchange between its evaluators only" in by_id["A20"].reason
+    for i in ("A13", "A14", "A15", "A21"):                              # computed before, by the design layer or a formula: further rows
+        assert by_id[i].status == "computed" and any(e.startswith("core:") and M.package_row(e) for e in by_id[i].evidence), i
+    assert by_id["C20"].status == "partial" and any(e.startswith("core:") and M.package_row(e) for e in by_id["C20"].evidence)
+    assert "the console does not serve these yet" in by_id["C20"].reason
+    for i in ("A19", "A22", "B19"):                                     # spatial saturation, flow, the order of the lines
+        assert by_id[i].status == "absent" and not by_id[i].evidence, i
+    cell = M._evidence_text(by_id["A21"].evidence)
+    assert cell == "`python -m mrgym.design.validate` G5, G6, E10; `python -m mrgym.core.validate` X7, N11, N11c, N12"
+    assert f"| A21 | {cell} |" in M.doc_page() and "`python -m mrgym.core.validate` ([core](physics/core.md))" in M.doc_page()
+
+
+def test_validated_packages_are_one_table(monkeypatch):
+    """``EVIDENCE_PACKAGES`` is the one place that knows a validated package: the pattern of a row, the existence check,
+    the cell of an item and the sentence above the checks follow from a line of it."""
+    page = M.doc_page()
+    legend = page.split(f"\n## {M.CHECKS_HEADING}\n")[1].split("\n| |")[0]
+    for prefix, (_, _, doc, command) in M.EVIDENCE_PACKAGES.items():
+        ids = M.package_ids(prefix)
+        assert ids and all(M.package_row(f"{prefix}:{r}") == (prefix, r) for r in ids), prefix
+        shown = (ROOT / "docs" / doc).read_text(encoding="utf-8")
+        assert all(re.search(rf"^\| {r} \|", shown, re.M) for r in ids), prefix                    # every row that can be cited is on its page
+        assert f"of `{command}` ([{prefix}]({doc}))" in legend and page.count(f"({doc})") == 1     # named once, with its command
+    assert legend.strip() == M._row_sources() + ", tests, textbook examples that assert their result, commands."
+    assert M._row_sources().startswith("Rows of `mrgym validate` ([validation](physics/validation.md)), of `python -m mrgym.design.validate` ")
+    assert M.package_row("K6") is None and M.package_row("design:e3") is None and M.package_row("em:P1") is None and M.package_problems(str(ROOT)) == []
+    # a new package is one line: here the rows of the spin systems under a second prefix
+    line = ("mrgym.spins.validate", M._ALSO_IN_A_LOOP, "physics/spins.md", "python -m mrgym.em.validate")
+    with monkeypatch.context() as m:
+        m.setattr(M, "EVIDENCE_PACKAGES", dict(M.EVIDENCE_PACKAGES, em=line))
+        m.setattr(M, "ITEMS", tuple(i._replace(evidence=M._evidence(("K18 em:S7 em:M4c core:N1",))) if i.id == "A2" else i for i in M.ITEMS))
+        assert M.package_row("em:S7") == ("em", "S7") and M.evidence_exists("em:S7", str(ROOT)) is True and M.evidence_exists("em:N1", str(ROOT)) is False
+        assert M.items()["A2"].evidence == ("K18", "em:S7", "em:M4c", "core:N1") and M.validate(str(ROOT)) == []
+        assert M._evidence_text(M.items()["A2"].evidence) == "`mrgym validate` K18; `python -m mrgym.core.validate` N1; `python -m mrgym.em.validate` S7, M4c"
+        assert " and of `python -m mrgym.em.validate` ([em](physics/spins.md)), tests, " in M.doc_page()
+    # a package is listed when it is merged, not before; and a line that finds nothing, or shows nothing, is refused
+    for wrong, said in ((("mrgym.no_such_package.validate",) + line[1:], "which cannot be imported: list a package when it is merged"),
+                        ((line[0], r'_no_row\("([A-Z]+)"') + line[2:], "finds no row id in the source of mrgym.spins.validate"),
+                        (line[:2] + ("physics/no_such_page.md", line[3]), "the page docs/physics/no_such_page.md of 'em' does not exist")):
+        with monkeypatch.context() as m:
+            m.setattr(M, "EVIDENCE_PACKAGES", dict(M.EVIDENCE_PACKAGES, em=wrong))
+            problems = M.validate(str(ROOT))
+            assert len(problems) == 1 and problems[0].startswith("EVIDENCE_PACKAGES: ") and said in problems[0], problems
+            assert M.evidence_exists("em:S7", str(ROOT)) is (wrong[0] == line[0] and wrong[1] == line[1])
+
+
+def test_what_the_spin_systems_compute_is_computed_and_not_served():
+    """Single-voxel spectroscopy, J-coupling with editing, and quantification with a basis are computed by ``mrgym.spins``
+    and checked there; no console sequence reaches them, and the reasons say what is missing."""
+    by_id = M.items()
+    assert [i.id for i in M.ITEMS if i.block == "contrast beyond relaxation"][-3:] == ["A28", "A31", "A32"]     # new items take the next numbers
+    assert by_id["A29"].name.startswith("Relaxation-time mapping") and by_id["A30"].name.startswith("Fat fraction")     # and no id moves
+    for i in ("A28", "A31", "A32"):
+        assert by_id[i].status == "computed" and by_id[i].needs == "spin systems" and by_id[i].reason.startswith("the spin-system package "), i
+        assert by_id[i].evidence and all(M.package_row(e) and M.package_row(e)[0] == "spins" for e in by_id[i].evidence), i
+        assert M.tasks_of(i, planned=True) == ([], [])                  # no task, built or in construction, asks for it
+    assert M.waiting()["spin systems"] == ["A28", "A31", "A32"]
+    assert by_id["A28"].name == "Spectroscopy: single voxel and spectroscopic imaging" and by_id["A28"].outlines == 8
+    assert {"spins:S3", "spins:S5", "spins:S6"} <= set(by_id["A28"].evidence)                      # PRESS, STEAM, semi-LASER
+    assert {"spins:S1", "spins:Q1", "spins:Q4"} <= set(by_id["A28"].evidence)                      # a coupled spin, a fit, a concentration
+    for missing in ("the scanner world has no voxel that holds metabolites", "the console has no spectroscopy sequence", "spectroscopic imaging is not computed"):
+        assert missing in by_id["A28"].reason, missing
+    assert {"spins:E6", "spins:S7", "spins:S7b", "spins:S8"} <= set(by_id["A31"].evidence) and "no console sequence acquires a spectrum" in by_id["A31"].reason
+    assert {"spins:Q1", "spins:Q2", "spins:Q3", "spins:Q4"} <= set(by_id["A32"].evidence) and "the scanner returns no spectrum" in by_id["A32"].reason
+    # rows that show only that amplitudes add up to the number of protons, or how long a simulation takes, are not evidence
+    cited = {e for i in M.ITEMS for e in i.evidence if e.startswith("spins:")}
+    assert not cited & {"spins:M2", "spins:M2b", "spins:M4", "spins:M4b", "spins:M4c", "spins:M4d"}
+    cell = "`python -m mrgym.spins.validate` S1, S3, S4, S5, S6, Q1, Q4"
+    assert M._evidence_text(by_id["A28"].evidence) == cell and f"| A28 | {cell} |" in M.doc_page()
 
 
 def test_the_page_uses_plain_words():

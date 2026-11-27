@@ -17,7 +17,9 @@ More, by topic:
 - Physics: [conventions](physics/conventions.md), [what is simplified](physics/limits.md),
   [references](physics/references.md), [phantoms and QA tests](physics/phantoms.md),
   [comparison with other simulators](physics/external.md),
-  [the design layer: pulses, gradient programs, block-list sequences](physics/design.md)
+  [the design layer: pulses, gradient programs, block-list sequences](physics/design.md),
+  [the signal core: a sequence as a list of blocks, evaluated from the Bloch equation](physics/core.md)
+- Spectroscopy: [coupled spins, sequences, metabolite basis, quantification](physics/spins.md)
 - Training: [signals and curricula](TRAINING.md), [the full report](experiments/RESULTS-27b.md), the plans written
   before the runs ([learnability](experiments/PREREG-learnability.md), [27B](experiments/PREREG-27b.md))
 - Results: [analysis plan](ANALYSIS_PLAN.md), [archive of the pilot runs](results/README.md)

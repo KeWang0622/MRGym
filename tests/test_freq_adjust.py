@@ -16,7 +16,7 @@ import numpy as np
 import pytest
 
 import mrgym
-from mrgym import policies
+from mrgym import coverage, policies
 from mrgym.env import derive_seed
 from mrgym.envs.freq_adjust import controls, task
 from mrgym.scanner import console, kspace, session
@@ -224,4 +224,4 @@ def test_outcome_names_the_first_failed_requirement():
     assert task.outcome(dict(checks=dict(ok, offset_within_tolerance_R1=True, oil_named_R2=False))) == "species_wrong"
     assert task.outcome(dict(checks=dict(ok, offset_within_tolerance_R1=False, oil_named_R2=True), species_wrong=["R1"])) == "species_wrong"
     assert task.outcome(dict(checks=dict(ok, offset_within_tolerance_R1=False, oil_named_R2=True), species_wrong=[])) == "no_offset_within"
-    assert math.isclose(task.TOLERANCE_HZ, 3.0) and set(task.COMPETENCIES) <= set(mrgym.coverage.ids())
+    assert math.isclose(task.TOLERANCE_HZ, 3.0) and set(task.COMPETENCIES) <= set(coverage.ids())

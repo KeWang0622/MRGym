@@ -25,16 +25,18 @@ Three tables.
                                    ``reason`` says what is computed and what is missing
                    "absent"        neither served nor computed with a check; ``reason`` says what is missing
                An item has the first of these that is true, so one that the scanner serves in part stays "partial"
-               when the design layer (``mrgym.design``) also computes more of it. A task can isolate or use only what
-               the scanner serves ("formed", "partial"). There is no status for "cannot be formed": what is missing
-               is engine work, and ``needs`` names it.
+               when a validated package (``EVIDENCE_PACKAGES``: the design layer, the signal core, the spin systems)
+               also computes more of it. A task can isolate or use only what the scanner serves ("formed",
+               "partial"). There is no status for "cannot be formed": what is missing is engine work, and ``needs``
+               names it.
                ``needs`` is the piece of engine work an item that is not fully formed waits for, one of ``ENABLERS``
-               (a 3D world, a receive array, spin systems, a field model, the block-list core, realistic anatomy,
+               (a 3D world, a receive array, spin systems, a field model, the core in the console, realistic anatomy,
                measured data), or "" when ordinary work on the present engine is enough.
-               ``evidence`` names checks that exist: a row of ``mrgym validate`` ("K6"), a row of
-               ``python -m mrgym.design.validate`` ("design:E3"), a test ("tests/test_x.py::test_name"), a textbook
-               example that asserts its result ("examples/textbook/03_t2_spin_echo.py", run by
-               tests/test_textbook_examples.py) or a command ("mrgym qa acr --fault receive_coil").
+               ``evidence`` names checks that exist: a row of ``mrgym validate`` ("K6"), a row of the validation
+               table of a package, written with its prefix in ``EVIDENCE_PACKAGES`` ("design:E3", "core:N1",
+               "spins:S7"), a test ("tests/test_x.py::test_name"), a textbook example that asserts its result
+               ("examples/textbook/03_t2_spin_echo.py", run by tests/test_textbook_examples.py) or a command
+               ("mrgym qa acr --fault receive_coil").
                ``outlines`` is the number of the ten teaching and examination outlines (``OUTLINES``) that name the
                item, read at the level of their headings; None where no single line of them corresponds. It ranks what
                is missing (``missing()``); it is not printed on the page. The items themselves follow those outlines
@@ -57,6 +59,7 @@ the system), and is the page a newcomer reads first.
 from __future__ import annotations
 
 import collections
+import functools
 import json
 import os
 import re
@@ -66,7 +69,23 @@ Kind = collections.namedtuple("Kind", "number name delivers example")
 Item = collections.namedtuple("Item", "id name block rests_on status reason evidence outlines needs")
 Family = collections.namedtuple("Family", "kind isolates uses builds_on")
 _VALIDATE_ROW = re.compile(r"^[A-Z]+\d+$")                    # a row of ``mrgym validate``
-_DESIGN_ROW = re.compile(r"^design:[A-Z]+\d+[a-z]?$")         # a row of ``python -m mrgym.design.validate``
+_ROW_ID = r"[A-Z]+[0-9]+[a-z]?"                               # the id of a row of a package: letters, a number, at most one small letter
+_FIRST_ARGUMENT = rf'_row\("({_ROW_ID})"'                     # ids written as ``_row("E3", ...)``
+_ALSO_IN_A_LOOP = rf'(?:_row\(|, )"({_ROW_ID})"[,)]'          # the same, and ids that a loop takes from a tuple: ``..., "M4c"),``
+# The packages that have a validation table of their own. An item cites a row of one as "<prefix>:<row id>".
+#   prefix: (the module that holds the rows,
+#            how the ids of its rows are found in the source of that module: a pattern with one group,
+#            the page that shows the table, relative to docs/,
+#            the command a reader runs)
+# Everything else is built from this table: the pattern of such a row (``package_row``), whether a row exists
+# (``package_ids``), the cell of an item and the sentence above the checks on the page (``_evidence_text``,
+# ``_row_sources``). A new validated package is one line here, added when its module is merged and not before:
+# ``validate()`` refuses a line whose module cannot be imported, whose pattern finds no id or whose page is missing.
+EVIDENCE_PACKAGES = {
+    "design": ("mrgym.design.validate", _FIRST_ARGUMENT, "physics/design.md", "python -m mrgym.design.validate"),
+    "core": ("mrgym.core.validate", _FIRST_ARGUMENT, "physics/core.md", "python -m mrgym.core.validate"),
+    "spins": ("mrgym.spins.validate", _ALSO_IN_A_LOOP, "physics/spins.md", "python -m mrgym.spins.validate"),
+}
 
 SUBJECTS = (
     Subject("A", "Signal and contrast", "what signal a tissue gives", "it can be asked about one voxel"),
@@ -92,13 +111,17 @@ STATUS_WORDS = {"formed": "formed", "partial": "in part", "computed": "computed,
 ENABLERS = (
     ("3D world", "a volume with real structure through the slice, and volume and multi-slice encoding"),
     ("receive array", "several receive channels with sensitivity maps and noise correlation"),
-    ("spin systems", "a density-matrix simulator for coupled spins"),
+    ("spin systems", "the density-matrix simulator for coupled spins, with its spectroscopy sequences, metabolite basis and "
+                     "quantification, exists as a library; still to do: a voxel that holds metabolites in the scanner world and a "
+                     "spectroscopy sequence in the console"),
     ("field model", "Maxwell's equations on the slice for a body and a coil"),
-    ("block-list core", "the Bloch and phase-graph signal core over a list of blocks, as the engine behind the console"),
+    ("core in the console", "the signal core over lists of blocks (Bloch ensemble, phase graphs, periodic solve) exists as a library; "
+                            "still to do: the engine forming images from it, so that the console serves its sequences"),
     ("realistic anatomy", "textured digital anatomy instead of classes of one value each"),
     ("measured data", "measurements of public phantoms on real scanners, to compare with"),
 )
 ORDINARY = "ordinary engine work"                            # the heading of the items that wait for none of them
+CHECKS_HEADING = "The check behind every item that is formed, formed in part or computed"       # a heading of the page, linked from the list above it
 SERVED = ("formed", "partial")                               # what an agent meets at the console: only this can be asked by a task
 TEXTBOOKS = (
     "Bernstein, King, Zhou, Handbook of MRI Pulse Sequences",
@@ -123,11 +146,19 @@ OUTLINES = (
 )
 
 
+def package_row(evidence: str):
+    """("design", "E3") for "design:E3": the prefix and the row id of a row of a package of ``EVIDENCE_PACKAGES``;
+    None for every other check. The one pattern of such a row, built from the keys of the table."""
+    m = re.match(rf"^({'|'.join(map(re.escape, EVIDENCE_PACKAGES))}):({_ROW_ID})$", evidence)
+    return m.groups() if m else None
+
+
 def _evidence(parts) -> tuple:
-    """Named checks of a row; an argument that holds only validation rows ("K6 K22", "design:E3 design:E4") is split."""
+    """Named checks of a row; an argument that holds only validation rows ("K6 K22", "design:E3 design:E4",
+    "core:N1 spins:S7") is split."""
     out = []
     for p in parts:
-        out += p.split() if all(_VALIDATE_ROW.match(x) or _DESIGN_ROW.match(x) for x in p.split()) else [p]
+        out += p.split() if all(_VALIDATE_ROW.match(x) or package_row(x) for x in p.split()) else [p]
     return tuple(out)
 
 
@@ -171,14 +202,18 @@ _BLOCKS = (
         _formed("A11", "Imperfect spoiling: RF phase cycling and the echoes that survive", "A10", "S5 S9"),
         _formed("A12", "Balanced steady-state free precession: signal against T2 / T1 and against frequency", "A6 A10", "S14", n=6),
         _computed("A13", "Approach to the steady state: dummy cycles and the first lines of a scan", "A10",
-                  "the transient is computed by a separate chain of rotations; the scanner serves every line at the steady state",
-                  _X + "12_approach_to_steady_state.py", "design:E9", needs="block-list core"),
+                  "the transient is computed by a separate chain of rotations and, in the signal core, by stepping a list of blocks "
+                  "from equilibrium or along a prepared train; the scanner serves every line at the steady state",
+                  _X + "12_approach_to_steady_state.py", "design:E9", "core:N8",
+                  "tests/test_core_evaluators.py::test_the_periodic_state_is_a_fixed_point", needs="core in the console"),
         _computed("A14", "Echo trains: fast (turbo) spin echo, echo train length, effective echo time", "A7 B8",
-                  "the design layer computes the echoes of a train of refocusing pulses, stimulated echoes included; no console "
-                  "sequence has an echo train, so no image is formed from one", "design:E2 design:E3 design:E4", n=8, needs="block-list core"),
+                  "the design layer and the signal core compute the echoes of a train of refocusing pulses, stimulated echoes "
+                  "included, and the core its periodic state over repetitions; no console sequence has an echo train, so no image is "
+                  "formed from one", "design:E2 design:E3 design:E4", "core:N1 core:N1b core:N1c core:N2", n=8, needs="core in the console"),
         _computed("A15", "Magnetisation preparation: saturation recovery, T2 preparation, prepared gradient echo", "A9 A10",
-                  "an inversion-prepared gradient echo exists as a checked formula; the console prepares with inversion before a "
-                  "spin echo and with fat saturation only", "S3", needs="block-list core"),
+                  "an inversion-prepared gradient echo exists as a checked formula, and the signal core computes a prepared train of "
+                  "gradient echoes, T2 preparation and saturation recovery from lists of blocks; the console prepares with inversion "
+                  "before a spin echo and with fat saturation only", "S3", "core:Q12 core:N8 core:N9 core:N9b core:N10", needs="core in the console"),
     )),
     ("A", "selective signal", (
         _formed("A16", "Chemical shift: fat and water resonate 3.4 ppm apart", "A2", "K3", _X + "05_chemical_shift.py", n=8),
@@ -187,16 +222,22 @@ _BLOCKS = (
                  "the pulse has a band, a centre and an efficiency, but it treats all fat as one line and its effect does "
                  "not depend on repetition time or flip angle",
                  "K28", "tests/test_fat_suppress.py::test_physics_the_saturated_band_has_the_width_of_the_hidden_pulse", n=7),
-        _absent("A19", "Spatial saturation bands", "A3 B2", "there is no spatial saturation pulse", n=7, needs="block-list core"),
-        _absent("A20", "Magnetisation transfer and chemical exchange", "A4", "each tissue is one pool of protons", n=4, needs="block-list core"),
+        _absent("A19", "Spatial saturation bands", "A3 B2", "there is no spatial saturation pulse", n=7, needs="core in the console"),
+        _computed("A20", "Magnetisation transfer and chemical exchange", "A4",
+                  "the signal core computes two exchanging pools: magnetisation transfer with a saturation pulse on the bound pool, in "
+                  "a gradient echo and under continuous irradiation (the direct effect of the pulse on free water is left out), and "
+                  "chemical exchange between its evaluators only, against no closed form and in no sequence of its library; each "
+                  "tissue of the scanner is one pool of protons and no console sequence saturates a bound pool",
+                  "core:X6 core:X6b core:M2 core:M3", n=4, needs="core in the console"),
     )),
     ("A", "contrast beyond relaxation", (
         _computed("A21", "Diffusion weighting: b-value, apparent diffusion coefficient, tensor", "A7 B1",
-                  "the design layer computes the b-value and b-tensor of a gradient program and the attenuated echo; no console "
-                  "sequence is diffusion-weighted (tissues have a diffusion coefficient that acts on the spoiling of gradient "
-                  "echoes only)", "design:G5 design:G6 design:E10", n=9, needs="block-list core"),
+                  "the design layer computes the b-value and b-tensor of a gradient program and the attenuated echo, and the signal "
+                  "core the diffusion-weighted spin echo and stimulated echo from lists of blocks, for one free, isotropic coefficient; "
+                  "no console sequence is diffusion-weighted (tissues have a diffusion coefficient that acts on the spoiling of "
+                  "gradient echoes only)", "design:G5 design:G6 design:E10", "core:X7 core:N11 core:N11c core:N12", n=9, needs="core in the console"),
         _absent("A22", "Flow: inflow, time-of-flight angiography, velocity encoding", "A10 B1 B2",
-                "nothing flows: blood is a static tissue", n=8, needs="block-list core"),
+                "nothing flows: blood is a static tissue", n=8, needs="core in the console"),
         _absent("A23", "Contrast agents: relaxivity and concentration", "A4 A5",
                 "no material carries an agent; a dilution series could be built from vials", n=8),
         _absent("A24", "Perfusion: passage of a bolus, arterial spin labelling", "A22 A23",
@@ -207,8 +248,25 @@ _BLOCKS = (
                 "the field is known in one slice; going from the field to the susceptibility takes it in a volume", needs="3D world"),
         _absent("A27", "BOLD contrast and functional MRI", "A6 B18",
                 "no tissue changes its T2* during the session, and a scan is not repeated as a series"),
-        _absent("A28", "Spectroscopy: single voxel and spectroscopic imaging", "A16",
-                "the scanner returns images of water and fat: no metabolites, no spectrum", n=8, needs="spin systems"),
+        _computed("A28", "Spectroscopy: single voxel and spectroscopic imaging", "A16",
+                  "the spin-system package computes what the single-voxel sequences PRESS, STEAM and semi-LASER leave of a "
+                  "metabolite, coupled protons included, with slice-selective refocusing pulses and the displacement of the selected "
+                  "slice by the chemical shift, and it fits a spectrum with a basis of metabolite spectra; the scanner world has no "
+                  "voxel that holds metabolites, the console has no spectroscopy sequence and returns images of water and fat only, "
+                  "and spectroscopic imaging is not computed",
+                  "spins:S1 spins:S3 spins:S4 spins:S5 spins:S6 spins:Q1 spins:Q4", n=8, needs="spin systems"),
+        _computed("A31", "J-coupling: multiplets, the echo of a coupled spin, spectral editing", "A7 A28",
+                  "the spin-system package computes the multiplets of weakly and strongly coupled protons, how the echo of a coupled "
+                  "spin depends on the echo time, the edited difference of MEGA-PRESS for GABA and lactate and two-dimensional "
+                  "J-resolved signals; every tissue of the scanner is a set of uncoupled lines, and no console sequence acquires a "
+                  "spectrum or plays an editing pulse",
+                  "spins:O5 spins:O5b spins:E6 spins:S1 spins:S7 spins:S7b spins:S7d spins:S8", needs="spin systems"),
+        _computed("A32", "Metabolite quantification: fitting a basis set, water referencing", "A28 A31",
+                  "the spin-system package simulates a basis of metabolite spectra for a sequence, fits a spectrum as a sum of them "
+                  "with one shift, one width and one phase, gives the Cramer-Rao bounds of the fit and turns an amplitude into a "
+                  "concentration with the water signal as reference; it has fitted its own simulated spectra only: the scanner "
+                  "returns no spectrum, and neither macromolecules nor a baseline are in the basis or in the fit",
+                  "spins:M1b spins:M3 spins:Q1 spins:Q2 spins:Q3 spins:Q4", needs="spin systems"),
     )),
     ("A", "quantitative mapping", (
         _formed("A29", "Relaxation-time mapping: T1, T2 and T2* from a series of scans, and what biases them", "A5 A6 A9 A10",
@@ -249,7 +307,7 @@ _BLOCKS = (
         _formed("B18", "Echo-planar readout: echo spacing, bandwidth along phase, distortion", "B8 B13 B14",
                 "K12", _X + "10_epi_distortion.py", n=9),
         _absent("B19", "Segmented acquisition and the order of the lines", "B8",
-                "lines are acquired in one order, one per repetition (echo-planar: one shot)", n=7, needs="block-list core"),
+                "lines are acquired in one order, one per repetition (echo-planar: one shot)", n=7, needs="core in the console"),
         _partial("B20", "Three-dimensional encoding: a second phase-encode axis, the slab", "B2 B7",
                  "a non-selective 3D scan is priced and its central partition is imaged; no slab profile, no fold along "
                  "the slab", "C7 C8", n=7, needs="3D world"),
@@ -284,11 +342,11 @@ _BLOCKS = (
         _formed("C7", "RF pulses: duration, bandwidth, peak amplitude and energy", "A3 B2", "C4 C5"),
         _partial("C8", "Adiabatic pulses: an inversion that tolerates the transmit field", "A9 C6",
                  "the console's inversion is one efficiency number; the hyperbolic-secant pulse and its threshold are computed in "
-                 "the design layer and played by no sequence", "S11", "design:P6 design:P7", needs="block-list core"),
+                 "the design layer and played by no sequence", "S11", "design:P6 design:P7", needs="core in the console"),
         _computed("C9", "RF pulse design: shaping a pulse to a profile", "B3 C7",
                   "the design layer generates pulses (windowed sinc, Shinnar-Le Roux, variable rate), simulates them and scores the "
                   "profile against bounds on energy and duration; the console plays three fixed shapes and no task asks for a pulse",
-                  "design:P3 design:P4 design:P9 design:F1 design:F4", n=1, needs="block-list core"),
+                  "design:P3 design:P4 design:P9 design:F1 design:F4", n=1, needs="core in the console"),
         _formed("C10", "Receive coil: sensitivity profile and shading", "B23", "mrgym qa acr --fault receive_coil", n=9),
         _absent("C11", "Receive arrays: coil elements, their combination, the choice of coil", "C10", "there is one receive channel", n=9, needs="receive array"),
         _formed("C12", "Receiver noise: its level and its dependence on bandwidth", "B6",
@@ -308,11 +366,13 @@ _BLOCKS = (
         _absent("C19", "Eddy currents and concomitant fields", "C15", "gradients are played as ideal trapezoids", n=6),
         _partial("C20", "Spoiler and crusher gradients: the moment and what survives it", "A11 B1",
                  "the spoiler moment of a gradient echo is a parameter and acts on the signal; the crushers of a spin echo are "
-                 "ideal: what they dephase is gone, so there is no stimulated echo", "S6 S8", needs="block-list core"),
+                 "ideal: what they dephase is gone, so there is no stimulated echo. The signal core computes real crushers with the "
+                 "stimulated echoes they leave, and a spoiler played as a lobe with its own duration; the console does not serve "
+                 "these yet", "S6 S8", "core:Q7 core:N1 core:N12 core:N13 core:N5 core:N6 core:N6c", needs="core in the console"),
         _computed("C21", "Gradient programs: lobes, moments and their nulling, the shortest waveform inside the limits", "C15 C20",
                   "the design layer computes moments, k-space and limit checks of a gradient program and the shortest lobe for "
                   "given moments; the console builds its own trapezoids and no waveform can be entered",
-                  "design:G1 design:G3 design:G4 design:G7 design:G9", needs="block-list core"),
+                  "design:G1 design:G3 design:G4 design:G7 design:G9", needs="core in the console"),
     )),
     ("C", "operating limits", (
         _partial("C22", "RF power: what raises B1+rms, and its limit", "A3 C7",
@@ -322,7 +382,7 @@ _BLOCKS = (
                 "there is no body and no electric field of the coil: the console prices RF as B1+rms only", n=9, needs="field model"),
         _computed("C24", "Nerve stimulation: the limit on dB/dt", "C15",
                   "the design layer computes a stimulation figure of a gradient program from a declared model; the console plays "
-                  "gradients at one fixed slew rate and has no such limit", "design:G8", n=8, needs="block-list core"),
+                  "gradients at one fixed slew rate and has no such limit", "design:G8", n=8, needs="core in the console"),
         _absent("C25", "Acoustic noise of the gradients", "C15", "there is no model of sound", n=8),
         _absent("C26", "Implants and devices: scanning inside the conditions of a label", "C22 C24",
                 "no object holds a device and no task states a label", needs="field model"),
@@ -393,6 +453,8 @@ def _f(kind, isolates, uses="", builds_on=""):
 # name: kind, the item it isolates, the items it uses besides, the families it builds on. One line per family.
 FAMILIES = {
     "T1Transmit": _f(1, "A29", "A10 A11 B3 B20 C6", "T1Vial TransmitAdjust"),
+    "T2Decay": _f(1, "A5", "A4 A7"),
+    "FatFraction": _f(1, "A30", "A6 A16 A17"),
     "NullTissue": _f(2, "A9", "A4 C6 C8"),
     "FatSuppress": _f(2, "A18", "A9 A16 C2 C3 C6 C8", "NullTissue FrequencyAdjust"),
     "ProtocolToSpec": _f(3, "A8", "A5 A9 B7 D1 D3", "NullTissue SNRSpec"),
@@ -407,8 +469,6 @@ FAMILIES = {
 # Families that are being built: the cell each is meant for. A line moves to FAMILIES when its family is registered.
 PLANNED = {
     "T1Vial": _f(1, "A4", "A9"),
-    "T2Decay": _f(1, "A5", "A4 A7"),
-    "FatFraction": _f(1, "A30", "A6 A16 A17"),
     "ErnstFlip": _f(2, "A10", "A4 B3 C6"),
     "Conspicuity": _f(3, "A8", "A7 A9 A10 B7 D1 D3", "T1Vial T2Decay"),
     "Resolve": _f(2, "B10", "B7 B11 B15 B17 D1", "NoWrap"),
@@ -473,8 +533,9 @@ def evidence_exists(evidence: str, root: str | None = None):
     if _VALIDATE_ROW.match(evidence):
         from . import coverage
         return evidence in coverage.validate_ids()
-    if _DESIGN_ROW.match(evidence):
-        return evidence.split(":")[1] in design_ids()
+    row = package_row(evidence)
+    if row:
+        return row[1] in package_ids(row[0])
     if evidence.startswith("mrgym qa acr"):
         from . import qa
         return "--fault " not in evidence or evidence.split("--fault ")[1] in qa.FAULTS
@@ -492,13 +553,44 @@ def evidence_exists(evidence: str, root: str | None = None):
     return path.startswith("examples/textbook/") and ("check(" in text or "assert " in text)
 
 
-def design_ids() -> set:
-    """Ids of the rows of ``python -m mrgym.design.validate`` that are written out in its source (running them takes
-    longer; ``tests/test_design_validate.py`` asserts that every row passes)."""
+@functools.cache
+def _ids_in(module: str, pattern: str) -> frozenset:
+    import importlib
     import inspect
+    try:
+        return frozenset(re.findall(pattern, inspect.getsource(importlib.import_module(module))))
+    except ImportError:
+        return frozenset()
 
-    from .design import validate
-    return set(re.findall(r'_row\("([A-Z]+[0-9]+[a-z]?)"', inspect.getsource(validate)))
+
+def package_ids(prefix: str) -> frozenset:
+    """Ids of the rows of a package of ``EVIDENCE_PACKAGES`` that are written out in the source of its module (running
+    them takes longer; the test of each package, as ``tests/test_core_validate.py``, asserts that every row passes and
+    that its page under docs/physics/ shows them). Empty when the module cannot be imported."""
+    module, pattern = EVIDENCE_PACKAGES[prefix][:2]
+    return _ids_in(module, pattern)
+
+
+def package_problems(root: str | None = None) -> list:
+    """Problems of ``EVIDENCE_PACKAGES`` (empty: none): a prefix that is not a plain word, a module that cannot be
+    imported or in which the pattern finds no row id, a page that is not under docs/ (looked up in a checkout only)."""
+    import importlib
+    bad, docs = [], os.path.join(root or ROOT, "docs")
+    for prefix, (module, _, page, command) in EVIDENCE_PACKAGES.items():
+        if not re.match(r"^[a-z][a-z0-9]*$", prefix):
+            bad.append(f"EVIDENCE_PACKAGES: the prefix {prefix!r} is not a word of small letters and digits")
+        try:
+            importlib.import_module(module)
+        except ImportError:
+            bad.append(f"EVIDENCE_PACKAGES: {prefix!r} names the module {module}, which cannot be imported: list a package when it is merged")
+            continue
+        if not package_ids(prefix):
+            bad.append(f"EVIDENCE_PACKAGES: the pattern of {prefix!r} finds no row id in the source of {module}")
+        if os.path.isdir(docs) and not os.path.isfile(os.path.join(docs, page)):
+            bad.append(f"EVIDENCE_PACKAGES: the page docs/{page} of {prefix!r} does not exist")
+        if not command:
+            bad.append(f"EVIDENCE_PACKAGES: {prefix!r} names no command")
+    return bad
 
 
 def _cycle(edges: dict):
@@ -525,11 +617,12 @@ def _cycle(edges: dict):
 
 
 def validate(root: str | None = None) -> list:
-    """Problems of the map (empty: none). Checked: ids, blocks, statuses and enabling pieces of the items; that prerequisites exist,
+    """Problems of the map (empty: none). Checked: the table of validated packages (``package_problems``); ids, blocks,
+    statuses and enabling pieces of the items; that prerequisites exist,
     are acyclic and, inside a subject, stand earlier in the list; that every named check exists; that every scored
     registered family has a row and every row a registered family; that a family isolates and uses served items only;
     that prerequisite families exist and are acyclic; that a family of kind 3 or more uses items of two blocks."""
-    bad = []
+    bad = package_problems(root)
     letters = [s.letter for s in SUBJECTS]
     by_id, order = items(), {i.id: k for k, i in enumerate(ITEMS)}
     if len(by_id) != len(ITEMS):
@@ -735,11 +828,27 @@ def _names(names, fams, prefix):
 
 
 def _evidence_text(evidence) -> str:
-    """Named checks as one cell: the rows of ``mrgym validate`` together, then the tests, examples and commands."""
-    rows, design = [e for e in evidence if _VALIDATE_ROW.match(e)], [e for e in evidence if _DESIGN_ROW.match(e)]
-    return "; ".join(([f"`mrgym validate` {', '.join(rows)}"] if rows else [])
-                     + ([f"`python -m mrgym.design.validate` {', '.join(e.split(':')[1] for e in design)}"] if design else [])
-                     + [f"`{e}`" for e in evidence if e not in rows + design])
+    """Named checks as one cell: the rows of ``mrgym validate`` together, those of each package of
+    ``EVIDENCE_PACKAGES`` in the order of the table, then the tests, examples and commands."""
+    rows = [e for e in evidence if _VALIDATE_ROW.match(e)]
+    cells = [f"`mrgym validate` {', '.join(rows)}"] if rows else []
+    for prefix, (_, _, _, command) in EVIDENCE_PACKAGES.items():
+        mine = [row[1] for row in map(package_row, evidence) if row and row[0] == prefix]
+        cells += [f"`{command}` {', '.join(mine)}"] if mine else []
+    return "; ".join(cells + [f"`{e}`" for e in evidence if not _VALIDATE_ROW.match(e) and not package_row(e)])
+
+
+def _row_sources() -> str:
+    """The one place where the page names the tables of rows: ``mrgym validate``, then every package of
+    ``EVIDENCE_PACKAGES`` with the command a reader runs and its page."""
+    parts = ["`mrgym validate` ([validation](physics/validation.md))"]
+    parts += [f"`{command}` ([{prefix}]({page}))" for prefix, (_, _, page, command) in EVIDENCE_PACKAGES.items()]
+    return "Rows " + ", ".join(f"of {p}" for p in parts[:-1]) + f" and of {parts[-1]}"
+
+
+def _anchor(heading: str) -> str:
+    """The anchor a Markdown renderer gives a heading (tools/check_links.py reads them the same way)."""
+    return re.sub(r"[^a-z0-9 _-]", "", heading.lower()).replace(" ", "-")
 
 
 def _cap(text: str) -> str:
@@ -806,8 +915,8 @@ def doc_page(t: dict | None = None, cards: str = "../envs/") -> str:
     out += ["", "## Not formed yet", "",
             f"{n_all} items. {n_piece} of them wait for one of {len(pieces)} pieces of engine work; the other {len(waits[''])} take only "
             "ordinary work on the present engine. \"Computed\" in the third column: the package already computes the item and checks it "
-            "against a closed form or a second method, most of them in the design layer ([design](physics/design.md)), and no console "
-            "sequence, parameter or task reaches it yet.", "",
+            "against a closed form or a second method, and no console sequence, parameter or task reaches it yet; "
+            f"[the checks](#{_anchor(CHECKS_HEADING)}) name the rows.", "",
             "| Waits for | What it is | Items |", "|---|---|---:|"]
     out += [f"| **{name}** | {what} | {len(waits[name])} |" for name, what in ENABLERS]
     out += [f"| {ORDINARY} | nothing new: a term, a parameter or an option of the present engine | {len(waits[''])} |", ""]
@@ -824,9 +933,8 @@ def doc_page(t: dict | None = None, cards: str = "../envs/") -> str:
     for f in t["families"] + t["planned"]:
         out.append(f"| {_link(f, cards)} | {f['subject']} · {f['block']} | {f['kind']} {f['kind_name']} | {f['isolates']} | {' '.join(f['uses']) or '-'} | "
                    f"{_names(f['builds_on'], fams, cards)} |")
-    out += ["", "## The check behind every item that is formed, formed in part or computed", "",
-            "Rows of `mrgym validate` ([validation](physics/validation.md)) and of `python -m mrgym.design.validate` "
-            "([design](physics/design.md)), tests, textbook examples that assert their result, commands.", "",
+    out += ["", f"## {CHECKS_HEADING}", "",
+            f"{_row_sources()}, tests, textbook examples that assert their result, commands.", "",
             "| | Check |", "|---|---|"]
     out += [f"| {r['id']} | {_evidence_text(r['evidence'])} |" for r in t["items"] if r["evidence"]]
     out += ["", "## Where the list comes from", "",

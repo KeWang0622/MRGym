@@ -46,7 +46,7 @@ the items of MRI physics that textbooks and curricula name, each with the status
 family: its kind, the item it isolates, the items it uses. The statuses: formed (the scanner serves it, and a check
 that exists shows it), partial, computed (the package computes it and checks it, for example in `mrgym.design`, but
 no console sequence or task reaches it), absent. An item that is not fully formed names the piece of engine work it
-waits for, one of seven (a 3D world, a receive array, spin systems, a field model, the block-list core, realistic
+waits for, one of seven (a 3D world, a receive array, spin systems, a field model, the core in the console, realistic
 anatomy, measured data), or none where ordinary work on the present engine is enough. Generated from the table: `docs/tasks.md`, `mrgym map`,
 one line under the title of every environment card, and the task table of the README, which is now grouped by subject
 with the kind of task beside each id and a sentence with the counts of the map. `mrgym list` groups the ids by

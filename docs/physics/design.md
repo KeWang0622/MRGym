@@ -6,7 +6,8 @@ the scanner engine: `mrgym.scanner` is imported only for its limits (`gradients.
 `mrgym.design.validate`, to compare the two.
 
 Read [conventions.md](conventions.md) first; this page states only what the design layer adds. Papers named here are
-in the module docstrings.
+in the module docstrings. The block list of `design.sequence` has a fuller relative in `mrgym.core`: three evaluators
+(isochromat ensemble, phase graph, periodic solve), two pools and a library of sequences ([core.md](core.md)).
 
 ## 1. What each module computes
 
