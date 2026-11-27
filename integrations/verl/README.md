@@ -74,7 +74,9 @@ launch into a copy of an entry script, for a job system that takes a single scri
 Each script is resumable under the same `RUN_ID` until it has written `DONE.txt` or `FAILED.txt`; after that the run
 id does nothing. Before it plays an episode, `calibrate.sh` checks that every port answers as its own server (the
 served model name; a nonce for the stand-in), so that a server left by another run cannot answer for it. Several
-`mrgym calibrate` processes share one records folder. A calibration can continue from the records of an earlier one
+`mrgym calibrate` processes share one records folder, each with its own seeds: every episode is played once, and
+each process reports the instances it was given (if two calls ever name the same episode, one plays it and the
+other leaves it: `mrgym.agents.runner`, "Several runner processes on one run folder"). A calibration can continue from the records of an earlier one
 with a larger `CAL_N` or more cells (`CAL_FROM_URI`).
 
 The whole of it without a GPU: `bash integrations/verl/simulate.sh <empty folder> <python>` (stand-in servers on

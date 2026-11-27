@@ -547,7 +547,10 @@ def test_two_runner_processes_share_a_run_folder(tmp_path, mix):
     procs = [subprocess.Popen(args + ["--first-seed", str(10000 + k)], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for k in range(2)]
     outs = [p.communicate(timeout=120) for p in procs]
     assert [p.returncode for p in procs] == [1, 1], outs                  # 1: no entry rung (the reference passes); a crash would be 2 or a trace
-    assert all(json.loads(o)["calibration"][0]["n_episodes"] in (2, 4) and json.loads(o)["infra_errors"] == 0 for o, _ in outs), outs
+    # each reports its own share (one seed x two episodes). It used to count what the folder held when it looked: 2, 3 or 4,
+    # by how far the other process was (tests/test_shared_run_folder.py holds the two at the moment that gave 3)
+    rows = [json.loads(o)["calibration"][0] for o, _ in outs]
+    assert [(r["n_instances"], r["n_episodes"]) for r in rows] == [(1, 2), (1, 2)] and all(json.loads(o)["infra_errors"] == 0 for o, _ in outs), outs
     with open(os.path.join(cal, "run_config.json")) as f:
         assert len(json.load(f)["invocations"]) == 2
     s = calsum.summarize(cal, "stub:reference", [(NOWRAP, 2)], 2, 2, 10000)

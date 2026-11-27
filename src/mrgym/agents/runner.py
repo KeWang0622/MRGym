@@ -49,10 +49,20 @@ Files, under ``<out>``:
 
 ``--records-only`` writes ``record.json`` alone for a scripted policy; a model episode always keeps its conversation
 and its log. Resume: repeat the command; finished episodes are skipped.
+
+Several runner processes on one run folder. Give each its own share of the seeds: then every episode has one owner and
+is played once. What holds when the shares overlap (the same command started twice, a restarted job beside a process
+of the old one): an episode is played by one process at a time and never again once it has a completed record. Before
+it touches an episode folder a process takes an exclusive lock on ``<folder>.claim.tmp`` (``_claim``) and reads the
+record again; an episode another live process holds, or has completed since this call listed its work, is left to it
+and counted in ``played_elsewhere``. The kernel drops the lock with its process, so the episode of a killed run is
+played again by the next call and nothing has to be cleared. Where the file system has no advisory locks, the claim
+is always given: shares that overlap are then played twice and the last record written is the one that stays.
 """
 from __future__ import annotations
 
 import concurrent.futures
+import contextlib
 import hashlib
 import json
 import multiprocessing
@@ -86,6 +96,7 @@ RECORD_FIELDS = (
     "interface",
     "tokens_in", "tokens_out", "tokens_estimated", "log", "bundle", "wall_s", "utc")
 _PRINT_LOCK = threading.Lock()
+CLAIM_SUFFIX = ".claim.tmp"                 # next to an episode folder while a process plays it; ``.tmp``: never uploaded
 
 SESSION_NOTE = """You operate a virtual MR scanner through function tools. The task and every limit of the episode are in the \
 first user message. Everything about the object and about the state of the system has to be measured: use numbers from \
@@ -389,9 +400,68 @@ def _save_bundle(env, final, agent: dict, events, directory: str) -> bool:
         return False
 
 
-def run_episode(job: dict) -> dict:
+@contextlib.contextmanager
+def _claim(directory: str):
+    """The claim of one process on the episode folder ``directory``, held while it plays the episode and writes its
+    files: an exclusive ``flock`` on ``<directory>.claim.tmp``. Yields True when the episode is this caller's, False
+    when another live process (or another thread with its own claim) holds it.
+
+    The lock is the kernel's, so it ends with the process that took it: after a kill the file may stay, the claim
+    does not. The file is removed by its holder, under the lock; a process that opened it just before that locks a
+    file that is gone from the folder, sees it (another inode behind the name, or none) and asks again. Without
+    ``fcntl`` or without advisory locks on the file system the claim is given to every caller (the behaviour before
+    there was a claim)."""
+    try:
+        import fcntl
+    except ImportError:
+        yield True
+        return
+    path = directory + CLAIM_SUFFIX
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    while True:
+        fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:                                 # held by another process
+            os.close(fd)
+            yield False
+            return
+        except OSError:                                         # no advisory locks here
+            os.close(fd)
+            with contextlib.suppress(OSError):
+                os.unlink(path)
+            yield True
+            return
+        try:
+            current = os.stat(path).st_ino == os.fstat(fd).st_ino
+        except OSError:
+            current = False
+        if current:
+            break
+        os.close(fd)                                            # the last holder removed that file: claim the one of now
+    try:
+        yield True
+    finally:
+        with contextlib.suppress(OSError):
+            os.unlink(path)                                     # under the lock, so no one holds a claim on a removed file
+        os.close(fd)
+
+
+def run_episode(job: dict) -> dict | None:
     """Play one episode and write its files. Never raises for an agent or endpoint failure: the former is a scored
-    record, the latter an ``infra_error`` record. Returns the record."""
+    record, the latter an ``infra_error`` record. Returns the record; or None, with nothing touched, when the episode
+    is another runner process's on this run folder: it is being played there now, or it got a completed record after
+    this call listed its work (``_claim``)."""
+    with _claim(job["dir"]) as mine:
+        if not mine:
+            return None
+        old = _read(os.path.join(job["dir"], "record.json"))
+        if old and old.get("status") == "completed" and old.get("agent") == job["agent"]:
+            return None
+        return _play_episode(job)
+
+
+def _play_episode(job: dict) -> dict:
     import mrgym
 
     from .. import policies, record
@@ -506,8 +576,10 @@ def run(out: str, envs, *, levels=None, seeds=range(10), episodes: int = 1, mode
     ``env_kwargs`` keywords passed to ``mrgym.make`` for every episode (``mrgym calibrate`` passes ``max_turns`` so
                   that the agent sees the turn cap in the status line).
 
-    Returns ``dict(started, already_finished, infra_errors, records)``; ``records`` are those of the episodes this
-    call played. Raises ``mrgym.Error`` for a request that cannot be run as asked.
+    Returns ``dict(started, already_finished, infra_errors, records, played_elsewhere)``; ``records`` are those of the
+    episodes this call played, ``started`` their number, ``played_elsewhere`` the number of episodes it listed and
+    left to another runner process on the same folder (see the module text; 0 unless the work of two processes
+    overlaps). Raises ``mrgym.Error`` for a request that cannot be run as asked.
     """
     import mrgym
     envs, models, policy_names = _split(envs), _split(models), _split(policies)
@@ -576,7 +648,7 @@ def run(out: str, envs, *, levels=None, seeds=range(10), episodes: int = 1, mode
     if policy_names and episodes > 1:
         say("scripted policies are deterministic: one episode per instance")
     if not jobs:
-        return dict(started=0, already_finished=finished, infra_errors=0, records=[])
+        return dict(started=0, already_finished=finished, infra_errors=0, records=[], played_elsewhere=0)
     os.makedirs(out, exist_ok=True)
     _note_invocation(out, dict(utc=now_utc(), command=command, package_version=mrgym.__version__, engine=mrgym.ENGINE_ID,
                                python=sys.version.split()[0], numpy=np.__version__, split="train", seeds=seeds_text(seeds),
@@ -584,9 +656,12 @@ def run(out: str, envs, *, levels=None, seeds=range(10), episodes: int = 1, mode
                                base_url=base_url if models else None, settings=settings if models else None,
                                records_only=records_only, env_kwargs=dict(env_kwargs or {}), workers=workers, episodes_started=len(jobs),
                                episodes_already_finished=finished))
-    t0, records = time.time(), []
+    t0, records, elsewhere = time.time(), [], []
 
     def done(rec):
+        if rec is None:                                         # another runner process on this folder has that episode
+            elsewhere.append(1)
+            return
         records.append(rec)
         with _PRINT_LOCK:
             say(_line(rec))
@@ -608,8 +683,9 @@ def run(out: str, envs, *, levels=None, seeds=range(10), episodes: int = 1, mode
         for j in others:
             done(run_episode(j))
     bad = sum(r["status"] != "completed" for r in records)
-    say(f"finished {len(records) - bad} episode(s), {bad} infra error(s), {time.time() - t0:.0f} s")
-    return dict(started=len(jobs), already_finished=finished, infra_errors=bad, records=records)
+    say(f"finished {len(records) - bad} episode(s), {bad} infra error(s), {time.time() - t0:.0f} s"
+        + (f"; {len(elsewhere)} episode(s) left to another runner process on this folder" if elsewhere else ""))
+    return dict(started=len(records), already_finished=finished, infra_errors=bad, records=records, played_elsewhere=len(elsewhere))
 
 
 def _read(path: str):

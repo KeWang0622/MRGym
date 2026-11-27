@@ -31,13 +31,19 @@ def served(tmp_path_factory):
     spec = dict(env_id=NULL, level=2, split="test-iid", seed=SEED)
     proc, ready, paths = rows.start_service(str(tmp), "svc", spec, env=dict(MRGYM_SECRET_FILE=key_file),
                                             extra=("--operator-token-file", op_file, "--admin-socket", sock, "--request-timeout", str(TIMEOUT)))
-    assert ready, proc.stderr.read().decode()
-    handle = ready["episodes"][0]
-    out = dict(proc=proc, url=f"http://127.0.0.1:{ready['port']}", port=ready["port"], handle=handle, admin=ready["admin"],
-               operator=open(op_file).read().strip(), token=open(os.path.join(paths["state"], handle + ".token")).read().strip(),
-               secret=open(key_file).read().strip(), key_file=key_file, paths=paths, spec=spec)
-    yield out
-    assert rows.stop_service(proc) in (0, -15)
+    try:                                                                 # whatever happens from here on, the process is stopped
+        ready = ready or rows._wait(paths["ready"], proc, seconds=300)   # a busy machine: the service is up when it says so, or it has ended
+        if not ready:                                                    # stop it first: reading the stderr of a live process never returns
+            proc.kill()
+            pytest.fail("the service did not start: " + proc.communicate()[1].decode()[-600:])
+        handle = ready["episodes"][0]
+        out = dict(proc=proc, url=f"http://127.0.0.1:{ready['port']}", port=ready["port"], handle=handle, admin=ready["admin"],
+                   operator=open(op_file).read().strip(), token=open(os.path.join(paths["state"], handle + ".token")).read().strip(),
+                   secret=open(key_file).read().strip(), key_file=key_file, paths=paths, spec=spec)
+        yield out
+    finally:
+        code = rows.stop_service(proc)
+    assert code in (0, -15)
 
 
 def _status(served, method, path, token=None, body=None):
@@ -199,9 +205,57 @@ def test_the_service_refuses_to_start_when_a_boundary_is_missing(tmp_path):
         "a secret split without a secret": (_serve(tmp_path, "e", secret_spec), "needs a secret"),
         "a seed on the command line": (_serve(tmp_path, "f", secret_spec, extra=("--seed", "3"), MRGYM_SECRET_FILE=key), "unrecognized arguments"),
     }
-    for what, (proc, message) in cases.items():
-        _, err = proc.communicate(timeout=60)
-        assert proc.returncode == 2 and message in err.decode(), (what, proc.returncode, err.decode()[-300:])
+    try:
+        for what, (proc, message) in cases.items():
+            _, err = proc.communicate(timeout=60)
+            assert proc.returncode == 2 and message in err.decode(), (what, proc.returncode, err.decode()[-300:])
+    finally:                                                             # one that did start (the failure this test is for) is not left serving
+        for proc, _ in cases.values():
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait()
+
+
+SERVICE_STARTER = """
+import json, sys, time
+from mrgym import keys
+from mrgym.redteam import rows
+tmp = sys.argv[1]
+keys.keygen(tmp + "/secret.key")
+proc, ready, paths = rows.start_service(tmp, "svc", dict(env_id=sys.argv[2], level=2, split="test-iid", seed=1), env=dict(MRGYM_SECRET_FILE=tmp + "/secret.key"))
+print(json.dumps(dict(pid=proc.pid, ready=bool(ready))), flush=True)
+time.sleep(600)                                                          # a test run that never reaches its teardown
+"""
+
+
+def _alive(pid):
+    try:
+        with open(f"/proc/{pid}/stat") as f:
+            return f.read().rsplit(")", 1)[1].split()[0] != "Z"
+    except OSError:
+        return False
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="PR_SET_PDEATHSIG and /proc")
+def test_a_service_does_not_outlive_a_starter_that_was_killed(tmp_path):
+    """Two ``mrgym serve`` processes of the fixture above had been serving for days after their test runs were
+    killed: no teardown runs in a killed process. The service is started so that it ends with its starter."""
+    env = dict({k: v for k, v in os.environ.items() if not k.startswith("MRGYM_")}, OMP_NUM_THREADS="1")
+    starter = subprocess.Popen([sys.executable, "-c", SERVICE_STARTER, str(tmp_path), NULL], env=env, stdout=subprocess.PIPE, text=True)
+    pid = None
+    try:
+        pid = json.loads(starter.stdout.readline())["pid"]
+        assert _alive(pid)
+        starter.kill()                                                   # SIGKILL: nothing of the starter runs after this
+        starter.wait(timeout=30)
+        deadline = time.time() + 60
+        while _alive(pid) and time.time() < deadline:
+            time.sleep(0.1)
+        assert not _alive(pid), "the service is still serving after its starter was killed"
+    finally:
+        starter.kill()
+        if pid and _alive(pid):
+            os.kill(pid, 15)
 
 
 def test_service_attacks_from_the_same_user(tmp_path):

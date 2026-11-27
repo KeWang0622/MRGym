@@ -247,12 +247,22 @@ MEMORY_TEXTS = [
     "d = {}\ni = 0\nwhile True:\n    d[i] = {}\n    for j in range(1000):\n        d[i][j] = [j]\n    i += 1",
     "x = [zeros(1000) + i for i in range(100000)]",
 ]
-MEMORY_SCRIPT = """
+# The highest resident size this process has had, in MB. On Linux it is read from the process's own memory (VmHWM), not
+# from ``ru_maxrss``: that one starts at the resident size of the process that started this one (the kernel carries the
+# mark over exec), so under a parent of 700 MB a call that holds 570 MB moved it by nothing.
+PEAK_SOURCE = """
 import resource, sys
+def peak_mb():
+    try:
+        with open("/proc/self/status") as f:
+            return next(int(line.split()[1]) for line in f if line.startswith("VmHWM:")) / 1024
+    except (OSError, StopIteration):
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1024 * 1024 if sys.platform == "darwin" else 1024)
+"""
+MEMORY_SCRIPT = PEAK_SOURCE + """
 from mrgym import calc as C
 import scipy.optimize
-scale = 1024 * 1024 if sys.platform == "darwin" else 1024
-base = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+base = peak_mb()
 for text in {texts!r}:
     names = {{}}
     try:
@@ -260,15 +270,21 @@ for text in {texts!r}:
         print("finished")
     except C._Stop:
         pass
-    print((resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - base) / scale)
+    print(peak_mb() - base)
     del names
+"""
+PARENT_SCRIPT = PEAK_SOURCE + """
+import subprocess
+held = bytearray(b"x") * ({hold_mb} << 20)
+print(peak_mb(), subprocess.run([sys.executable, "-c", {source!r} + "print(peak_mb())"], capture_output=True, text=True).stdout)
 """
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="resource.getrusage")
 def test_memory_of_one_call_is_bounded():
     """Every element a call makes is charged a step before it is made, so ``MAX_STEPS`` bounds what a call can hold.
-    The constructions that hold the most per step, each run to the limit in a fresh process: peak resident memory."""
+    The constructions that hold the most per step, each run to the limit in a fresh process: peak resident memory
+    of that process over what it held before the first call (``peak_mb``)."""
     env = dict(os.environ, PYTHONPATH=os.pathsep.join([os.path.dirname(os.path.dirname(os.path.dirname(C.__file__)))] + sys.path), OMP_NUM_THREADS="1")
     out = subprocess.run([sys.executable, "-c", MEMORY_SCRIPT.format(texts=MEMORY_TEXTS)], capture_output=True, text=True, env=env, timeout=300)
     assert out.returncode == 0, out.stderr[-600:]
@@ -277,6 +293,18 @@ def test_memory_of_one_call_is_bounded():
     peak = max(float(x) for x in lines)
     assert 20 < peak < C.MEMORY_BOUND_MB, lines
     assert C.MAX_ITEMS <= C.MAX_STEPS and C.MEMORY_BOUND_MB <= 25e-6 * C.MAX_STEPS
+
+
+@pytest.mark.skipif(not os.path.exists("/proc/self/status"), reason="the measure reads /proc/self/status; elsewhere it is ru_maxrss")
+def test_the_memory_measure_does_not_see_the_process_that_started_it():
+    """The bound above is measured from whatever process runs the tests. A process that holds 256 MB starts another
+    one: the measure of the second is its own few MB. With ``ru_maxrss`` it was the 256 MB of the first, and from the
+    whole suite in one process the calls of the test above seemed to hold nothing (and a call over the bound would
+    have passed by as much as that process held)."""
+    out = subprocess.run([sys.executable, "-c", PARENT_SCRIPT.format(hold_mb=256, source=PEAK_SOURCE)], capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr[-600:]
+    parent, child = (float(x) for x in out.stdout.split())
+    assert child < 64 < 256 <= parent, out.stdout
 
 
 def test_what_stays_between_calls_is_bounded_and_a_closure_counts_what_it_holds():

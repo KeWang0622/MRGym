@@ -540,8 +540,31 @@ def _wait(path, proc, seconds=30.0):
     return None
 
 
+def _ends_with_its_starter():
+    """``preexec_fn`` of a service process, Linux: the kernel sends the service SIGTERM when the thread that started
+    it ends, however it ends (``PR_SET_PDEATHSIG``). A test run or a suite that is killed before it could stop its
+    service then leaves none behind (two had been serving for days). None where the call does not exist: there the
+    starter has to stop the service itself (``stop_service``)."""
+    if not sys.platform.startswith("linux"):
+        return None
+    import ctypes
+    import signal
+    try:
+        prctl = ctypes.CDLL(None).prctl
+    except (OSError, AttributeError):
+        return None
+    starter = os.getpid()
+
+    def arm():
+        prctl(1, int(signal.SIGTERM))                                   # 1 = PR_SET_PDEATHSIG; it survives the exec
+        if os.getppid() != starter:                                      # the starter ended before the request was in place
+            os._exit(0)
+    return arm
+
+
 def start_service(tmp, name, spec, env=None, extra=(), resume=None):
-    """Start ``mrgym serve`` for one episode in a child process. Returns (process, ready dict or None, paths)."""
+    """Start ``mrgym serve`` for one episode in a child process. Returns (process, ready dict or None, paths). The
+    process ends with the thread that called this (Linux); call from the thread that will stop it."""
     base = os.path.join(tmp, name)
     os.makedirs(base, mode=0o700, exist_ok=True)
     paths = dict(base=base, log=os.path.join(base, "log"), state=os.path.join(base, "state"), ready=os.path.join(base, f"ready{time.time_ns()}.json"),
@@ -555,7 +578,7 @@ def start_service(tmp, name, spec, env=None, extra=(), resume=None):
         cmd += ["--resume-from", resume]
     child_env = {k: v for k, v in os.environ.items() if k not in ("MRGYM_SECRET", "MRGYM_SALT", "MRGYM_SECRET_FILE", "MRGYM_SALT_FILE")}
     child_env.update(env or {}, OMP_NUM_THREADS="1")
-    proc = subprocess.Popen(cmd, env=child_env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(cmd, env=child_env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, preexec_fn=_ends_with_its_starter())
     return proc, _wait(paths["ready"], proc), paths
 
 

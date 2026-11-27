@@ -14,6 +14,36 @@ Three versions travel with every number:
 
 ## Unreleased
 
+### Runner processes that share a run folder; the memory bound of `calc` is measured on the process itself
+
+No reward, no environment, no engine number changes. Two tests gave different results from run to run; both had a
+cause outside the test.
+
+- **`mrgym calibrate` reports the instances it names.** The rows of a call were computed from every completed record
+  of the model in the folder. A process that shared the folder with others (`integrations/verl/node/calibrate.sh`
+  gives each its own seeds) therefore counted whatever the others had finished at that moment, under its own
+  `settings.seeds`. The rows are now those of the call's seeds and episodes
+  (`tests/test_shared_run_folder.py` holds two processes at the moment that gave the third count). The summary of a
+  calibration run (`mrgym_verl.calsum`) always selected by seed and is unchanged.
+- **An episode is played by one process at a time** (`mrgym.agents.runner._claim`): an exclusive lock next to the
+  episode folder, taken before the folder is touched; the record is read again under it. Two calls whose seeds
+  overlapped used to play the episode twice, and the later one deleted the record of the earlier, also a completed
+  one. `runner.run` returns `played_elsewhere`; `started` counts the episodes the call played. Shares of the seeds
+  that do not overlap were never affected. A run folder written before is continued as it is; the files of a
+  finished run are the same.
+- **The training adapter takes an episode folder by making it** (`mrgym_verl.episode.free_dir`, `os.mkdir`). It used
+  to look for a record first, so two episodes of one instance and session that finished at the same moment were
+  written into one folder. Folder names are the same as before for the cases the old code handled; a third repeat
+  gets `-2`.
+- **`tests/test_calc_security.py::test_memory_of_one_call_is_bounded`** read `ru_maxrss` in a fresh process. On Linux
+  that number starts at the resident size of the process that started it, so from a large pytest process the calls
+  seemed to hold nothing (and a call over the bound could have passed). The test reads the process's own high-water
+  mark (`VmHWM`). `calc` itself is unchanged, and so is every limit.
+- **A service started for a test or a red-team row ends with its starter** (`mrgym.redteam.rows.start_service`,
+  Linux: `PR_SET_PDEATHSIG`). Two `mrgym serve` processes of the fixture in `tests/test_service.py` had been serving
+  for days: a test run that is killed runs no teardown. The fixture also stops its process on every way out of its
+  set-up, and no longer reads the error output of a process that is still running (that read never returns).
+
 ### The signal core behind the console: a sequence registry, and four sequences served from block lists
 
 No engine bump, no environment id touched, no fingerprint moved. The rule (docs/VERSIONING.md): the engine id changes

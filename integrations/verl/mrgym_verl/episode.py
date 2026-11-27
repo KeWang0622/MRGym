@@ -26,6 +26,7 @@ so (docs/TRAINING.md section 1), and every record carries ``training.signal_mode
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 import os
 import time
@@ -308,9 +309,21 @@ def episode_dir(out: str, agent: str, env_id: str, level: int, seed: int, episod
 
 
 def free_dir(directory: str, uid: str) -> str:
-    """``directory``, or ``directory-<uid prefix>`` when an episode is already stored there: the same instance and
-    session number played again (an evaluation repeated after a restore) is kept, never overwritten."""
-    return directory if not os.path.exists(os.path.join(directory, "record.json")) else f"{directory}-{str(uid)[:8]}"
+    """The folder for one episode, made here and nowhere else: ``directory``, or ``directory-<uid prefix>`` when
+    ``directory`` is taken (the same instance and session number played again: an evaluation repeated after a
+    restore), or that name with ``-2``, ``-3``, ... An episode is kept, never overwritten.
+
+    Taking a folder is ``os.mkdir``, which either makes it or fails: of two episodes that ask for the same name at
+    the same moment (worker threads and worker processes write into one run folder) one gets it and the other the
+    next name. A folder without a record (a writer killed between its files) stays as it is and is not used again."""
+    os.makedirs(os.path.dirname(directory), exist_ok=True)
+    again = f"{directory}-{runner.slug(str(uid)[:8])}"                   # a uuid prefix as it is; never a path separator
+    for name in itertools.chain([directory, again], (f"{again}-{k}" for k in itertools.count(2))):
+        try:
+            os.mkdir(name)
+            return name
+        except FileExistsError:
+            continue
 
 
 def play_chat(ep: Episode, client) -> dict:

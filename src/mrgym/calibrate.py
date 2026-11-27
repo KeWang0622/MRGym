@@ -21,6 +21,10 @@ The episodes go through ``mrgym.agents.runner`` (same harness, same records, res
 integers of the public train split from ``--first-seed`` (9000): disjoint from the seeds a training sampler issues
 (``mrgym.curriculum``: from 10,000) and from the seeds of the stored baselines.
 
+Several processes may share one ``--out`` folder, each with its own share of the seeds (``--first-seed``, ``--n``).
+The rows a call reports are computed from the records of the instances it names and of nothing else in the folder,
+so they do not depend on what another process has finished at that moment.
+
 ``--write`` stores the rows as package data (``envs/results/<id>.calibration.json``). A card says a model class can
 train on an environment only through that file (``card["learnability"]["trainable_by"]``); nothing is typed.
 """
@@ -140,7 +144,10 @@ def run(env_id: str, model: str, base_url: str, out: str, *, levels=None, n: int
                       command=f"mrgym calibrate {env_id} --model {model} --levels {','.join(map(str, levels))} "
                                                      f"--n {n} --episodes {episodes} --first-seed {first_seed} --out {out}", **runner_kw)
     max_turns = spec.max_steps if own else max_turns                      # the rows state the limit that applied
-    records = read_records(out, env_id, model)
+    # The rows are those of the instances this call names (its seeds x its episodes), whatever else the folder holds:
+    # runner processes that split the seeds of one folder each report their own share, at any moment of the others.
+    asked = set(seeds)
+    records = [r for r in read_records(out, env_id, model) if r["seed"] in asked and r["episode"] < episodes]
     date = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     settings = dict(model=model, reasoning=reasoning, temperature=temperature, max_turns=max_turns, max_tokens=max_tokens,
                     seeds=f"{seeds[0]}-{seeds[-1]}", episodes=episodes)
