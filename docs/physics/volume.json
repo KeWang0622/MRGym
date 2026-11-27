@@ -1,0 +1,500 @@
+{
+ "engine": "0.2.0",
+ "flat_2d": {
+  "all_else": true,
+  "bitwise": true,
+  "cases": 24,
+  "max": 0.0
+ },
+ "kinds": {
+  "head3d": {
+   "chi_ppm": {
+    "air": 9.4,
+    "blood": 0.4,
+    "deep_gm": 0.1,
+    "diploe": -0.6,
+    "lesion_ms": -0.8224627154344102,
+    "scalp_fat": 0.6,
+    "skull": -2.0
+   },
+   "common_line": 1.1026859283447266e-06,
+   "layout_keys": [
+    "air",
+    "atrophy",
+    "ax",
+    "ay",
+    "az",
+    "az_low",
+    "b_csf",
+    "b_skin",
+    "bone",
+    "cav",
+    "cav_low",
+    "deep_nuclei",
+    "egg",
+    "eyes",
+    "fat",
+    "lesion_chi_ppm",
+    "lesions",
+    "neck",
+    "pose_deg",
+    "sulc_depth",
+    "t_gm",
+    "ventricles",
+    "vessels",
+    "zc"
+   ],
+   "memory": {
+    "build_peak_mb": 151.76,
+    "lattice_2mm_held_mb": 48.25,
+    "lattice_2mm_peak_mb": 51.89,
+    "lattice_2mm_s": 0.54,
+    "lattice_2mm_shape": [
+     11,
+     122,
+     101,
+     89
+    ],
+    "plane_peak_mb": 42.41,
+    "world_held_mb": 20.56
+   },
+   "names": [
+    "skin",
+    "scalp_fat",
+    "skull",
+    "diploe",
+    "csf",
+    "wm",
+    "gm",
+    "deep_gm",
+    "muscle",
+    "blood",
+    "lesion_ms"
+   ],
+   "organ": [
+    "wm",
+    "gm",
+    "deep_gm",
+    "lesion_ms"
+   ],
+   "plane_points": {
+    "grid": 256,
+    "max": 1.824676414957649e-05,
+    "rms": 3.3858125049523733e-07,
+    "seeds": 4
+   },
+   "precision": "float32",
+   "ranges": [
+    [
+     "scored regions",
+     16.0,
+     22.0
+    ],
+    [
+     "half-length of the head, front to back (mm)",
+     88.263,
+     99.141
+    ],
+    [
+     "half-width of the head (mm)",
+     69.669,
+     80.743
+    ],
+    [
+     "height of the head above its centre (mm)",
+     82.186,
+     95.787
+    ],
+    [
+     "centre of the head above the isocentre (mm)",
+     10.228,
+     19.735
+    ],
+    [
+     "width of the neck / width of the head",
+     0.58,
+     0.675
+    ],
+    [
+     "scalp fat, mean thickness (mm)",
+     3.008,
+     5.901
+    ],
+    [
+     "skull, mean thickness (mm)",
+     6.027,
+     8.882
+    ],
+    [
+     "CSF over the brain (mm)",
+     1.809,
+     3.561
+    ],
+    [
+     "cortex thickness (mm)",
+     2.153,
+     3.224
+    ],
+    [
+     "atrophy (0 to 1: wider sulci and ventricles)",
+     0.003,
+     0.962
+    ],
+    [
+     "lesions",
+     4.0,
+     8.0
+    ],
+    [
+     "susceptibility of the lesions, size (ppm)",
+     0.318,
+     1.18
+    ],
+    [
+     "susceptibility of the lesions, sign",
+     -1.0,
+     1.0
+    ],
+    [
+     "vessel radius (mm)",
+     1.604,
+     2.587
+    ],
+    [
+     "vessel speed, size (mm/s)",
+     42.176,
+     244.877
+    ],
+    [
+     "vessel speed, sign along its direction",
+     -1.0,
+     1.0
+    ],
+    [
+     "vessel direction, angle from the z axis (degrees)",
+     0.845,
+     12.617
+    ],
+    [
+     "frontal sinus: centre along z (mm)",
+     -26.65,
+     -12.091
+    ],
+    [
+     "sphenoid sinus: centre along z (mm)",
+     -66.206,
+     -47.969
+    ],
+    [
+     "mastoid: centre along z (mm)",
+     -42.944,
+     -27.035
+    ],
+    [
+     "thalamus (left): centre along z (mm)",
+     -0.078,
+     10.695
+    ]
+   ],
+   "regions": 18,
+   "solid": [],
+   "sums": {
+    "inside_off_one": 9.656650945544243e-08,
+    "inside_voxels": 306772,
+    "max_sum": 1.000000100428963,
+    "min_weight": 0.0
+   },
+   "timings": {
+    "build_s": [
+     0.194,
+     0.206,
+     0.203
+    ],
+    "grid": [
+     640,
+     256.0
+    ],
+    "plane_ms": {
+     "axial": 48.5,
+     "coronal": 47.7,
+     "oblique": 54.8,
+     "sagittal": 53.8
+    },
+    "recipe_and_regions_s": [
+     0.082,
+     0.086,
+     0.078
+    ]
+   }
+  },
+  "qa3d": {
+   "chi_ppm": {
+    "air": 9.4
+   },
+   "common_line": 0.0,
+   "layout_keys": [
+    "body",
+    "pose_deg",
+    "ramp_block",
+    "side_of_sphere_and_wedges",
+    "sphere",
+    "vial_half_length",
+    "vials",
+    "wedges"
+   ],
+   "memory": {
+    "build_peak_mb": 71.12,
+    "lattice_2mm_held_mb": 39.1,
+    "lattice_2mm_peak_mb": 41.87,
+    "lattice_2mm_s": 0.13,
+    "lattice_2mm_shape": [
+     10,
+     87,
+     106,
+     106
+    ],
+    "plane_peak_mb": 68.63,
+    "world_held_mb": 17.23
+   },
+   "names": [
+    "body",
+    "vial0",
+    "vial1",
+    "vial2",
+    "vial3",
+    "vial4",
+    "sphere",
+    "wedge",
+    "slot"
+   ],
+   "organ": [
+    "body",
+    "vial0",
+    "vial1",
+    "vial2",
+    "vial3",
+    "vial4",
+    "sphere",
+    "wedge",
+    "slot"
+   ],
+   "plane_points": {
+    "grid": 256,
+    "max": 2.9801705325738226e-08,
+    "rms": 2.100654058834148e-09,
+    "seeds": 4
+   },
+   "precision": "float64",
+   "ranges": [
+    [
+     "scored regions",
+     6.0,
+     9.0
+    ],
+    [
+     "body: semi-axes (mm)",
+     89.331,
+     97.943
+    ],
+    [
+     "body: half-length (mm)",
+     70.098,
+     77.378
+    ],
+    [
+     "body: centre along z (mm)",
+     -3.343,
+     3.563
+    ],
+    [
+     "vials",
+     4.0,
+     7.0
+    ],
+    [
+     "vial section: half-length (mm)",
+     18.008,
+     21.989
+    ],
+    [
+     "side of the ball and the wedges along z (+1 or -1); the ramp block is on the other",
+     -1.0,
+     1.0
+    ],
+    [
+     "ball: radius (mm)",
+     9.081,
+     13.835
+    ],
+    [
+     "ball: centre along z (mm)",
+     -43.801,
+     45.31
+    ],
+    [
+     "ball: distance of its centre from the axis (mm)",
+     28.339,
+     39.649
+    ],
+    [
+     "wedges: angle of the tilted faces to the axial plane (degrees)",
+     35.26,
+     53.825
+    ],
+    [
+     "wedges: orientation in the plane (degrees)",
+     4.972,
+     177.852
+    ],
+    [
+     "ramps: rise per mm along the ramp",
+     0.09,
+     0.114
+    ],
+    [
+     "ramp block: orientation in the plane (degrees)",
+     4.849,
+     172.68
+    ],
+    [
+     "ramp block: centre along z (mm)",
+     -42.084,
+     43.723
+    ]
+   ],
+   "regions": 7,
+   "solid": [
+    "plastic"
+   ],
+   "sums": {
+    "inside_off_one": 3.453301644640305e-08,
+    "inside_voxels": 395853,
+    "max_sum": 1.0000000337822712,
+    "min_weight": 0.0
+   },
+   "timings": {
+    "build_s": [
+     0.04,
+     0.043,
+     0.04
+    ],
+    "grid": [
+     640,
+     256.0
+    ],
+    "plane_ms": {
+     "axial": 35.4,
+     "coronal": 22.7,
+     "oblique": 51.3,
+     "sagittal": 22.4
+    },
+    "recipe_and_regions_s": [
+     0.004,
+     0.005,
+     0.004
+    ]
+   }
+  }
+ },
+ "lattice_volumes": [
+  {
+   "lattice_mm3": 57922.750496649365,
+   "rel_sharp": 0.0002921070985550944,
+   "rel_soft": -0.0007779803626729587,
+   "sampling": "voxel centre",
+   "shape": "ball, radius 24 mm",
+   "sharp_mm3": 57905.83579096706,
+   "soft_mm3": 57967.84834432766,
+   "spacing_mm": 2.0
+  },
+  {
+   "lattice_mm3": 146859.65827305295,
+   "rel_sharp": 0.00692034373031003,
+   "rel_soft": 0.006561028078086117,
+   "sampling": "voxel centre",
+   "shape": "cylinder along z, radius 24 mm, length 80.6 mm",
+   "sharp_mm3": 145850.3238984983,
+   "soft_mm3": 145902.3886047573,
+   "spacing_mm": 2.0
+  },
+  {
+   "lattice_mm3": 8008.830313333701,
+   "rel_sharp": 0.002658467270917786,
+   "rel_soft": -0.0013475164275714713,
+   "sampling": "voxel centre",
+   "shape": "the ball of qa3d, radius 12.40 mm",
+   "sharp_mm3": 7987.595551985419,
+   "soft_mm3": 8019.636905807435,
+   "spacing_mm": 2.0
+  },
+  {
+   "lattice_mm3": 39230.72604585655,
+   "rel_sharp": -0.013952562618817055,
+   "rel_soft": -0.014572094027605953,
+   "sampling": "voxel centre",
+   "shape": "vial 0 of qa3d (along z), semi-axes 17.28 x 18.93 mm, length 38.72 mm",
+   "sharp_mm3": 39785.840476446436,
+   "soft_mm3": 39810.85354706361,
+   "spacing_mm": 2.0
+  },
+  {
+   "lattice_mm3": 57969.625427614534,
+   "rel_sharp": 0.0011016098079950076,
+   "rel_soft": 3.065636102839164e-05,
+   "sampling": "mean of 2 x 2 x 2",
+   "shape": "ball, radius 24 mm",
+   "sharp_mm3": 57905.83579096706,
+   "soft_mm3": 57967.84834432766,
+   "spacing_mm": 2.0
+  },
+  {
+   "lattice_mm3": 146041.29444321926,
+   "rel_sharp": 0.0013093597574309612,
+   "rel_soft": 0.0009520463632590737,
+   "sampling": "mean of 2 x 2 x 2",
+   "shape": "cylinder along z, radius 24 mm, length 80.6 mm",
+   "sharp_mm3": 145850.3238984983,
+   "soft_mm3": 145902.3886047573,
+   "spacing_mm": 2.0
+  },
+  {
+   "lattice_mm3": 8019.122436821635,
+   "rel_sharp": 0.003946980619014884,
+   "rel_soft": -6.415115694669016e-05,
+   "sampling": "mean of 2 x 2 x 2",
+   "shape": "the ball of qa3d, radius 12.40 mm",
+   "sharp_mm3": 7987.595551985419,
+   "soft_mm3": 8019.636905807435,
+   "spacing_mm": 2.0
+  },
+  {
+   "lattice_mm3": 39795.04077584991,
+   "rel_sharp": 0.00023124557112041977,
+   "rel_soft": -0.0003971974927642341,
+   "sampling": "mean of 2 x 2 x 2",
+   "shape": "vial 0 of qa3d (along z), semi-axes 17.28 x 18.93 mm, length 38.72 mm",
+   "sharp_mm3": 39785.840476446436,
+   "soft_mm3": 39810.85354706361,
+   "spacing_mm": 2.0
+  }
+ ],
+ "limits": {
+  "build_s": 1.2,
+  "common_line": 0.0001,
+  "flat_2d": 1e-06,
+  "lattice_volume": 0.005,
+  "plane_ms": 100.0,
+  "plane_points": 0.0001,
+  "weight_sum": 1e-06
+ },
+ "machine": "x86_64",
+ "numpy": "2.2.6",
+ "peak_rss_mb": 343.1,
+ "python": "3.10.12",
+ "seeds": [
+  "00000000000000000000000000000011",
+  "000000000000000000000000000f4254",
+  "000000000000000000000000001e8497",
+  "000000000000000000000000002dc6da"
+ ]
+}

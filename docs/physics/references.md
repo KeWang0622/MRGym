@@ -81,6 +81,28 @@ of the release; treat every row as "to be verified" until the check at the top o
 | Yarnykh 2010 | V. L. Yarnykh, *Magnetic Resonance in Medicine* 63:1610, 2010 (DOI not recorded) | `tools/external/run_all.py` (L3.1 to L3.4) | the operating points and the statement "below 2 %" of its abstract |
 | Stupic 2021 | K. F. Stupic and others, 2021 (PMC8252537; journal and DOI not recorded) | `tools/external/run_all.py` (rung L4, not built) | named as the standard object a later rung needs |
 
+## Receive arrays and parallel imaging: records from Europe PMC, bodies read where open
+
+Added with `scanner/array.py` and `scanner/recon.py` on 2026-11-26. These records are those of the Europe PMC
+search interface (title, authors, journal, year, volume, issue, pages, DOI), not of Crossref, and are not among
+the 23 counted above. Unlike the rows above, the body of most of these papers was fetched and the passage that is
+used was read; the column says which. "Not compared with the paper" has the meaning given at the top of this page:
+the formula is supported only by the rows named ([array.md](array.md), section 7). The errata of Kellman 2005 (58(1):211-2,
+2007) and of Constantinides 1997 (52(1):219, 2004) exist and were not obtained.
+
+| Reference | Record | Used in | Checked against |
+|---|---|---|---|
+| Roemer 1990 | P. B. Roemer, W. A. Edelstein, C. E. Hayes, S. P. Souza, O. M. Mueller. The NMR phased array. *Magnetic Resonance in Medicine* 16(2):192-225, 1990. doi:10.1002/mrm.1910160203 | `scanner/recon.py` (`roemer`, `roemer_noise`, `sos`), `scanner/array.py` (overlap of neighbouring loops, the noise covariance) | **the abstract only** (overlapping neighbours, an algorithm for optimum SNR). The matched filter, the bound on the root sum of squares and the loss integral were **not compared with the paper**; rows C1, C3, C7, C9, C10 |
+| Pruessmann 1999 | K. P. Pruessmann, M. Weiger, M. B. Scheidegger, P. Boesiger. SENSE: sensitivity encoding for fast MRI. *Magnetic Resonance in Medicine* 42(5):952-962, 1999. doi:10.1002/(SICI)1522-2594(199911)42:5<952::AID-MRM16>3.0.CO;2-S | `scanner/recon.py` (`sense_plan`, `sense_unfold`, `estimate_maps`) | **the article body** (an archived copy): the unfolding matrix (equation 2), the g-factor (23), the SNR law (24), maps by division by a sum-of-squares or a body-coil image with a local polynomial fit (here: a weighted Gaussian smoothing instead); rows P1 to P24 |
+| Pruessmann 2001 | K. P. Pruessmann, M. Weiger, P. Boernert, P. Boesiger. Advances in sensitivity encoding with arbitrary k-space trajectories. *Magnetic Resonance in Medicine* 46:638-651, 2001 (record from the reference list of Kellman 2005; DOI not recorded) | `scanner/recon.py` (`sense_cg`) | not fetched; **not compared with the paper**; row P2 |
+| Griswold 2002 | M. A. Griswold, P. M. Jakob, R. M. Heidemann, M. Nittka, V. Jellus, J. Wang, B. Kiefer, A. Haase. Generalized autocalibrating partially parallel acquisitions (GRAPPA). *Magnetic Resonance in Medicine* 47(6):1202-1210, 2002. doi:10.1002/mrm.10171 | `scanner/recon.py` (`grappa`: a seam, not built; `calibration_block`) | **the article body** (an archived copy): weights fitted on a block of calibration lines in the centre of k-space |
+| Walsh 2000 | D. O. Walsh, A. F. Gmitro, M. W. Marcellin. Adaptive reconstruction of phased array MR imagery. *Magnetic Resonance in Medicine* 43(5):682-690, 2000. doi:10.1002/(SICI)1522-2594(200005)43:5<682::AID-MRM10>3.0.CO;2-G | `scanner/recon.py` (`adaptive`) | **the submitted manuscript** (an archived copy, not the printed article): the filter is the eigenvector of the largest eigenvalue of the product of the inverse noise correlation and the signal correlation, estimated over local regions; rows C11, C12 |
+| Kellman & McVeigh 2005 | P. Kellman, E. R. McVeigh. Image reconstruction in SNR units: a general method for SNR measurement. *Magnetic Resonance in Medicine* 54(6):1439-1447, 2005. doi:10.1002/mrm.20713 (PMC2570032) | `scanner/recon.py` (`roemer(snr_units=True)`, `sense_snr_units`, `prewhiten`, `chi_moments`) | **the article body** (PMC): whitening to virtual channels of unit variance, the scale 1 / sqrt(N) of a transform over N samples, the SNR-scaled unfolding, the bias of the background for 1 to 32 channels (compared with `chi_moments` in `tools/audit/array_rederive.py`). The noise-equivalent bandwidth of a receiver filter is not modelled: the engine's noise is white |
+| Robson 2008 | P. M. Robson, A. K. Grant, A. J. Madhuranthakam, R. Lattanzi, D. K. Sodickson, C. A. McKenzie. Comprehensive quantification of signal-to-noise ratio and g-factor for image-based and k-space-based parallel imaging reconstructions. *Magnetic Resonance in Medicine* 60(4):895-907, 2008. doi:10.1002/mrm.21728 (PMC2838249) | `scanner/recon.py` (`pseudo_replica`, `noise_covariance`) | **the article body** (PMC): replicas of correctly scaled and correlated noise through the reconstruction, psi with the factor 1 / (2 N) (equation 10); rows N1, C7, P6, P11, P16, P21 |
+| Constantinides 1997 | C. D. Constantinides, E. Atalar, E. R. McVeigh. Signal-to-noise measurements in magnitude images from NMR phased arrays. *Magnetic Resonance in Medicine* 38(5):852-857, 1997. doi:10.1002/mrm.1910380524 (PMC2570034) | `scanner/recon.py` (`chi_moments`) | **the article body** (PMC): the central chi density with 2n degrees of freedom (equation 4), second moment 2 n sigma^2, the printed means and standard deviations for 2 and 4 channels (compared in `tools/audit/array_rederive.py`); rows N4, N5, N7 |
+| Breuer 2005 | F. A. Breuer, M. Blaimer, R. M. Heidemann, M. F. Mueller, M. A. Griswold, P. M. Jakob. Controlled aliasing in parallel imaging results in higher acceleration (CAIPIRINHA) for multi-slice imaging. *Magnetic Resonance in Medicine* 53(3):684-691, 2005. doi:10.1002/mrm.20401 | named in `docs/physics/array.md` as not built | **the article body** (an archived copy) |
+| Breuer 2009 | F. A. Breuer, S. A. Kannengiesser, M. Blaimer, N. Seiberlich, P. M. Jakob, M. A. Griswold. General formulation for quantitative G-factor calculation in GRAPPA reconstructions. *Magnetic Resonance in Medicine* 62(3):739-746, 2009. doi:10.1002/mrm.22066 | named in `docs/physics/array.md` as not built | **the abstract only** |
+
 ## Reference objects and the examined outline
 
 Documents that were opened and read for the phantom worlds (`anatomy.acr`, `anatomy.nist_t1`), the QA command
@@ -94,6 +116,34 @@ they do not give is tagged as declared. What was drawn from them and what was no
 | Stupic 2021 | K. F. Stupic and others. A standard system phantom for magnetic resonance imaging. *Magnetic Resonance in Medicine* 86(3):1194-1211, 2021. doi:10.1002/mrm.28779 (PMC8252537) | `scanner/anatomy.py` (`NIST_T1`: shell and sphere diameters, the arrangement of the 14 spheres, T1 and T2 of the Ni-12 solution at 3 T) | **the article body** (PMC full text). The supporting Tables S1 to S3 (positions, 1.5 T values, T2 of every sphere) were not opened |
 | ISMRM reproducibility challenge, analysis code | `rrsg2020/analysis` on GitHub, file `src/nist.py`: reference T1 of the NiCl2 array at 20 degrees C for phantoms with serial number below 0043 (the file names its source as a document of the phantom's maker) | `scanner/anatomy.py` (`NIST_T1["t1_ms"]`) | **the file**. Its twelfth value (44.53 ms) is the Ni-12 value of Stupic 2021 at 3 T; the maker's document itself was not opened |
 | ARRT content specification | American Registry of Radiologic Technologists. *Examination Content Specifications: Magnetic Resonance Imaging*. Board approved January 2024, implementation date February 1, 2025. Image Production: 1.C, 1.D, 2.A, 2.C | `coverage.py` (the rows of the competency map) | **the document**: the names and the numbering of the items. Used as a map of topics; no examination item is reproduced |
+
+## Measured data and the papers of the comparison with measurements
+
+Used by `tools/measured/` ([measured.md](measured.md)), added on 2026-11-26 and 2026-11-27. The licence of each data
+set was read at its source (the licence field of the Zenodo record, the licence the GitHub API reports, the licence
+field of the Europe PMC record); the full citations and the checksums of the originals are in
+`tools/measured/sources.py` and in the files under `docs/physics/measured/`. "Read" says how far each was read for
+this work.
+
+| Reference | Record | Used in | Read |
+|---|---|---|---|
+| Stupic 2021, supporting information | Tables S1, S2, S4, S10 of the supporting information of the article above (file `MRM-86-1194-s001.pdf`); the article is CC BY | `scanner/anatomy.py` (`NIST_S1`, `NIST_S2`, `NIST_XZ_MM`, `NIST_WATER_RATE_PER_S`, `nist_t2`), rungs M0, M2, M9 | **the tables**, compared digit by digit with the typed values; and the sentence of the article on the temperature coefficients of the MnCl2 array |
+| ISMRM 2020 T1 challenge | M. Boudreau and others, *Magnetic Resonance in Medicine* 92:1115, 2024, doi:10.1002/mrm.30111 (CC BY); data: `rrsg2020/analysis` on GitHub, `databases/3T_NIST_T1maps_database.csv` and `src/nist.py` (no licence) | rung M1 | **the two files**; the article was not read in the body |
+| Keenan 2021 | K. E. Keenan and others, *PLOS ONE* 16:e0252966, 2021, doi:10.1371/journal.pone.0252966 (CC0) | rung M2 | the two sentences quoted in rows M2.1 and M2.2, found in the text of the article |
+| Dieringer 2014 | M. A. Dieringer and others, *PLOS ONE* 9:e91318, 2014, doi:10.1371/journal.pone.0091318 (CC BY) | rung M2b (and `validate.py` R12, `tools/external/run_all.py` L3.5) | the numbers of its phantom experiment and the description of its pulse, found in the text |
+| Ben-Eliezer 2015 | N. Ben-Eliezer, D. K. Sodickson, K. T. Block, *Magnetic Resonance in Medicine* 73:809, 2015, doi:10.1002/mrm.25156 (no open licence) | rung M3b | **Table 1** and the protocol line of the text. Kept: T1 and single-echo T2 of the nine tubes; of the measured multi-echo T2 only the mean error per refocusing angle (which the table gives itself) and its spread |
+| Hamilton 2011 | G. Hamilton and others, *NMR in Biomedicine* 24:784, 2011, doi:10.1002/nbm.1622 (no open licence) | row M4.1, M4.2 | **Table 3**: six observed positions and shares |
+| Hernando 2014 | D. Hernando and others, *Magnetic Resonance in Medicine* 72:464, 2014, doi:10.1002/mrm.24951 (no open licence) | note of row M8.3 | one number: the slope of the fat-water shift against temperature |
+| Hernando 2017 | D. Hernando and others, *Magnetic Resonance in Medicine* 77:1516, 2017, doi:10.1002/mrm.26228; data: doi:10.5281/zenodo.48266 (CC0) | rungs M4 and M8 | **the data** and its README; of the article, the four numbers of its abstract |
+| Lu 2004 | H. Lu and others, *Magnetic Resonance in Medicine* 52:679, 2004, doi:10.1002/mrm.20178 | row M5.2 | the abstract only |
+| IT'IS database | IT'IS Foundation, Tissue Properties Database, relaxation times, doi:10.13099/VIP21000-05-0 (licence unclear) | rung M5, with `--fetch` only; nothing is stored | the two spreadsheets as the page's table service returns them; which study gives which value is not in them |
+| hazen | Guy's and St Thomas' NHS Foundation Trust, `GSTT-CSC/hazen` on GitHub, `tests/data/acr` (Apache-2.0, the licence of the repository) | rung M6 | **the 154 DICOM files** (pixels and the header fields a protocol needs) |
+| Chen 2025 | Q. Chen and others, *Magnetic Resonance Materials in Physics, Biology and Medicine* 38(3):533, 2025, doi:10.1007/s10334-025-01247-1 (CC BY); data: doi:10.5281/zenodo.14778552 (CC BY) | rung M7 | **the data** (23 DICOM images) and the sentence of the article that gives T1 and T2 of the gel |
+| Scholand 2023 | N. Scholand and others, *Magnetic Resonance in Medicine* 90:520, 2023, doi:10.1002/mrm.29664; data: doi:10.5281/zenodo.7654462 (CC BY) | rung M9 | **the raw data** (three of its files); of the article, Table 1 and the Methods paragraph on the phantom in the preprint arXiv:2209.08027; the authors' scripts for the B1 map and their reference values (`mrirecon/bloch-moba`) |
+
+Journal, volume, first page and DOI of every article in this table agree with its Europe PMC record (read on
+2026-11-26 and 2026-11-27); those of Chen 2025 with the citation fields of the publisher's page. None was checked
+against Crossref.
 
 ## Not cited in the source
 

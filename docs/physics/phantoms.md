@@ -32,6 +32,7 @@ Source: *Large and Medium Phantom Test Guidance for the ACR MRI Accreditation Pr
 - The bandwidth of the series (130 Hz per pixel) and the healthy system: receiver noise density 0.0065 (3 T; twice that at 1.5 T), transmit gain within 3 %, gradients within 0.15 %. The noise level is a calibration, not a measurement: it was chosen so that a healthy system scores above the guidance's low-contrast limits at both fields.
 - Two readers are replaced by stated rules. Resolution: a row of four holes is resolved when every gap is darker than both of its holes by 0.5 of the brightest hole. Low contrast: a disk is seen when its mean exceeds the mean of the ring around it by 4 standard errors.
 - The artifact assessment of the guidance (section 8) is a reader's judgement with no number; here it is a detector of a line of interference in the background with the limit z <= 15.
+- The four background regions of the ghosting test and the bands of the line detector lie round the phantom as it is found in the image: at the places of the guidance (110 mm from the isocentre) while the phantom is within 3.5 mm of the isocentre, and moved with it in whole pixels beyond that, read on the periodic image. On a real image whose phantom lay well off centre, regions placed from the isocentre had given a ghosting ratio far too large ([measured.md](measured.md), row M6.13).
 - A plastic part displaces solution, so the low-contrast sheet lowers the weight of the solution by the contrast and its holes restore it. The contrast therefore does not change with the slice thickness of the protocol as it does in the phantom.
 
 ### Not simulated
@@ -120,9 +121,9 @@ Opened and used:
 - Stupic et al. 2021 (article body): a spherical shell of 200 mm inner diameter; array spheres of 15 mm inner and 20 mm outer diameter; 10 spheres on a 50 mm radius and 4 inside on a 40 mm grid; the Ni-12 solution at 3 T and 20.0 degrees C: T1 44.53 ms, T2 31.86 ms; regions of 10 mm diameter.
 - The reference T1 list of the ISMRM reproducibility challenge (`rrsg2020/analysis`, `src/nist.py`, phantoms with serial number below 0043, 20 degrees C): 1989, 1454, 984.1, 706, 496, 351.5, 247.13, 175.3, 125.9, 89, 62.7, 44.53, 30.84, 21.719 ms. Its twelfth value is the Ni-12 value of the article, which is how the list is tied to 3 T.
 
-Not opened, and what follows from it:
+Read later, and not in this world yet:
 
-- Tables S1 to S3 of the article (sphere positions, the 1.5 T values, T2 of every sphere). The world therefore exists at 3 T only; the order of the spheres on the plate (1 to 10 round the ring, 11 to 14 on the inner grid) is a choice; and T2 of a sphere is T1 x (31.86 / 44.53), the ratio of sphere 12, a declared rule and not the published T2.
+- Tables S1, S2 and S4 of the article (sphere positions, T1 and T2 of every sphere of both plates at 1.5 and 3 T, the water). They are in the package as `anatomy.NIST_S1`, `NIST_S2` and the T2 plate `anatomy.nist_t2`. The world `nist_t1` was built before and is unchanged: it exists at 3 T only, its order of the spheres (1 to 10 round the ring, 11 to 14 on the inner grid) turned out to be the published one, and T2 of a sphere is still T1 x (31.86 / 44.53), the ratio of sphere 12, a declared rule and not the published T2. The differences, with the outline of the plate, are rows M0.2 to M0.4 and M0.8 of [measured.md](measured.md).
 - The relaxation times of the water round the spheres ("long-T1 deionized water" in the article): declared, T1 2800 ms, T2 2000 ms.
 - The second list of the same file (serial numbers from 0043) was opened and is not used; the temperature correction of the file was not read.
-- No published protocol has been run on this world yet (the inversion-recovery and variable-flip-angle protocols of the article and of the challenge): it is an object with reference values, not a validation result.
+- The inversion-recovery protocol of the challenge has been run on this world and compared with the maps the challenge collected on real scanners, and the variable-flip-angle protocol of the article with its published rule: [measured.md](measured.md), rungs M1 and M2.

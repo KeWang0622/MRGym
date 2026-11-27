@@ -121,12 +121,14 @@ def test_the_independent_integrator_shares_nothing_with_the_package():
     assert max(np.abs(a * a - a2).max(), np.abs(b * b - b2).max(), np.abs(np.conj(a) * b - ab).max()) < 1e-10
 
 
-def test_the_stored_ladder_is_for_this_engine_and_says_that_no_scanner_was_measured():
+def test_the_stored_ladder_is_for_this_engine_and_points_to_the_comparison_with_measurements():
     ext = ROOT / "docs" / "physics" / "external"
     for rung in ("L1", "L2", "L3"):
         stored = json.loads((ext / f"{rung}.json").read_text(encoding="utf-8"))
         assert stored["engine"] == mrgym.ENGINE_ID and stored["rows"] and all(r["passed"] for r in stored["rows"]), rung
     page = (ROOT / "docs" / "physics" / "external.md").read_text(encoding="utf-8")
-    assert "No scanner measurement exists" in page and "no scanner measurement exists" in page and mrgym.ENGINE_ID in page
+    assert "What it is not: a comparison with a measurement" in page and "[measured.md](measured.md)" in page and mrgym.ENGINE_ID in page
+    assert "No image of the six console sequences has been compared pixel by pixel with a scan of the same object" in page
+    assert "No scanner measurement exists" not in page and "no scanner measurement exists" not in page
     ref = json.loads((ext / "sycomore_reference.json").read_text(encoding="utf-8"))
     assert len(ref["spgr"]) == 13 and len(ref["afi"]) == 4 and ref["sycomore_version"]

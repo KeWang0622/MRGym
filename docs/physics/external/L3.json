@@ -135,6 +135,6 @@
  ],
  "not_run": [],
  "engine": "mrgym-engine-0.2.0",
- "date_utc": "2026-11-25",
+ "date_utc": "2026-11-27",
  "command": "python tools/external/run_all.py --write"
 }

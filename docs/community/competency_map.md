@@ -7,27 +7,27 @@ What the field examines (the Image Production outline of the ARRT MRI content sp
 ```
 Competency map · source: ARRT Examination Content Specifications, Magnetic Resonance Imaging (board approved January 2024, implemented February 1, 2025), Image Production: 1.C Artifacts, 1.D Quality Control, 2.A Imaging Parameters, 2.C Imaging Options
 
-== imaging parameters (2.A): 18 items · engine forms 11 fully, 1 partly, 6 not · exercised by a scored environment: 10 (threshold for an A: 15)
-  2.A.1         parameter.tr                         now      BandFree-v0, FatSuppress-v0, NullTissue-v0, SNRSpec-v0, T2Decay-v0 repetition time (TR)
-  2.A.2         parameter.te                         now      FatFraction-v0, FrequencyAdjust-v0, SNRSpec-v0, T2Decay-v0 echo time (TE)
-  2.A.3         parameter.ti                         now      FatSuppress-v0, NullTissue-v0      inversion time (TI)
-  2.A.4         parameter.averages                   now      SNRSpec-v0                         number of signal averages (NSA, NEX)
-  2.A.5         parameter.flip_angle                 now      FatFraction-v0, TransmitAdjust-v0  flip angle
-  2.A.6         parameter.fov                        now      -                                  field of view (FOV)
-  2.A.7         parameter.matrix                     now      PhantomQA-v0, SNRSpec-v0           matrix
-  2.A.8         parameter.pixel                      now      SNRSpec-v0                         pixel
+== imaging parameters (2.A): 18 items · engine forms 11 fully, 1 partly, 6 not · exercised by a scored environment: 11 (threshold for an A: 15)
+  2.A.1         parameter.tr                         now      BandFree-v0, FatSuppress-v0, GhostAside-v0, NullTissue-v0, SNRSpec-v0, T1Vial-v0, T2Decay-v0 repetition time (TR)
+  2.A.2         parameter.te                         now      EPISetup-v0, FatFraction-v0, FrequencyAdjust-v0, SNRSpec-v0, T2Decay-v0 echo time (TE)
+  2.A.3         parameter.ti                         now      FatSuppress-v0, NullTissue-v0, T1Vial-v0 inversion time (TI)
+  2.A.4         parameter.averages                   now      EPISetup-v0, SNRSpec-v0            number of signal averages (NSA, NEX)
+  2.A.5         parameter.flip_angle                 now      ErnstFlip-v0, FatFraction-v0, TransmitAdjust-v0 flip angle
+  2.A.6         parameter.fov                        now      EPISetup-v0, FoldAway-v0, Resolve-v0 field of view (FOV)
+  2.A.7         parameter.matrix                     now      EPISetup-v0, PhantomQA-v0, Resolve-v0, SNRSpec-v0 matrix
+  2.A.8         parameter.pixel                      now      EPISetup-v0, GradientCal-v0, Resolve-v0, SNRSpec-v0 pixel
   2.A.9         parameter.voxel                      now      SNRSpec-v0                         voxel
   2.A.10        parameter.number_of_slices           absent   -                                  number of slices
   2.A.11        parameter.slice_thickness_gap        partial  -                                  slice thickness and gap
-  2.A.12        parameter.phase_frequency_direction  now      PhantomQA-v0                       phase and frequency
+  2.A.12        parameter.phase_frequency_direction  now      EPISetup-v0, FoldAway-v0, GhostAside-v0, GradientCal-v0, PhantomQA-v0, Resolve-v0, ShiftFree-v0 phase and frequency
   2.A.13        parameter.etl                        absent   -                                  echo train length (ETL)
   2.A.14        parameter.effective_te               absent   -                                  effective TE
-  2.A.15        parameter.receive_bandwidth          now      BandFree-v0, PhantomQA-v0, SNRSpec-v0 bandwidth (transmit, receive)
+  2.A.15        parameter.receive_bandwidth          now      BandFree-v0, EPISetup-v0, GradientCal-v0, PhantomQA-v0, SNRSpec-v0, ShiftFree-v0 bandwidth (transmit, receive)
   2.A.16        parameter.concatenations             absent   -                                  concatenations (number of acquisitions per TR)
   2.A.17        parameter.b_value                    absent   -                                  b-value
   2.A.18        parameter.venc                       absent   -                                  velocity encoding (VENC)
 
-== imaging options (2.C): 11 items · engine forms 5 fully, 0 partly, 6 not · exercised by a scored environment: 3
+== imaging options (2.C): 11 items · engine forms 5 fully, 0 partly, 6 not · exercised by a scored environment: 5
   2.C.1         option.2d_3d                         now      BandFree-v0, TransmitAdjust-v0     2D and 3D
   2.C.2         option.slice_order                   absent   -                                  slice order (sequential, interleaving)
   2.C.3         option.saturation_band               absent   -                                  spatial saturation pulse / band
@@ -35,39 +35,39 @@ Competency map · source: ARRT Examination Content Specifications, Magnetic Reso
   2.C.5         option.suppression                   now      FatFraction-v0, FatSuppress-v0, NullTissue-v0 suppression techniques (e.g., fat, water, Dixon method)
   2.C.6         option.gating                        absent   -                                  physiologic gating and triggering
   2.C.7         option.in_out_of_phase               now      FatFraction-v0                     in-phase and out-of-phase
-  2.C.8         option.rectangular_fov               now      -                                  rectangular FOV
-  2.C.9         option.anti_aliasing                 now      -                                  anti-aliasing
+  2.C.8         option.rectangular_fov               now      EPISetup-v0, FoldAway-v0, Resolve-v0 rectangular FOV
+  2.C.9         option.anti_aliasing                 now      FoldAway-v0                        anti-aliasing
   2.C.10        option.parallel_imaging              absent   -                                  parallel imaging
   2.C.11        option.filtering                     absent   -                                  filtering
 
-== artefacts (1.C): 14 items · engine forms 8 fully, 2 partly, 4 not · exercised by a scored environment: 4 (threshold for an A: 10)
-  1.C.1         artefact.aliasing                    now      -                                  aliasing (wrap around)
-  1.C.2         artefact.gibbs                       now      -                                  Gibbs, truncation
-  1.C.3         artefact.chemical_shift              now      BandFree-v0, FatSuppress-v0, FrequencyAdjust-v0 chemical shift
+== artefacts (1.C): 14 items · engine forms 8 fully, 2 partly, 4 not · exercised by a scored environment: 8 (threshold for an A: 10)
+  1.C.1         artefact.aliasing                    now      EPISetup-v0, FoldAway-v0           aliasing (wrap around)
+  1.C.2         artefact.gibbs                       now      FoldAway-v0, Resolve-v0            Gibbs, truncation
+  1.C.3         artefact.chemical_shift              now      BandFree-v0, EPISetup-v0, FatSuppress-v0, FrequencyAdjust-v0, ShiftFree-v0 chemical shift
   1.C.4         artefact.chemical_misregistration    now      FatFraction-v0                     chemical misregistration
-  1.C.5         artefact.susceptibility              now      -                                  magnetic susceptibility
+  1.C.5         artefact.susceptibility              now      EPISetup-v0                        magnetic susceptibility
   1.C.6         artefact.rf_zipper                   now      -                                  radiofrequency (e.g., zipper)
-  1.C.7         artefact.motion_ghost                partial  PhantomQA-v0                       motion and flow (e.g., patient motion, ghosting)
+  1.C.7         artefact.motion_ghost                partial  GhostAside-v0, PhantomQA-v0        motion and flow (e.g., patient motion, ghosting)
   1.C.8         artefact.partial_volume              now      -                                  partial volume averaging
   1.C.9         artefact.cross_talk                  absent   -                                  cross-talk
   1.C.10        artefact.cross_excitation            absent   -                                  cross-excitation
   1.C.11        artefact.moire                       absent   -                                  moire pattern
   1.C.12        artefact.parallel_imaging            absent   -                                  parallel imaging artifacts
-  1.C.13        artefact.eddy_currents               partial  -                                  eddy currents
+  1.C.13        artefact.eddy_currents               partial  EPISetup-v0                        eddy currents
   1.C.14        artefact.b1_shading                  now      PhantomQA-v0, TransmitAdjust-v0    dielectric effect
-  1.C.5         artefact.b0_distortion               now      BandFree-v0, PhantomQA-v0          magnetic susceptibility: geometric distortion by a field gradient (with 1.C.5) *
+  1.C.5         artefact.b0_distortion               now      BandFree-v0, EPISetup-v0, GradientCal-v0, PhantomQA-v0 magnetic susceptibility: geometric distortion by a field gradient (with 1.C.5) *
 
 == quality control (1.D): 7 items · engine forms 6 fully, 0 partly, 1 not · exercised by a scored environment: 4 (threshold for an A: 6)
   1.D.1         qc.slice_thickness                   absent   -                                  slice thickness
   1.D.2         qc.spatial_resolution                now      -                                  spatial resolution
   1.D.3         qc.contrast_resolution               now      -                                  contrast resolution
-  1.D.4         qc.snr                               now      SNRSpec-v0, T2Decay-v0             signal to noise
-  1.D.5         qc.centre_frequency                  now      BandFree-v0, FatSuppress-v0, FrequencyAdjust-v0 center frequency
-  1.D.6         qc.transmit_gain                     now      TransmitAdjust-v0                  transmit gain
-  1.D.7         qc.geometric_accuracy                now      PhantomQA-v0                       geometric accuracy
+  1.D.4         qc.snr                               now      EPISetup-v0, NoiseSNR-v0, SNRSpec-v0, T2Decay-v0 signal to noise
+  1.D.5         qc.centre_frequency                  now      BandFree-v0, EPISetup-v0, FatSuppress-v0, FrequencyAdjust-v0 center frequency
+  1.D.6         qc.transmit_gain                     now      ErnstFlip-v0, TransmitAdjust-v0    transmit gain
+  1.D.7         qc.geometric_accuracy                now      GradientCal-v0, PhantomQA-v0       geometric accuracy
   1.D.8         qc.equipment_inspection              n/a      -                                  equipment inspection (e.g., coils, cables, door seals)
   1.D (ACR 5)   qc.signal_uniformity                 now      PhantomQA-v0                       image intensity uniformity (ACR phantom test 5; with 1.D) *
-  1.D (ACR 6)   qc.ghosting                          now      PhantomQA-v0                       percent-signal ghosting (ACR phantom test 6; with 1.D) *
+  1.D (ACR 6)   qc.ghosting                          now      NoiseSNR-v0, PhantomQA-v0          percent-signal ghosting (ACR phantom test 6; with 1.D) *
   1.D (ACR x.5) qc.fault_diagnosis                   now      PhantomQA-v0                       causes of failure of a QC test and corrective action (ACR guidance, sections x.5) *
 
 * a second view of a line of the outline or of the ACR guidance; not counted in the totals
@@ -75,21 +75,30 @@ Competency map · source: ARRT Examination Content Specifications, Magnetic Reso
 scored environments and what their families declare:
   Scanner/ArtefactClinic-v0  declares none
   Scanner/BandFree-v0        6 rows
+  Scanner/EPISetup-v0        15 rows
+  Scanner/ErnstFlip-v0       2 rows
   Scanner/FatFraction-v0     5 rows
   Scanner/FatSuppress-v0     5 rows
+  Scanner/FoldAway-v0        6 rows
   Scanner/FrequencyAdjust-v0 3 rows
+  Scanner/GhostAside-v0      3 rows
+  Scanner/GradientCal-v0     5 rows
   Scanner/NoWrap-v1          declares none
+  Scanner/NoiseSNR-v0        2 rows
   Scanner/NullTissue-v0      3 rows
   Scanner/PhantomQA-v0       10 rows
   Scanner/ProtocolToSpec-v0  declares none
+  Scanner/Resolve-v0         6 rows
   Scanner/SNRSpec-v0         8 rows
+  Scanner/ShiftFree-v0       3 rows
   Scanner/T1Transmit-v1      declares none
+  Scanner/T1Vial-v0          2 rows
   Scanner/T2Decay-v0         3 rows
   Scanner/TransmitAdjust-v0  4 rows
 
 thresholds and consistency: 8 not met (enforced by --assert)
-  - imaging parameters (2.A): 10 of 18 exercised by a scored environment; the threshold is 15
-  - artefacts (1.C): 4 of 14 exercised by a scored environment; the threshold is 10
+  - imaging parameters (2.A): 11 of 18 exercised by a scored environment; the threshold is 15
+  - artefacts (1.C): 8 of 14 exercised by a scored environment; the threshold is 10
   - quality control (1.D): 4 of 7 exercised by a scored environment; the threshold is 6
   - Scanner/ArtefactClinic-v0 declares no competency (task.COMPETENCIES)
   - Scanner/NoWrap-v1 declares no competency (task.COMPETENCIES)

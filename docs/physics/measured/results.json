@@ -1,0 +1,1182 @@
+{
+ "schema": "mrgym-measured/1",
+ "engine": "mrgym-engine-0.2.0",
+ "command": "python tools/measured/run_all.py --write",
+ "tool": "29a9c27288f4a852",
+ "extracts": {
+  "M1_t1_challenge.json": "3c70c0e9133c95abf768dd9c7db15fc356fc6cd9884c375c4cc655912a406df3",
+  "M6_acr.json": "18bb6a5aef0eec9cab5acd40e3076de62331750fd9e1a9d976a4973f2c7b0d0f",
+  "M7_gel.json": "045bacce7efd64ecd0d01199939c0d04e1cbcbe8f0a1822cb9f93c1d4f676334",
+  "M8_fat_phantom.json": "e169a0dd4aa2fac02649dde00dc59c931a768b311e8056a96a2d37ff3fd83d54",
+  "M9_nist_t2_raw.json": "acda4d7cdc7f8d02f9f8856aee4476c348470818e82f7e005a19d9adecd72669",
+  "acr_off_centre_slice7.npz": "f925b751b828f651267a2b46b5bacbc01ebab6bf5d14d86524c544a18699ae25",
+  "nist_tables.json": "b91b8ae859c4d8afbc6044644d1bf5d125641ca4712724f69ddc17c88dce3c15"
+ },
+ "sources": [
+  {
+   "file": "nist_tables.json",
+   "source": "Supporting information of Stupic et al. 2021: Tables S1 (NiCl2 array), S2 (MnCl2 array), S4 (water), file MRM-86-1194-s001.pdf",
+   "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC8252537/supplementaryFiles",
+   "licence": "CC BY 4.0 (the article; Europe PMC record PMC8252537)",
+   "citation": "Stupic KF, Ainslie M, Boss MA, et al. A standard system phantom for magnetic resonance imaging. Magn Reson Med 2021;86:1194-1211. doi:10.1002/mrm.28779",
+   "retrieved": "2026-11-26",
+   "sha256": "149189eb04bf68064dc829bbb63db4b30f75f3fafc2a1f7557cf4002954106e7",
+   "sha256_of": "MRM-86-1194-s001.pdf",
+   "stored": "the values of the three tables, typed from the PDF (the file is a PDF: --fetch checks its checksum, it cannot re-read the tables)"
+  },
+  {
+   "file": "M1_t1_challenge.json",
+   "source": "ISMRM 2020 reproducibility challenge, T1 maps of the NIST system phantom at 3 T: databases/3T_NIST_T1maps_database.csv and src/nist.py",
+   "url": "https://raw.githubusercontent.com/rrsg2020/analysis/883abf38525f75f40f065060c4f555265d5af6a4/",
+   "licence": "none (the repository has no licence file; the article that reports the data is CC BY)",
+   "citation": "Boudreau M, Karakuzu A, Cohen-Adad J, et al. Repeat it without me: crowdsourcing the T1 mapping common ground via the ISMRM reproducibility challenge. Magn Reson Med 2024;92:1115-1127. doi:10.1002/mrm.30111; data: github.com/rrsg2020/analysis",
+   "retrieved": "2026-11-26",
+   "sha256": "a07356c7479ed685eeb0c2e313886b04c2906d48526fbbaf22313c596f7263b9",
+   "sha256_of": "databases/3T_NIST_T1maps_database.csv",
+   "stored": "derived numbers only: per sphere the median and quartiles of the error and of the scatter over the submissions. The file is not stored"
+  },
+  {
+   "file": "M6_acr.json",
+   "source": "ACR large-phantom DICOM series of the hazen project: tests/data/acr, 14 series (T1 and T2 axial) of 9 scanners, 154 files",
+   "url": "https://raw.githubusercontent.com/GSTT-CSC/hazen/dc7141d364070b69136ed9c5ae7d4f6e5a2f4836/tests/data/acr/",
+   "licence": "Apache-2.0 (the licence of the repository; no separate statement for the images was found)",
+   "citation": "hazen: quality assurance of MRI phantom images. Guy's and St Thomas' NHS Foundation Trust, Clinical Scientific Computing. github.com/GSTT-CSC/hazen",
+   "retrieved": "2026-11-26",
+   "sha256": "c84193020767a7679d997fa3ceaf43feeac7924e0f1e3710d4888b7310605262",
+   "sha256_of": "the list `<series>/<file> <sha256>` of the 154 files, sorted, one per line",
+   "stored": "derived numbers: the figures the QA functions of this package measure on slices 1, 5 and 7 of every series; and the pixels of ONE slice (a phantom 21 mm off centre), changed from the original: pixel array only, no header"
+  },
+  {
+   "file": "M7_gel.json",
+   "source": "Gel sphere at 3 T, product inversion-recovery TSE at 13 TI and single-echo spin echo at 10 TE: T1_T2_fitting_fBIRN_phantom.7z",
+   "url": "https://zenodo.org/api/records/14778552/files/T1_T2_fitting_fBIRN_phantom.7z/content",
+   "licence": "CC BY 4.0 (Zenodo record 14778552)",
+   "citation": "Chen Q, Wehkamp N, Wan C, et al. Automated, open-source, vendor-independent quality assurance protocol based on the Pulseq framework. Magn Reson Mater Phy 2025;38(3):533. doi:10.1007/s10334-025-01247-1; data: doi:10.5281/zenodo.14778552",
+   "retrieved": "2026-11-26",
+   "sha256": "dfec5389cac5d33e80d0edc9afeaffa37c8a68915c5a06f5d8fafe15119ea98f",
+   "sha256_of": "T1_T2_fitting_fBIRN_phantom.7z",
+   "stored": "the 23 mean signals of one region with their spread, and the header fields of the two series"
+  },
+  {
+   "file": "M8_fat_phantom.json",
+   "source": "Multi-site fat-water phantom MRI data: PDFF_Phantom_Data.zip, 28 acquisitions (6 sites, 3 vendors, 1.5 and 3 T, 2 protocols)",
+   "url": "https://zenodo.org/api/records/48266/files/PDFF_Phantom_Data.zip/content",
+   "licence": "CC0 1.0 (Zenodo record 48266)",
+   "citation": "Hernando D, Sharma SD, Aliyari Ghasabeh M, et al. Multisite, multivendor validation of the accuracy and reproducibility of proton-density fat-fraction quantification at 1.5T and 3T using a fat-water phantom. Magn Reson Med 2017;77:1516-1524. doi:10.1002/mrm.26228; data: doi:10.5281/zenodo.48266",
+   "retrieved": "2026-11-26",
+   "sha256": "3dd517abfc8c1aefc3f5bac61833bc08dec663a3d20bb26a4588d10c59a9d4be",
+   "sha256_of": "PDFF_Phantom_Data.zip",
+   "stored": "the mean magnitude of the six echoes in each of the 11 vials of every acquisition that could be segmented, with the echo times"
+  },
+  {
+   "file": "M9_nist_t2_raw.json",
+   "source": "NIST system phantom (model 130), T2 array, 3 T: single-echo spin echo at 12 TE, inversion-recovery spin echo at 11 TI, B1 map; raw k-space of 20 channels in BART format (data_GSM_t2, data_GSM_t1, data_05b_b1map)",
+   "url": "https://zenodo.org/api/records/7654462/files/",
+   "licence": "CC BY 4.0 (Zenodo record 7654462)",
+   "citation": "Scholand N, Wang X, Roeloffs V, Rosenzweig S, Uecker M. Quantitative MRI by nonlinear inversion of the Bloch equations. Magn Reson Med 2023;90:520-538. doi:10.1002/mrm.29664; data: doi:10.5281/zenodo.7654462",
+   "retrieved": "2026-11-26",
+   "sha256": {
+    "data_GSM_t2.cfl": "a6734ef08cfde51bb286e3bf6b82cc92af57e599c7e21ff25857d856efca64c5",
+    "data_GSM_t1.cfl": "e3f42bcb54ea551313a00d12ea4e3248ca6b6d72e3bfe3e567f64e81f603a698",
+    "data_05b_b1map.cfl": "f1367691a7a172bfc78e24edb1dc26d6b26df9f7df95e999a5022b7c791a53f5"
+   },
+   "sha256_of": "the three .cfl files",
+   "stored": "per sphere the mean and spread of the signal at every TE and TI, the fitted place of the plate, and a second-order fit of the B1 map"
+  },
+  {
+   "file": null,
+   "source": "IT'IS Foundation tissue properties database, relaxation times (the two spreadsheets the page loads)",
+   "url": "https://itis.swiss/_resources/vendor/oetiker/spreadbutler/fcgi/sb.fcgi/fetch?file=",
+   "licence": "unclear: the pages carry a copyright notice and a citation request; no licence was found on them",
+   "citation": "IT'IS Foundation. Tissue Properties Database, relaxation times. itis.swiss/virtual-population/tissue-properties/database/relaxation-times; doi:10.13099/VIP21000-05-0",
+   "retrieved": "2026-11-26",
+   "sha256": {
+    "materialparameterdatabasecurrent20240604.xls": "807205b28413091f754c1dd50e7597d623f4a217ff0b4889e456096be893044a",
+    "materialparameterdatabasecurrent20220222c.xls": "706bca58053b6257ddb9fb93a6f1e92ee08504e215b98cb3df24e2522461cf19"
+   },
+   "sha256_of": "the two spreadsheets as the page's table service returns them (JSON)",
+   "stored": "nothing: the rung runs with --fetch only, and the repository keeps the counts it found"
+  }
+ ],
+ "rungs": [
+  {
+   "rung": "M0",
+   "title": "The NIST plate of the package against the published tables; console timing",
+   "rows": [
+    {
+     "id": "M0.1",
+     "quantity": "places of the 14 spheres of the T1 plate (world `nist_t1`)",
+     "measured": "Table S1, stated accuracy ±0.4 mm",
+     "engine": "largest distance 0.07 mm, same order",
+     "difference": "0.07 mm",
+     "tolerance": "≤ 0.4 mm (the table's accuracy)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M0.2",
+     "quantity": "T1 of the 14 spheres of `nist_t1` at 3 T",
+     "measured": "Table S1; sphere 5: 496.7 ± 0.41 ms",
+     "engine": "sphere 5: 496 ms; the other 13 equal the table",
+     "difference": "-0.7 ms",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 0.6999999999999886,
+     "ceiling": 0.75,
+     "passed": true,
+     "known": 11,
+     "note": ""
+    },
+    {
+     "id": "M0.3",
+     "quantity": "T2 of the 14 spheres of `nist_t1` at 3 T",
+     "measured": "Table S1: measured for every sphere",
+     "engine": "T1 × 31.86 / 44.53, a declared rule",
+     "difference": "-3.4 to +0.0 %",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 3.407861871468465,
+     "ceiling": 3.6,
+     "passed": true,
+     "known": 9,
+     "note": ""
+    },
+    {
+     "id": "M0.4",
+     "quantity": "water round the spheres of `nist_t1` at 3 T: T1, T2",
+     "measured": "Table S4: 3165 ms, 2513 ms",
+     "engine": "2800 ms, 2000 ms (declared)",
+     "difference": "-12 %, -20 %",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 20.399999999999995,
+     "ceiling": 21.0,
+     "passed": true,
+     "known": 9,
+     "note": ""
+    },
+    {
+     "id": "M0.5",
+     "quantity": "the new data: T1 and T2 of both plates at 1.5 and 3 T (`anatomy.NIST_S1`, `NIST_S2`; the plate `anatomy.nist_t2`)",
+     "measured": "Tables S1 and S2, 112 values",
+     "engine": "8 of 8 columns equal the table; the scanner does not serve `nist_t2` as a world kind yet",
+     "difference": "0 columns differ",
+     "tolerance": "0 (a transcription)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M0.6",
+     "quantity": "shortest TE of a 3D RF-spoiled gradient echo, matrix 256, 250 mm: TE / TR in ms",
+     "measured": "Siemens 2.44 / 6.6 at 280 Hz/px; GE 1.4 / 6 at 488 Hz/px; Philips 1.8 / 6.6 at 904 Hz/px (Table S10)",
+     "engine": "3.04 / 9.33; 2.32 / 7.89; 1.93 / 7.11",
+     "difference": "TE +7 to +66 %",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 65.71428571428571,
+     "ceiling": 70.0,
+     "passed": true,
+     "known": 3,
+     "note": ""
+    },
+    {
+     "id": "M0.7",
+     "quantity": "shortest TR of the same three protocols",
+     "measured": "as above",
+     "engine": "as above",
+     "difference": "TR +8 to +41 %",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 41.36363636363638,
+     "ceiling": 43.0,
+     "passed": true,
+     "known": 3,
+     "note": ""
+    },
+    {
+     "id": "M0.8",
+     "quantity": "outline of the T1 plate (`nist_t1`): diameter of the water round the spheres",
+     "measured": "165.0 mm: the section of the 200 mm shell at the plate, 56.5 mm from its centre (Table S1, column Y)",
+     "engine": "200 mm: the full shell",
+     "difference": "+21 %",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 21.198766711864515,
+     "ceiling": 22.0,
+     "passed": true,
+     "known": 9,
+     "note": "Found while adding the T2 plate, whose outline is the section at its own height (197.3 mm); the outline measured in rung M9 agrees with that."
+    }
+   ],
+   "extracts": [
+    "nist_tables"
+   ],
+   "source": "Stupic 2021, supporting information (CC BY)",
+   "notes": [
+    "The tables are NMR reference measurements at 20 °C. Rows M0.2 to M0.4 and M0.8 are about the older world `nist_t1`, which this branch does not change; M0.5 is the data added here."
+   ],
+   "engine": "mrgym-engine-0.2.0",
+   "date_utc": "2026-11-27"
+  },
+  {
+   "rung": "M1",
+   "title": "Inversion-recovery T1 on the NIST plate",
+   "rows": [
+    {
+     "id": "M1.1",
+     "quantity": "scatter of T1 inside a sphere, complex fit, spheres 1, 2, 6 to 9 (coefficient of variation, %)",
+     "measured": "3.0, 2.0, 1.6, 1.8, 2.4, 4.7 (median of 9 maps)",
+     "engine": "3.2, 2.2, 1.3, 1.6, 2.2, 4.4 (12 systems)",
+     "difference": "-0.4 to +0.2 points",
+     "tolerance": "within the interquartile range of the maps, per sphere (1.0, 0.6, 0.5, 0.5, 0.7, 1.8 points)",
+     "declared": false,
+     "passed": true,
+     "note": "One number was fitted: the noise level, so that the scatter inside spheres 3 to 5 equals the measured median (default noise × 0.40). The row is then a test of how noise propagates, not of the noise level."
+    },
+    {
+     "id": "M1.2",
+     "quantity": "magnitude fit where the null lies between the first two TI: T1 error of spheres 8 and 9, and scatter inside them",
+     "measured": "+5.6 % [+0.6, +19.4], scatter 20.1 %; +10.7 % [+1.4, +18.5], scatter 13.6 % (25 maps)",
+     "engine": "+6.5 %, scatter 24.9 %; +15.2 %, scatter 15.9 %",
+     "difference": "+0.8 points; +4.5 points",
+     "tolerance": "error inside the interquartile range of the maps",
+     "declared": false,
+     "passed": true,
+     "note": "Complex fit of the same spheres: measured -5.6 / -4.1 %, engine -0.07 / -0.20 %."
+    },
+    {
+     "id": "M1.3",
+     "quantity": "collapse of the estimator below 90 ms: T1 error of spheres 11 to 14 (63, 45, 31, 22 ms)",
+     "measured": "-33 % [-68, -17]; -12 % [-67, +16]; +31 % [-39, +99]; +142 % [+28, +278] (34 maps)",
+     "engine": "-27 %; -2 %; +59 %; +195 %",
+     "difference": "+7; +10; +28; +54 points",
+     "tolerance": "inside the interquartile range of the maps, each sphere",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M1.4",
+     "quantity": "the served form: T1 error without noise, spheres 1 to 8 (T1 175 ms and longer), 6 systems and pulse shapes",
+     "measured": "form assumed by the challenge's estimator: a + b exp(−TI / T1)",
+     "engine": "largest error 0.09 %",
+     "difference": "0.09 %",
+     "tolerance": "≤ 0.5 % (a tenth of the spread between sites)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M1.5",
+     "quantity": "spread of the T1 error between sites, spheres 1 to 7 (T1 250 to 2000 ms): interquartile range",
+     "measured": "4.5 points; median error -5.4 to -0.5 % (34 maps); by phantom version -3.1 % (serial ≤ 42, 23 maps) and -0.1 % (serial ≥ 43, 11 maps)",
+     "engine": "0.2 points; median error -0.03 to +0.12 %",
+     "difference": "4.3 points of spread missing",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 4.2613245778389786,
+     "ceiling": 5.5,
+     "passed": true,
+     "known": 7,
+     "note": ""
+    },
+    {
+     "id": "M1.6",
+     "quantity": "receiver noise: default noise of the package over the noise that gives the measured scatter",
+     "measured": "scatter of spheres 3 to 5: 1.28 % (median of 34 maps)",
+     "engine": "3.23 % at the default noise",
+     "difference": "default noise × 2.5 too high",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 2.5121231983355403,
+     "ceiling": 2.8,
+     "passed": true,
+     "known": 2,
+     "note": ""
+    }
+   ],
+   "extracts": [
+    "rrsg"
+   ],
+   "source": "ISMRM 2020 T1 challenge, Boudreau 2024 (data without a licence: derived numbers only)",
+   "notes": [
+    "Measured: 34 of the 39 maps of the database (left out: submissions without serial number or temperature, and id 13.001); some acquisitions were fitted both as complex and as magnitude data. Reference of each map: the challenge's temperature-corrected value for that phantom version.",
+    "Engine: world `nist_t1`, sequence `ir`, TR 2550 ms, TE 14 ms, TI 50 / 400 / 1100 / 2500 ms, matrix 256, 2 mm, 130 Hz per pixel, 12 drawn systems, the challenge's estimator, regions of 88 pixels.",
+    "The measured bias by phantom version is a reading of the database; that the reference list of the older units causes it is a hypothesis."
+   ],
+   "engine": "mrgym-engine-0.2.0",
+   "date_utc": "2026-11-27"
+  },
+  {
+   "rung": "M2",
+   "title": "Variable-flip-angle T1: the published rule and example",
+   "rows": [
+    {
+     "id": "M2.1",
+     "quantity": "T1 read by variable flip angle when the transmitter under-rotates by 10 %, true T1 2000 ms",
+     "measured": "\"approximately 1600 ms\" (Keenan 2021)",
+     "engine": "1606 ms for 1989 ms (sphere 1, ideal spoiling)",
+     "difference": "+15 ms from the scaled figure",
+     "tolerance": "1550 to 1650 ms × 1989 / 2000 (the figure is given to two digits)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M2.2",
+     "quantity": "relative T1 error per relative flip-angle error, ±5 and ±10 %",
+     "measured": "\"approximately twice\" (Keenan 2021)",
+     "engine": "1.65 to 1.79 (spheres 1 to 10, six angles)",
+     "difference": "-18 to -10 % of the rule",
+     "tolerance": "1.5 to 2.5 (the rule is given to one digit)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M2.3",
+     "quantity": "T1 error with a perfect transmitter, from incomplete RF spoiling alone (NiCl2 spheres: T2 is 0.72 T1)",
+     "measured": "at 3 T two vendors read too long and one too short (figures of Keenan 2021 and Stupic 2021; no number per vendor)",
+     "engine": "-10 % at the default 117° / 100 mT·ms/m; -2 to +8 % at 50° / 100 mT·ms/m; -1 to +1 % at 169° / 450 mT·ms/m",
+     "difference": "up to -10 % at the default",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 10.03716922696336,
+     "ceiling": 11.0,
+     "passed": true,
+     "known": 10,
+     "note": "The engine predicts a sign that depends on the vendor's RF phase increment; no measured number per vendor was found, so this is not a test yet."
+    }
+   ],
+   "extracts": [
+    "nist_tables"
+   ],
+   "source": "Keenan 2021 (CC0), Stupic 2021 (CC BY): statements in the text; the per-sphere deviations are in figures only",
+   "notes": [
+    "Engine: world `nist_t1` with T1 and T2 of Table S1 (3 T), 3D `spgr`, 2, 5, 10, 20, 25, 30 degrees, 280 Hz per pixel, matrix 256; realised TR 9.33 ms, TE 3.04 ms (published 6.6 / 2.44: the console is slower, row M0.6); fitted with the nominal angles as both papers do, no B1 map."
+   ],
+   "engine": "mrgym-engine-0.2.0",
+   "date_utc": "2026-11-27"
+  },
+  {
+   "rung": "M2b",
+   "title": "Two-angle T1 on a 2D slice without slice-profile correction",
+   "rows": [
+    {
+     "id": "M2b.1",
+     "quantity": "T1 read by two-angle VFA on a 2D slice without profile correction, 1.5 T (2° / 13°, TR 5 ms, 5 mm, 2 ms sinc of 1 kHz)",
+     "measured": "372 ± 28 ms for 963 ± 7 ms by IR-SE (-61.4 %)",
+     "engine": "388 to 390 ms (-59.7 to -59.5 %)",
+     "difference": "+16 to +18 ms = 0.6 SD",
+     "tolerance": "within 2 SD of the measurement",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M2b.2",
+     "quantity": "T1 read by two-angle VFA on a 2D slice without profile correction, 3 T (2° / 13°, TR 5 ms, 5 mm, 2 ms sinc of 1 kHz)",
+     "measured": "376 ± 23 ms for 1022 ± 10 ms by IR-SE (-63.2 %)",
+     "engine": "406 to 408 ms (-60.3 to -60.1 %)",
+     "difference": "+30 to +32 ms = 1.4 SD",
+     "tolerance": "within 2 SD of the measurement",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    }
+   ],
+   "extracts": [],
+   "source": "Dieringer 2014, PLoS ONE 9:e91318 (CC BY): numbers of its phantom experiment, typed with the citation",
+   "notes": [
+    "Engine: the slice integral of `spgr` with `rf_pulse=fast` (time-bandwidth 2, Hann window), ideal and default spoiling, T2 = T1 / 10 and T1 / 2 (the paper does not state T2); the four results span the range shown."
+   ],
+   "engine": "mrgym-engine-0.2.0",
+   "date_utc": "2026-11-27"
+  },
+  {
+   "rung": "M3b",
+   "title": "T2 from a multi-echo spin echo (design layer; the console has no echo train)",
+   "rows": [
+    {
+     "id": "M3b.1",
+     "quantity": "T2 error of an exponential fit to a multi-echo spin echo, refocusing 180° (mean of 9 tubes)",
+     "measured": "+50.5 % (SD over the tubes 13.2) against single-echo spin echo",
+     "engine": "+45.5 % (time-bandwidth 4), +54.1 % (time-bandwidth 2)",
+     "difference": "-5.0 and +3.6 points",
+     "tolerance": "the measured mean lies between the two pulse shapes (the product pulse is not published)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M3b.2",
+     "quantity": "T2 error of an exponential fit to a multi-echo spin echo, refocusing 150° (mean of 9 tubes)",
+     "measured": "+55.3 % (SD over the tubes 15.7) against single-echo spin echo",
+     "engine": "+51.4 % (time-bandwidth 4), +62.0 % (time-bandwidth 2)",
+     "difference": "-3.9 and +6.7 points",
+     "tolerance": "the measured mean lies between the two pulse shapes (the product pulse is not published)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M3b.3",
+     "quantity": "T2 error of an exponential fit to a multi-echo spin echo, refocusing 120° (mean of 9 tubes)",
+     "measured": "+82.6 % (SD over the tubes 20.6) against single-echo spin echo",
+     "engine": "+78.0 % (time-bandwidth 4), +91.1 % (time-bandwidth 2)",
+     "difference": "-4.6 and +8.5 points",
+     "tolerance": "the measured mean lies between the two pulse shapes (the product pulse is not published)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M3b.4",
+     "quantity": "the same on the scanner (`mrgym scan`)",
+     "measured": "a product sequence",
+     "engine": "no echo train: the six console sequences have one echo per excitation",
+     "difference": "not served",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 1.0,
+     "ceiling": 1.0,
+     "passed": true,
+     "known": 8,
+     "note": "Rows M3b.1 to M3b.3 are the design layer (`mrgym.design.sequence`), which no console sequence reaches."
+    }
+   ],
+   "extracts": [],
+   "source": "Ben-Eliezer 2015, Magn Reson Med 73:809, Table 1 (no open licence: the nine tubes' T1 and T2 as the object, and derived means of the measured error)",
+   "notes": [
+    "Protocol of the paper: 3 T, 18 echoes of 12 ms, TR 1500 ms, 3 mm, refocusing slice 1.2 × the excitation slice. Engine: the block-list EPG of the design layer through the slice profile of the console's windowed-sinc pulses; nothing is fitted."
+   ],
+   "engine": "mrgym-engine-0.2.0",
+   "date_utc": "2026-11-27"
+  },
+  {
+   "rung": "M4 / M8",
+   "title": "Fat: the peak table, the published protocols, six measured echoes",
+   "rows": [
+    {
+     "id": "M4.1",
+     "quantity": "share of the six fat peaks (% of the fat signal)",
+     "measured": "4.7, 3.9, 0.6, 12, 70, 8.8 at 5.3, 4.2, 2.75, 2.1, 1.3, 0.9 ppm (Hamilton 2011, liver, Table 3)",
+     "engine": "4.8, 3.9, 0.4, 12.8, 69.3, 8.7",
+     "difference": "-0.7 to +0.8 points",
+     "tolerance": "≤ 1 point (declared by this tool: the table gives the shares to 0.1 point and no spread)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M4.2",
+     "quantity": "position of the six peaks relative to water",
+     "measured": "the table's ppm − 4.7",
+     "engine": "+0.60, -0.39, -1.94, -2.60, -3.40, -3.80 ppm",
+     "difference": "4.2 ppm peak at 4.31 ppm (+0.11); the others within 0.01",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 0.10999999999999999,
+     "ceiling": 0.12,
+     "passed": true,
+     "known": 11,
+     "note": "The engine's list is the six-peak model of the Hernando papers, not the table it names."
+    },
+    {
+     "id": "M4.3",
+     "quantity": "fat fraction of the phantom with the published six-echo protocols run through the engine: mean error over the 11 vials",
+     "measured": "published +0.22 % (95 % interval 0.07 to 0.38); per acquisition of the shipped maps -0.59 to +1.38 % (24 acquisitions)",
+     "engine": "+0.41 to +0.63 % (4 protocols); +0.02 to +0.04 % with equal T1 of oil and water",
+     "difference": "+0.19 to +0.41 points from the published mean",
+     "tolerance": "inside the range of the acquisitions of the shipped maps",
+     "declared": false,
+     "passed": true,
+     "note": "All of the engine's error is T1 weighting, and the T1 of the emulsions is declared (water 900 / 1000 ms, oil 260 / 340 ms at 1.5 / 3 T), not published."
+    },
+    {
+     "id": "M8.1",
+     "quantity": "six echo magnitudes of the 10 vials with fat, the known fat fraction fixed, a scale and R2* free: rms residual / largest echo",
+     "measured": "24 acquisitions; the same with the peaks 0.10 ppm further from water 1.31 %, with one peak 5.64 %",
+     "engine": "2.61 % with the engine's six peaks",
+     "difference": "+1.30 points above the room-temperature model",
+     "tolerance": "≤ 3 % (between the residual of the study's own model and that of one peak)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M8.2",
+     "quantity": "fat fraction fitted to the measured echoes with the engine's spectrum: mean error per acquisition",
+     "measured": "shipped maps (the study's model): mean +0.20 %, -0.59 to +1.38 %; published +0.22 %",
+     "engine": "mean +0.10 %, -2.40 to +2.61 %; slope 0.970 to 1.010; with one peak -2.81 %",
+     "difference": "-0.10 points in the mean",
+     "tolerance": "mean inside the range of the shipped maps; slope inside the published 0.96 to 1.02",
+     "declared": false,
+     "passed": true,
+     "note": "The spread per acquisition is wider than that of the shipped maps: an error that depends on the echo times, from the 0.09 ppm in row M8.3."
+    },
+    {
+     "id": "M8.3",
+     "quantity": "water to the main fat peak, the shift the measured echoes fit best",
+     "measured": "3.492 ppm, SD 0.036, 3.383 to 3.530 (24 acquisitions at room temperature; 1.5 T 3.501, 3 T 3.483)",
+     "engine": "3.400 ppm, fixed (body temperature)",
+     "difference": "-0.092 ppm = 2.5 SD",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 0.09194990388047453,
+     "ceiling": 0.1,
+     "passed": true,
+     "known": 1,
+     "note": "Hernando 2014 measured −0.01085 ppm per °C; the engine has no temperature. The best-fit shift assumes liver-fat amplitudes for peanut oil."
+    }
+   ],
+   "extracts": [
+    "pdff"
+   ],
+   "source": "Hernando 2017 phantom data (CC0); Hamilton 2011 Table 3 and the abstract of Hernando 2017 (no open licence: twelve and four numbers, typed with the citation)",
+   "notes": [
+    "Measured: 24 of the 28 acquisitions of the archive (6 sites, 3 vendors, 1.5 and 3 T, 2 protocols); 4 were left out because 11 vials were not found by the segmentation. Vials were told apart by the fat-fraction map shipped with the data.",
+    "Not carried into this tool: the temperature confound of the research pass (a phantom at 20 °C fitted with the 37 °C model), which it reproduced only by changing the engine's peak table in the process."
+   ],
+   "engine": "mrgym-engine-0.2.0",
+   "date_utc": "2026-11-27"
+  },
+  {
+   "rung": "M5",
+   "title": "The tissue table against a literature compilation",
+   "rows": [
+    {
+     "id": "M5.1",
+     "quantity": "the 100 values of the tissue table (T1, T2 at 1.5 and 3 T) against a compilation of studies",
+     "measured": "43 values have a range from two or more studies; 26 have one study; 31 have none",
+     "engine": "43 inside the range, 0 outside",
+     "difference": "0 outside",
+     "tolerance": "0 outside the range of the studies",
+     "declared": false,
+     "passed": true,
+     "note": "The ranges are wide (white-matter T1 at 1.5 T: 612 to 1587 ms over 7 studies), and the compilation shares sources with the table: where it holds one study the comparison would be circular and is not counted."
+    },
+    {
+     "id": "M5.2",
+     "quantity": "T1 of blood at 3 T",
+     "measured": "1664 ± 14 ms (arterial blood at a haematocrit of 0.42; Lu 2004, abstract)",
+     "engine": "1932 ms (the table's source tag: an in-vitro value)",
+     "difference": "+16 %",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 16.10576923076923,
+     "ceiling": 17.0,
+     "passed": true,
+     "known": null,
+     "note": ""
+    }
+   ],
+   "extracts": [],
+   "fetch_only": true,
+   "tissue_digest": "2eaf9bae6f16d750",
+   "source": "IT'IS Foundation tissue properties database, relaxation times (licence unclear: nothing from it is stored; this rung runs with --fetch only)",
+   "notes": [
+    "The rows were computed when the database was last fetched; without --fetch they are shown as stored, and they go stale when the tissue table changes."
+   ],
+   "engine": "mrgym-engine-0.2.0",
+   "date_utc": "2026-11-27"
+  },
+  {
+   "rung": "M6",
+   "title": "ACR phantom: real images measured with the package's own QA functions",
+   "rows": [
+    {
+     "id": "M6.1",
+     "quantity": "bandwidth of the ACR T1 series (declared in the package)",
+     "measured": "130 Hz per pixel on 6 of 9 scanners; the others 145, 150, 218",
+     "engine": "130 Hz per pixel",
+     "difference": "equal to the commonest",
+     "tolerance": "the commonest measured value",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M6.2",
+     "quantity": "diameter error, slices 1 and 5",
+     "measured": "-3.8 to +2.0 mm, mean -0.09, SD 1.09 (44 chords, 9 scanners)",
+     "engine": "largest error 0.44 mm (6 healthy systems per field)",
+     "difference": "0.4 SD of the real chords",
+     "tolerance": "largest error ≤ 2 SD of the real chords",
+     "declared": false,
+     "passed": true,
+     "note": "Real images spread three to four times wider than the engine's healthy gradient error; they carry distortion correction and edge shading."
+    },
+    {
+     "id": "M6.3",
+     "quantity": "percent integral uniformity, T1 series, 1.5 T",
+     "measured": "92.5 to 96.5 (median 95.5; 5 scanners)",
+     "engine": "97.6 (97.2 to 97.8)",
+     "difference": "+1.1 points above the most uniform scanner",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 1.1040867516494615,
+     "ceiling": 1.3,
+     "passed": true,
+     "known": 4,
+     "note": ""
+    },
+    {
+     "id": "M6.4",
+     "quantity": "percent integral uniformity, T1 series, 3 T",
+     "measured": "81.1 to 94.7 (median 87.8; 4 scanners)",
+     "engine": "94.5 (93.8 to 95.2)",
+     "difference": "inside",
+     "tolerance": "inside the range of the real scanners",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M6.5",
+     "quantity": "signal at the centre over the signal near the rim, slice 7, 1.5 T",
+     "measured": "0.98 to 1.04 (5 scanners)",
+     "engine": "0.96",
+     "difference": "0.015 outside the real range",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 0.015499313316718388,
+     "ceiling": 0.02,
+     "passed": true,
+     "known": 4,
+     "note": ""
+    },
+    {
+     "id": "M6.6",
+     "quantity": "signal at the centre over the signal near the rim, slice 7, 3 T",
+     "measured": "0.91 to 1.13 (4 scanners); lowest 0.91 on the Siemens scanner, a receive array",
+     "engine": "1.11",
+     "difference": "+0.20 against the receive array: the sign is wrong for an array",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 0.2016236985145441,
+     "ceiling": 0.22,
+     "passed": true,
+     "known": 5,
+     "note": ""
+    },
+    {
+     "id": "M6.7",
+     "quantity": "ghosting ratio, slice 7",
+     "measured": "0.0000 to 0.0017 (9 scanners)",
+     "engine": "0.0002 (largest 0.0003)",
+     "difference": "inside",
+     "tolerance": "inside the range of the real scanners",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M6.8",
+     "quantity": "SNR of the T1 series, slice 7 (signal of the large region over the corner noise)",
+     "measured": "1.5 T: GE (coil HEAD) 311, 340, 421; Siemens 1056, 1238; 3 T: GE (coil HEAD) 828; Siemens 2691",
+     "engine": "1.5 T: 346; 3 T: 715",
+     "difference": "the Siemens scanners up to × 3.8 the engine",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 3.7632984444844944,
+     "ceiling": 4.2,
+     "passed": true,
+     "known": 2,
+     "note": "The noise level of the QA system is that of the GE scanners with the coil HEAD. Of the Siemens series one names its coil (HeadNeck_20_TCS); the research pass calls them 20-channel arrays. Corner noise is not valid for arrays or masked backgrounds (the two Philips series gave no value)."
+    },
+    {
+     "id": "M6.9",
+     "quantity": "SNR at 3 T over SNR at 1.5 T, same vendor",
+     "measured": "2.31 (GE; 1.97 to 2.66 over its three 1.5 T scanners), 2.35 (Siemens)",
+     "engine": "2.07",
+     "difference": "-11 %",
+     "tolerance": "inside the range over the three 1.5 T scanners of one vendor",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M6.10",
+     "quantity": "SNR of the T2 series over SNR of the T1 series, slice 7",
+     "measured": "0.635, 0.663, 0.687, 0.762, 0.882 (5 scanners)",
+     "engine": "0.663",
+     "difference": "inside",
+     "tolerance": "inside the range of the real scanners",
+     "declared": false,
+     "passed": true,
+     "note": "The declared relaxation times of the ACR solution (T1 150 ms, T2 130 ms) set this ratio."
+    },
+    {
+     "id": "M6.11",
+     "quantity": "distance of the phantom from the centre of the image",
+     "measured": "0.2 to 21.2 mm; 4 of 9 scanners above 3 mm",
+     "engine": "up to 1.0 mm (drawn within ±1 mm per axis)",
+     "difference": "20 mm of real positioning not drawn",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 20.23183576494044,
+     "ceiling": 21.0,
+     "passed": true,
+     "known": 6,
+     "note": ""
+    },
+    {
+     "id": "M6.12",
+     "quantity": "structures of the phantom the real images show and the world does not draw",
+     "measured": "vial and slice-thickness insert (slices 1 to 4), positioning wedges (slices 1 and 11), holder ring of the low-contrast sheet (slices 8 to 11)",
+     "engine": "none of the four",
+     "difference": "4 structures absent",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 4.0,
+     "ceiling": 4.0,
+     "passed": true,
+     "known": 12,
+     "note": "Seen on the real images by the research pass. Row M6.2 leaves out the top-bottom chord of slice 1 on the real images, where the wedges lie on it (on 1 of the 9 scanners it is more than 10 mm short), and 1 chord of slice 5 that is cut short likewise."
+    },
+    {
+     "id": "M6.13",
+     "quantity": "ghosting ratio of the real image whose phantom lies 21 mm off centre, measured by `qa.ghosting`",
+     "measured": "0.0016 with the regions placed round the phantom (the figure of the research pass, found by re-centring the image by hand)",
+     "engine": "0.18 before this branch (regions placed from the isocentre, one of them on the phantom)",
+     "difference": "fixed here",
+     "tolerance": "the function returns the hand-computed figure to 4 decimals",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    }
+   ],
+   "extracts": [
+    "acr"
+   ],
+   "source": "hazen project, tests/data/acr (Apache-2.0): derived figures, and the pixels of one slice",
+   "notes": [
+    "Measured: 154 DICOM files, 14 series (T1 and T2 axial) of 9 scanners (GE, Philips, Siemens; 1.5 and 3 T), slices 1, 5 and 7. Engine: world `acr`, the series of `mrgym.qa` (spin echo 500 / 20 and 2000 / 80 ms, matrix 256, 250 mm, 5 mm), 6 healthy systems per field.",
+    "The provenance of the series is unknown: scanner state, image filters, coil combination, and whether a set was chosen because it fails a test."
+   ],
+   "engine": "mrgym-engine-0.2.0",
+   "date_utc": "2026-11-27"
+  },
+  {
+   "rung": "M7",
+   "title": "Gel sphere: product inversion-recovery and spin-echo series",
+   "rows": [
+    {
+     "id": "M7.1",
+     "quantity": "the reading: T1 and T2 fitted here to the stored signals against the values the article fitted to the same images",
+     "measured": "article: 806.9 ± 2.4 ms, 81.7 ± 0.5 ms",
+     "engine": "this tool: 807.3 ± 2.5 ms pixel by pixel (807.3 ms from the mean of the region), 82.1 ms (no engine in this row)",
+     "difference": "+0.4 ms, +0.4 ms",
+     "tolerance": "within 2 SD of the article's values",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M7.2",
+     "quantity": "inversion recovery against the form the engine serves, a + b exp(−TI / T1): residual over the asymptote, 13 TI",
+     "measured": "rms 0.15 %, largest 0.26 % (product IR-TSE, 4 echoes per excitation)",
+     "engine": "exact: 0.00 % without noise, 0.01 % with",
+     "difference": "0.15 % rms",
+     "tolerance": "≤ 0.30 % (the relative uncertainty the article gives for T1)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M7.3",
+     "quantity": "spin-echo decay against one exponential, TE 7.5 to 250 ms: largest residual over S0, 10 TE",
+     "measured": "0.54 %",
+     "engine": "one exponential (T1 of the gel is short against TR)",
+     "difference": "0.54 %",
+     "tolerance": "≤ 0.61 % (the relative uncertainty the article gives for T2)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M7.4",
+     "quantity": "inversion efficiency, from b / a of the measured curve",
+     "measured": "0.965",
+     "engine": "drawn from 0.92 to 0.98",
+     "difference": "inside",
+     "tolerance": "inside the range the engine draws",
+     "declared": false,
+     "passed": true,
+     "note": "Assumes a read-out that saturates; the sequence has four echoes per excitation. Stupic 2021 reports about 0.85 on its scanner."
+    },
+    {
+     "id": "M7.5",
+     "quantity": "SNR at the last TI, 2 × 2 × 3 mm, 253 Hz per pixel",
+     "measured": "739 (HeadNeck_20 coil, corner noise)",
+     "engine": "170 at the default noise",
+     "difference": "default noise × 4.3 too high for this coil",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 4.343478214787532,
+     "ceiling": 4.6,
+     "passed": true,
+     "known": 2,
+     "note": ""
+    }
+   ],
+   "extracts": [
+    "gel"
+   ],
+   "source": "Chen 2025, data on Zenodo (CC BY 4.0)",
+   "notes": [
+    "Measured: Siemens Healthineers MAGNETOM Prisma Fit, 3 T; inversion recovery TR 4000 ms, TE 8.8 ms, 13 TI from 50 to 3000 ms; spin echo TR 3500 ms, 10 TE; mean of a central disc of 2067 pixels. Engine: sequence `ir` with the same TR, TI, matrix, slice and bandwidth on a disc with the fitted T1 and T2."
+   ],
+   "engine": "mrgym-engine-0.2.0",
+   "date_utc": "2026-11-27"
+  },
+  {
+   "rung": "M9",
+   "title": "NIST T2 plate from raw k-space: spin echo at 12 TE, inversion recovery at 11 TI, B1 map",
+   "rows": [
+    {
+     "id": "M9.1",
+     "quantity": "spin-echo signal against TE, measured minus served, each scaled by its own fitted amplitude: spheres 1, 2, 3, 4, 5, 6, 7, 8, 9, the echoes that are fitted and served (62 values, TE 15 to 295 ms)",
+     "measured": "repeatability from scan to scan 0.61 % of the amplitude (what the spheres fitted at all 12 TE share at each TE; each TE is a scan of its own)",
+     "engine": "served with the T2 fitted to each sphere and the measured B1",
+     "difference": "largest 1.45 %",
+     "tolerance": "≤ 3 × the repeatability = 1.84 %",
+     "declared": false,
+     "passed": true,
+     "note": "The console's TE ends at 300 ms: 4 of the 12 measured echo times are not served."
+    },
+    {
+     "id": "M9.2",
+     "quantity": "inversion recovery against the form the engine serves, a + b exp(−TI / T1), spheres 1, 2, 3, 4, 5, 6, 7, 8, 9, 11 TI from 30 to 2530 ms: rms residual over the asymptote",
+     "measured": "0.09 to 0.21 % per sphere; repeatability from scan to scan 0.13 %",
+     "engine": "exact: 0.028 % on the engine's own images",
+     "difference": "largest 0.21 %",
+     "tolerance": "≤ 3 × the repeatability = 0.39 %",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    },
+    {
+     "id": "M9.3",
+     "quantity": "spheres of this unit that do not hold the published solution: T2 (and T1) of spheres 1, 5",
+     "measured": "sphere 1: 1448 ms (3057 ms); sphere 5: 174 ms (1539 ms)",
+     "engine": "581.3 ms (2480 ms); 133.27 ms (1332 ms) in Table S2",
+     "difference": "+145 % (+20 %); +29 % (+12 %)",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 145.22420436943912,
+     "ceiling": 160.0,
+     "passed": true,
+     "known": null,
+     "note": "A property of the measured phantom, not of the engine: the reference values that the authors of the data set list for these two spheres agree with the fits here (T2 1.45 s and 0.175 s). The engine's plate is the published one."
+    },
+    {
+     "id": "M9.4",
+     "quantity": "T2 of the other fitted spheres (2, 3, 4, 6, 7, 8, 9): fitted value against the published one",
+     "measured": "-6.0 to +7.4 % of Table S2 at 21 °C (median -3.4 %)",
+     "engine": "-0.39 to +0.02 % (the same estimator on the engine's images of the published plate)",
+     "difference": "a spread of 13.4 points the engine does not have",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 7.402810149116323,
+     "ceiling": 9.0,
+     "passed": true,
+     "known": 7,
+     "note": "Reference at 21 °C = Table S2 (20 °C) × (1 + 1.6 % per °C for T2, 2.7 % for T1), the coefficients the phantom paper gives for this array; the article of the data set states the room temperature as about 21 °C."
+    },
+    {
+     "id": "M9.5",
+     "quantity": "T1 of the same spheres (2, 3, 4, 6, 7, 8, 9): fitted value against the published one",
+     "measured": "-3.5 to +2.3 % of Table S2 at 21 °C (median -0.7 %); spheres 10, 11, 12, 13: -10.0 to +6.5 %",
+     "engine": "-0.00 to +0.01 %",
+     "difference": "a spread of 5.7 points the engine does not have",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 3.4842655413983126,
+     "ceiling": 4.0,
+     "passed": true,
+     "known": 7,
+     "note": ""
+    },
+    {
+     "id": "M9.6",
+     "quantity": "inversion efficiency, from b / a of the measured curve of each sphere",
+     "measured": "1.01 to 0.92 over spheres 1 to 9 (T2 1448 to 32 ms), then 0.89, 0.84, 0.77, 0.71 for spheres 10, 11, 12, 13 (published T2 23 to 8 ms)",
+     "engine": "one value per session for every tissue, drawn from 0.92 to 0.98",
+     "difference": "falls by 0.30 with T2; the engine's does not",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 0.29899458742011054,
+     "ceiling": 0.33,
+     "passed": true,
+     "known": 13,
+     "note": "Median of spheres 1, 2, 3, 4, 5, 6, 7, 8, 9: 1.001; 3 of them lie inside the range the engine draws. Relaxation during the inversion pulse is the usual cause; the pulse of this sequence was not looked up."
+    },
+    {
+     "id": "M9.7",
+     "quantity": "signal left inside a sphere that has decayed (spheres 11, 12, 13, 14, TE 95 ms and longer), in % of the brightest sphere",
+     "measured": "median 0.9 %, 0.2 to 2.2 %; alike in the 4 spheres at one TE, different from TE to TE",
+     "engine": "0.01 to 0.27 %",
+     "difference": "0.9 points of artefact level the healthy engine does not have",
+     "tolerance": "declared difference",
+     "declared": true,
+     "size": 0.922662013443937,
+     "ceiling": 1.3,
+     "passed": true,
+     "known": 14,
+     "note": "Ringing and ghosts of the bright water round the spheres. It biases T2 of a dark sphere upwards, which is why echoes below 4 % of the brightest sphere are not fitted on either side."
+    },
+    {
+     "id": "M9.8",
+     "quantity": "relative B1 at the 14 spheres",
+     "measured": "1.02 to 1.11 (second-order fit of the map in the water round the spheres, rms residual 0.020)",
+     "engine": "with this B1 in the world the fitted T1 and T2 of the published plate move by at most 0.01 %",
+     "difference": "0.01 %",
+     "tolerance": "≤ 0.5 % (a single-echo spin echo and an inversion recovery at TR 8 s do not depend on B1 to first order)",
+     "declared": false,
+     "passed": true,
+     "note": ""
+    }
+   ],
+   "extracts": [
+    "scholand",
+    "nist_tables"
+   ],
+   "source": "Scholand 2023, data on Zenodo (CC BY 4.0)",
+   "notes": [
+    "Measured: Siemens Skyra 3 T, 20-channel head coil; TR 8000 ms; inverse FFT of the 512 x 256 x 20 k-space, central 256 of the oversampled readout, coils combined with the conjugate coil images of the first TE (spin echo) or the last TI (inversion recovery); signal = magnitude (spin echo) or real part (inversion recovery) of the complex mean over a 5 mm circle; signals in units of the largest spin-echo mean.",
+    "Field of view: the description of the data set says 200 mm. The places of the 14 spheres (Table S2) give 219.5 mm (+9.7 %), the B1 scan gives 219.8 mm, and the outline is then 196 mm across, against 197.3 mm for the section of the 200 mm shell at the plate. The fitted value is used.",
+    "The plate: 14 sphere walls fitted with the published places of Table S2 (centre, angle, pixel size free); the start is the centre found by mrgym.qa.find_centre. The plate looks alike in four positions; the labels are the position whose 14 fitted T1 follow the published order (label_misfit: rms of log(T1 fitted / T1 published) for each). Labels chosen: turned by 180 degrees (misfit: as fitted 1.04, turned by 180 degrees 0.134, mirrored 0.643, mirrored and turned 1.01). `qa.register` could not place the regions: it knows the ACR diameter only and no rotation.",
+    "Engine: the plate `anatomy.nist_t2` at 3 T in a world with ideal fields except the measured B1, sequences `se` and `ir` with the stated TR, TE and TI, matrix 256, 5 mm, the fitted field of view, no noise; regions of 5 mm radius on both sides.",
+    "T2 is fitted where three or more echoes lie above 5 % of the sphere's first echo and above 4 % of the brightest sphere: spheres 1, 2, 3, 4, 5, 6, 7, 8, 9. Spheres 10, 11, 12, 13, 14 (published T2 22 ms and shorter, first TE 15 ms) have no T2 here; T1 of sphere 14 is not reported (its signal is 6 % of the brightest at TE 15 ms).",
+    "The B1 map inside a sphere with short T1 is misread by the mapping method; the fit of the water round the spheres is used."
+   ],
+   "engine": "mrgym-engine-0.2.0",
+   "date_utc": "2026-11-27"
+  }
+ ],
+ "not_run": [
+  {
+   "rung": "M3",
+   "what": "Stupic 2021 T2 series: the MnCl2 array with the published 32-echo train",
+   "state": "run by the research pass against a figure; not in this tool: the measured side is qualitative, and M9 now gives numbers for the same spheres"
+  },
+  {
+   "rung": "M10",
+   "what": "VENUS: the NIST phantom with an open vendor-neutral VFA sequence on three scanners (64.5 MB, CC BY)",
+   "state": "not run: needs a NIfTI reader and the RF spoiling parameters of the sequence"
+  },
+  {
+   "rung": "M11",
+   "what": "Pulseq tutorials: `.seq` files with Siemens raw data (CC0)",
+   "state": "not run: needs a `.seq` reader into the block-list core and a raw-data reader"
+  },
+  {
+   "rung": "M12",
+   "what": "OSI² ONE: T1 and T2 maps at 46 mT from `.seq` and raw data (CC BY)",
+   "state": "not run: needs M11 and a third field strength"
+  },
+  {
+   "rung": "M13",
+   "what": "ACR phantom, spin-echo EPI at 0.55 T with reversed phase encoding (CC BY)",
+   "state": "not run: needs spin-echo EPI and 0.55 T"
+  },
+  {
+   "rung": "M14",
+   "what": "A scan of one system phantom with the six console sequences",
+   "state": "**not done.** No image of the console's sequences has been compared pixel by pixel with a scan of the same object; this is the only rung that would close the gap"
+  }
+ ],
+ "known": [
+  {
+   "n": 1,
+   "what": "The engine has no temperature. The fat-water shift of a phantom is the body's, and the relaxation times of the phantom solutions are those of 20 °C.",
+   "rows": [
+    "M8.3",
+    "M8.1"
+   ],
+   "numbers": [
+    "-0.092 ppm = 2.5 SD (M8.3)",
+    "+1.30 points above the room-temperature model (M8.1)"
+   ],
+   "closes": "a world temperature that moves the fat spectrum and the NiCl2 / MnCl2 values (engine package: temperature)"
+  },
+  {
+   "n": 2,
+   "what": "The default receiver noise is too high for a 3 T head array, and the QA noise level is that of the scanners with the lowest SNR.",
+   "rows": [
+    "M1.6",
+    "M7.5",
+    "M6.8"
+   ],
+   "numbers": [
+    "default noise × 2.5 too high (M1.6)",
+    "default noise × 4.3 too high for this coil (M7.5)",
+    "the Siemens scanners up to × 3.8 the engine (M6.8)"
+   ],
+   "closes": "a noise level per coil class (engine package: receive array)"
+  },
+  {
+   "n": 3,
+   "what": "The console is slower than product sequences: no partial echo, no overlap of the spoiler with the read-out ramp.",
+   "rows": [
+    "M0.6",
+    "M0.7"
+   ],
+   "numbers": [
+    "TE +7 to +66 % (M0.6)",
+    "TR +8 to +41 % (M0.7)"
+   ],
+   "closes": "console timing with partial echo and overlapping gradients (engine package: console timing)"
+  },
+  {
+   "n": 4,
+   "what": "The ACR phantom is too uniform at 1.5 T and its systems are too alike: the declared field amplitudes are too small.",
+   "rows": [
+    "M6.3",
+    "M6.5"
+   ],
+   "numbers": [
+    "+1.1 points above the most uniform scanner (M6.3)",
+    "0.015 outside the real range (M6.5)"
+   ],
+   "closes": "field amplitudes of `world.ACR_FIELDS` drawn from the measured range (engine package: field model)"
+  },
+  {
+   "n": 5,
+   "what": "One receive channel: the shading has the wrong sign for a receive array, which is brighter at the rim.",
+   "rows": [
+    "M6.6"
+   ],
+   "numbers": [
+    "+0.20 against the receive array: the sign is wrong for an array (M6.6)"
+   ],
+   "closes": "several receive channels with sensitivity maps (engine package: receive array)"
+  },
+  {
+   "n": 6,
+   "what": "The phantom is drawn within 1 mm of the isocentre; real phantoms lie up to 21 mm off. The QA regions that were placed from the isocentre are fixed in this branch.",
+   "rows": [
+    "M6.11",
+    "M6.13"
+   ],
+   "numbers": [
+    "20 mm of real positioning not drawn (M6.11)",
+    "fixed here (M6.13)"
+   ],
+   "closes": "a positioning error of the phantom drawn from the measured range (`anatomy.ACR_SPEC`; ordinary engine work). The measurement side is closed here"
+  },
+  {
+   "n": 7,
+   "what": "The engine cannot say how T1 and T2 of one phantom differ between sites and units: its objects hold exactly the published values, and nothing in `ir` or `se` changes them.",
+   "rows": [
+    "M1.5",
+    "M9.4",
+    "M9.5"
+   ],
+   "numbers": [
+    "4.3 points of spread missing (M1.5)",
+    "a spread of 13.4 points the engine does not have (M9.4)",
+    "a spread of 5.7 points the engine does not have (M9.5)"
+   ],
+   "closes": "a spread of the phantom values per unit and temperature, and transverse coherence across TR (engine packages: temperature, block-list core)"
+  },
+  {
+   "n": 8,
+   "what": "The console has no echo train, so it cannot say the T2 error of the multi-echo spin echo that published T2 protocols are. The design layer computes it.",
+   "rows": [
+    "M3b.4",
+    "M3b.1"
+   ],
+   "numbers": [
+    "not served (M3b.4)",
+    "-5.0 and +3.6 points (M3b.1)"
+   ],
+   "closes": "multi-echo spin echo in the console through the design layer's phase graph (engine package: block-list core)"
+  },
+  {
+   "n": 9,
+   "what": "The NIST world exists at 3 T only, with a declared T2 rule and declared water. The published T1 and T2 of both plates at both fields are in the package since this branch.",
+   "rows": [
+    "M0.3",
+    "M0.4",
+    "M0.8",
+    "M0.5"
+   ],
+   "numbers": [
+    "-3.4 to +0.0 % (M0.3)",
+    "-12 %, -20 % (M0.4)",
+    "+21 % (M0.8)",
+    "0 columns differ (M0.5)"
+   ],
+   "closes": "`nist_t2` and the 1.5 T plates as world kinds, `nist_t1` on the published T2, water and outline (the engine fix in progress and one branch of `world.py`)"
+  },
+  {
+   "n": 10,
+   "what": "Incomplete RF spoiling moves variable-flip-angle T1 at the default phase increment, which is one vendor's style. This is real physics, but no measured number per vendor was found.",
+   "rows": [
+    "M2.3"
+   ],
+   "numbers": [
+    "up to -10 % at the default (M2.3)"
+   ],
+   "closes": "RF-spoiling presets per vendor and a measured series (rung M10)"
+  },
+  {
+   "n": 11,
+   "what": "Transcription items: one T1 of the NIST list, one fat peak position, and the name of the fat model.",
+   "rows": [
+    "M0.2",
+    "M4.2"
+   ],
+   "numbers": [
+    "-0.7 ms (M0.2)",
+    "4.2 ppm peak at 4.31 ppm (+0.11); the others within 0.01 (M4.2)"
+   ],
+   "closes": "the engine fix in progress (it bumps the engine id)"
+  },
+  {
+   "n": 12,
+   "what": "The ACR world lacks structures every real image shows.",
+   "rows": [
+    "M6.12"
+   ],
+   "numbers": [
+    "4 structures absent (M6.12)"
+   ],
+   "closes": "the inserts and wedges of the phantom through the slice (engine package: 3D world)"
+  },
+  {
+   "n": 13,
+   "what": "Inversion efficiency is one number per session. In the measurement it falls with T2: the inversion is less complete in a tissue that relaxes during the pulse.",
+   "rows": [
+    "M9.6"
+   ],
+   "numbers": [
+    "falls by 0.30 with T2; the engine's does not (M9.6)"
+   ],
+   "closes": "relaxation during the inversion pulse (engine package: block-list core)"
+  },
+  {
+   "n": 14,
+   "what": "A healthy engine system leaves no signal inside a dark object. Real scans leave about 1 % of the brightest signal there, different from scan to scan.",
+   "rows": [
+    "M9.7"
+   ],
+   "numbers": [
+    "0.9 points of artefact level the healthy engine does not have (M9.7)"
+   ],
+   "closes": "a ringing and ghost level of the healthy system (ordinary engine work on `qa.HEALTHY` and the noise model)"
+  }
+ ],
+ "sessions": {
+  "m6": 9,
+  "m1": 34,
+  "m8": 24,
+  "m7": 1,
+  "m9": 1
+ }
+}

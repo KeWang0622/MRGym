@@ -11,6 +11,10 @@ a stack other than the recorded one unless ``--new-reference-stack`` is given.
 
 Task snapshots (instances, statements, cards, constants, reference episodes) are rewritten by ``--write`` and the
 changed ids are listed: a changed snapshot of a released id needs a new ``-vN`` (CONTRIBUTING.md).
+
+Two more files are covered. ``volume_digests.json`` (the volume worlds) is rewritten by ``--write`` like the task
+snapshots. ``compat_2d.json`` (the 2D baseline recorded on ``v1``) is compared in both modes and never written here:
+it moves only by ``python tests/compat_cases.py --write [--rebase]``.
 """
 from __future__ import annotations
 
@@ -55,7 +59,7 @@ def main(argv=None) -> int:
     status = 0
 
     # ---- engine digests
-    numbers = lambda d: {k: d[k] for k in ("images", "noisy", "prices")} if d else {}       # noqa: E731
+    numbers = lambda d: {k: d[k] for k in ("images", "noisy", "prices", "array") if k in d} if d else {}       # noqa: E731
     diff, added, removed = changed(numbers(old_e), numbers(new_e))
     same_engine = bool(old_e) and old_e["engine"] == new_e["engine"]
     same_stack = bool(old_e) and old_e["stack"] == new_e["stack"]
@@ -93,6 +97,34 @@ def main(argv=None) -> int:
     else:
         G.dump(G.TASK_FILE, new_t)
         print("wrote", os.path.relpath(G.TASK_FILE, ROOT))
+
+    # ---- volume worlds (an additive file: no scan, no id depends on it yet)
+    old_v, new_v = G.load(G.VOLUME_FILE), G.volume_digests()
+    diff, added, removed = changed((old_v or {}).get("worlds", {}), new_v["worlds"])
+    print(f"volume_digests: {len(diff)} changed, {len(added)} new, {len(removed)} gone")
+    for k in diff[:12]:
+        print("  changed:", k)
+    if a.check:
+        if not old_v or diff or added or removed:
+            status = 1
+            print("volume_digests.json is not current")
+    elif old_v and old_v["stack"] != new_v["stack"] and not a.new_reference_stack:
+        print("refused: volume_digests.json was recorded on another stack (give --new-reference-stack to move it)")
+        status = 1
+    else:
+        G.dump(G.VOLUME_FILE, new_v)
+        print("wrote", os.path.relpath(G.VOLUME_FILE, ROOT))
+
+    # ---- the 2D baseline: checked in both modes, never written here (python tests/compat_cases.py --write [--rebase])
+    import compat_cases as C
+    base = C.load()
+    diff, added, removed = C.compare(base or {}, C.compute())
+    print(f"compat_2d: {len(diff)} changed, {len(added)} new (not part of the baseline), {len(removed)} gone")
+    for k in (diff + removed)[:12]:
+        print("  changed:" if k in diff else "  gone:", k)
+    if not base or diff or removed:
+        status = 1
+        print("a 2D exam is not what the baseline of tests/golden/compat_2d.json holds: see tests/compat_cases.py")
     return status
 
 

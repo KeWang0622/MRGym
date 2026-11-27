@@ -150,8 +150,10 @@ def check_env(id: str, level: int | None = None, seed: int = 7, verbose: bool = 
     add("another seed -> another world", not c1.is_error and not a1.is_error and c1.data["data_sha256"] != a1.data["data_sha256"])
     # ---- nothing hidden is served
     world, cfg = env._session.world, env._cfg
+    # a transmit gain of exactly 1 is a calibrated transmitter, which a task states: it is not a hidden value, and its
+    # text ("1") is in every observation
     secret = [cfg["seed"]] + [f"{c['t1_ms']:.6g}" for c in world["tissues"].values()] \
-        + [f"{world['system']['tx_gain']:.6g}", f"{world['system']['sigma0']:.6g}", f"{world['system']['cf_offset_hz']:.6g}"]
+        + [f"{world['system'][k]:.6g}" for k in ("tx_gain", "sigma0", "cf_offset_hz") if not (k == "tx_gain" and world["system"][k] == 1.0)]
     blob = json.dumps([e["text"] for e in env.transcript()]) + json.dumps([e["observation"].data for e in env._log], default=str) + json.dumps(env.state())
     leaks = [s for s in secret if s in blob]
     add("no seed, true T1, transmit gain, noise level or frequency offset in any observation or in state()", not leaks, str(leaks))

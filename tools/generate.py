@@ -5,7 +5,9 @@
     python tools/generate.py --timing   also re-measure the scan timing table in the README (machine dependent)
 
 Generated: envs/ (index.json, README.md with the full environment table, one card per environment id), docs/scanner.md
-(the datasheet shipped in the package), docs/physics/validation.md (from ``mrgym validate``), docs/tasks.md (the map,
+(the datasheet shipped in the package), docs/physics/validation.md (from ``mrgym validate``), docs/physics/measured.md (the
+comparison with measured data, from the stored table docs/physics/measured/results.json that
+``python tools/measured/run_all.py --write`` computes), docs/tasks.md (the map,
 from ``mrgym.physics_map``; a map that is inconsistent with the registry or names a check that does not exist stops both
 modes), the marked blocks listed
 in ``BLOCKS`` (README.md: the task table, grouped by the subjects of the map; docs/TOUR.md: inventory counts, the demo transcript, the results line,
@@ -197,7 +199,8 @@ def validation():
            "Each row compares the scanner with an analytic formula or with a calculation written separately from the engine.", "",
            "What this establishes: the scanner computes the equations it states, to the bounds listed. What it does not: "
            "agreement with a measurement or with a real scanner. Rows whose reference was written by the same authors say so. "
-           "Comparisons with another group's code and with published operating points: [external.md](external.md). "
+           "Comparisons with another group's code and with published operating points: [external.md](external.md); with public "
+           "measurements on real scanners: [measured.md](measured.md). "
            "Whether a simplification can change a scored answer is measured per environment by `mrgym validate --perturb <id>` "
            "and printed in the Validity section of the environment's card. "
            "References: [references.md](references.md). Simplifications: [limits.md](limits.md).", ""]
@@ -221,13 +224,29 @@ def validation():
     return "\n".join(out) + "\n", rows
 
 
+def measured_page():
+    """docs/physics/measured.md: the stored table of the comparison with measured data as a page (``tools/measured/page.py``,
+    a pure function of the table). None when no table is stored. Whether the table is current is the business of
+    ``python tools/measured/run_all.py --check``, which runs the engine; this only keeps the page equal to the table."""
+    import importlib.util
+    raw = _read("docs/physics/measured/results.json")
+    if raw is None:
+        return None
+    spec = importlib.util.spec_from_file_location("measured_page", os.path.join(ROOT, "tools", "measured", "page.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.markdown(json.loads(raw))
+
+
 def counts(rows):
     import mrgym
     from mrgym.scanner import console, tissue
     from mrgym.scanner import world as W
     kinds = {mrgym.spec(i).kind for i in mrgym.list_envs()}
     n_env = len(mrgym.list_envs())
-    return (f"| {len(console.SEQUENCES)} sequences | {len(W.KINDS)} phantoms | 2 field strengths | {len(tissue.NAMES)} tissue rows, each with a source tag "
+    from mrgym.scanner import volume
+    scanned = [k for k in W.KINDS if k not in volume.KINDS]             # volume worlds are counted once a scan can image them
+    return (f"| {len(console.SEQUENCES)} sequences | {len(scanned)} phantoms | 2 field strengths | {len(tissue.NAMES)} tissue rows, each with a source tag "
             f"| {len(rows)} physics checks | {n_env} environments ({', '.join(sorted(kinds))}) |\n|---|---|---|---|---|---|")
 
 
@@ -336,6 +355,9 @@ def main(argv=None):
     files["docs/scanner.md"] = datasheet()
     val_md, rows = validation()
     files["docs/physics/validation.md"] = val_md
+    measured = measured_page()
+    if measured is not None:
+        files["docs/physics/measured.md"] = measured
     files["docs/tasks.md"] = task_map()
     bodies = dict(TASKS=tasks_block, COUNTS=lambda: counts(rows), DEMO=demo, RESULTS=results_block)
     if a.timing:

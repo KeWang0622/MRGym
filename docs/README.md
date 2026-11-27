@@ -16,10 +16,14 @@ More, by topic:
 - Tasks: [the map](tasks.md) of the MR physics that is covered and of the task that asks for each piece
 - Physics: [conventions](physics/conventions.md), [what is simplified](physics/limits.md),
   [references](physics/references.md), [phantoms and QA tests](physics/phantoms.md),
-  [comparison with other simulators](physics/external.md),
+  [volume worlds: the object in three dimensions](physics/volume.md),
+  [comparison with other simulators](physics/external.md), [comparison with measured data](physics/measured.md),
   [the design layer: pulses, gradient programs, block-list sequences](physics/design.md),
-  [the signal core: a sequence as a list of blocks, evaluated from the Bloch equation](physics/core.md)
+  [the signal core: a sequence as a list of blocks, evaluated from the Bloch equation](physics/core.md),
+  [RF fields from Maxwell's equations](physics/em.md),
+  [receive arrays and parallel imaging (a library)](physics/array.md)
 - Spectroscopy: [coupled spins, sequences, metabolite basis, quantification](physics/spins.md)
+- Fields in three dimensions (a library, no scan uses it yet): [the field of the anatomy by the dipole kernel, shim, profiles](physics/fields3d.md)
 - Training: [signals and curricula](TRAINING.md), [the full report](experiments/RESULTS-27b.md), the plans written
   before the runs ([learnability](experiments/PREREG-learnability.md), [27B](experiments/PREREG-27b.md))
 - Results: [analysis plan](ANALYSIS_PLAN.md), [archive of the pilot runs](results/README.md)

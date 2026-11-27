@@ -53,8 +53,10 @@ What it does not show:
 
 - That no other shortcut exists. A new one becomes a control policy.
 - That an agent which passes understands the physics. It shows the listed ways of not measuring do not pay.
-- That the scanner agrees with a real one. `mrgym validate` compares the engine with analytic formulas, and
-  nothing here has been compared with a physical scanner or reviewed by an MR physicist.
+- That the scanner agrees with a real one. `mrgym validate` compares the engine with analytic formulas.
+  [physics/measured.md](physics/measured.md) compares statistics of its images and signals with public phantom
+  measurements and lists the differences; no image of its sequences has been compared pixel by pixel with a scan of
+  the same object, and nothing here has been reviewed by an MR physicist.
 - Anything about a seed outside the stored instances. Admission is per instance.
 
 ## Threat model

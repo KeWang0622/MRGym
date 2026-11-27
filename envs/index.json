@@ -61,6 +61,50 @@
    }
   },
   {
+   "id": "Scanner/EPISetup-v0",
+   "folder": "scanner-episetup-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Set up a single-shot EPI that meets its limits in the least scan time",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": {
+    "kind": "undetermined",
+    "levels": {},
+    "evidence": "no stored gate result"
+   },
+   "gate": null
+  },
+  {
+   "id": "Scanner/ErnstFlip-v0",
+   "folder": "scanner-ernstflip-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Find the flip angle of the highest signal for each marked vial",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": "undetermined",
+   "gate": null
+  },
+  {
    "id": "Scanner/Explore-v0",
    "folder": "scanner-explore-v0",
    "kind": "sandbox",
@@ -123,6 +167,26 @@
    }
   },
   {
+   "id": "Scanner/FoldAway-v0",
+   "folder": "scanner-foldaway-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "A small field of view whose wrap-around misses the region",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": "undetermined",
+   "gate": null
+  },
+  {
    "id": "Scanner/FrequencyAdjust-v0",
    "folder": "scanner-frequencyadjust-v0",
    "kind": "candidate",
@@ -140,6 +204,49 @@
    "title": "Off-resonance of the water in marked regions (the frequency adjustment)",
    "status": "CANDIDATE: the gate has not been run (no stored result)",
    "task_kind": "undetermined",
+   "gate": null
+  },
+  {
+   "id": "Scanner/GhostAside-v0",
+   "folder": "scanner-ghostaside-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "The fastest scan that keeps each tube's ghost off its regions",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": "undetermined",
+   "gate": null
+  },
+  {
+   "id": "Scanner/GradientCal-v0",
+   "folder": "scanner-gradientcal-v0",
+   "kind": "candidate",
+   "levels": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [
+    0
+   ],
+   "title": "Calibrate the two in-plane gradients",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": "measurement",
    "gate": null
   },
   {
@@ -171,6 +278,26 @@
      "3": "admitted"
     }
    }
+  },
+  {
+   "id": "Scanner/NoiseSNR-v0",
+   "folder": "scanner-noisesnr-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Measure the signal-to-noise ratio of a protocol",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": "measurement",
+   "gate": null
   },
   {
    "id": "Scanner/NullTissue-v0",
@@ -294,6 +421,26 @@
    }
   },
   {
+   "id": "Scanner/Resolve-v0",
+   "folder": "scanner-resolve-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "The fastest scan that separates a detail",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": "undetermined",
+   "gate": null
+  },
+  {
    "id": "Scanner/SNRSpec-v0",
    "folder": "scanner-snrspec-v0",
    "kind": "admitted",
@@ -325,6 +472,26 @@
    }
   },
   {
+   "id": "Scanner/ShiftFree-v0",
+   "folder": "scanner-shiftfree-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Keep displaced fat off each marked region",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": "undetermined",
+   "gate": null
+  },
+  {
    "id": "Scanner/T1Transmit-v1",
    "folder": "scanner-t1transmit-v1",
    "kind": "practice",
@@ -351,6 +518,26 @@
      "3": "practice"
     }
    }
+  },
+  {
+   "id": "Scanner/T1Vial-v0",
+   "folder": "scanner-t1vial-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Measure T1 of each marked vial",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": "undetermined",
+   "gate": null
   },
   {
    "id": "Scanner/T2Decay-v0",

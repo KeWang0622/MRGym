@@ -25,18 +25,21 @@ Three tables.
                                    ``reason`` says what is computed and what is missing
                    "absent"        neither served nor computed with a check; ``reason`` says what is missing
                An item has the first of these that is true, so one that the scanner serves in part stays "partial"
-               when a validated package (``EVIDENCE_PACKAGES``: the design layer, the signal core, the spin systems)
-               also computes more of it. A task can isolate or use only what the scanner serves ("formed",
-               "partial"). There is no status for "cannot be formed": what is missing is engine work, and ``needs``
-               names it.
+               when a validated package (``EVIDENCE_PACKAGES``: the design layer, the signal core, the spin systems,
+               the RF field model, the receive arrays, the fields in 3D) also computes more of it. A task can isolate
+               or use only what the scanner serves ("formed", "partial"). There is no status for "cannot be formed":
+               what is missing is engine work, and ``needs`` names it.
                ``needs`` is the piece of engine work an item that is not fully formed waits for, one of ``ENABLERS``
                (a 3D world, a receive array, spin systems, a field model, the core in the console, realistic anatomy,
                measured data), or "" when ordinary work on the present engine is enough.
                ``evidence`` names checks that exist: a row of ``mrgym validate`` ("K6"), a row of the validation
                table of a package, written with its prefix in ``EVIDENCE_PACKAGES`` ("design:E3", "core:N1",
-               "spins:S7"), a test ("tests/test_x.py::test_name"), a textbook example that asserts its result
-               ("examples/textbook/03_t2_spin_echo.py", run by tests/test_textbook_examples.py) or a command
-               ("mrgym qa acr --fault receive_coil").
+               "spins:S7", "em:S10", "array:P3", "fields3d:F33"), a test ("tests/test_x.py::test_name"), a textbook
+               example that asserts its result
+               ("examples/textbook/03_t2_spin_echo.py", run by tests/test_textbook_examples.py), a command
+               ("mrgym qa acr --fault receive_coil") or the rows of a rung of the comparison with measured data
+               ("measured:M6": the stored table docs/physics/measured/results.json holds rows for that rung;
+               tests/test_measured.py asserts that the table is current).
                ``outlines`` is the number of the ten teaching and examination outlines (``OUTLINES``) that name the
                item, read at the level of their headings; None where no single line of them corresponds. It ranks what
                is missing (``missing()``); it is not printed on the page. The items themselves follow those outlines
@@ -69,12 +72,20 @@ Kind = collections.namedtuple("Kind", "number name delivers example")
 Item = collections.namedtuple("Item", "id name block rests_on status reason evidence outlines needs")
 Family = collections.namedtuple("Family", "kind isolates uses builds_on")
 _VALIDATE_ROW = re.compile(r"^[A-Z]+\d+$")                    # a row of ``mrgym validate``
-_ROW_ID = r"[A-Z]+[0-9]+[a-z]?"                               # the id of a row of a package: letters, a number, at most one small letter
+_ROW_ID = r"[A-Z]+[0-9]+[a-z]?[0-9]?"                         # the id of a row of a package: letters, a number, at most one small letter and a digit ("E3a2")
 _FIRST_ARGUMENT = rf'_row\("({_ROW_ID})"'                     # ids written as ``_row("E3", ...)``
 _ALSO_IN_A_LOOP = rf'(?:_row\(|, )"({_ROW_ID})"[,)]'          # the same, and ids that a loop takes from a tuple: ``..., "M4c"),``
+# A third way, for a module whose source does not write every id out: the receive arrays number the rows of a group with
+# a counter (``f"P{len(rows) + 1}"``), the fields in 3D build some from a loop variable (``id_ + "b"``). No pattern finds
+# those in the source, so the ids are read from the table that the command writes into the page of the package, between
+# the two marks below; the test of the package holds that table equal to what the command prints. Without the checkout
+# there is no page: such a row then counts as not looked up, like a test or an example.
+_ON_THE_PAGE = rf"(?m)^\| ({_ROW_ID}) \|"
+_TABLE_MARKS = ("<!-- validation table: begin -->", "<!-- validation table: end -->")
 # The packages that have a validation table of their own. An item cites a row of one as "<prefix>:<row id>".
 #   prefix: (the module that holds the rows,
-#            how the ids of its rows are found in the source of that module: a pattern with one group,
+#            how the ids of its rows are found: a pattern with one group, applied to the source of that module
+#            (``_ON_THE_PAGE``: to the table on the page),
 #            the page that shows the table, relative to docs/,
 #            the command a reader runs)
 # Everything else is built from this table: the pattern of such a row (``package_row``), whether a row exists
@@ -85,7 +96,11 @@ EVIDENCE_PACKAGES = {
     "design": ("mrgym.design.validate", _FIRST_ARGUMENT, "physics/design.md", "python -m mrgym.design.validate"),
     "core": ("mrgym.core.validate", _FIRST_ARGUMENT, "physics/core.md", "python -m mrgym.core.validate"),
     "spins": ("mrgym.spins.validate", _ALSO_IN_A_LOOP, "physics/spins.md", "python -m mrgym.spins.validate"),
+    "em": ("mrgym.em.validate", _FIRST_ARGUMENT, "physics/em.md", "python -m mrgym.em.validate"),
+    "array": ("mrgym.scanner.array_checks", _ON_THE_PAGE, "physics/array.md", "python -m mrgym.scanner.array_checks"),
+    "fields3d": ("mrgym.scanner.fields3d_validate", _ON_THE_PAGE, "physics/fields3d.md", "python -m mrgym.scanner.fields3d_validate"),
 }
+_MEASURED_RUNG = re.compile(r"^measured:(M\d+[a-z]?(?:/M\d+)?)$")   # the rows of a rung of ``python tools/measured/run_all.py`` (docs/physics/measured.md)
 
 SUBJECTS = (
     Subject("A", "Signal and contrast", "what signal a tissue gives", "it can be asked about one voxel"),
@@ -109,16 +124,23 @@ STATUSES = ("formed", "partial", "computed", "absent")
 STATUS_WORDS = {"formed": "formed", "partial": "in part", "computed": "computed, not served", "absent": "not yet"}
 # The pieces of engine work that items wait for (``Item.needs``): name, what it is. A closed list; each unlocks several items.
 ENABLERS = (
-    ("3D world", "a volume with real structure through the slice, and volume and multi-slice encoding"),
-    ("receive array", "several receive channels with sensitivity maps and noise correlation"),
+    ("3D world", "a seeded volume with structure through the slice (a head, a test object) that gives a plane at any position and "
+                 "tilt, and the field of its susceptibility in 3D with a shim, exist as libraries; still to do: the slice engine that "
+                 "scans the volume (a slice selected in it, several slices, volume encoding)"),
+    ("receive array", "several receive channels with sensitivity maps and noise correlation, the multi-channel data, coil combination "
+                      "and SENSE exist as a library; still to do: the console serving them (a coil to choose, an acceleration factor, "
+                      "what a scan returns), and the methods that work in k-space"),
     ("spin systems", "the density-matrix simulator for coupled spins, with its spectroscopy sequences, metabolite basis and "
                      "quantification, exists as a library; still to do: a voxel that holds metabolites in the scanner world and a "
                      "spectroscopy sequence in the console"),
-    ("field model", "Maxwell's equations on the slice for a body and a coil"),
+    ("field model", "Maxwell's equations on the slice for a body and a coil (B1+, B1-, SAR, RF shimming) exist as a library, in two "
+                    "dimensions; still to do: the scanner imaging and pricing RF with these fields instead of its declared patterns, "
+                    "and the third dimension"),
     ("core in the console", "the signal core over lists of blocks (Bloch ensemble, phase graphs, periodic solve) exists as a library; "
                             "still to do: the engine forming images from it, so that the console serves its sequences"),
     ("realistic anatomy", "textured digital anatomy instead of classes of one value each"),
-    ("measured data", "measurements of public phantoms on real scanners, to compare with"),
+    ("measured data", "statistics of public phantom sessions on real scanners are compared with the engine in a table that anyone "
+                      "can rebuild; still to do: a scan of the same object with the console's sequences, compared pixel by pixel"),
 )
 ORDINARY = "ordinary engine work"                            # the heading of the items that wait for none of them
 CHECKS_HEADING = "The check behind every item that is formed, formed in part or computed"       # a heading of the page, linked from the list above it
@@ -241,11 +263,17 @@ _BLOCKS = (
         _absent("A23", "Contrast agents: relaxivity and concentration", "A4 A5",
                 "no material carries an agent; a dilution series could be built from vials", n=8),
         _absent("A24", "Perfusion: passage of a bolus, arterial spin labelling", "A22 A23",
-                "no blood arrives through the plane and no tissue changes during the session", n=8, needs="3D world"),
+                "no blood arrives through the plane and no tissue changes during the session; the vessels of the 3D head carry a "
+                "direction and a speed as numbers only, and nothing flows until a slice engine uses them", n=8, needs="3D world"),
         _partial("A25", "Susceptibility-weighted imaging: the phase of a gradient echo as contrast", "A6 C2",
-                 "phase images show the field of air cavities; no tissue has a susceptibility of its own (no veins, no iron)", "K20", needs="3D world"),
-        _absent("A26", "Quantitative susceptibility mapping", "A25",
-                "the field is known in one slice; going from the field to the susceptibility takes it in a volume", needs="3D world"),
+                 "phase images show the field of air cavities; no tissue of the scanner has a susceptibility of its own (no veins, no "
+                 "iron). The 3D head declares one for venous blood, deep grey matter and a lesion; no scan is formed of it", "K20", needs="3D world"),
+        _computed("A26", "Quantitative susceptibility mapping", "A25",
+                  "what exists, in the 3D field library: the forward model from a susceptibility distribution to its field, the phase "
+                  "of several echoes from that field, and one reference inversion, truncated division in k-space, which on a sphere "
+                  "without noise gives the known underestimate. What does not: removal of the background field, masks, unwrapping "
+                  "of the phase, any regularised inversion, and a scan that gives the phase of a volume (the scanner knows the field "
+                  "in one slice)", "fields3d:F1 fields3d:F43 fields3d:F44", needs="3D world"),
         _absent("A27", "BOLD contrast and functional MRI", "A6 B18",
                 "no tissue changes its T2* during the session, and a scan is not repeated as a series"),
         _computed("A28", "Spectroscopy: single voxel and spectroscopic imaging", "A16",
@@ -278,9 +306,11 @@ _BLOCKS = (
         _formed("B2", "Slice selection: thickness = bandwidth of the pulse / gradient", "A3 B1", "C5 C6", n=7),
         _formed("B3", "Slice profile: what a real pulse excites across the slice", "B2", "R2 R4", n=7),
         _absent("B4", "Several slices: slices per repetition, gap, order", "B2 B3",
-                "a scan is one slice; the pulses of neighbouring slices are not played", n=7, needs="3D world"),
+                "a scan is one slice; the pulses of neighbouring slices are not played. A seeded 3D world that gives a plane at any "
+                "position exists as a library; the slice engine that scans it is the missing part", n=7, needs="3D world"),
         _absent("B5", "Slice position, oblique planes, planning in three planes", "B2",
-                "the object is one axial section: there is no anatomy through the slice to place or tilt a slice in", needs="3D world"),
+                "the object of a scan is one axial section. The seeded 3D worlds (a head, a test object) give axial, sagittal, "
+                "coronal and tilted planes as a library, but no scan is formed of them: the slice engine is the missing part", needs="3D world"),
     )),
     ("B", "Fourier encoding", (
         _formed("B6", "Frequency encoding and receiver bandwidth", "B1", "K3", _M + "test_r6_four_times_the_bandwidth_doubles_the_noise", n=6),
@@ -312,7 +342,14 @@ _BLOCKS = (
                  "a non-selective 3D scan is priced and its central partition is imaged; no slab profile, no fold along "
                  "the slab", "C7 C8", n=7, needs="3D world"),
         _absent("B21", "Radial and spiral trajectories", "B8", "sampling is Cartesian", n=7),
-        _absent("B22", "Parallel imaging: fewer lines, unfolded with the coil sensitivities", "B9 C11", "there is one receive channel", n=8, needs="receive array"),
+        _computed("B22", "Parallel imaging: fewer lines, unfolded with the coil sensitivities", "B9 C11",
+                  "the array library leaves out phase-encode lines (factors 2 to 4) and unfolds the image with the sensitivity maps "
+                  "(SENSE), with the g-factor in closed form and measured with repeated noise, for maps that are given (with maps "
+                  "estimated from a prescan the error is reported without a tolerance); the methods that work in k-space (GRAPPA) "
+                  "and the acceleration of several slices at once are not built, and the console has one receive channel and no "
+                  "acceleration factor",
+                  "array:P1 array:P2 array:P3 array:P4 array:P6 array:P7 array:P11 array:P12 array:P16 array:P17 array:P21 array:P22 array:P33 array:P34",
+                  "em:C6 em:C6b", n=8, needs="receive array"),
     )),
     ("B", "reconstruction", (
         _formed("B23", "Reconstruction by the inverse Fourier transform: magnitude and phase images", "B8", "K1 K20"),
@@ -331,10 +368,21 @@ _BLOCKS = (
         _partial("C3", "Centre frequency and its adjustment", "A16 C2",
                  "the error of the adjustment can be measured; the console has no frequency setting (only the "
                  "fat-saturation pulse can be retuned)", "K5", n=8),
-        _absent("C4", "Shimming", "C2", "the shim is fixed: the field can be mapped, not corrected", n=8),
+        _computed("C4", "Shimming", "C2",
+                  "the 3D field library fits a shim of first or second order (nine solid harmonics) over a volume, with a declared "
+                  "limit on each channel, and returns the fixed first-order shim of the engine on the engine's own field; in the "
+                  "scanner the shim is fixed for the session and the console has no shim setting: the field can be mapped, not "
+                  "corrected. A first-order setting is ordinary work on the present engine; a second-order one waits for the slice "
+                  "engine on the 3D world",
+                  "fields3d:F33 fields3d:F34 fields3d:F35 fields3d:F36 fields3d:F37 fields3d:F38", n=8),
         _partial("C5", "Magnetic susceptibility: the field around air and tissue boundaries", "C2",
-                 "the field of a few air spheres is added in closed form; it is not computed from the susceptibility of the object",
-                 "R11", "tests/test_artefact_clinic.py::test_signal_loss_of_the_qa_gradient_follows_the_through_slice_formula", needs="3D world"),
+                 "the scanner adds the field of a few air spheres in closed form; it does not compute the field from the "
+                 "susceptibility of the object. The 3D field library does, with the dipole kernel, for any distribution of "
+                 "susceptibility (checked on a sphere, cylinders, a shell and a spheroid, and run on the seeded 3D head); no scan "
+                 "uses that field yet",
+                 "R11", "tests/test_artefact_clinic.py::test_signal_loss_of_the_qa_gradient_follows_the_through_slice_formula",
+                 "fields3d:F1 fields3d:F2 fields3d:F6 fields3d:F7 fields3d:F12 fields3d:F15",
+                 "tests/test_fields3d.py::test_the_seeded_volume_world_end_to_end", needs="3D world"),
     )),
     ("C", "RF chain", (
         _formed("C6", "Transmit field: the flip angle actually reached, its pattern, flip-angle mapping", "A3 A10",
@@ -348,11 +396,31 @@ _BLOCKS = (
                   "profile against bounds on energy and duration; the console plays three fixed shapes and no task asks for a pulse",
                   "design:P3 design:P4 design:P9 design:F1 design:F4", n=1, needs="core in the console"),
         _formed("C10", "Receive coil: sensitivity profile and shading", "B23", "mrgym qa acr --fault receive_coil", n=9),
-        _absent("C11", "Receive arrays: coil elements, their combination, the choice of coil", "C10", "there is one receive channel", n=9, needs="receive array"),
+        _computed("C11", "Receive arrays: coil elements, their combination, the choice of coil", "C10",
+                  "the array library gives a world several receive elements, each with a sensitivity map (loops, in the quasi-static "
+                  "limit) and a noise covariance between them, forms the multi-channel data and combines the channels (root sum of "
+                  "squares, the optimal combination, an adaptive one) with the SNR of each; the field model computes receive maps "
+                  "and their noise matrix from Maxwell's equations, and the two are not joined. The console has one receive "
+                  "channel: there is no coil to choose and no coil image is returned",
+                  "array:F1 array:F4 array:F5 array:N1 array:N3 array:N4 array:N5 array:C6 array:C7 array:C8 array:C9 array:C10 array:C11",
+                  "em:C4 em:C5", n=9, needs="receive array"),
         _formed("C12", "Receiver noise: its level and its dependence on bandwidth", "B6",
                 "K15", _M + "test_r6_four_times_the_bandwidth_doubles_the_noise"),
         _absent("C13", "Receiver gain and dynamic range", "C12", "samples are floating-point numbers: no converter, no clipping"),
         _formed("C14", "RF interference: a narrow-band line across the image", "B6 C12", "K14", "mrgym qa acr --fault rf_interference", n=7),
+        _computed("C34", "RF fields in the body: B1+ and B1- from Maxwell's equations, the wavelength in tissue, dielectric effects", "C6 C10",
+                  "the field model solves Maxwell's equations on the slice for the tissues of a world and the currents of a coil: "
+                  "B1+ and B1-, the wavelength in tissue, the central brightening at 7 T and its near absence at 1.5 T. It has two "
+                  "dimensions, with fields that do not change along z (no end rings, no end of the head), and the scanner still "
+                  "images with declared transmit and receive patterns",
+                  "em:A4 em:A8 em:A8b em:A11 em:A11b em:A11c em:S3 em:S3b em:S10 em:S10c em:S11 em:C1", needs="field model"),
+        _computed("C36", "Electrical properties from the transmit field: mapping conductivity and permittivity", "C34",
+                  "the field model recovers conductivity and permittivity from a complex B1+ map by the Helmholtz relation, inside "
+                  "a uniform region and without noise, and shows where that fails: at a boundary, and with the transceive-phase "
+                  "assumption for a coil of few rungs or a linear coil. The transmit pattern of the scanner is declared and does "
+                  "not come from the conductivity and permittivity of its tissues, so a scan holds nothing to recover; neither "
+                  "noise nor the third dimension is treated",
+                  "em:E1 em:E1b em:E2 em:E3 em:E3a em:E3a2 em:E3b em:E4", needs="field model"),
     )),
     ("C", "gradient chain", (
         _formed("C15", "Gradient amplitude and slew rate: the shortest TE and TR, the thinnest slice", "B2 B6 B7",
@@ -360,8 +428,10 @@ _BLOCKS = (
         _formed("C16", "Gradient calibration: the scale of the image", "B10",
                 "tests/test_acr_phantom.py::test_a_gradient_calibration_error_scales_the_image_along_its_axis_and_is_absent_by_default",
                 "mrgym qa acr --fault gradient_x", n=4),
-        _absent("C17", "Gradient non-linearity: distortion away from the isocentre", "C16",
-                "a position warp exists for sensitivity checks only: it is checked against no reference and no task has it"),
+        _partial("C17", "Gradient non-linearity: distortion away from the isocentre", "C16",
+                 "positions are scaled by one declared term, 1 - g (r / 250 mm)^2, the same along both axes, and the brightness "
+                 "does not change with it; there is no expansion of a real coil, nothing along z and no correction of the distortion",
+                 "tests/test_gradient_cal.py::test_under_non_linear_gradients_the_edge_of_the_disc_is_not_at_the_scale_of_the_isocentre"),
         _formed("C18", "Gradient timing: a delay between gradient and sampling", "B18", "K13", n=6),
         _absent("C19", "Eddy currents and concomitant fields", "C15", "gradients are played as ideal trapezoids", n=6),
         _partial("C20", "Spoiler and crusher gradients: the moment and what survives it", "A11 B1",
@@ -376,18 +446,33 @@ _BLOCKS = (
     )),
     ("C", "operating limits", (
         _partial("C22", "RF power: what raises B1+rms, and its limit", "A3 C7",
-                 "the console prices RF as B1+rms against a limit, from the nominal flip angle; there is no figure in W/kg",
-                 "C1 C5", n=9, needs="field model"),
-        _absent("C23", "SAR in the body: whole-body and local heating", "C22",
-                "there is no body and no electric field of the coil: the console prices RF as B1+rms only", n=9, needs="field model"),
+                 "the console prices RF as B1+rms against a limit, from the nominal flip angle; it has no figure in W/kg. The field "
+                 "model computes the power a body absorbs for a given B1+ and how it grows with the square of the frequency; the "
+                 "console does not use it", "C1 C5", "em:A10 em:S12", n=9, needs="field model"),
+        _computed("C23", "SAR in the body: whole-body and local heating", "C22",
+                  "the field model computes the power a body absorbs on the slice from the electric field of the coil: SAR at a "
+                  "point, averaged over a square of 21.5 mm (its stand-in for the 10 g average: a definition of the package, not "
+                  "that of a standard) and averaged over the slice. It has two dimensions: no end rings, no neck or shoulders, no "
+                  "whole-body figure; no temperature is computed and no number of it is a safety figure. The console still prices "
+                  "RF as B1+rms only",
+                  "em:A10 em:A10b em:A10c em:S3e em:S7 em:S12 em:S13 em:S13b em:S13c em:H1", n=9, needs="field model"),
+        _computed("C35", "RF shimming and parallel transmission: channel weights for a uniform B1+ inside limits on power and SAR", "C23 C34",
+                  "the field model computes static RF shimming: the weights of the channels of a transmit array, phase only or "
+                  "magnitude and phase, that make B1+ uniform over a region under limits on power and on local SAR, and the "
+                  "trade-off between uniformity and the SAR limit. Pulses that differ between the channels (spatially selective "
+                  "parallel transmission) are not built, the fields are two-dimensional, and the scanner has one transmit channel "
+                  "with a declared pattern",
+                  "em:C3 em:H1 em:H2 em:H3 em:H3c em:H3d em:H3e em:H4 em:H5b em:H5c", needs="field model"),
         _computed("C24", "Nerve stimulation: the limit on dB/dt", "C15",
                   "the design layer computes a stimulation figure of a gradient program from a declared model; the console plays "
                   "gradients at one fixed slew rate and has no such limit", "design:G8", n=8, needs="core in the console"),
         _absent("C25", "Acoustic noise of the gradients", "C15", "there is no model of sound", n=8),
         _absent("C26", "Implants and devices: scanning inside the conditions of a label", "C22 C24",
-                "no object holds a device and no task states a label", needs="field model"),
+                "no object holds a device and no task states a label. The field model stops short of the heating at a device: its "
+                "electric field has one component, along z, on a grid of millimetres", needs="field model"),
         _absent("C27", "The static field around the magnet: fringe field, forces on objects, zones, screening", "A2",
-                "the field outside the bore and the force on an object in it are not modelled", n=8, needs="field model"),
+                "the field outside the bore and the force on an object in it are not modelled: this is the field of the magnet "
+                "itself, which neither the RF field model nor the susceptibility field in 3D holds", n=8),
     )),
     ("C", "quality control", (
         _formed("C28", "Phantom test: geometric accuracy", "B10 C16",
@@ -397,13 +482,19 @@ _BLOCKS = (
                 "tests/test_qa_acr.py::test_ghosting_ratio_of_a_known_background",
                 "tests/test_qa_acr.py::test_a_healthy_system_passes_every_simulated_test_at_1_5_t",
                 "tests/test_acr_phantom.py::test_layout_of_the_resolution_insert_and_of_the_low_contrast_section", n=4),
-        _absent("C30", "Phantom tests: slice thickness and slice position", "B3", "no test object has structure through the slice", n=4, needs="3D world"),
+        _absent("C30", "Phantom tests: slice thickness and slice position", "B3",
+                "the test objects of the scanner are flat. A 3D test object with ramps and crossed wedges through the slice exists as "
+                "a library (drawn angles, not the dimensions of the ACR phantom); no scan is formed of it: the slice engine is the "
+                "missing part", n=4, needs="3D world"),
         _formed("C31", "From a failed test to its cause", "C28 C29",
                 "tests/test_qa_acr.py::test_one_fault_fails_the_test_the_guidance_names_and_no_other", n=7),
         _absent("C32", "Stability over time: field drift, repeated scans", "C3 C12",
                 "the system does not change during a session; a repeated scan differs by its noise only"),
-        _absent("C33", "Agreement with measurement: a phantom on a real scanner against the same phantom here", "C28 C29",
-                "no image of this engine has been compared with a measurement on a scanner", needs="measured data"),
+        _partial("C33", "Agreement with measurement: a phantom on a real scanner against the same phantom here", "C28 C29",
+                 "statistics of images, region signals and fitted values of public phantom sessions are compared with the engine's model of the same protocol "
+                 "(for an echo train, which the console does not have, with the design layer), and the differences found are listed; "
+                 "no image of the console's sequences has been compared pixel by pixel with a scan of the same object",
+                 *(f"measured:{rung}" for rung in ("M0", "M1", "M2", "M2b", "M3b", "M4/M8", "M5", "M6", "M7", "M9")), needs="measured data"),
     )),
     ("D", "quality", (
         _formed("D1", "Signal-to-noise ratio: voxel volume x square root of the sampling time", "B7 B10 C12", "K15 K17", n=10),
@@ -433,9 +524,13 @@ _BLOCKS = (
                  "K25 K26", n=8, needs="3D world"),
         _formed("D17", "Half-field-of-view ghost of echo-planar images", "B18 C18", "K13"),
         _absent("D18", "Gating, triggering and breath-holding against motion", "D16", "the console has no trigger: a scan is not synchronised with the motion"),
-        _absent("D19", "Cross-talk between neighbouring slices", "B4", "a scan is one slice", n=3, needs="3D world"),
+        _absent("D19", "Cross-talk between neighbouring slices", "B4",
+                "a scan is one slice. The 3D world exists as a library; neighbouring slices excited in one repetition take the slice "
+                "engine", n=3, needs="3D world"),
         _absent("D20", "Metal: distortion of the slice itself, and the sequences against it", "D11 D12",
-                "the slice is flat: how it bends near metal takes the third dimension", needs="3D world"),
+                "the slice is flat: how it bends near metal takes the third dimension. The 3D field library computes the field of a "
+                "susceptibility distribution to first order (enough for titanium, not for steel); no world holds metal and no slice "
+                "is selected in such a field", needs="3D world"),
         _formed("D21", "Telling artefacts from the object, and choosing a remedy by its price", "D7 D8 D9 D10 D12 D16",
                 "tests/test_artefact_clinic.py::test_twins_switch_one_mechanism_each_on_a_hand_made_object",
                 "tests/test_artefact_clinic.py::test_each_wrong_deliverable_fails_exactly_its_own_check"),
@@ -464,20 +559,20 @@ FAMILIES = {
     "TransmitAdjust": _f(1, "C6", "A10 B3 B20"),
     "SNRSpec": _f(2, "D5", "A4 A5 B6 B7 C12 D1 D2", "NoiseSNR"),
     "BandFree": _f(2, "D14", "A12 A16 B3 B6 C2 C3", "FrequencyAdjust"),
+    "NoiseSNR": _f(1, "C12", "C10 D1 D2"),
+    "GradientCal": _f(1, "C16", "B12 B13 C2 C17"),
     "ArtefactClinic": _f(3, "D21", "B15 D1 D6 D7 D8 D9 D10 D12 D16", "NoWrap ShiftFree GhostAside"),
+    "ShiftFree": _f(3, "B13", "A16 B6 B12 C2 D1"),
+    "GhostAside": _f(2, "D16", "B7 B12"),
+    "Resolve": _f(2, "B10", "B7 B11 B15 B17 D1", "NoWrap"),
+    "FoldAway": _f(2, "B15", "B9 B11 B12 B16", "NoWrap"),
+    "T1Vial": _f(1, "A4", "A9"),
+    "ErnstFlip": _f(2, "A10", "A4 B3 C6"),
+    "EPISetup": _f(3, "D11", "B18 C2 C18 D1 D17", "FrequencyAdjust"),
 }
 # Families that are being built: the cell each is meant for. A line moves to FAMILIES when its family is registered.
 PLANNED = {
-    "T1Vial": _f(1, "A4", "A9"),
-    "ErnstFlip": _f(2, "A10", "A4 B3 C6"),
     "Conspicuity": _f(3, "A8", "A7 A9 A10 B7 D1 D3", "T1Vial T2Decay"),
-    "Resolve": _f(2, "B10", "B7 B11 B15 B17 D1", "NoWrap"),
-    "FoldAway": _f(2, "B15", "B9 B11 B12 B16", "NoWrap"),
-    "ShiftFree": _f(3, "B13", "A16 B6 B12 C2 D1"),
-    "NoiseSNR": _f(1, "C12", "C10 D1 D2"),
-    "GradientCal": _f(1, "C16", "B12 B13 C2"),
-    "GhostAside": _f(2, "D16", "B7 B12"),
-    "EPISetup": _f(3, "D11", "B18 C2 C18 D1 D17", "FrequencyAdjust"),
 }
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))       # the checkout, when there is one
 
@@ -535,11 +630,21 @@ def evidence_exists(evidence: str, root: str | None = None):
         return evidence in coverage.validate_ids()
     row = package_row(evidence)
     if row:
-        return row[1] in package_ids(row[0])
+        ids = package_ids(row[0], root)
+        return None if ids is None else row[1] in ids
     if evidence.startswith("mrgym qa acr"):
         from . import qa
         return "--fault " not in evidence or evidence.split("--fault ")[1] in qa.FAULTS
     root = root or ROOT
+    if _MEASURED_RUNG.match(evidence):
+        if not os.path.isdir(os.path.join(root, "tests")):
+            return None
+        try:
+            with open(os.path.join(root, "docs", "physics", "measured", "results.json"), encoding="utf-8") as f:
+                rungs = {r["rung"].replace(" ", ""): r["rows"] for r in json.load(f)["rungs"]}
+        except (OSError, ValueError, KeyError):
+            return False
+        return bool(rungs.get(_MEASURED_RUNG.match(evidence).group(1)))
     path, _, name = evidence.partition("::")
     if not os.path.isdir(os.path.join(root, "tests")):
         return None
@@ -563,20 +668,37 @@ def _ids_in(module: str, pattern: str) -> frozenset:
         return frozenset()
 
 
-def package_ids(prefix: str) -> frozenset:
-    """Ids of the rows of a package of ``EVIDENCE_PACKAGES`` that are written out in the source of its module (running
-    them takes longer; the test of each package, as ``tests/test_core_validate.py``, asserts that every row passes and
-    that its page under docs/physics/ shows them). Empty when the module cannot be imported."""
-    module, pattern = EVIDENCE_PACKAGES[prefix][:2]
-    return _ids_in(module, pattern)
+@functools.cache
+def _ids_on(page: str) -> frozenset:
+    try:
+        with open(page, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return frozenset()
+    begin, end = _TABLE_MARKS
+    return frozenset(re.findall(_ON_THE_PAGE, text.split(begin)[1].split(end)[0])) if begin in text and end in text else frozenset()
+
+
+def package_ids(prefix: str, root: str | None = None):
+    """Ids of the rows of a package of ``EVIDENCE_PACKAGES``: those written out in the source of its module, or, for a
+    package read ``_ON_THE_PAGE``, those of the table on its page (running the rows takes longer; the test of each
+    package, as ``tests/test_core_validate.py``, asserts that every row passes and that its page under docs/physics/
+    shows them). Empty when the module cannot be imported or the page has no table; None when the page cannot be looked
+    up here (an installed package without the checkout)."""
+    module, pattern, page = EVIDENCE_PACKAGES[prefix][:3]
+    if pattern is not _ON_THE_PAGE:
+        return _ids_in(module, pattern)
+    docs = os.path.join(root or ROOT, "docs")
+    return _ids_on(os.path.join(docs, page)) if os.path.isdir(docs) else None
 
 
 def package_problems(root: str | None = None) -> list:
     """Problems of ``EVIDENCE_PACKAGES`` (empty: none): a prefix that is not a plain word, a module that cannot be
-    imported or in which the pattern finds no row id, a page that is not under docs/ (looked up in a checkout only)."""
+    imported, a pattern that finds no row id (in the source, or in the table of the page), a page that is not under
+    docs/ (looked up in a checkout only)."""
     import importlib
     bad, docs = [], os.path.join(root or ROOT, "docs")
-    for prefix, (module, _, page, command) in EVIDENCE_PACKAGES.items():
+    for prefix, (module, pattern, page, command) in EVIDENCE_PACKAGES.items():
         if not re.match(r"^[a-z][a-z0-9]*$", prefix):
             bad.append(f"EVIDENCE_PACKAGES: the prefix {prefix!r} is not a word of small letters and digits")
         try:
@@ -584,8 +706,9 @@ def package_problems(root: str | None = None) -> list:
         except ImportError:
             bad.append(f"EVIDENCE_PACKAGES: {prefix!r} names the module {module}, which cannot be imported: list a package when it is merged")
             continue
-        if not package_ids(prefix):
-            bad.append(f"EVIDENCE_PACKAGES: the pattern of {prefix!r} finds no row id in the source of {module}")
+        if package_ids(prefix, root) == frozenset():
+            where = f"the table of docs/{page}" if pattern is _ON_THE_PAGE else f"the source of {module}"
+            bad.append(f"EVIDENCE_PACKAGES: the pattern of {prefix!r} finds no row id in {where}")
         if os.path.isdir(docs) and not os.path.isfile(os.path.join(docs, page)):
             bad.append(f"EVIDENCE_PACKAGES: the page docs/{page} of {prefix!r} does not exist")
         if not command:
@@ -829,13 +952,16 @@ def _names(names, fams, prefix):
 
 def _evidence_text(evidence) -> str:
     """Named checks as one cell: the rows of ``mrgym validate`` together, those of each package of
-    ``EVIDENCE_PACKAGES`` in the order of the table, then the tests, examples and commands."""
+    ``EVIDENCE_PACKAGES`` in the order of the table, the rungs of the comparison with measured data, then the tests,
+    examples and commands."""
     rows = [e for e in evidence if _VALIDATE_ROW.match(e)]
     cells = [f"`mrgym validate` {', '.join(rows)}"] if rows else []
     for prefix, (_, _, _, command) in EVIDENCE_PACKAGES.items():
         mine = [row[1] for row in map(package_row, evidence) if row and row[0] == prefix]
         cells += [f"`{command}` {', '.join(mine)}"] if mine else []
-    return "; ".join(cells + [f"`{e}`" for e in evidence if not _VALIDATE_ROW.match(e) and not package_row(e)])
+    measured = [e.split(":")[1] for e in evidence if _MEASURED_RUNG.match(e)]
+    cells += [f"`python tools/measured/run_all.py`, the rows of rungs {', '.join(measured)} ([measured](physics/measured.md))"] if measured else []
+    return "; ".join(cells + [f"`{e}`" for e in evidence if not _VALIDATE_ROW.match(e) and not package_row(e) and not _MEASURED_RUNG.match(e)])
 
 
 def _row_sources() -> str:
@@ -869,7 +995,8 @@ def doc_page(t: dict | None = None, cards: str = "../envs/") -> str:
            f"forms {total['formed']} of them and {total['partial']} more in part. The other {total['computed'] + total['absent']} are not formed "
            f"yet: {total['computed']} of them the package already computes and checks without serving them, and "
            f"[the last list](#not-formed-yet) says which piece of engine work each one waits for. "
-           "No image of this engine has been compared with a measurement on a scanner yet.", "",
+           "Statistics of its images and signals have been compared with public phantom measurements on real scanners "
+           "([measured](physics/measured.md)); no image of its sequences has been compared pixel by pixel with a scan of the same object.", "",
            "## On one screen", "",
            "Rows: what you need to know. Columns: what you do with it. A cell holds the tasks; *italic* means in construction, not playable yet.", "",
            "| | " + " | ".join(f"{k['number']} {k['name'].capitalize()}" for k in t["kinds"]) + " |", "|---|" + "---|" * len(t["kinds"])]

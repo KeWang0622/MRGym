@@ -652,3 +652,103 @@ def nist_t1(rng, b0_t=3.0, n=640, extent_mm=256.0, spec=None, tissue_rng=None, r
     return dict(kind="nist_t1", b0_t=b0_t, n=n, extent_mm=extent_mm, names=names, weights=weights, tissues=tis, air=[],
                 masks=dict(body=mask, brain=mask, lesion=np.zeros(y.shape, np.float32)), size_mm=(NIST_T1["shell_mm"],) * 2,
                 regions=regions, layout=dict(centre_mm=(oy, ox), rotation_deg=rot))
+
+
+# ------------------------------------------------------------------------------------------------ NIST system phantom: the published tables
+# Tables S1, S2 and S4 of the supporting information of Stupic et al. 2021, Magn Reson Med 86:1194
+# (doi:10.1002/mrm.28779, PMC8252537, CC BY; file MRM-86-1194-s001.pdf), read for this block: NMR reference
+# measurements at 20 degrees C. One line per row of a table: T1 at 1.5 T, T2 at 1.5 T, T1 at 3 T, T2 at 3 T (ms).
+# The same numbers are cached with licence and checksum in docs/physics/measured/nist_tables.json;
+# tests/test_measured.py pins these tuples to that file. ``NIST_T1`` above is older and is not changed here: its T1
+# list is the 3 T column of Table S1 except sphere 5 (496.0 there, 496.7 in the table).
+NIST_S1 = (                                  # TABLE S1: NiCl2 Array (the T1 array)
+    (2033.0, 1669.0, 1989.0, 1465.0),        # Ni-1
+    (1489.0, 1244.0, 1454.0, 1077.0),        # Ni-2
+    (1012.0, 859.3, 984.1, 717.9),           # Ni-3
+    (730.8, 628.5, 706.0, 510.1),            # Ni-4
+    (514.1, 446.3, 496.7, 359.6),            # Ni-5
+    (367.9, 321.2, 351.5, 255.5),            # Ni-6
+    (260.1, 227.7, 247.13, 180.8),           # Ni-7
+    (184.6, 161.9, 175.3, 127.3),            # Ni-8
+    (132.7, 117.1, 125.9, 90.3),             # Ni-9
+    (92.7, 81.9, 89.0, 64.3),                # Ni-10
+    (65.4, 57.7, 62.7, 45.7),                # Ni-11
+    (46.32, 41.0, 44.53, 31.86),             # Ni-12
+    (32.45, 28.7, 30.84, 22.38),             # Ni-13
+    (22.859, 20.2, 21.719, 15.83),           # Ni-14
+)
+NIST_S2 = (                                  # TABLE S2: MnCl2 Array (the T2 array)
+    (2376.0, 939.4, 2480.0, 581.3),          # Mn-1
+    (2183.0, 594.3, 2173.0, 403.5),          # Mn-2
+    (1870.0, 416.5, 1907.0, 278.1),          # Mn-3
+    (1539.0, 267.0, 1604.0, 190.94),         # Mn-4
+    (1237.0, 184.9, 1332.0, 133.27),         # Mn-5
+    (1030.0, 140.6, 1044.0, 96.89),          # Mn-6
+    (752.2, 91.76, 801.7, 64.07),            # Mn-7
+    (550.2, 64.84, 608.6, 46.42),            # Mn-8
+    (413.4, 45.28, 458.4, 31.97),            # Mn-9
+    (292.2, 30.62, 336.5, 22.56),            # Mn-10
+    (194.9, 19.76, 244.2, 15.813),           # Mn-11
+    (160.2, 15.99, 176.6, 11.237),           # Mn-12
+    (106.4, 10.47, 126.9, 7.911),            # Mn-13
+    (83.33, 8.15, 90.9, 5.592),              # Mn-14
+)
+NIST_XZ_MM = (                               # TABLES S1 and S2, columns X and Z: the same 14 places on both plates (+-0.4 mm)
+    (0.0, 50.0), (29.4, 40.5), (47.6, 15.5), (47.6, -15.5), (29.4, -40.5),            # spheres 1 to 5
+    (0.0, -50.0), (-29.4, -40.5), (-47.6, -15.5), (-47.6, 15.5), (-29.4, 40.5),       # spheres 6 to 10
+    (-20.0, 20.0), (20.0, 20.0), (20.0, -20.0), (-20.0, -20.0),                       # spheres 11 to 14
+)
+NIST_PLATE_Y_MM = dict(ni=56.5, mn=16.5)     # TABLES S1 and S2, column Y: distance of the plate from the centre of the shell
+NIST_WATER_RATE_PER_S = {1.5: (0.367, 0.436), 3.0: (0.316, 0.398)}   # TABLE S4, row "ACS water": R1, R2 at 20 degrees C
+
+
+def _nist_columns(table) -> dict:
+    """{"t1_ms": {1.5: 14 values, 3.0: ...}, "t2_ms": {...}} of ``NIST_S1`` or ``NIST_S2``."""
+    col = lambda k: tuple(row[k] for row in table)   # noqa: E731
+    return dict(t1_ms={1.5: col(0), 3.0: col(2)}, t2_ms={1.5: col(1), 3.0: col(3)})
+
+
+NIST_T1_PUBLISHED = _nist_columns(NIST_S1)   # the NiCl2 array at both fields, T1 and T2 of every sphere (``nist_t1`` does not use it yet)
+NIST_T2 = dict(
+    shell_mm=NIST_T1["shell_mm"], sphere_mm=NIST_T1["sphere_mm"], sphere_outer_mm=NIST_T1["sphere_outer_mm"],   # the same shell and spheres
+    plate_y_mm=NIST_PLATE_Y_MM["mn"],         # the section of the shell at the plate is a disc of 2 sqrt(100^2 - 16.5^2) = 197.3 mm
+    xz_mm=NIST_XZ_MM, roi_mm=NIST_T1["roi_mm"],
+    **_nist_columns(NIST_S2),
+    fill={b: dict(pd=1.0, t1_ms=1e3 / r1, t2_ms=1e3 / r2, t2p_ms=1000.0, adc_um2_ms=2.0, fat=False) for b, (r1, r2) in NIST_WATER_RATE_PER_S.items()},
+)
+
+
+def nist_t2(rng, b0_t=3.0, n=640, extent_mm=256.0, spec=None, tissue_rng=None, rot_deg=0.0, warp=None, edge_mm=None):
+    """The T2 plate of the ISMRM / NIST system phantom as a 2D world: 14 spheres (15 mm) of MnCl2 solution in water,
+    T1 and T2 of every sphere from Table S2 at the field asked for (1.5 or 3 T, 20 degrees C), no jitter. The spheres
+    sit at the published places (image y = -Z, x = X: sphere 1 at 12 o'clock, 2 to 10 clockwise, 11 to 14 inside);
+    the water round them has the published relaxation rates of Table S4 and fills the section of the 200 mm shell at
+    the height of the plate. Regions ``T2-1`` .. ``T2-14`` (radius 5 mm). The object is the same for every seed; its
+    position is drawn like that of the ACR phantom (``ACR_SPEC``; ``spec`` may set ``offset_mm`` and ``rotation_deg``).
+    Declared, not published: T2' and the diffusion coefficient of the solutions, and that a sphere wall gives no signal."""
+    sig = soft(edge_mm)                                                  # every boundary of this build
+    if b0_t not in NIST_T2["t2_ms"]:
+        raise ValueError("the published values of the NIST T2 plate are 1.5 T and 3 T values")
+    sp = dict(ACR_SPEC, **(spec or {}))
+    oy, ox = (float(v) for v in rng.uniform(-1.0, 1.0, 2) * float(sp["offset_mm"]))
+    rot = float(rng.uniform(-1.0, 1.0) * float(sp["rotation_deg"]))
+    co, si = np.cos(np.deg2rad(rot)), np.sin(np.deg2rad(rot))
+    y, x = axes(n, extent_mm, rot_deg, warp)
+    centres = [(oy - z * co + u * si, ox + z * si + u * co) for u, z in NIST_T2["xz_mm"]]     # plate frame (v = -Z, u = X) -> patient coordinates
+    radius = float(np.sqrt((NIST_T2["shell_mm"] / 2) ** 2 - NIST_T2["plate_y_mm"] ** 2))
+    body = sig(radius - np.hypot(y - oy, x - ox))
+    spheres = [sig(NIST_T2["sphere_mm"] / 2 - np.hypot(y - cy, x - cx)) for cy, cx in centres]
+    walls = np.clip(np.sum([sig(NIST_T2["sphere_outer_mm"] / 2 - np.hypot(y - cy, x - cx)) for cy, cx in centres], axis=0), 0, 1)
+    names = ["fill"] + [f"sphere{i + 1}" for i in range(len(centres))]
+    tis = {"fill": dict(NIST_T2["fill"][b0_t])}
+    for i, (t1, t2) in enumerate(zip(NIST_T2["t1_ms"][b0_t], NIST_T2["t2_ms"][b0_t])):
+        tis[f"sphere{i + 1}"] = dict(pd=1.0, t1_ms=float(t1), t2_ms=float(t2), t2p_ms=1000.0, adc_um2_ms=2.0, fat=False)
+    for cls in tis.values():
+        cls["t2s_ms"] = 1.0 / (1.0 / cls["t2_ms"] + 1.0 / cls["t2p_ms"])
+    weights = np.stack([body * (1 - walls)] + spheres).astype(np.float32)          # the wall of a sphere gives no signal
+    regions = [dict(id=f"T2-{i + 1}", cls=f"sphere{i + 1}", y_mm=round(float(cy), 2), x_mm=round(float(cx), 2), radius_mm=NIST_T2["roi_mm"])
+               for i, (cy, cx) in enumerate(centres)]
+    mask = body > 0.5
+    return dict(kind="nist_t2", b0_t=b0_t, n=n, extent_mm=extent_mm, names=names, weights=weights, tissues=tis, air=[],
+                masks=dict(body=mask, brain=mask, lesion=np.zeros(y.shape, np.float32)), size_mm=(2 * radius,) * 2,
+                regions=regions, layout=dict(centre_mm=(oy, ox), rotation_deg=rot))

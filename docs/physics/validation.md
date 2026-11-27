@@ -3,7 +3,7 @@
 
 `mrgym validate` runs 63 checks of engine `mrgym-engine-0.2.0`; all must pass, and the test suite asserts it. Each row compares the scanner with an analytic formula or with a calculation written separately from the engine.
 
-What this establishes: the scanner computes the equations it states, to the bounds listed. What it does not: agreement with a measurement or with a real scanner. Rows whose reference was written by the same authors say so. Comparisons with another group's code and with published operating points: [external.md](external.md). Whether a simplification can change a scored answer is measured per environment by `mrgym validate --perturb <id>` and printed in the Validity section of the environment's card. References: [references.md](references.md). Simplifications: [limits.md](limits.md).
+What this establishes: the scanner computes the equations it states, to the bounds listed. What it does not: agreement with a measurement or with a real scanner. Rows whose reference was written by the same authors say so. Comparisons with another group's code and with published operating points: [external.md](external.md); with public measurements on real scanners: [measured.md](measured.md). Whether a simplification can change a scored answer is measured per environment by `mrgym validate --perturb <id>` and printed in the Validity section of the environment's card. References: [references.md](references.md). Simplifications: [limits.md](limits.md).
 
 ## Signal models
 

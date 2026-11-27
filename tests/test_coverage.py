@@ -30,8 +30,9 @@ def test_the_computed_column_comes_from_the_registry_and_the_families():
     for env_id in ("Scanner/NullTissue-v0", "Scanner/SNRSpec-v0", "Scanner/PhantomQA-v0"):
         assert dec[env_id] and set(dec[env_id]) <= set(coverage.ids())
     rows = {r["id"]: r for r in t["rows"]}
-    assert rows["parameter.ti"]["environments"] == ["Scanner/FatSuppress-v0", "Scanner/NullTissue-v0"] and "Scanner/SNRSpec-v0" in rows["qc.snr"]["environments"]
-    assert rows["qc.geometric_accuracy"]["environments"] == ["Scanner/PhantomQA-v0"] and rows["parameter.etl"]["environments"] == []
+    assert rows["parameter.ti"]["environments"] == ["Scanner/FatSuppress-v0", "Scanner/NullTissue-v0", "Scanner/T1Vial-v0"]
+    assert "Scanner/SNRSpec-v0" in rows["qc.snr"]["environments"] and "Scanner/ErnstFlip-v0" in rows["parameter.flip_angle"]["environments"]
+    assert rows["qc.geometric_accuracy"]["environments"] == ["Scanner/GradientCal-v0", "Scanner/PhantomQA-v0"] and rows["parameter.etl"]["environments"] == []
     for g, c in t["counts"].items():
         assert c["exercised"] == sum(bool(r["environments"]) for r in t["rows"] if r["group"] == g and r["id"] not in coverage.EXTRA and r["engine"] != "n/a")
     checks = {r["check"] for r in t["rows"] if r["check"] and not r["check"].startswith("mrgym")}

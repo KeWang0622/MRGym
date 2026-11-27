@@ -35,7 +35,7 @@ SCHEMA = 3
 GAMMA_HZ_PER_T = 42.577478518e6
 DCHI_AIR = 9.4e-6
 STREAMS = dict(geometry=0, tissue=1, fields=2, system=3, noise=4, task=5)
-KINDS = ("brain", "abdomen", "qa", "acr", "nist_t1")
+KINDS = ("brain", "abdomen", "qa", "acr", "nist_t1", "head3d", "qa3d")     # the last two are volumes: ``volume.py``
 GRID = dict(brain=(640, 256.0), abdomen=(640, 420.0), qa=(640, 256.0),      # master grid points, extent in mm
             acr=(1024, 256.0), nist_t1=(640, 256.0))                        # acr: 0.25 mm, for the 0.9 mm holes of its resolution insert
 EXAM_FOV_MM = dict(brain=240.0, abdomen=400.0, qa=240.0, acr=250.0, nist_t1=250.0)   # console default field of view
@@ -57,6 +57,8 @@ DEFAULT_SPEC = dict(
     gnl=None,               # gradient non-linearity: positions scaled by 1 - gnl * (r / 250 mm)^2
     dbdz=None,              # QA phantom: through-slice field gradient of a few smooth patches, see ``make_dbdz``
 )
+# Additive key that is not listed above (a spec without it is the spec of before): ``array`` = dict, a receive array
+# around the object (``array.SPEC``). The world then has ``world["array"]``; nothing else in it changes.
 MOTION_HZ = dict(respiration=(0.2, 0.35), cardiac=(0.9, 1.5))
 
 
@@ -313,6 +315,9 @@ def _build(seed, sp, layout_only=False, rot_deg=0.0, base=None):
         raise ValueError(f"world kind must be one of {KINDS}")
     if b0_t not in B1RMS_LIMIT_UT:
         raise ValueError("field strength must be 1.5 or 3.0 T")
+    if kind in ("head3d", "qa3d"):                                      # a volume: its own module, before any draw of the 2D kinds
+        from . import volume
+        return volume.build(seed, sp, layout_only, rot_deg, base)
     n, extent = GRID[kind]
     n = int(sp.get("n") or n)
     g, t, f, s = (rng_for(seed, k) for k in ("geometry", "tissue", "fields", "system"))
@@ -357,6 +362,11 @@ def _build(seed, sp, layout_only=False, rot_deg=0.0, base=None):
     w.setdefault("regions", [])
     if sp.get("motion"):
         w["motion"] = make_motion(sp["motion"], w, s)
+    if sp.get("array"):
+        # additive: receive elements around the object, drawn from a generator of their own (``array.make_array``)
+        from . import array as _array
+        w["array"] = (base["array"] if base is not None and base.get("array")
+                      else _array.make_array(sp["array"], w, rng_for(seed, "fields", 2)))
     w.update(rot_deg=float(rot_deg), gnl=sp.get("gnl"), source=dict(kind="seed", seed=seed, spec=sp))
     return w
 

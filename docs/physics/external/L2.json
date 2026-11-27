@@ -35,6 +35,6 @@
   "an image of the flat QA world against MRzero-Core or KomaMRI (neither is installed here)"
  ],
  "engine": "mrgym-engine-0.2.0",
- "date_utc": "2026-11-25",
+ "date_utc": "2026-11-27",
  "command": "python tools/external/run_all.py --write"
 }

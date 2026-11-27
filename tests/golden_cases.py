@@ -9,6 +9,10 @@ and by ``tools/audit/golden.py``, which writes the files (nothing under ``tests/
               phase, the 8 x 8 block fingerprint of the magnitude, the shape)
     noisy     one session: every sequence once with noise, one protocol twice (sha256, fingerprint), the chain head
     prices    lines and scan seconds of a grid of protocols (console arithmetic: equal on every stack)
+    array     additive: a world with a receive array: its maps and noise covariance, coil images of both formations, a
+              noisy accelerated scan through SENSE, the g map (``array_cases``)
+``volume_digests.json``   the volume worlds (no scan): see ``VOLUME_WORLDS`` below
+``compat_2d.json``        the 2D baseline recorded on v1: ``tests/compat_cases.py`` (checked here, written only there)
 ``task_snapshots.json``   a function of the engine AND of the task and control code of each id
     per id    instance (seed 0) and statement per level, the submit schema, the card, the module constants, and one
               episode of the reference policy (sha256 of every observation text, chain head, reward)
@@ -39,6 +43,7 @@ from mrgym.scanner import world as W
 HERE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "golden")
 ENGINE_FILE = os.path.join(HERE, "engine_digests.json")
 TASK_FILE = os.path.join(HERE, "task_snapshots.json")
+VOLUME_FILE = os.path.join(HERE, "volume_digests.json")
 SEED = "000102030405060708090a0b0c0d0e0f"
 GRID = 320                                  # master grid of the image cases (the engine is the same code at any grid)
 PHANTOMS, FIELDS = ("qa", "brain", "abdomen"), (1.5, 3.0)
@@ -147,9 +152,57 @@ def prices() -> dict:
     return out
 
 
+def array_cases() -> dict:
+    """The additive section ``array``: a world with a receive array (QA phantom, 4 loops on a ring). The declared
+    array itself (maps on a lattice, psi), the coil images of the fast and of the per-coil formation, a noisy scan
+    that keeps every second line reconstructed with SENSE and the true maps, its g map. Nothing above depends on it."""
+    from mrgym.scanner import array as A
+    from mrgym.scanner import recon
+    w = W.make_world(SEED, dict(kind="qa", n=GRID, array=dict(n=4)))
+    ae, arr = A.ArrayEngine(w), w["array"]
+    c = np.linspace(-80.0, 80.0, 16)
+    out = dict(maps=_digest(arr["maps"](c[:, None], c[None, :])),
+               psi=[[round(float(v.real), 9), round(float(v.imag), 9)] for v in np.asarray(arr["psi"]).ravel()])
+    rp = console.plan(PROTOCOLS["spgr"], w["console"])["realised"]
+    out["fast/spgr"] = _digest(ae.coil_images(ae.clean_kspace(rp, "fast"), rp).reshape(-1, rp["matrix_pe"], rp["matrix"]))
+    rp_se = console.plan(PROTOCOLS["se"], w["console"])["realised"]
+    out["per_coil/se"] = _digest(ae.coil_images(ae.clean_kspace(rp_se, "per_coil"), rp_se)[0])
+    lines = recon.sampling_mask(rp["lines_full"], 2)
+    ks = ae.acquire_kspace(rp, np.random.default_rng(np.random.SeedSequence(entropy=W.seed_int(SEED), spawn_key=(W.STREAMS["noise"], 0, 0))), lines)
+    plan = recon.sense_plan(ae.pixel_maps(rp), ae.psi, 2)
+    out["sense_r2/spgr"] = _digest(np.array([ae.to_image(recon.sense_unfold(plan, ae.coil_images(k, rp, full_pe=True)), rp) for k in ks]))
+    out["g_r2"] = _digest(ae.to_image(np.nan_to_num(plan["g"]), rp)[None])
+    return out
+
+
 def engine_digests() -> dict:
     return dict(engine=mrgym.ENGINE_VERSION, stack=stack(), images={k: image_case(k) for k in image_keys()},
-                noisy=noisy_session(), prices=prices())
+                noisy=noisy_session(), prices=prices(), array=array_cases())
+
+
+# ---------------------------------------------------------------------------------------------- volume worlds
+# ``volume_digests.json``: the volume worlds (``mrgym.scanner.volume``) as they are, an additive file: per case the sha256
+# of ``volume_check.digest`` (reference plane, two other planes, lattice labels, layout, regions, tissues, system) and,
+# for other numerical stacks, the volume of every class on an 8 mm lattice. No scan is in it.
+VOLUME_WORLDS = {
+    "head3d/3.0T/lesions": dict(kind="head3d", lesion="ms"),
+    "head3d/1.5T/no vessels": dict(kind="head3d", b0_t=1.5, volume=dict(vessels=0)),
+    "qa3d/3.0T": dict(kind="qa3d"),
+    "qa3d/3.0T/oil, posed": dict(kind="qa3d", qa=dict(n_oil=1), volume=dict(pose_deg=5.0)),
+}
+
+
+def volume_case(key: str) -> dict:
+    from mrgym.scanner import volume_check
+    w = W.make_world(SEED, VOLUME_WORLDS[key])
+    vol = w["volume"]
+    lat = vol.lattice(8.0)
+    return dict(sha256=volume_check.digest(w), classes=list(vol.matter), regions=len(vol.regions),
+                class_mm3=[round(float(v) * 8.0 ** 3, 1) for v in lat.weights.sum((1, 2, 3), dtype=np.float64)])
+
+
+def volume_digests() -> dict:
+    return dict(stack=stack(), worlds={k: volume_case(k) for k in VOLUME_WORLDS})
 
 
 # ---------------------------------------------------------------------------------------------- task snapshots

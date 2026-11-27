@@ -40,21 +40,32 @@ def test_every_formed_item_names_checks_that_exist():
     assert not any(i.evidence for i in M.ITEMS if i.status == "absent")
     forms = {"validate" if M._VALIDATE_ROW.match(e) else e.split("/")[0].split(" ")[0].split(":")[0] for i in shown for e in i.evidence}
     # the kinds of check, all in use: the rows of ``mrgym validate``, those of every validated package, tests, examples, commands
-    assert forms == {"validate", *M.EVIDENCE_PACKAGES, "tests", "examples", "mrgym"} and list(M.EVIDENCE_PACKAGES)[:3] == ["design", "core", "spins"]
+    # and the rows of the comparison with measured data
+    assert forms == {"validate", *M.EVIDENCE_PACKAGES, "tests", "examples", "mrgym", "measured"} and list(M.EVIDENCE_PACKAGES) == ["design", "core", "spins", "em", "array", "fields3d"]
     for prefix in M.EVIDENCE_PACKAGES:
         cited = {e for i in M.ITEMS for e in i.evidence if e.startswith(prefix + ":")}
         assert cited and cited <= {f"{prefix}:{r}" for r in M.package_ids(prefix)} and all(M.package_row(e)[0] == prefix for e in cited), prefix
     assert len(M.package_ids("design")) > 60
-    # the ids read from the source of ``mrgym.core.validate`` and of ``mrgym.spins.validate`` are the rows of the tables in
-    # docs/physics/, which tests/test_core_validate.py and tests/test_spins_validate.py hold equal to what the commands print
-    for prefix, rows in (("core", 81), ("spins", 69)):
-        table = (ROOT / "docs" / M.EVIDENCE_PACKAGES[prefix][2]).read_text(encoding="utf-8").split("<!-- validation table: begin -->")[1].split("<!-- validation table: end -->")[0]
-        assert M.package_ids(prefix) == set(re.findall(r"^\| ([A-Z]+\d+[a-z]?) \|", table, re.M)) and len(M.package_ids(prefix)) == rows, prefix
+    # the ids read from the source of ``mrgym.core.validate``, ``mrgym.spins.validate`` and ``mrgym.em.validate`` are the rows
+    # of the tables in docs/physics/, which tests/test_core_validate.py, tests/test_spins_validate.py and tests/test_em_validate.py
+    # hold equal to what the commands print; the receive arrays and the fields in 3D do not write every id out in their source
+    # (a counter, a loop variable), so theirs are read from those tables (tests/test_array.py, tests/test_fields3d.py)
+    for prefix, rows in (("core", 81), ("spins", 69), ("em", 82), ("array", 76), ("fields3d", 54)):
+        table = (ROOT / "docs" / M.EVIDENCE_PACKAGES[prefix][2]).read_text(encoding="utf-8").split(M._TABLE_MARKS[0])[1].split(M._TABLE_MARKS[1])[0]
+        assert M.package_ids(prefix) == set(re.findall(r"^\| ([A-Z]+\d+[a-z]?\d?) \|", table, re.M)) and len(M.package_ids(prefix)) == rows, prefix
+    assert [p for p, line in M.EVIDENCE_PACKAGES.items() if line[1] is M._ON_THE_PAGE] == ["array", "fields3d"]
+    source = {p: __import__(M.EVIDENCE_PACKAGES[p][0], fromlist=["x"]).__file__ for p in ("array", "fields3d")}
+    assert 'f"P{len(rows) + 1}"' in pathlib.Path(source["array"]).read_text(encoding="utf-8")        # why: ids made by a counter
+    assert 'id_ + "b"' in pathlib.Path(source["fields3d"]).read_text(encoding="utf-8")               # and from a loop variable
+    assert M.evidence_exists("em:E3a2", str(ROOT)) is True and M.evidence_exists("array:P44", str(ROOT)) is True and M.evidence_exists("fields3d:F24b", str(ROOT)) is True
+    assert M.package_ids("array", "/nonexistent") is None and M.evidence_exists("array:P3", "/nonexistent") is None      # no checkout, no page: not looked up
+    assert M.evidence_exists("em:S10", "/nonexistent") is True                                       # an id of the source needs no checkout
     assert M.evidence_exists("core:N1", str(ROOT)) is True and M.evidence_exists("core:E9", str(ROOT)) is False     # E9 is a row of the design layer only
     assert M.evidence_exists("spins:S7", str(ROOT)) is True and M.evidence_exists("spins:N1", str(ROOT)) is False   # N1 is a row of the signal core only
     assert M.evidence_exists("spins:M4c", str(ROOT)) is True            # a row that the source names in a loop, not as ``_row("M4c"``
     assert M._evidence(("K6 K22", "design:E3 core:N1b", "spins:S7 K6", "mrgym qa acr")) == ("K6", "K22", "design:E3", "core:N1b", "spins:S7", "K6", "mrgym qa acr")
-    for wrong in ("K999", "design:Z9", "core:Z9", "core:N99", "spins:Z9", "em:P1", "tests/test_scanner.py::test_that_does_not_exist", "tests/no_such_file.py::test_x",
+    for wrong in ("K999", "design:Z9", "core:Z9", "core:N99", "spins:Z9", "flow:P1", "em:Z9", "em:P44", "array:P99", "array:S10", "fields3d:F99", "fields3d:P3",
+                  "tests/test_scanner.py::test_that_does_not_exist", "tests/no_such_file.py::test_x",
                   "examples/textbook/99_nothing.py", "mrgym qa acr --fault no_such_fault"):
         assert M.evidence_exists(wrong, str(ROOT)) is False, wrong
     assert M.evidence_exists("tests/test_scanner.py::test_plan_never_depends_on_the_world", "/nonexistent") is None     # no checkout: cannot say
@@ -181,7 +192,7 @@ def test_the_page_under_docs_is_current_and_its_counts_are_those_of_coverage():
         t["listed"], t["formed"], t["isolated"], t["used"]]
     assert (f"The list holds {t['listed']} pieces" in page and f"The scanner forms {t['formed']} of them and {t['partial']} more in part. The other "
             f"{t['computed'] + t['absent']} are not formed yet: {t['computed']} of them the package already computes and checks" in page)
-    assert "No image of this engine has been compared with a measurement on a scanner yet." in page
+    assert "no image of its sequences has been compared pixel by pixel with a scan of the same object." in page and "(physics/measured.md)" in page
     # the grid: every built family is linked in its cell, every planned one stands in italics in its cell
     grid = {_cells(ln)[0][2]: _cells(ln)[1:] for ln in lines if re.match(r"^\| \*\*[A-D]\*\* ", ln) and ln.count("|") == 2 + len(M.KINDS)}
     assert set(grid) == {"A", "B", "C", "D"}
@@ -206,7 +217,8 @@ def test_the_page_under_docs_is_current_and_its_counts_are_those_of_coverage():
     groups = {part.split("\n")[0]: ids_under(part) for part in last.split("\n### ")[1:]}
     assert groups == {(name or M.ORDINARY)[0].upper() + (name or M.ORDINARY)[1:]: ids for name, ids in waits.items() if ids}
     n_piece = sum(len(v) for k, v in waits.items() if k)
-    assert f"{n_piece + len(waits[''])} items. {n_piece} of them wait for one of {len(M.ENABLERS)} pieces of engine work; the other {len(waits[''])} take" in last
+    pieces = sum(bool(v) for k, v in waits.items() if k)                 # the pieces that an item which is not formed waits for
+    assert f"{n_piece + len(waits[''])} items. {n_piece} of them wait for one of {pieces} pieces of engine work; the other {len(waits[''])} take" in last
     # "computed ... and checks it against a closed form or a second method": every computed item names a row of a validated
     # package, and the list links the table of the checks, where those packages are named once
     assert f"[the checks](#{M._anchor(M.CHECKS_HEADING)}) name the rows." in last and f"\n## {M.CHECKS_HEADING}\n" in page
@@ -226,13 +238,28 @@ def test_what_is_not_formed_waits_for_one_of_seven_pieces_or_for_ordinary_work()
     # so do the spin systems (``mrgym.spins``): what is left is the voxel and the sequence
     what = dict(M.ENABLERS)["spin systems"]
     assert "exists as a library" in what and "still to do: a voxel that holds metabolites in the scanner world and a spectroscopy sequence in the console" in what
+    # so do the volume world with its fields, the receive arrays and the RF field model: each piece says what exists and what is left
+    for name, exists, left in (("3D world", "exist as libraries", "the slice engine that scans the volume"),
+                               ("receive array", "exist as a library", "the console serving them"),
+                               ("field model", "exist as a library, in two dimensions", "the scanner imaging and pricing RF with these fields")):
+        what = dict(M.ENABLERS)[name]
+        assert exists in what and f"still to do: {left}" in what, name
+    assert "still to do: a scan of the same object with the console's sequences, compared pixel by pixel" in dict(M.ENABLERS)["measured data"]
+    page = M.doc_page()
+    assert all(f"| **{name}** | {what} | {len(M.waiting()[name])} |" in page for name, what in M.ENABLERS)       # the page and the command show the same list
+    assert all(re.search(rf"^\s+{len(M.waiting()[name])}  {re.escape(name)}$", M.text_table(M.table(str(ROOT))), re.M) for name, _ in M.ENABLERS)
     waits = M.waiting()
-    assert list(waits) == names + [""] and all(waits[name] for name in names)                    # every piece unlocks something that is listed
+    assert list(waits) == names + [""] and all(waits[name] for name in names[:-1])               # every piece unlocks something that is listed
+    c33 = M.items()["C33"]                                                                       # measured data has arrived in part: its one item is formed in part
+    assert waits["measured data"] == [] and (c33.status, c33.needs) == ("partial", "measured data") and all(e.startswith("measured:M") for e in c33.evidence)
+    stored = json.loads((ROOT / "docs" / "physics" / "measured" / "results.json").read_text(encoding="utf-8"))["rungs"]
+    assert {e.split(":")[1] for e in c33.evidence} == {r["rung"].replace(" ", "") for r in stored if r["rows"]}      # every rung of the stored table, and no other
+    assert "M3b" in {r["rung"] for r in stored if "design layer" in r["title"]} and "with the design layer" in c33.reason      # the rung whose title names the design layer
     by_id = M.items()
     assert sorted(i for ids in waits.values() for i in ids) == sorted(i.id for i in M.ITEMS if i.status in ("computed", "absent"))
     assert all(by_id[i].needs == name for name, ids in waits.items() for i in ids)
     assert all(not i.needs for i in M.ITEMS if i.status == "formed") and all(i.needs in names + [""] for i in M.ITEMS)
-    assert waits["measured data"] == [i.id for i in M.ITEMS if "compared with a measurement on a scanner" in i.reason]
+    assert [i.id for i in M.ITEMS if "compared pixel by pixel with a scan of the same object" in i.reason] == ["C33"]
     for status, piece in (("formed", "3D world"), ("absent", "a fourth dimension")):
         patched = tuple(i._replace(needs=piece) if i.id == ("A1" if status == "formed" else waits[""][0]) else i for i in M.ITEMS)
         with pytest.MonkeyPatch.context() as m:
@@ -270,25 +297,27 @@ def test_validated_packages_are_one_table(monkeypatch):
         assert f"of `{command}` ([{prefix}]({doc}))" in legend and page.count(f"({doc})") == 1     # named once, with its command
     assert legend.strip() == M._row_sources() + ", tests, textbook examples that assert their result, commands."
     assert M._row_sources().startswith("Rows of `mrgym validate` ([validation](physics/validation.md)), of `python -m mrgym.design.validate` ")
-    assert M.package_row("K6") is None and M.package_row("design:e3") is None and M.package_row("em:P1") is None and M.package_problems(str(ROOT)) == []
+    assert M.package_row("K6") is None and M.package_row("design:e3") is None and M.package_row("flow:P1") is None and M.package_problems(str(ROOT)) == []
     # a new package is one line: here the rows of the spin systems under a second prefix
-    line = ("mrgym.spins.validate", M._ALSO_IN_A_LOOP, "physics/spins.md", "python -m mrgym.em.validate")
+    line = ("mrgym.spins.validate", M._ALSO_IN_A_LOOP, "physics/spins.md", "python -m mrgym.flow.validate")
     with monkeypatch.context() as m:
-        m.setattr(M, "EVIDENCE_PACKAGES", dict(M.EVIDENCE_PACKAGES, em=line))
-        m.setattr(M, "ITEMS", tuple(i._replace(evidence=M._evidence(("K18 em:S7 em:M4c core:N1",))) if i.id == "A2" else i for i in M.ITEMS))
-        assert M.package_row("em:S7") == ("em", "S7") and M.evidence_exists("em:S7", str(ROOT)) is True and M.evidence_exists("em:N1", str(ROOT)) is False
-        assert M.items()["A2"].evidence == ("K18", "em:S7", "em:M4c", "core:N1") and M.validate(str(ROOT)) == []
-        assert M._evidence_text(M.items()["A2"].evidence) == "`mrgym validate` K18; `python -m mrgym.core.validate` N1; `python -m mrgym.em.validate` S7, M4c"
-        assert " and of `python -m mrgym.em.validate` ([em](physics/spins.md)), tests, " in M.doc_page()
+        m.setattr(M, "EVIDENCE_PACKAGES", dict(M.EVIDENCE_PACKAGES, flow=line))
+        m.setattr(M, "ITEMS", tuple(i._replace(evidence=M._evidence(("K18 flow:S7 flow:M4c core:N1",))) if i.id == "A2" else i for i in M.ITEMS))
+        assert M.package_row("flow:S7") == ("flow", "S7") and M.evidence_exists("flow:S7", str(ROOT)) is True and M.evidence_exists("flow:N1", str(ROOT)) is False
+        assert M.items()["A2"].evidence == ("K18", "flow:S7", "flow:M4c", "core:N1") and M.validate(str(ROOT)) == []
+        assert M._evidence_text(M.items()["A2"].evidence) == "`mrgym validate` K18; `python -m mrgym.core.validate` N1; `python -m mrgym.flow.validate` S7, M4c"
+        assert " and of `python -m mrgym.flow.validate` ([flow](physics/spins.md)), tests, " in M.doc_page()
     # a package is listed when it is merged, not before; and a line that finds nothing, or shows nothing, is refused
     for wrong, said in ((("mrgym.no_such_package.validate",) + line[1:], "which cannot be imported: list a package when it is merged"),
                         ((line[0], r'_no_row\("([A-Z]+)"') + line[2:], "finds no row id in the source of mrgym.spins.validate"),
-                        (line[:2] + ("physics/no_such_page.md", line[3]), "the page docs/physics/no_such_page.md of 'em' does not exist")):
+                        (line[:2] + ("physics/no_such_page.md", line[3]), "the page docs/physics/no_such_page.md of 'flow' does not exist"),
+                        # ids read from the page: a page without the two marks of a validation table shows none
+                        ((line[0], M._ON_THE_PAGE, "physics/conventions.md", line[3]), "finds no row id in the table of docs/physics/conventions.md")):
         with monkeypatch.context() as m:
-            m.setattr(M, "EVIDENCE_PACKAGES", dict(M.EVIDENCE_PACKAGES, em=wrong))
+            m.setattr(M, "EVIDENCE_PACKAGES", dict(M.EVIDENCE_PACKAGES, flow=wrong))
             problems = M.validate(str(ROOT))
             assert len(problems) == 1 and problems[0].startswith("EVIDENCE_PACKAGES: ") and said in problems[0], problems
-            assert M.evidence_exists("em:S7", str(ROOT)) is (wrong[0] == line[0] and wrong[1] == line[1])
+            assert M.evidence_exists("flow:S7", str(ROOT)) is (wrong[0] == line[0] and wrong[1] == line[1])
 
 
 def test_what_the_spin_systems_compute_is_computed_and_not_served():
@@ -314,6 +343,127 @@ def test_what_the_spin_systems_compute_is_computed_and_not_served():
     assert not cited & {"spins:M2", "spins:M2b", "spins:M4", "spins:M4b", "spins:M4c", "spins:M4d"}
     cell = "`python -m mrgym.spins.validate` S1, S3, S4, S5, S6, Q1, Q4"
     assert M._evidence_text(by_id["A28"].evidence) == cell and f"| A28 | {cell} |" in M.doc_page()
+
+
+def _page_rows(prefix):
+    """{row id: the cells of its row} of the validation table on the page of a package."""
+    text = (ROOT / "docs" / M.EVIDENCE_PACKAGES[prefix][2]).read_text(encoding="utf-8").split(M._TABLE_MARKS[0])[1].split(M._TABLE_MARKS[1])[0]
+    return {_cells(ln)[0]: _cells(ln) for ln in text.splitlines() if re.match(r"^\| [A-Z]+\d+[a-z]?\d? \|", ln)}
+
+
+def test_what_the_field_model_computes_is_computed_and_not_served():
+    """``mrgym.em``: B1+ and B1- from Maxwell's equations, SAR in a body, RF shimming under limits and electrical
+    properties are computed on the slice; the scanner still images with declared patterns and prices RF as B1+rms."""
+    by_id = M.items()
+    assert [i.id for i in M.ITEMS if i.block == "RF chain"][-3:] == ["C14", "C34", "C36"]              # new items take the next numbers
+    assert [i.id for i in M.ITEMS if i.block == "operating limits"] == ["C22", "C23", "C35", "C24", "C25", "C26", "C27"]
+    assert by_id["C28"].name.startswith("Phantom test: geometric accuracy") and by_id["C33"].name.startswith("Agreement with measurement")     # and no id moves
+    for i in ("C23", "C34", "C35", "C36"):
+        assert by_id[i].status == "computed" and by_id[i].needs == "field model" and by_id[i].reason.startswith("the field model "), i
+        assert by_id[i].evidence and all(M.package_row(e) and M.package_row(e)[0] == "em" for e in by_id[i].evidence), i
+        assert M.tasks_of(i, planned=True) == ([], [])                  # no task, built or in construction, asks for it
+        assert "two dimensions" in by_id[i].reason or "two-dimensional" in by_id[i].reason or i == "C36", i      # its own stated limit
+    assert M.waiting()["field model"] == ["C34", "C36", "C23", "C35", "C26"]
+    assert by_id["C23"].outlines == 9 and "no number of it is a safety figure" in by_id["C23"].reason and "The console still prices RF as B1+rms only" in by_id["C23"].reason
+    assert {"em:S13", "em:S13b", "em:S13c", "em:A10", "em:S7"} <= set(by_id["C23"].evidence)          # averaged SAR, the law of the frequency, the power balance
+    assert {"em:A4", "em:A11b", "em:S3b", "em:S10", "em:S10c", "em:S11"} <= set(by_id["C34"].evidence)   # B1+ and B1-, the wavelength, central brightening
+    assert "the scanner still images with declared transmit and receive patterns" in by_id["C34"].reason
+    assert {"em:H1", "em:H3", "em:H3c", "em:H3e", "em:H5b", "em:H5c"} <= set(by_id["C35"].evidence) and by_id["C35"].rests_on == ("C23", "C34")
+    assert "spatially selective parallel transmission) are not built" in by_id["C35"].reason and "one transmit channel" in by_id["C35"].reason
+    assert {"em:E1", "em:E1b", "em:E3a"} <= set(by_id["C36"].evidence) and "without noise" in by_id["C36"].reason
+    # what the console serves in part stays "in part", with the rows of the field model beside it
+    assert by_id["C22"].status == "partial" and {"C1", "C5", "em:A10", "em:S12"} == set(by_id["C22"].evidence) and "it has no figure in W/kg" in by_id["C22"].reason
+    assert by_id["C6"].status == by_id["C10"].status == "formed"        # the declared patterns are served
+    # what the field model does not reach keeps its status: a device (still this piece: three dimensions, conductors), and the
+    # field of the magnet outside the bore, which is not an RF field and waits for no piece of the list
+    assert (by_id["C26"].status, by_id["C26"].needs) == ("absent", "field model") and "one component, along z" in by_id["C26"].reason
+    assert (by_id["C27"].status, by_id["C27"].needs) == ("absent", "") and "the field of the magnet itself" in by_id["C27"].reason
+    # not evidence: a row that states a time, one that only shows that another row can fail, one that agrees with a published size
+    # within a factor, one that holds by construction
+    cited = {e for i in M.ITEMS for e in i.evidence if e.startswith("em:")}
+    assert not cited & {"em:S14", "em:C4b", "em:S10b", "em:C6c", "em:H5"}
+    rows = _page_rows("em")
+    assert all(rows[e[3:]][-1] == "pass" for e in cited)
+    cell = "`python -m mrgym.em.validate` E1, E1b, E2, E3, E3a, E3a2, E3b, E4"
+    assert M._evidence_text(by_id["C36"].evidence) == cell and f"| C36 | {cell} |" in M.doc_page()
+
+
+def test_what_the_array_library_computes_is_computed_and_not_served():
+    """``mrgym.scanner.array`` and ``recon``: coil elements with their noise covariance, the combination of the channels,
+    SENSE and the g-factor are computed; the console has one receive channel. GRAPPA is not built."""
+    by_id = M.items()
+    for i in ("C11", "B22"):
+        assert by_id[i].status == "computed" and by_id[i].needs == "receive array" and by_id[i].reason.startswith("the array library "), i
+        assert {M.package_row(e)[0] for e in by_id[i].evidence} == {"array", "em"} and "one receive channel" in by_id[i].reason, i
+        assert M.tasks_of(i, planned=True) == ([], [])
+    assert M.waiting()["receive array"] == ["B22", "C11"] and by_id["C10"].status == "formed"
+    assert "noise covariance" in by_id["C11"].reason and "the two are not joined" in by_id["C11"].reason and "no coil to choose" in by_id["C11"].reason
+    assert "(GRAPPA) and the acceleration of several slices at once are not built" in by_id["B22"].reason and "no acceleration factor" in by_id["B22"].reason
+    # a row that is reported without a tolerance has no verdict, and a row that states a time or a memory is not physics: not cited
+    rows, cited = _page_rows("array"), {e[6:] for i in M.ITEMS for e in i.evidence if e.startswith("array:")}
+    assert cited and all(rows[r][-1] == "pass" for r in cited) and not any(r.startswith("T") for r in cited)
+    assert not cited & {"C1", "C3", "P5", "P10", "P36"}                  # an order that theory fixes between two closed forms; a value recorded for the prototype
+    assert sum(r[-1] != "pass" for r in rows.values()) == 34            # the rows the command calls "reported"
+    # the rows of SENSE are numbered by a counter: a row added before them would move every number, so what each cited one says is held here
+    said = dict(P1="residual of the unfolding when the data are the maps times an object", P2="the same by conjugate gradients", P3="g of two pixels folded onto each other",
+                P4="two channels, each seeing one of the two folded pixels", P6="R = 2: g measured by", P7="R = 2: SNR_full / SNR_R / (g sqrt(R))",
+                P11="R = 3: g measured by", P12="R = 3: SNR_full / SNR_R / (g sqrt(R))", P16="8 loops on a ring, R = 2: g measured by",
+                P17="8 loops on a ring, R = 2: SNR_full / SNR_R / (g sqrt(R))", P21="8 loops on a ring, R = 3: g measured by",
+                P22="8 loops on a ring, R = 3: SNR_full / SNR_R / (g sqrt(R))", P33="R = 2: mean g with the phase direction along y / along x",
+                P34="R = 3: mean g with the phase direction along y / along x")
+    assert {r for r in cited if r.startswith("P")} == set(said) and all(text in rows[r][1] for r, text in said.items())
+    assert {"array:N1", "array:C7", "array:C9", "array:C11", "em:C4", "em:C5"} <= set(by_id["C11"].evidence)      # covariance, combination, the optimum
+    assert {"em:C6", "em:C6b"} <= set(by_id["B22"].evidence)            # the g-factor of maps from Maxwell's equations
+    assert f"| B22 | `python -m mrgym.em.validate` C6, C6b; `python -m mrgym.scanner.array_checks` {', '.join(said)} |" in M.doc_page()
+
+
+def test_the_volume_world_and_the_fields_in_3d_exist_and_nothing_is_scanned_in_3d():
+    """``volume``: a seeded 3D world, of which no scan is formed: what needs a slice in a volume stays "not yet" and says
+    that the slice engine is the missing part. ``fields3d``: the susceptibility field and the shim are computed."""
+    by_id = M.items()
+    for i in ("B4", "B5", "C30", "D19", "D20", "A24"):                  # several slices, slice position, slice tests, cross-talk, metal, inflow
+        assert (by_id[i].status, by_id[i].needs) == ("absent", "3D world") and not by_id[i].evidence and "slice" in by_id[i].reason, i
+    for i in ("B4", "B5", "C30", "D19"):
+        assert "exists as a library" in by_id[i].reason or "as a library" in by_id[i].reason, i
+        assert "slice engine" in by_id[i].reason, i
+    assert "no scan is formed of them" in by_id["B5"].reason and "ramps and crossed wedges" in by_id["C30"].reason
+    assert not any(i.reason in ("a scan is one slice", "no test object has structure through the slice") for i in M.ITEMS)
+    # shimming: computed to second order, with the engine's own first-order shim as one of its rows
+    c4 = by_id["C4"]
+    assert (c4.status, c4.needs) == ("computed", "") and c4.evidence == tuple(f"fields3d:F{n}" for n in range(33, 39))
+    assert "first or second order" in c4.reason and "the console has no shim setting" in c4.reason
+    assert "A first-order setting is ordinary work on the present engine; a second-order one waits for the slice engine on the 3D world" in c4.reason
+    # the field of an object from its susceptibility: served for a few air spheres, computed for any distribution
+    c5 = by_id["C5"]
+    assert c5.status == "partial" and "R11" in c5.evidence and {"fields3d:F1", "fields3d:F6", "fields3d:F12", "fields3d:F15"} <= set(c5.evidence)
+    assert "tests/test_fields3d.py::test_the_seeded_volume_world_end_to_end" in c5.evidence and "no scan uses that field yet" in c5.reason
+    # susceptibility mapping: the forward model and a reference inversion, and the list of what is not there
+    a26 = by_id["A26"]
+    assert (a26.status, a26.needs) == ("computed", "3D world") and a26.evidence == ("fields3d:F1", "fields3d:F43", "fields3d:F44")
+    assert a26.reason.startswith("what exists, in the 3D field library: the forward model") and "one reference inversion, truncated division in k-space" in a26.reason
+    for missing in ("removal of the background field", "masks", "unwrapping of the phase", "any regularised inversion", "a scan that gives the phase of a volume"):
+        assert missing in a26.reason.split("What does not: ")[1], missing
+    assert by_id["A25"].status == "partial" and "no scan is formed of it" in by_id["A25"].reason
+    assert M.waiting()["3D world"] == ["A24", "A26", "B4", "B5", "C30", "D19", "D20"] and "C4" in M.waiting()[""]
+    cited = {e[9:] for i in M.ITEMS for e in i.evidence if e.startswith("fields3d:")}
+    assert not cited & {"F45", "F16c", "F23", "F24b", "F25b", "F32b", "F3", "F42"}       # a time, the rows that show a plainer method fail, a figure of the specification
+    rows = _page_rows("fields3d")
+    assert all(rows[r][-1] == "pass" for r in cited)
+
+
+def test_a_family_that_uses_an_item_is_not_contradicted_by_what_the_item_says_is_missing():
+    """Gradient non-linearity is formed in part (one declared term) and ``GradientCal`` has it at its last level."""
+    by_id = M.items()
+    c17 = by_id["C17"]
+    assert (c17.status, c17.needs) == ("partial", "") and "C17" in M.FAMILIES["GradientCal"].uses and M.tasks_of("C17") == ([], ["GradientCal"])
+    assert c17.evidence == ("tests/test_gradient_cal.py::test_under_non_linear_gradients_the_edge_of_the_disc_is_not_at_the_scale_of_the_isocentre",)
+    assert "one declared term" in c17.reason and "no correction of the distortion" in c17.reason
+    from mrgym.envs.gradient_cal import task
+    assert task.LEVELS[3]["nonlinear"] and not any(task.LEVELS[k]["nonlinear"] for k in (0, 1, 2))
+    used = {f.isolates for f in M.FAMILIES.values()} | {i for f in M.FAMILIES.values() for i in f.uses}
+    for i in M.ITEMS:                                                   # no item that a task takes says that no task has it
+        if i.id in used:
+            assert not re.search(r"no task (has|asks|measures|uses|states)", i.reason), i.id
 
 
 def test_the_page_uses_plain_words():

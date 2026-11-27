@@ -85,6 +85,6 @@
   "per-pulse transient of the first 300 pulses: the scanner serves the periodic state only"
  ],
  "engine": "mrgym-engine-0.2.0",
- "date_utc": "2026-11-25",
+ "date_utc": "2026-11-27",
  "command": "python tools/external/run_all.py --write"
 }

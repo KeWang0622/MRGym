@@ -3,7 +3,7 @@
 
 Which MRI physics this scanner covers, and which task asks for which piece of it.
 
-The list holds 112 pieces of MRI physics and applied MR physics, as textbooks and curricula name them. The scanner forms 61 of them and 11 more in part. The other 40 are not formed yet: 11 of them the package already computes and checks without serving them, and [the last list](#not-formed-yet) says which piece of engine work each one waits for. No image of this engine has been compared with a measurement on a scanner yet.
+The list holds 115 pieces of MRI physics and applied MR physics, as textbooks and curricula name them. The scanner forms 61 of them and 13 more in part. The other 41 are not formed yet: 19 of them the package already computes and checks without serving them, and [the last list](#not-formed-yet) says which piece of engine work each one waits for. Statistics of its images and signals have been compared with public phantom measurements on real scanners ([measured](physics/measured.md)); no image of its sequences has been compared pixel by pixel with a scan of the same object.
 
 ## On one screen
 
@@ -11,18 +11,18 @@ Rows: what you need to know. Columns: what you do with it. A cell holds the task
 
 | | 1 Measure | 2 Set | 3 Trade | 4 Request | 5 Design |
 |---|---|---|---|---|---|
-| **A** Signal and contrast | [T1Transmit](../envs/scanner-t1transmit-v1/) · [T2Decay](../envs/scanner-t2decay-v0/) · [FatFraction](../envs/scanner-fatfraction-v0/) · *T1Vial* | [NullTissue](../envs/scanner-nulltissue-v0/) · [FatSuppress](../envs/scanner-fatsuppress-v0/) · *ErnstFlip* | [ProtocolToSpec](../envs/scanner-protocoltospec-v0/) · *Conspicuity* | - | - |
-| **B** Spatial encoding and reconstruction | - | [NoWrap](../envs/scanner-nowrap-v1/) · *Resolve* · *FoldAway* | *ShiftFree* | - | - |
-| **C** The system | [PhantomQA](../envs/scanner-phantomqa-v0/) · [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) · [TransmitAdjust](../envs/scanner-transmitadjust-v0/) · *NoiseSNR* · *GradientCal* | - | - | - | - |
-| **D** Image quality and artefacts | - | [SNRSpec](../envs/scanner-snrspec-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · *GhostAside* | [ArtefactClinic](../envs/scanner-artefactclinic-v0/) · *EPISetup* | - | - |
+| **A** Signal and contrast | [T1Transmit](../envs/scanner-t1transmit-v1/) · [T2Decay](../envs/scanner-t2decay-v0/) · [FatFraction](../envs/scanner-fatfraction-v0/) · [T1Vial](../envs/scanner-t1vial-v0/) | [NullTissue](../envs/scanner-nulltissue-v0/) · [FatSuppress](../envs/scanner-fatsuppress-v0/) · [ErnstFlip](../envs/scanner-ernstflip-v0/) | [ProtocolToSpec](../envs/scanner-protocoltospec-v0/) · *Conspicuity* | - | - |
+| **B** Spatial encoding and reconstruction | - | [NoWrap](../envs/scanner-nowrap-v1/) · [Resolve](../envs/scanner-resolve-v0/) · [FoldAway](../envs/scanner-foldaway-v0/) | [ShiftFree](../envs/scanner-shiftfree-v0/) | - | - |
+| **C** The system | [PhantomQA](../envs/scanner-phantomqa-v0/) · [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) · [TransmitAdjust](../envs/scanner-transmitadjust-v0/) · [NoiseSNR](../envs/scanner-noisesnr-v0/) · [GradientCal](../envs/scanner-gradientcal-v0/) | - | - | - | - |
+| **D** Image quality and artefacts | - | [SNRSpec](../envs/scanner-snrspec-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · [GhostAside](../envs/scanner-ghostaside-v0/) | [ArtefactClinic](../envs/scanner-artefactclinic-v0/) · [EPISetup](../envs/scanner-episetup-v0/) | - | - |
 
 | Subject | Listed | Formed | Isolated by a task | Used by a task |
 |---|---:|---:|---:|---:|
-| **A** Signal and contrast: what signal a tissue gives | 32 | 16 (+2 in part) | 6 | 14 |
-| **B** Spatial encoding and reconstruction: where the signal lands in the image | 26 | 16 (+2 in part) | 1 | 9 |
-| **C** The system: what the machine adds: field, RF, gradients, noise, limits | 33 | 12 (+6 in part) | 3 | 10 |
-| **D** Image quality and artefacts: how good the image is, and what went wrong | 21 | 17 (+1 in part) | 3 | 13 |
-| All | 112 | 61 (+11 in part) | 13 | 46 |
+| **A** Signal and contrast: what signal a tissue gives | 32 | 16 (+2 in part) | 8 | 14 |
+| **B** Spatial encoding and reconstruction: where the signal lands in the image | 26 | 16 (+2 in part) | 4 | 13 |
+| **C** The system: what the machine adds: field, RF, gradients, noise, limits | 36 | 12 (+8 in part) | 5 | 12 |
+| **D** Image quality and artefacts: how good the image is, and what went wrong | 21 | 17 (+1 in part) | 5 | 15 |
+| All | 115 | 61 (+13 in part) | 22 | 54 |
 
 Listed: items on the map. Formed: an agent meets it at the console, and a check that exists shows it. Isolated by a task: one task is about this item. Used by a task: a task takes it, as its own item or beside it. Tasks in construction are not counted, and neither is what the package computes without serving it.
 
@@ -47,7 +47,7 @@ Kinds 1 to 3 are the knowledge, one piece at a time and then several together. K
 
 ## A · Signal and contrast
 
-What signal a tissue gives. 32 items, 16 (+2 in part) formed, 6 isolated by a task, 14 used by a task.
+What signal a tissue gives. 32 items, 16 (+2 in part) formed, 8 isolated by a task, 14 used by a task.
 
 | | Item | Rests on | Scanner | Task that isolates it | Tasks that use it |
 |---|---|---|---|---|---|
@@ -55,21 +55,21 @@ What signal a tissue gives. 32 items, 16 (+2 in part) formed, 6 isolated by a ta
 | A1 | Equilibrium magnetisation and proton density | - | formed | - | - |
 | A2 | Resonance: the Larmor frequency and its dependence on the field | A1 | formed | - | - |
 | A3 | Excitation: the rotating frame and the flip angle | A2 | formed | - | - |
-| A4 | T1: recovery of the longitudinal magnetisation | A3 | formed | *T1Vial* | [T2Decay](../envs/scanner-t2decay-v0/) · [NullTissue](../envs/scanner-nulltissue-v0/) · [SNRSpec](../envs/scanner-snrspec-v0/) · *ErnstFlip* |
+| A4 | T1: recovery of the longitudinal magnetisation | A3 | formed | [T1Vial](../envs/scanner-t1vial-v0/) | [T2Decay](../envs/scanner-t2decay-v0/) · [NullTissue](../envs/scanner-nulltissue-v0/) · [SNRSpec](../envs/scanner-snrspec-v0/) · [ErnstFlip](../envs/scanner-ernstflip-v0/) |
 | A5 | T2: decay of the transverse magnetisation, seen with a spin echo | A3 | formed | [T2Decay](../envs/scanner-t2decay-v0/) | [ProtocolToSpec](../envs/scanner-protocoltospec-v0/) · [SNRSpec](../envs/scanner-snrspec-v0/) |
 | A6 | T2*: dephasing in an uneven field, refocused by a spin echo and not by a gradient echo | A5 | formed | - | [FatFraction](../envs/scanner-fatfraction-v0/) |
 | | **sequences and steady states** | | | | |
 | A7 | Spin echo: signal against repetition time and echo time | A4 A5 | formed | - | [T2Decay](../envs/scanner-t2decay-v0/) · *Conspicuity* |
 | A8 | Image weighting: proton-density, T1, T2 and T2* contrast | A6 A7 | formed | [ProtocolToSpec](../envs/scanner-protocoltospec-v0/) · *Conspicuity* | - |
-| A9 | Inversion recovery: the signed signal and its null point (STIR, FLAIR) | A4 A7 | formed | [NullTissue](../envs/scanner-nulltissue-v0/) | [FatSuppress](../envs/scanner-fatsuppress-v0/) · [ProtocolToSpec](../envs/scanner-protocoltospec-v0/) · *T1Vial* · *Conspicuity* |
-| A10 | Spoiled gradient echo: the steady state and the Ernst angle | A3 A4 A6 | formed | *ErnstFlip* | [T1Transmit](../envs/scanner-t1transmit-v1/) · [TransmitAdjust](../envs/scanner-transmitadjust-v0/) · *Conspicuity* |
+| A9 | Inversion recovery: the signed signal and its null point (STIR, FLAIR) | A4 A7 | formed | [NullTissue](../envs/scanner-nulltissue-v0/) | [FatSuppress](../envs/scanner-fatsuppress-v0/) · [ProtocolToSpec](../envs/scanner-protocoltospec-v0/) · [T1Vial](../envs/scanner-t1vial-v0/) · *Conspicuity* |
+| A10 | Spoiled gradient echo: the steady state and the Ernst angle | A3 A4 A6 | formed | [ErnstFlip](../envs/scanner-ernstflip-v0/) | [T1Transmit](../envs/scanner-t1transmit-v1/) · [TransmitAdjust](../envs/scanner-transmitadjust-v0/) · *Conspicuity* |
 | A11 | Imperfect spoiling: RF phase cycling and the echoes that survive | A10 | formed | - | [T1Transmit](../envs/scanner-t1transmit-v1/) |
 | A12 | Balanced steady-state free precession: signal against T2 / T1 and against frequency | A6 A10 | formed | - | [BandFree](../envs/scanner-bandfree-v0/) |
 | A13 | Approach to the steady state: dummy cycles and the first lines of a scan | A10 | computed, not served | - | - |
 | A14 | Echo trains: fast (turbo) spin echo, echo train length, effective echo time | A7 B8 | computed, not served | - | - |
 | A15 | Magnetisation preparation: saturation recovery, T2 preparation, prepared gradient echo | A9 A10 | computed, not served | - | - |
 | | **selective signal** | | | | |
-| A16 | Chemical shift: fat and water resonate 3.4 ppm apart | A2 | formed | - | [FatFraction](../envs/scanner-fatfraction-v0/) · [FatSuppress](../envs/scanner-fatsuppress-v0/) · [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · *ShiftFree* |
+| A16 | Chemical shift: fat and water resonate 3.4 ppm apart | A2 | formed | - | [FatFraction](../envs/scanner-fatfraction-v0/) · [FatSuppress](../envs/scanner-fatsuppress-v0/) · [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · [ShiftFree](../envs/scanner-shiftfree-v0/) |
 | A17 | In-phase and opposed-phase echo times | A6 A16 | formed | - | [FatFraction](../envs/scanner-fatfraction-v0/) |
 | A18 | Fat suppression by a frequency-selective saturation pulse | A16 C3 | in part | [FatSuppress](../envs/scanner-fatsuppress-v0/) | - |
 | A19 | Spatial saturation bands | A3 B2 | not yet | - | - |
@@ -80,7 +80,7 @@ What signal a tissue gives. 32 items, 16 (+2 in part) formed, 6 isolated by a ta
 | A23 | Contrast agents: relaxivity and concentration | A4 A5 | not yet | - | - |
 | A24 | Perfusion: passage of a bolus, arterial spin labelling | A22 A23 | not yet | - | - |
 | A25 | Susceptibility-weighted imaging: the phase of a gradient echo as contrast | A6 C2 | in part | - | - |
-| A26 | Quantitative susceptibility mapping | A25 | not yet | - | - |
+| A26 | Quantitative susceptibility mapping | A25 | computed, not served | - | - |
 | A27 | BOLD contrast and functional MRI | A6 B18 | not yet | - | - |
 | A28 | Spectroscopy: single voxel and spectroscopic imaging | A16 | computed, not served | - | - |
 | A31 | J-coupling: multiplets, the echo of a coupled spin, spectral editing | A7 A28 | computed, not served | - | - |
@@ -91,35 +91,35 @@ What signal a tissue gives. 32 items, 16 (+2 in part) formed, 6 isolated by a ta
 
 ## B · Spatial encoding and reconstruction
 
-Where the signal lands in the image. 26 items, 16 (+2 in part) formed, 1 isolated by a task, 9 used by a task.
+Where the signal lands in the image. 26 items, 16 (+2 in part) formed, 4 isolated by a task, 13 used by a task.
 
 | | Item | Rests on | Scanner | Task that isolates it | Tasks that use it |
 |---|---|---|---|---|---|
 | | **slice selection** | | | | |
 | B1 | A gradient makes the frequency depend on position | A2 | formed | - | - |
 | B2 | Slice selection: thickness = bandwidth of the pulse / gradient | A3 B1 | formed | - | - |
-| B3 | Slice profile: what a real pulse excites across the slice | B2 | formed | - | [T1Transmit](../envs/scanner-t1transmit-v1/) · [TransmitAdjust](../envs/scanner-transmitadjust-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · *ErnstFlip* |
+| B3 | Slice profile: what a real pulse excites across the slice | B2 | formed | - | [T1Transmit](../envs/scanner-t1transmit-v1/) · [TransmitAdjust](../envs/scanner-transmitadjust-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · [ErnstFlip](../envs/scanner-ernstflip-v0/) |
 | B4 | Several slices: slices per repetition, gap, order | B2 B3 | not yet | - | - |
 | B5 | Slice position, oblique planes, planning in three planes | B2 | not yet | - | - |
 | | **Fourier encoding** | | | | |
-| B6 | Frequency encoding and receiver bandwidth | B1 | formed | - | [SNRSpec](../envs/scanner-snrspec-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · *ShiftFree* |
-| B7 | Phase encoding: one line per repetition; scan time = TR x lines x averages | B6 | formed | - | [ProtocolToSpec](../envs/scanner-protocoltospec-v0/) · [NoWrap](../envs/scanner-nowrap-v1/) · [SNRSpec](../envs/scanner-snrspec-v0/) · *Conspicuity* · *Resolve* · *GhostAside* |
+| B6 | Frequency encoding and receiver bandwidth | B1 | formed | - | [SNRSpec](../envs/scanner-snrspec-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · [ShiftFree](../envs/scanner-shiftfree-v0/) |
+| B7 | Phase encoding: one line per repetition; scan time = TR x lines x averages | B6 | formed | - | [ProtocolToSpec](../envs/scanner-protocoltospec-v0/) · [NoWrap](../envs/scanner-nowrap-v1/) · [SNRSpec](../envs/scanner-snrspec-v0/) · [GhostAside](../envs/scanner-ghostaside-v0/) · [Resolve](../envs/scanner-resolve-v0/) · *Conspicuity* |
 | B8 | k-space: the image is the Fourier transform of the data | B6 B7 | formed | - | - |
-| B9 | Field of view: the sampling step of k-space; a larger object folds over | B8 | formed | [NoWrap](../envs/scanner-nowrap-v1/) | *FoldAway* |
-| B10 | Matrix, pixel and voxel: resolution is the extent of k-space | B8 | formed | *Resolve* | - |
-| B11 | Point spread of a finite matrix: ringing at sharp edges | B10 | formed | - | *Resolve* · *FoldAway* |
-| B12 | Phase-encode and readout axes, and the direction of the readout | B6 B7 | formed | - | [NoWrap](../envs/scanner-nowrap-v1/) · *FoldAway* · *ShiftFree* · *GradientCal* · *GhostAside* |
-| B13 | Off-resonance during the readout: displacement = frequency / bandwidth | A16 B6 | formed | *ShiftFree* | [PhantomQA](../envs/scanner-phantomqa-v0/) · *GradientCal* |
+| B9 | Field of view: the sampling step of k-space; a larger object folds over | B8 | formed | [NoWrap](../envs/scanner-nowrap-v1/) | [FoldAway](../envs/scanner-foldaway-v0/) |
+| B10 | Matrix, pixel and voxel: resolution is the extent of k-space | B8 | formed | [Resolve](../envs/scanner-resolve-v0/) | - |
+| B11 | Point spread of a finite matrix: ringing at sharp edges | B10 | formed | - | [Resolve](../envs/scanner-resolve-v0/) · [FoldAway](../envs/scanner-foldaway-v0/) |
+| B12 | Phase-encode and readout axes, and the direction of the readout | B6 B7 | formed | - | [NoWrap](../envs/scanner-nowrap-v1/) · [GradientCal](../envs/scanner-gradientcal-v0/) · [ShiftFree](../envs/scanner-shiftfree-v0/) · [GhostAside](../envs/scanner-ghostaside-v0/) · [FoldAway](../envs/scanner-foldaway-v0/) |
+| B13 | Off-resonance during the readout: displacement = frequency / bandwidth | A16 B6 | formed | [ShiftFree](../envs/scanner-shiftfree-v0/) | [PhantomQA](../envs/scanner-phantomqa-v0/) · [GradientCal](../envs/scanner-gradientcal-v0/) |
 | B14 | Decay during the readout: blurring by T2* | A6 B10 | formed | - | - |
 | | **coverage of k-space** | | | | |
-| B15 | Rectangular field of view and phase oversampling | B9 | formed | *FoldAway* | [NoWrap](../envs/scanner-nowrap-v1/) · [ArtefactClinic](../envs/scanner-artefactclinic-v0/) · *Resolve* |
-| B16 | Placing the field of view: centre and in-plane rotation | B9 | formed | - | [NoWrap](../envs/scanner-nowrap-v1/) · *FoldAway* |
-| B17 | Partial Fourier: acquiring part of k-space | B8 B11 | in part | - | *Resolve* |
-| B18 | Echo-planar readout: echo spacing, bandwidth along phase, distortion | B8 B13 B14 | formed | - | *EPISetup* |
+| B15 | Rectangular field of view and phase oversampling | B9 | formed | [FoldAway](../envs/scanner-foldaway-v0/) | [NoWrap](../envs/scanner-nowrap-v1/) · [ArtefactClinic](../envs/scanner-artefactclinic-v0/) · [Resolve](../envs/scanner-resolve-v0/) |
+| B16 | Placing the field of view: centre and in-plane rotation | B9 | formed | - | [NoWrap](../envs/scanner-nowrap-v1/) · [FoldAway](../envs/scanner-foldaway-v0/) |
+| B17 | Partial Fourier: acquiring part of k-space | B8 B11 | in part | - | [Resolve](../envs/scanner-resolve-v0/) |
+| B18 | Echo-planar readout: echo spacing, bandwidth along phase, distortion | B8 B13 B14 | formed | - | [EPISetup](../envs/scanner-episetup-v0/) |
 | B19 | Segmented acquisition and the order of the lines | B8 | not yet | - | - |
 | B20 | Three-dimensional encoding: a second phase-encode axis, the slab | B2 B7 | in part | - | [T1Transmit](../envs/scanner-t1transmit-v1/) · [TransmitAdjust](../envs/scanner-transmitadjust-v0/) |
 | B21 | Radial and spiral trajectories | B8 | not yet | - | - |
-| B22 | Parallel imaging: fewer lines, unfolded with the coil sensitivities | B9 C11 | not yet | - | - |
+| B22 | Parallel imaging: fewer lines, unfolded with the coil sensitivities | B9 C11 | computed, not served | - | - |
 | | **reconstruction** | | | | |
 | B23 | Reconstruction by the inverse Fourier transform: magnitude and phase images | B8 | formed | - | - |
 | B24 | Options of the reconstruction: zero filling, filters, intensity and distortion correction | B11 B23 | not yet | - | - |
@@ -128,37 +128,40 @@ Where the signal lands in the image. 26 items, 16 (+2 in part) formed, 1 isolate
 
 ## C · The system
 
-What the machine adds: field, RF, gradients, noise, limits. 33 items, 12 (+6 in part) formed, 3 isolated by a task, 10 used by a task.
+What the machine adds: field, RF, gradients, noise, limits. 36 items, 12 (+8 in part) formed, 5 isolated by a task, 12 used by a task.
 
 | | Item | Rests on | Scanner | Task that isolates it | Tasks that use it |
 |---|---|---|---|---|---|
 | | **static field** | | | | |
 | C1 | Field strength: what changes between 1.5 T and 3 T | A2 A4 A16 | in part | - | - |
-| C2 | Field inhomogeneity and the field map from two echo times | A6 B23 | formed | - | [FatSuppress](../envs/scanner-fatsuppress-v0/) · [PhantomQA](../envs/scanner-phantomqa-v0/) · [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · *ShiftFree* · *GradientCal* · *EPISetup* |
+| C2 | Field inhomogeneity and the field map from two echo times | A6 B23 | formed | - | [FatSuppress](../envs/scanner-fatsuppress-v0/) · [PhantomQA](../envs/scanner-phantomqa-v0/) · [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · [GradientCal](../envs/scanner-gradientcal-v0/) · [ShiftFree](../envs/scanner-shiftfree-v0/) · [EPISetup](../envs/scanner-episetup-v0/) |
 | C3 | Centre frequency and its adjustment | A16 C2 | in part | [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) | [FatSuppress](../envs/scanner-fatsuppress-v0/) · [BandFree](../envs/scanner-bandfree-v0/) |
-| C4 | Shimming | C2 | not yet | - | - |
+| C4 | Shimming | C2 | computed, not served | - | - |
 | C5 | Magnetic susceptibility: the field around air and tissue boundaries | C2 | in part | - | - |
 | | **RF chain** | | | | |
-| C6 | Transmit field: the flip angle actually reached, its pattern, flip-angle mapping | A3 A10 | formed | [TransmitAdjust](../envs/scanner-transmitadjust-v0/) | [T1Transmit](../envs/scanner-t1transmit-v1/) · [NullTissue](../envs/scanner-nulltissue-v0/) · [FatSuppress](../envs/scanner-fatsuppress-v0/) · [PhantomQA](../envs/scanner-phantomqa-v0/) · *ErnstFlip* |
+| C6 | Transmit field: the flip angle actually reached, its pattern, flip-angle mapping | A3 A10 | formed | [TransmitAdjust](../envs/scanner-transmitadjust-v0/) | [T1Transmit](../envs/scanner-t1transmit-v1/) · [NullTissue](../envs/scanner-nulltissue-v0/) · [FatSuppress](../envs/scanner-fatsuppress-v0/) · [PhantomQA](../envs/scanner-phantomqa-v0/) · [ErnstFlip](../envs/scanner-ernstflip-v0/) |
 | C7 | RF pulses: duration, bandwidth, peak amplitude and energy | A3 B2 | formed | - | - |
 | C8 | Adiabatic pulses: an inversion that tolerates the transmit field | A9 C6 | in part | - | [NullTissue](../envs/scanner-nulltissue-v0/) · [FatSuppress](../envs/scanner-fatsuppress-v0/) |
 | C9 | RF pulse design: shaping a pulse to a profile | B3 C7 | computed, not served | - | - |
-| C10 | Receive coil: sensitivity profile and shading | B23 | formed | - | [PhantomQA](../envs/scanner-phantomqa-v0/) · *NoiseSNR* |
-| C11 | Receive arrays: coil elements, their combination, the choice of coil | C10 | not yet | - | - |
-| C12 | Receiver noise: its level and its dependence on bandwidth | B6 | formed | *NoiseSNR* | [SNRSpec](../envs/scanner-snrspec-v0/) |
+| C10 | Receive coil: sensitivity profile and shading | B23 | formed | - | [PhantomQA](../envs/scanner-phantomqa-v0/) · [NoiseSNR](../envs/scanner-noisesnr-v0/) |
+| C11 | Receive arrays: coil elements, their combination, the choice of coil | C10 | computed, not served | - | - |
+| C12 | Receiver noise: its level and its dependence on bandwidth | B6 | formed | [NoiseSNR](../envs/scanner-noisesnr-v0/) | [SNRSpec](../envs/scanner-snrspec-v0/) |
 | C13 | Receiver gain and dynamic range | C12 | not yet | - | - |
 | C14 | RF interference: a narrow-band line across the image | B6 C12 | formed | - | - |
+| C34 | RF fields in the body: B1+ and B1- from Maxwell's equations, the wavelength in tissue, dielectric effects | C6 C10 | computed, not served | - | - |
+| C36 | Electrical properties from the transmit field: mapping conductivity and permittivity | C34 | computed, not served | - | - |
 | | **gradient chain** | | | | |
 | C15 | Gradient amplitude and slew rate: the shortest TE and TR, the thinnest slice | B2 B6 B7 | formed | - | - |
-| C16 | Gradient calibration: the scale of the image | B10 | formed | *GradientCal* | [PhantomQA](../envs/scanner-phantomqa-v0/) |
-| C17 | Gradient non-linearity: distortion away from the isocentre | C16 | not yet | - | - |
-| C18 | Gradient timing: a delay between gradient and sampling | B18 | formed | - | *EPISetup* |
+| C16 | Gradient calibration: the scale of the image | B10 | formed | [GradientCal](../envs/scanner-gradientcal-v0/) | [PhantomQA](../envs/scanner-phantomqa-v0/) |
+| C17 | Gradient non-linearity: distortion away from the isocentre | C16 | in part | - | [GradientCal](../envs/scanner-gradientcal-v0/) |
+| C18 | Gradient timing: a delay between gradient and sampling | B18 | formed | - | [EPISetup](../envs/scanner-episetup-v0/) |
 | C19 | Eddy currents and concomitant fields | C15 | not yet | - | - |
 | C20 | Spoiler and crusher gradients: the moment and what survives it | A11 B1 | in part | - | - |
 | C21 | Gradient programs: lobes, moments and their nulling, the shortest waveform inside the limits | C15 C20 | computed, not served | - | - |
 | | **operating limits** | | | | |
 | C22 | RF power: what raises B1+rms, and its limit | A3 C7 | in part | - | - |
-| C23 | SAR in the body: whole-body and local heating | C22 | not yet | - | - |
+| C23 | SAR in the body: whole-body and local heating | C22 | computed, not served | - | - |
+| C35 | RF shimming and parallel transmission: channel weights for a uniform B1+ inside limits on power and SAR | C23 C34 | computed, not served | - | - |
 | C24 | Nerve stimulation: the limit on dB/dt | C15 | computed, not served | - | - |
 | C25 | Acoustic noise of the gradients | C15 | not yet | - | - |
 | C26 | Implants and devices: scanning inside the conditions of a label | C22 C24 | not yet | - | - |
@@ -169,17 +172,17 @@ What the machine adds: field, RF, gradients, noise, limits. 33 items, 12 (+6 in 
 | C30 | Phantom tests: slice thickness and slice position | B3 | not yet | - | - |
 | C31 | From a failed test to its cause | C28 C29 | formed | [PhantomQA](../envs/scanner-phantomqa-v0/) | - |
 | C32 | Stability over time: field drift, repeated scans | C3 C12 | not yet | - | - |
-| C33 | Agreement with measurement: a phantom on a real scanner against the same phantom here | C28 C29 | not yet | - | - |
+| C33 | Agreement with measurement: a phantom on a real scanner against the same phantom here | C28 C29 | in part | - | - |
 
 ## D · Image quality and artefacts
 
-How good the image is, and what went wrong. 21 items, 17 (+1 in part) formed, 3 isolated by a task, 13 used by a task.
+How good the image is, and what went wrong. 21 items, 17 (+1 in part) formed, 5 isolated by a task, 15 used by a task.
 
 | | Item | Rests on | Scanner | Task that isolates it | Tasks that use it |
 |---|---|---|---|---|---|
 | | **quality** | | | | |
-| D1 | Signal-to-noise ratio: voxel volume x square root of the sampling time | B7 B10 C12 | formed | - | [ProtocolToSpec](../envs/scanner-protocoltospec-v0/) · [SNRSpec](../envs/scanner-snrspec-v0/) · [ArtefactClinic](../envs/scanner-artefactclinic-v0/) · *Conspicuity* · *Resolve* · *ShiftFree* · *NoiseSNR* · *EPISetup* |
-| D2 | Measuring noise and SNR: the background of a magnitude image, the noise floor | B23 D1 | formed | - | [SNRSpec](../envs/scanner-snrspec-v0/) · *NoiseSNR* |
+| D1 | Signal-to-noise ratio: voxel volume x square root of the sampling time | B7 B10 C12 | formed | - | [ProtocolToSpec](../envs/scanner-protocoltospec-v0/) · [SNRSpec](../envs/scanner-snrspec-v0/) · [NoiseSNR](../envs/scanner-noisesnr-v0/) · [ArtefactClinic](../envs/scanner-artefactclinic-v0/) · [ShiftFree](../envs/scanner-shiftfree-v0/) · [Resolve](../envs/scanner-resolve-v0/) · [EPISetup](../envs/scanner-episetup-v0/) · *Conspicuity* |
+| D2 | Measuring noise and SNR: the background of a magnitude image, the noise floor | B23 D1 | formed | - | [SNRSpec](../envs/scanner-snrspec-v0/) · [NoiseSNR](../envs/scanner-noisesnr-v0/) |
 | D3 | Contrast and contrast-to-noise between two tissues | A8 D1 | formed | - | [ProtocolToSpec](../envs/scanner-protocoltospec-v0/) · *Conspicuity* |
 | D4 | Spatial resolution: what limits the smallest detail | B10 B11 B14 | formed | - | - |
 | D5 | SNR, resolution and scan time: what each costs the others | B7 D1 D4 | formed | [SNRSpec](../envs/scanner-snrspec-v0/) | - |
@@ -189,13 +192,13 @@ How good the image is, and what went wrong. 21 items, 17 (+1 in part) formed, 3 
 | D8 | Truncation ringing (Gibbs) | B11 | formed | - | [ArtefactClinic](../envs/scanner-artefactclinic-v0/) |
 | D9 | Displacement of fat by its chemical shift | A16 B13 | formed | - | [ArtefactClinic](../envs/scanner-artefactclinic-v0/) |
 | D10 | Cancellation at water-fat boundaries at opposed-phase echo times | A17 | formed | - | [ArtefactClinic](../envs/scanner-artefactclinic-v0/) |
-| D11 | Distortion by off-resonance: displacement, stretching, pile-up | B13 B18 C5 | formed | *EPISetup* | - |
+| D11 | Distortion by off-resonance: displacement, stretching, pile-up | B13 B18 C5 | formed | [EPISetup](../envs/scanner-episetup-v0/) | - |
 | D12 | Signal loss by a field gradient through the slice | A6 B3 C5 | formed | - | [ArtefactClinic](../envs/scanner-artefactclinic-v0/) |
 | D13 | Shading by the transmit and receive fields | C6 C10 | formed | - | - |
 | D14 | Dark bands of balanced steady-state images | A12 C2 | formed | [BandFree](../envs/scanner-bandfree-v0/) | - |
 | D15 | Interference line (zipper) | C14 | formed | - | - |
-| D16 | Ghosts of periodic motion along the phase-encode axis | B7 B12 | in part | *GhostAside* | [PhantomQA](../envs/scanner-phantomqa-v0/) · [ArtefactClinic](../envs/scanner-artefactclinic-v0/) |
-| D17 | Half-field-of-view ghost of echo-planar images | B18 C18 | formed | - | *EPISetup* |
+| D16 | Ghosts of periodic motion along the phase-encode axis | B7 B12 | in part | [GhostAside](../envs/scanner-ghostaside-v0/) | [PhantomQA](../envs/scanner-phantomqa-v0/) · [ArtefactClinic](../envs/scanner-artefactclinic-v0/) |
+| D17 | Half-field-of-view ghost of echo-planar images | B18 C18 | formed | - | [EPISetup](../envs/scanner-episetup-v0/) |
 | D18 | Gating, triggering and breath-holding against motion | D16 | not yet | - | - |
 | D19 | Cross-talk between neighbouring slices | B4 | not yet | - | - |
 | D20 | Metal: distortion of the slice itself, and the sequences against it | D11 D12 | not yet | - | - |
@@ -206,54 +209,56 @@ How good the image is, and what went wrong. 21 items, 17 (+1 in part) formed, 3 
 | | Item | What is missing | Waits for |
 |---|---|---|---|
 | A18 | Fat suppression by a frequency-selective saturation pulse | The pulse has a band, a centre and an efficiency, but it treats all fat as one line and its effect does not depend on repetition time or flip angle | ordinary engine work |
-| A25 | Susceptibility-weighted imaging: the phase of a gradient echo as contrast | Phase images show the field of air cavities; no tissue has a susceptibility of its own (no veins, no iron) | 3D world |
+| A25 | Susceptibility-weighted imaging: the phase of a gradient echo as contrast | Phase images show the field of air cavities; no tissue of the scanner has a susceptibility of its own (no veins, no iron). The 3D head declares one for venous blood, deep grey matter and a lesion; no scan is formed of it | 3D world |
 | B17 | Partial Fourier: acquiring part of k-space | The lines left out are filled with zeros: the time saved and the blur are formed, the loss of SNR on a console is not | ordinary engine work |
 | B20 | Three-dimensional encoding: a second phase-encode axis, the slab | A non-selective 3D scan is priced and its central partition is imaged; no slab profile, no fold along the slab | 3D world |
 | C1 | Field strength: what changes between 1.5 T and 3 T | Two field strengths, one per session; nothing below 1.5 T or above 3 T | ordinary engine work |
 | C3 | Centre frequency and its adjustment | The error of the adjustment can be measured; the console has no frequency setting (only the fat-saturation pulse can be retuned) | ordinary engine work |
-| C5 | Magnetic susceptibility: the field around air and tissue boundaries | The field of a few air spheres is added in closed form; it is not computed from the susceptibility of the object | 3D world |
+| C5 | Magnetic susceptibility: the field around air and tissue boundaries | The scanner adds the field of a few air spheres in closed form; it does not compute the field from the susceptibility of the object. The 3D field library does, with the dipole kernel, for any distribution of susceptibility (checked on a sphere, cylinders, a shell and a spheroid, and run on the seeded 3D head); no scan uses that field yet | 3D world |
 | C8 | Adiabatic pulses: an inversion that tolerates the transmit field | The console's inversion is one efficiency number; the hyperbolic-secant pulse and its threshold are computed in the design layer and played by no sequence | core in the console |
+| C17 | Gradient non-linearity: distortion away from the isocentre | Positions are scaled by one declared term, 1 - g (r / 250 mm)^2, the same along both axes, and the brightness does not change with it; there is no expansion of a real coil, nothing along z and no correction of the distortion | ordinary engine work |
 | C20 | Spoiler and crusher gradients: the moment and what survives it | The spoiler moment of a gradient echo is a parameter and acts on the signal; the crushers of a spin echo are ideal: what they dephase is gone, so there is no stimulated echo. The signal core computes real crushers with the stimulated echoes they leave, and a spoiler played as a lobe with its own duration; the console does not serve these yet | core in the console |
-| C22 | RF power: what raises B1+rms, and its limit | The console prices RF as B1+rms against a limit, from the nominal flip angle; there is no figure in W/kg | field model |
+| C22 | RF power: what raises B1+rms, and its limit | The console prices RF as B1+rms against a limit, from the nominal flip angle; it has no figure in W/kg. The field model computes the power a body absorbs for a given B1+ and how it grows with the square of the frequency; the console does not use it | field model |
+| C33 | Agreement with measurement: a phantom on a real scanner against the same phantom here | Statistics of images, region signals and fitted values of public phantom sessions are compared with the engine's model of the same protocol (for an echo train, which the console does not have, with the design layer), and the differences found are listed; no image of the console's sequences has been compared pixel by pixel with a scan of the same object | measured data |
 | D16 | Ghosts of periodic motion along the phase-encode axis | One tissue class pulses or shifts periodically; no irregular motion, and nothing moves through the slice | 3D world |
 
 ## Not formed yet
 
-40 items. 28 of them wait for one of 7 pieces of engine work; the other 12 take only ordinary work on the present engine. "Computed" in the third column: the package already computes the item and checks it against a closed form or a second method, and no console sequence, parameter or task reaches it yet; [the checks](#the-check-behind-every-item-that-is-formed-formed-in-part-or-computed) name the rows.
+41 items. 29 of them wait for one of 6 pieces of engine work; the other 12 take only ordinary work on the present engine. "Computed" in the third column: the package already computes the item and checks it against a closed form or a second method, and no console sequence, parameter or task reaches it yet; [the checks](#the-check-behind-every-item-that-is-formed-formed-in-part-or-computed) name the rows.
 
 | Waits for | What it is | Items |
 |---|---|---:|
-| **3D world** | a volume with real structure through the slice, and volume and multi-slice encoding | 7 |
-| **receive array** | several receive channels with sensitivity maps and noise correlation | 2 |
+| **3D world** | a seeded volume with structure through the slice (a head, a test object) that gives a plane at any position and tilt, and the field of its susceptibility in 3D with a shim, exist as libraries; still to do: the slice engine that scans the volume (a slice selected in it, several slices, volume encoding) | 7 |
+| **receive array** | several receive channels with sensitivity maps and noise correlation, the multi-channel data, coil combination and SENSE exist as a library; still to do: the console serving them (a coil to choose, an acceleration factor, what a scan returns), and the methods that work in k-space | 2 |
 | **spin systems** | the density-matrix simulator for coupled spins, with its spectroscopy sequences, metabolite basis and quantification, exists as a library; still to do: a voxel that holds metabolites in the scanner world and a spectroscopy sequence in the console | 3 |
-| **field model** | Maxwell's equations on the slice for a body and a coil | 3 |
+| **field model** | Maxwell's equations on the slice for a body and a coil (B1+, B1-, SAR, RF shimming) exist as a library, in two dimensions; still to do: the scanner imaging and pricing RF with these fields instead of its declared patterns, and the third dimension | 5 |
 | **core in the console** | the signal core over lists of blocks (Bloch ensemble, phase graphs, periodic solve) exists as a library; still to do: the engine forming images from it, so that the console serves its sequences | 11 |
 | **realistic anatomy** | textured digital anatomy instead of classes of one value each | 1 |
-| **measured data** | measurements of public phantoms on real scanners, to compare with | 1 |
+| **measured data** | statistics of public phantom sessions on real scanners are compared with the engine in a table that anyone can rebuild; still to do: a scan of the same object with the console's sequences, compared pixel by pixel | 0 |
 | ordinary engine work | nothing new: a term, a parameter or an option of the present engine | 12 |
 
 ### 3D world
 
-A volume with real structure through the slice, and volume and multi-slice encoding.
+A seeded volume with structure through the slice (a head, a test object) that gives a plane at any position and tilt, and the field of its susceptibility in 3D with a shim, exist as libraries; still to do: the slice engine that scans the volume (a slice selected in it, several slices, volume encoding).
 
 | | Item | In the package | What is missing |
 |---|---|---|---|
-| A24 | Perfusion: passage of a bolus, arterial spin labelling | - | No blood arrives through the plane and no tissue changes during the session |
-| A26 | Quantitative susceptibility mapping | - | The field is known in one slice; going from the field to the susceptibility takes it in a volume |
-| B4 | Several slices: slices per repetition, gap, order | - | A scan is one slice; the pulses of neighbouring slices are not played |
-| B5 | Slice position, oblique planes, planning in three planes | - | The object is one axial section: there is no anatomy through the slice to place or tilt a slice in |
-| C30 | Phantom tests: slice thickness and slice position | - | No test object has structure through the slice |
-| D19 | Cross-talk between neighbouring slices | - | A scan is one slice |
-| D20 | Metal: distortion of the slice itself, and the sequences against it | - | The slice is flat: how it bends near metal takes the third dimension |
+| A24 | Perfusion: passage of a bolus, arterial spin labelling | - | No blood arrives through the plane and no tissue changes during the session; the vessels of the 3D head carry a direction and a speed as numbers only, and nothing flows until a slice engine uses them |
+| A26 | Quantitative susceptibility mapping | computed | What exists, in the 3D field library: the forward model from a susceptibility distribution to its field, the phase of several echoes from that field, and one reference inversion, truncated division in k-space, which on a sphere without noise gives the known underestimate. What does not: removal of the background field, masks, unwrapping of the phase, any regularised inversion, and a scan that gives the phase of a volume (the scanner knows the field in one slice) |
+| B4 | Several slices: slices per repetition, gap, order | - | A scan is one slice; the pulses of neighbouring slices are not played. A seeded 3D world that gives a plane at any position exists as a library; the slice engine that scans it is the missing part |
+| B5 | Slice position, oblique planes, planning in three planes | - | The object of a scan is one axial section. The seeded 3D worlds (a head, a test object) give axial, sagittal, coronal and tilted planes as a library, but no scan is formed of them: the slice engine is the missing part |
+| C30 | Phantom tests: slice thickness and slice position | - | The test objects of the scanner are flat. A 3D test object with ramps and crossed wedges through the slice exists as a library (drawn angles, not the dimensions of the ACR phantom); no scan is formed of it: the slice engine is the missing part |
+| D19 | Cross-talk between neighbouring slices | - | A scan is one slice. The 3D world exists as a library; neighbouring slices excited in one repetition take the slice engine |
+| D20 | Metal: distortion of the slice itself, and the sequences against it | - | The slice is flat: how it bends near metal takes the third dimension. The 3D field library computes the field of a susceptibility distribution to first order (enough for titanium, not for steel); no world holds metal and no slice is selected in such a field |
 
 ### Receive array
 
-Several receive channels with sensitivity maps and noise correlation.
+Several receive channels with sensitivity maps and noise correlation, the multi-channel data, coil combination and SENSE exist as a library; still to do: the console serving them (a coil to choose, an acceleration factor, what a scan returns), and the methods that work in k-space.
 
 | | Item | In the package | What is missing |
 |---|---|---|---|
-| B22 | Parallel imaging: fewer lines, unfolded with the coil sensitivities | - | There is one receive channel |
-| C11 | Receive arrays: coil elements, their combination, the choice of coil | - | There is one receive channel |
+| B22 | Parallel imaging: fewer lines, unfolded with the coil sensitivities | computed | The array library leaves out phase-encode lines (factors 2 to 4) and unfolds the image with the sensitivity maps (SENSE), with the g-factor in closed form and measured with repeated noise, for maps that are given (with maps estimated from a prescan the error is reported without a tolerance); the methods that work in k-space (GRAPPA) and the acceleration of several slices at once are not built, and the console has one receive channel and no acceleration factor |
+| C11 | Receive arrays: coil elements, their combination, the choice of coil | computed | The array library gives a world several receive elements, each with a sensitivity map (loops, in the quasi-static limit) and a noise covariance between them, forms the multi-channel data and combines the channels (root sum of squares, the optimal combination, an adaptive one) with the SNR of each; the field model computes receive maps and their noise matrix from Maxwell's equations, and the two are not joined. The console has one receive channel: there is no coil to choose and no coil image is returned |
 
 ### Spin systems
 
@@ -267,13 +272,15 @@ The density-matrix simulator for coupled spins, with its spectroscopy sequences,
 
 ### Field model
 
-Maxwell's equations on the slice for a body and a coil.
+Maxwell's equations on the slice for a body and a coil (B1+, B1-, SAR, RF shimming) exist as a library, in two dimensions; still to do: the scanner imaging and pricing RF with these fields instead of its declared patterns, and the third dimension.
 
 | | Item | In the package | What is missing |
 |---|---|---|---|
-| C23 | SAR in the body: whole-body and local heating | - | There is no body and no electric field of the coil: the console prices RF as B1+rms only |
-| C26 | Implants and devices: scanning inside the conditions of a label | - | No object holds a device and no task states a label |
-| C27 | The static field around the magnet: fringe field, forces on objects, zones, screening | - | The field outside the bore and the force on an object in it are not modelled |
+| C34 | RF fields in the body: B1+ and B1- from Maxwell's equations, the wavelength in tissue, dielectric effects | computed | The field model solves Maxwell's equations on the slice for the tissues of a world and the currents of a coil: B1+ and B1-, the wavelength in tissue, the central brightening at 7 T and its near absence at 1.5 T. It has two dimensions, with fields that do not change along z (no end rings, no end of the head), and the scanner still images with declared transmit and receive patterns |
+| C36 | Electrical properties from the transmit field: mapping conductivity and permittivity | computed | The field model recovers conductivity and permittivity from a complex B1+ map by the Helmholtz relation, inside a uniform region and without noise, and shows where that fails: at a boundary, and with the transceive-phase assumption for a coil of few rungs or a linear coil. The transmit pattern of the scanner is declared and does not come from the conductivity and permittivity of its tissues, so a scan holds nothing to recover; neither noise nor the third dimension is treated |
+| C23 | SAR in the body: whole-body and local heating | computed | The field model computes the power a body absorbs on the slice from the electric field of the coil: SAR at a point, averaged over a square of 21.5 mm (its stand-in for the 10 g average: a definition of the package, not that of a standard) and averaged over the slice. It has two dimensions: no end rings, no neck or shoulders, no whole-body figure; no temperature is computed and no number of it is a safety figure. The console still prices RF as B1+rms only |
+| C35 | RF shimming and parallel transmission: channel weights for a uniform B1+ inside limits on power and SAR | computed | The field model computes static RF shimming: the weights of the channels of a transmit array, phase only or magnitude and phase, that make B1+ uniform over a region under limits on power and on local SAR, and the trade-off between uniformity and the SAR limit. Pulses that differ between the channels (spatially selective parallel transmission) are not built, the fields are two-dimensional, and the scanner has one transmit channel with a declared pattern |
+| C26 | Implants and devices: scanning inside the conditions of a label | - | No object holds a device and no task states a label. The field model stops short of the heating at a device: its electric field has one component, along z, on a grid of millimetres |
 
 ### Core in the console
 
@@ -301,14 +308,6 @@ Textured digital anatomy instead of classes of one value each.
 |---|---|---|---|
 | B26 | Reconstruction from incomplete data: compressed sensing and learned methods | - | The reconstruction is fixed, and objects made of classes of one value have no texture to judge such a method on |
 
-### Measured data
-
-Measurements of public phantoms on real scanners, to compare with.
-
-| | Item | In the package | What is missing |
-|---|---|---|---|
-| C33 | Agreement with measurement: a phantom on a real scanner against the same phantom here | - | No image of this engine has been compared with a measurement on a scanner |
-
 ### Ordinary engine work
 
 | | Item | In the package | What is missing |
@@ -318,11 +317,11 @@ Measurements of public phantoms on real scanners, to compare with.
 | B21 | Radial and spiral trajectories | - | Sampling is Cartesian |
 | B24 | Options of the reconstruction: zero filling, filters, intensity and distortion correction | - | The image is the unfiltered transform of the acquired matrix |
 | B25 | Raw data: looking at k-space, spikes | - | Only images leave the scanner |
-| C4 | Shimming | - | The shim is fixed: the field can be mapped, not corrected |
+| C4 | Shimming | computed | The 3D field library fits a shim of first or second order (nine solid harmonics) over a volume, with a declared limit on each channel, and returns the fixed first-order shim of the engine on the engine's own field; in the scanner the shim is fixed for the session and the console has no shim setting: the field can be mapped, not corrected. A first-order setting is ordinary work on the present engine; a second-order one waits for the slice engine on the 3D world |
 | C13 | Receiver gain and dynamic range | - | Samples are floating-point numbers: no converter, no clipping |
-| C17 | Gradient non-linearity: distortion away from the isocentre | - | A position warp exists for sensitivity checks only: it is checked against no reference and no task has it |
 | C19 | Eddy currents and concomitant fields | - | Gradients are played as ideal trapezoids |
 | C25 | Acoustic noise of the gradients | - | There is no model of sound |
+| C27 | The static field around the magnet: fringe field, forces on objects, zones, screening | - | The field outside the bore and the force on an object in it are not modelled: this is the field of the magnet itself, which neither the RF field model nor the susceptibility field in 3D holds |
 | C32 | Stability over time: field drift, repeated scans | - | The system does not change during a session; a repeated scan differs by its noise only |
 | D18 | Gating, triggering and breath-holding against motion | - | The console has no trigger: a scan is not synchronised with the motion |
 
@@ -332,33 +331,33 @@ Declared from the task cards, not measured: the tasks whose skill a task builds 
 
 | Task | Subject · block | Kind | Isolates | Uses | Builds on |
 |---|---|---|---|---|---|
-| [T1Transmit](../envs/scanner-t1transmit-v1/) | A · quantitative mapping | 1 measure | A29 | A10 A11 B3 B20 C6 | *T1Vial* · [TransmitAdjust](../envs/scanner-transmitadjust-v0/) |
+| [T1Transmit](../envs/scanner-t1transmit-v1/) | A · quantitative mapping | 1 measure | A29 | A10 A11 B3 B20 C6 | [T1Vial](../envs/scanner-t1vial-v0/) · [TransmitAdjust](../envs/scanner-transmitadjust-v0/) |
 | [T2Decay](../envs/scanner-t2decay-v0/) | A · spins and relaxation | 1 measure | A5 | A4 A7 | - |
 | [FatFraction](../envs/scanner-fatfraction-v0/) | A · quantitative mapping | 1 measure | A30 | A6 A16 A17 | - |
 | [NullTissue](../envs/scanner-nulltissue-v0/) | A · sequences and steady states | 2 set | A9 | A4 C6 C8 | - |
 | [FatSuppress](../envs/scanner-fatsuppress-v0/) | A · selective signal | 2 set | A18 | A9 A16 C2 C3 C6 C8 | [NullTissue](../envs/scanner-nulltissue-v0/) · [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) |
 | [ProtocolToSpec](../envs/scanner-protocoltospec-v0/) | A · sequences and steady states | 3 trade | A8 | A5 A9 B7 D1 D3 | [NullTissue](../envs/scanner-nulltissue-v0/) · [SNRSpec](../envs/scanner-snrspec-v0/) |
 | [NoWrap](../envs/scanner-nowrap-v1/) | B · Fourier encoding | 2 set | B9 | B7 B12 B15 B16 | - |
-| [PhantomQA](../envs/scanner-phantomqa-v0/) | C · quality control | 1 measure | C31 | B13 C2 C6 C10 C16 C28 C29 D16 | *GradientCal* |
+| [PhantomQA](../envs/scanner-phantomqa-v0/) | C · quality control | 1 measure | C31 | B13 C2 C6 C10 C16 C28 C29 D16 | [GradientCal](../envs/scanner-gradientcal-v0/) |
 | [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) | C · static field | 1 measure | C3 | A16 C2 | - |
 | [TransmitAdjust](../envs/scanner-transmitadjust-v0/) | C · RF chain | 1 measure | C6 | A10 B3 B20 | - |
-| [SNRSpec](../envs/scanner-snrspec-v0/) | D · quality | 2 set | D5 | A4 A5 B6 B7 C12 D1 D2 | *NoiseSNR* |
+| [SNRSpec](../envs/scanner-snrspec-v0/) | D · quality | 2 set | D5 | A4 A5 B6 B7 C12 D1 D2 | [NoiseSNR](../envs/scanner-noisesnr-v0/) |
 | [BandFree](../envs/scanner-bandfree-v0/) | D · artefacts | 2 set | D14 | A12 A16 B3 B6 C2 C3 | [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) |
-| [ArtefactClinic](../envs/scanner-artefactclinic-v0/) | D · artefacts | 3 trade | D21 | B15 D1 D6 D7 D8 D9 D10 D12 D16 | [NoWrap](../envs/scanner-nowrap-v1/) · *ShiftFree* · *GhostAside* |
-| *T1Vial* | A · spins and relaxation | 1 measure | A4 | A9 | - |
-| *ErnstFlip* | A · sequences and steady states | 2 set | A10 | A4 B3 C6 | - |
-| *Conspicuity* | A · sequences and steady states | 3 trade | A8 | A7 A9 A10 B7 D1 D3 | *T1Vial* · [T2Decay](../envs/scanner-t2decay-v0/) |
-| *Resolve* | B · Fourier encoding | 2 set | B10 | B7 B11 B15 B17 D1 | [NoWrap](../envs/scanner-nowrap-v1/) |
-| *FoldAway* | B · coverage of k-space | 2 set | B15 | B9 B11 B12 B16 | [NoWrap](../envs/scanner-nowrap-v1/) |
-| *ShiftFree* | B · Fourier encoding | 3 trade | B13 | A16 B6 B12 C2 D1 | - |
-| *NoiseSNR* | C · RF chain | 1 measure | C12 | C10 D1 D2 | - |
-| *GradientCal* | C · gradient chain | 1 measure | C16 | B12 B13 C2 | - |
-| *GhostAside* | D · artefacts | 2 set | D16 | B7 B12 | - |
-| *EPISetup* | D · artefacts | 3 trade | D11 | B18 C2 C18 D1 D17 | [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) |
+| [NoiseSNR](../envs/scanner-noisesnr-v0/) | C · RF chain | 1 measure | C12 | C10 D1 D2 | - |
+| [GradientCal](../envs/scanner-gradientcal-v0/) | C · gradient chain | 1 measure | C16 | B12 B13 C2 C17 | - |
+| [ArtefactClinic](../envs/scanner-artefactclinic-v0/) | D · artefacts | 3 trade | D21 | B15 D1 D6 D7 D8 D9 D10 D12 D16 | [NoWrap](../envs/scanner-nowrap-v1/) · [ShiftFree](../envs/scanner-shiftfree-v0/) · [GhostAside](../envs/scanner-ghostaside-v0/) |
+| [ShiftFree](../envs/scanner-shiftfree-v0/) | B · Fourier encoding | 3 trade | B13 | A16 B6 B12 C2 D1 | - |
+| [GhostAside](../envs/scanner-ghostaside-v0/) | D · artefacts | 2 set | D16 | B7 B12 | - |
+| [Resolve](../envs/scanner-resolve-v0/) | B · Fourier encoding | 2 set | B10 | B7 B11 B15 B17 D1 | [NoWrap](../envs/scanner-nowrap-v1/) |
+| [FoldAway](../envs/scanner-foldaway-v0/) | B · coverage of k-space | 2 set | B15 | B9 B11 B12 B16 | [NoWrap](../envs/scanner-nowrap-v1/) |
+| [T1Vial](../envs/scanner-t1vial-v0/) | A · spins and relaxation | 1 measure | A4 | A9 | - |
+| [ErnstFlip](../envs/scanner-ernstflip-v0/) | A · sequences and steady states | 2 set | A10 | A4 B3 C6 | - |
+| [EPISetup](../envs/scanner-episetup-v0/) | D · artefacts | 3 trade | D11 | B18 C2 C18 D1 D17 | [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) |
+| *Conspicuity* | A · sequences and steady states | 3 trade | A8 | A7 A9 A10 B7 D1 D3 | [T1Vial](../envs/scanner-t1vial-v0/) · [T2Decay](../envs/scanner-t2decay-v0/) |
 
 ## The check behind every item that is formed, formed in part or computed
 
-Rows of `mrgym validate` ([validation](physics/validation.md)), of `python -m mrgym.design.validate` ([design](physics/design.md)), of `python -m mrgym.core.validate` ([core](physics/core.md)) and of `python -m mrgym.spins.validate` ([spins](physics/spins.md)), tests, textbook examples that assert their result, commands.
+Rows of `mrgym validate` ([validation](physics/validation.md)), of `python -m mrgym.design.validate` ([design](physics/design.md)), of `python -m mrgym.core.validate` ([core](physics/core.md)), of `python -m mrgym.spins.validate` ([spins](physics/spins.md)), of `python -m mrgym.em.validate` ([em](physics/em.md)), of `python -m mrgym.scanner.array_checks` ([array](physics/array.md)) and of `python -m mrgym.scanner.fields3d_validate` ([fields3d](physics/fields3d.md)), tests, textbook examples that assert their result, commands.
 
 | | Check |
 |---|---|
@@ -383,6 +382,7 @@ Rows of `mrgym validate` ([validation](physics/validation.md)), of `python -m mr
 | A20 | `python -m mrgym.core.validate` X6, X6b, M2, M3 |
 | A21 | `python -m mrgym.design.validate` G5, G6, E10; `python -m mrgym.core.validate` X7, N11, N11c, N12 |
 | A25 | `mrgym validate` K20 |
+| A26 | `python -m mrgym.scanner.fields3d_validate` F1, F43, F44 |
 | A28 | `python -m mrgym.spins.validate` S1, S3, S4, S5, S6, Q1, Q4 |
 | A31 | `python -m mrgym.spins.validate` O5, O5b, E6, S1, S7, S7b, S7d, S8 |
 | A32 | `python -m mrgym.spins.validate` M1b, M3, Q1, Q2, Q3, Q4 |
@@ -405,28 +405,37 @@ Rows of `mrgym validate` ([validation](physics/validation.md)), of `python -m mr
 | B17 | `mrgym validate` K15 |
 | B18 | `mrgym validate` K12; `examples/textbook/10_epi_distortion.py` |
 | B20 | `mrgym validate` C7, C8 |
+| B22 | `python -m mrgym.em.validate` C6, C6b; `python -m mrgym.scanner.array_checks` P1, P2, P3, P4, P6, P7, P11, P12, P16, P17, P21, P22, P33, P34 |
 | B23 | `mrgym validate` K1, K20 |
 | C1 | `tests/test_scanner.py::test_field_strength_changes_tissue_and_limits` |
 | C2 | `mrgym validate` K20; `examples/textbook/04_t2star_field_map.py` |
 | C3 | `mrgym validate` K5 |
-| C5 | `mrgym validate` R11; `tests/test_artefact_clinic.py::test_signal_loss_of_the_qa_gradient_follows_the_through_slice_formula` |
+| C4 | `python -m mrgym.scanner.fields3d_validate` F33, F34, F35, F36, F37, F38 |
+| C5 | `mrgym validate` R11; `python -m mrgym.scanner.fields3d_validate` F1, F2, F6, F7, F12, F15; `tests/test_artefact_clinic.py::test_signal_loss_of_the_qa_gradient_follows_the_through_slice_formula`; `tests/test_fields3d.py::test_the_seeded_volume_world_end_to_end` |
 | C6 | `mrgym validate` S2; `mrgym qa acr --fault b1_nonuniformity` |
 | C7 | `mrgym validate` C4, C5 |
 | C8 | `mrgym validate` S11; `python -m mrgym.design.validate` P6, P7 |
 | C9 | `python -m mrgym.design.validate` P3, P4, P9, F1, F4 |
 | C10 | `mrgym qa acr --fault receive_coil` |
+| C11 | `python -m mrgym.em.validate` C4, C5; `python -m mrgym.scanner.array_checks` F1, F4, F5, N1, N3, N4, N5, C6, C7, C8, C9, C10, C11 |
 | C12 | `mrgym validate` K15; `tests/test_metamorphic.py::test_r6_four_times_the_bandwidth_doubles_the_noise` |
 | C14 | `mrgym validate` K14; `mrgym qa acr --fault rf_interference` |
+| C34 | `python -m mrgym.em.validate` A4, A8, A8b, A11, A11b, A11c, S3, S3b, S10, S10c, S11, C1 |
+| C36 | `python -m mrgym.em.validate` E1, E1b, E2, E3, E3a, E3a2, E3b, E4 |
 | C15 | `mrgym validate` C6; `tests/test_scanner.py::test_refusals_are_typed` |
 | C16 | `tests/test_acr_phantom.py::test_a_gradient_calibration_error_scales_the_image_along_its_axis_and_is_absent_by_default`; `mrgym qa acr --fault gradient_x` |
+| C17 | `tests/test_gradient_cal.py::test_under_non_linear_gradients_the_edge_of_the_disc_is_not_at_the_scale_of_the_isocentre` |
 | C18 | `mrgym validate` K13 |
 | C20 | `mrgym validate` S6, S8; `python -m mrgym.core.validate` Q7, N1, N12, N13, N5, N6, N6c |
 | C21 | `python -m mrgym.design.validate` G1, G3, G4, G7, G9 |
-| C22 | `mrgym validate` C1, C5 |
+| C22 | `mrgym validate` C1, C5; `python -m mrgym.em.validate` A10, S12 |
+| C23 | `python -m mrgym.em.validate` A10, A10b, A10c, S3e, S7, S12, S13, S13b, S13c, H1 |
+| C35 | `python -m mrgym.em.validate` C3, H1, H2, H3, H3c, H3d, H3e, H4, H5b, H5c |
 | C24 | `python -m mrgym.design.validate` G8 |
 | C28 | `tests/test_acr_phantom.py::test_the_phantom_measures_190_and_148_mm_on_a_perfect_system`; `mrgym qa acr --fault gradient_x` |
 | C29 | `tests/test_qa_acr.py::test_uniformity_of_a_linear_shading_is_the_analytic_value`; `tests/test_qa_acr.py::test_ghosting_ratio_of_a_known_background`; `tests/test_qa_acr.py::test_a_healthy_system_passes_every_simulated_test_at_1_5_t`; `tests/test_acr_phantom.py::test_layout_of_the_resolution_insert_and_of_the_low_contrast_section` |
 | C31 | `tests/test_qa_acr.py::test_one_fault_fails_the_test_the_guidance_names_and_no_other` |
+| C33 | `python tools/measured/run_all.py`, the rows of rungs M0, M1, M2, M2b, M3b, M4/M8, M5, M6, M7, M9 ([measured](physics/measured.md)) |
 | D1 | `mrgym validate` K15, K17 |
 | D2 | `mrgym validate` K16; `examples/textbook/08_noise.py`; `tests/test_snr_spec.py::test_the_background_of_a_magnitude_image_gives_the_noise` |
 | D3 | `mrgym validate` K15; `tests/test_protocol_to_spec.py::test_the_signal_model_of_the_oracle_matches_noise_free_scans` |

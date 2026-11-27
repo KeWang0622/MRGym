@@ -76,6 +76,9 @@ LIMITS = dict(
 LARGE_ROI_CM2, SMALL_ROI_CM2 = 200.0, 1.0   # [G] Table 4
 BACKGROUND_ROI_MM = (16.0, 63.0)            # [G] 6.2: "length-to-width ratio of about 4:1 and a total area of about 10 cm^2"
 BACKGROUND_AT_MM = 110.0                    # [G] 6.2: centred between the edge of the phantom (95 mm) and of the field of view (125 mm)
+BACKGROUND_KEEP_MM = 3.5                    # [D] the background regions keep their standard places while the phantom is found within this distance
+                                            #     of the isocentre (half of the 7 mm between a region and the edge of the phantom); beyond it they
+                                            #     go with the phantom (``follow``)
 RESOLVED_DEPTH = 0.5                        # [D] a gap between two holes is darker than both by this share of the brightest hole
 VISIBLE_Z = 4.0                             # [D] a disk is seen when (disk - ring) / standard error >= this
 TESTS = ("geometric_accuracy", "spatial_resolution", "slice_thickness", "slice_position", "intensity_uniformity",
@@ -260,27 +263,52 @@ def uniformity(img, fov_yx, centre_yx=None) -> dict:
                 low_at_mm=(float(y[i_lo[0]]), float(x[i_lo[1]])), high_at_mm=(float(y[i_hi[0]]), float(x[i_hi[1]])))
 
 
-def background_rois(fov_yx) -> dict:
-    """The four background regions of the ghosting test as rectangles (y0, y1, x0, x1) in mm from the isocentre."""
+def follow(shape, fov_yx, centre_yx) -> tuple:
+    """How far (y, x, in mm) the regions that the guidance places in the background are moved from their standard
+    places, for a phantom found at ``centre_yx``: nothing while the phantom lies within ``BACKGROUND_KEEP_MM`` of the
+    isocentre (the regions are then still in the background, 3.5 mm or more from the phantom, and every result of a
+    phantom positioned within that distance is the one it was), otherwise the offset of the phantom in whole pixels. A
+    technologist puts these regions between the phantom he sees and the edge of the image; a region placed from the
+    isocentre lies ON a phantom that is 20 mm off (measured on a real series: ratio 0.18 instead of 0.0016)."""
+    if centre_yx is None or float(np.hypot(centre_yx[0], centre_yx[1])) <= BACKGROUND_KEEP_MM:
+        return 0.0, 0.0
+    return tuple(float(round(c / (f / n)) * (f / n)) for c, f, n in zip(centre_yx, fov_yx, shape))
+
+
+def background_rois(fov_yx, shift_yx=(0.0, 0.0)) -> dict:
+    """The four background regions of the ghosting test as rectangles (y0, y1, x0, x1) in mm from the isocentre:
+    the standard places of the guidance (round a phantom at the isocentre), moved by ``shift_yx`` (``follow``). A
+    moved rectangle may reach past the edge of the field of view; ``rect_mean`` reads it on the periodic image."""
     w, ln = BACKGROUND_ROI_MM[0] / 2, BACKGROUND_ROI_MM[1] / 2
     c = BACKGROUND_AT_MM
-    return dict(top=(-c - w, -c + w, -ln, ln), bottom=(c - w, c + w, -ln, ln), left=(-ln, ln, -c - w, -c + w), right=(-ln, ln, c - w, c + w))
+    rois = dict(top=(-c - w, -c + w, -ln, ln), bottom=(c - w, c + w, -ln, ln), left=(-ln, ln, -c - w, -c + w), right=(-ln, ln, c - w, c + w))
+    if not (shift_yx[0] or shift_yx[1]):
+        return rois
+    return {k: (r[0] + shift_yx[0], r[1] + shift_yx[0], r[2] + shift_yx[1], r[3] + shift_yx[1]) for k, r in rois.items()}
+
+
+def _within(p, lo, hi, fov):
+    """Pixels of an axis inside [lo, hi] mm. The image of a Fourier-encoded scan is periodic with the field of view,
+    so an interval that reaches past an edge continues at the opposite one (for an interval inside the field of view
+    the two extra terms select nothing)."""
+    return ((p >= lo) & (p <= hi)) | ((p + fov >= lo) & (p + fov <= hi)) | ((p - fov >= lo) & (p - fov <= hi))
 
 
 def rect_mean(img, fov_yx, rect) -> float:
     y, x = positions(img.shape, fov_yx)
-    rows, cols = (y >= rect[0]) & (y <= rect[1]), (x >= rect[2]) & (x <= rect[3])
+    rows, cols = _within(y, rect[0], rect[1], fov_yx[0]), _within(x, rect[2], rect[3], fov_yx[1])
     return float(img[np.ix_(rows, cols)].mean())
 
 
 def ghosting(img, fov_yx, centre_yx=None) -> dict:
-    """Ghosting ratio ([G] 6.3) = |((top + bottom) - (left + right)) / (2 x large region)|."""
+    """Ghosting ratio ([G] 6.3) = |((top + bottom) - (left + right)) / (2 x large region)|. The large region is
+    centred on the phantom as found; the four background regions go with the phantom (``follow``)."""
     if centre_yx is None:
         centre_yx = find_centre(img, fov_yx, 0.5 * water_level(img))
     y, x = positions(img.shape, fov_yx)
     big = np.sqrt(LARGE_ROI_CM2 * 100 / np.pi)
     large = float(img[np.hypot(y[:, None] - centre_yx[0], x[None, :] - centre_yx[1]) <= big].mean())
-    m = {k: rect_mean(img, fov_yx, r) for k, r in background_rois(fov_yx).items()}
+    m = {k: rect_mean(img, fov_yx, r) for k, r in background_rois(fov_yx, follow(img.shape, fov_yx, centre_yx)).items()}
     return dict(ratio=abs((m["top"] + m["bottom"]) - (m["left"] + m["right"])) / (2.0 * large), large_mean=large, **m)
 
 
@@ -349,12 +377,18 @@ def low_contrast(img, fov_yx, section, sd=None) -> dict:
     return dict(spokes=spokes, z_min_per_spoke=[round(min(z[(k, j)] for j in range(A["lcd_disks"])), 2) for k in range(1, A["lcd_spokes"] + 1)])
 
 
-def artifact_line(img, fov_yx) -> dict:
+def artifact_line(img, fov_yx, centre_yx=None) -> dict:
     """A line of interference in the background (declared detector; the guidance's artifact assessment is a reader's
     judgement, [G] 8). The mean magnitude of every column inside the top and bottom background bands, and of every
     row inside the left and right bands, is compared with its two neighbours three pixels away; a line stands above
     both (the edge of a ghost stands above one only). ``z`` is the largest such excess in units of the spread of the
-    excesses (robust)."""
+    excesses (robust). The bands lie round the phantom as found (``follow``): where the phantom is off centre, the
+    periodic image is first turned round by whole pixels so that the phantom is central."""
+    if centre_yx is None:
+        centre_yx = find_centre(img, fov_yx, 0.5 * water_level(img))
+    sy, sx = follow(img.shape, fov_yx, centre_yx)
+    if sy or sx:
+        img = np.roll(img, (-int(round(sy / (fov_yx[0] / img.shape[0]))), -int(round(sx / (fov_yx[1] / img.shape[1])))), axis=(0, 1))
     y, x = positions(img.shape, fov_yx)
     edge = A["diameter_mm"] / 2 + 12.0
     best = 0.0
@@ -577,6 +611,10 @@ def doc_page(m: dict) -> str:
            f"{RESOLVED_DEPTH:g} of the brightest hole. Low contrast: a disk is seen when its mean exceeds the mean of the ring around it by {VISIBLE_Z:g} standard errors.",
            f"- The artifact assessment of the guidance (section 8) is a reader's judgement with no number; here it is a detector of a line of interference in the "
            f"background with the limit z <= {LIMITS['artifact_z']:g}.",
+           f"- The four background regions of the ghosting test and the bands of the line detector lie round the phantom as it is found in the image: at the places "
+           f"of the guidance ({BACKGROUND_AT_MM:g} mm from the isocentre) while the phantom is within {BACKGROUND_KEEP_MM:g} mm of the isocentre, and moved with it in "
+           "whole pixels beyond that, read on the periodic image. On a real image whose phantom lay well off centre, regions placed from the isocentre had "
+           "given a ghosting ratio far too large ([measured.md](measured.md), row M6.13).",
            "- A plastic part displaces solution, so the low-contrast sheet lowers the weight of the solution by the contrast and its holes restore it. The contrast "
            "therefore does not change with the slice thickness of the protocol as it does in the phantom.",
            "", "### Not simulated", ""]
@@ -619,14 +657,16 @@ def doc_page(m: dict) -> str:
             f"solution at 3 T and 20.0 degrees C: T1 {n['t1_ms'][11]:g} ms, T2 {n['t2_ms_sphere_12']:g} ms; regions of 10 mm diameter.",
             "- The reference T1 list of the ISMRM reproducibility challenge (`rrsg2020/analysis`, `src/nist.py`, phantoms with serial number below 0043, 20 degrees C): "
             + ", ".join(f"{v:g}" for v in n["t1_ms"]) + " ms. Its twelfth value is the Ni-12 value of the article, which is how the list is tied to 3 T.",
-            "", "Not opened, and what follows from it:", "",
-            "- Tables S1 to S3 of the article (sphere positions, the 1.5 T values, T2 of every sphere). The world therefore exists at 3 T only; the order of the "
-            "spheres on the plate (1 to 10 round the ring, 11 to 14 on the inner grid) is a choice; and T2 of a sphere is T1 x "
-            f"({n['t2_ms_sphere_12']:g} / {n['t1_ms'][11]:g}), the ratio of sphere 12, a declared rule and not the published T2.",
+            "", "Read later, and not in this world yet:", "",
+            "- Tables S1, S2 and S4 of the article (sphere positions, T1 and T2 of every sphere of both plates at 1.5 and 3 T, the water). They are in the package as "
+            "`anatomy.NIST_S1`, `NIST_S2` and the T2 plate `anatomy.nist_t2`. The world `nist_t1` was built before and is unchanged: it exists at 3 T only, its "
+            "order of the spheres (1 to 10 round the ring, 11 to 14 on the inner grid) turned out to be the published one, and T2 of a sphere is still T1 x "
+            f"({n['t2_ms_sphere_12']:g} / {n['t1_ms'][11]:g}), the ratio of sphere 12, a declared rule and not the published T2. The differences, with the outline of the plate, are rows "
+            "M0.2 to M0.4 and M0.8 of [measured.md](measured.md).",
             f"- The relaxation times of the water round the spheres (\"long-T1 deionized water\" in the article): declared, T1 {n['fill']['t1_ms']:g} ms, T2 {n['fill']['t2_ms']:g} ms.",
             "- The second list of the same file (serial numbers from 0043) was opened and is not used; the temperature correction of the file was not read.",
-            "- No published protocol has been run on this world yet (the inversion-recovery and variable-flip-angle protocols of the article and of the challenge): "
-            "it is an object with reference values, not a validation result.", ""]
+            "- The inversion-recovery protocol of the challenge has been run on this world and compared with the maps the challenge collected on real scanners, and "
+            "the variable-flip-angle protocol of the article with its published rule: [measured.md](measured.md), rungs M1 and M2.", ""]
     return "\n".join(out)
 
 

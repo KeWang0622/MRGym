@@ -14,6 +14,45 @@ Three versions travel with every number:
 
 ## Unreleased
 
+### The engine is compared with measured data; two defects it exposed outside the engine core are fixed
+
+No scan data, no engine id and no environment id changes (`tools/audit/golden.py --check`: 0 changed;
+`python -m mrgym.compat.fingerprint --check`).
+
+- **New page [docs/physics/measured.md](docs/physics/measured.md)**, generated from a stored table that
+  `python tools/measured/run_all.py --write` computes and `--check` verifies: public phantom sessions on real
+  scanners next to the engine's own model of the same protocol, one row per quantity with the measurement, its
+  spread, the engine, the difference and a tolerance or the words "declared difference". The originals are fetched by
+  `--fetch` into a folder outside the repository; the repository keeps a few kB per rung under
+  `docs/physics/measured/`, each with licence, citation and the checksum of the original.
+- **Fixed: QA regions placed from the isocentre.** `qa.ghosting` and `qa.artifact_line` put their background
+  regions round the phantom as it is found in the image (`qa.follow`). On a real image whose phantom lay 21 mm off
+  centre the ghosting ratio was 0.18 instead of 0.0016. A phantom within 3.5 mm of the isocentre keeps the regions
+  of the guidance, so every number of the package's own worlds is unchanged (the stored fault x test matrix was
+  re-run: 26 rows, no difference).
+- **Added: the published tables of the NIST system phantom** (`anatomy.NIST_S1`, `NIST_S2`: T1 and T2 of both plates
+  at 1.5 and 3 T) and the T2 plate `anatomy.nist_t2`. `NIST_T1` and the world `nist_t1` are not changed.
+- The map: "Agreement with measurement" (C33) is formed in part; its evidence is the rows of the new table.
+- The sentence that nothing here has been compared with a scanner is replaced, where this change may touch it
+  (`docs/physics/limits.md`, `external.md`, `docs/DESIGN.md`, the map), by what has and has not been compared.
+### Receive arrays and parallel imaging, as a library
+
+No reward, no scan data and no id changes; the engine version is unchanged (a world without the new key gives the
+bytes of before: `tools/audit/golden.py --check` reports 0 changed).
+
+- **`mrgym.scanner.array`.** A world spec may carry `array` (elements on a ring, a row or two rows; per-element
+  Biot-Savart loop maps; a noise covariance; a dead, noisy or mis-scaled element). `ArrayEngine` forms the
+  multi-channel k-space of a protocol through `Engine.amplitudes` and `Engine.kspace`: per coil (the definition) or
+  fast (the object once, the maps in image space), with correlated noise scaled as the single-channel noise is.
+  Maps and covariance can be handed in from outside (`array.given`).
+- **`mrgym.scanner.recon`.** Noise whitening; root sum of squares, optimal (Roemer) and adaptive (Walsh)
+  combination; map estimation from a prescan or from calibration lines; sampling masks; SENSE with optional
+  regularisation, its g-factor map and noise in SNR units; conjugate-gradient SENSE; pseudo multiple replicas. GRAPPA
+  is a seam.
+- **Checks.** `python -c "from mrgym.scanner import recon; recon.validate()"` ([docs/physics/array.md](docs/physics/array.md));
+  `python tools/audit/array_rederive.py`; an additive section `array` in `tests/golden/engine_digests.json`.
+- **Not yet.** No console option, tool or task uses it: the scanner an agent talks to still has one receive channel.
+
 ### The repository is laid out for someone who wants to use the environment
 
 No reward, no scan data and no id changes.
@@ -73,6 +112,43 @@ Unchanged: `passed`, `checks`, the reward, `progress` and every tolerance. The l
 `python tools/audit/policy_identity.py relabel RUN/episodes`. Counts of `check_failed` on these four ids are not
 comparable across this entry; counts of every other label are. `tools/audit/policy_identity.py play` / `compare`
 plays every control policy on two trees and compares reward, checks and deliverable episode by episode.
+
+### Two single-skill families of spatial encoding: `Scanner/ShiftFree-v0`, `Scanner/GhostAside-v0` (candidates)
+
+New ids; no existing id, text or reward changes. Both are `kind="candidate"`: no gate result is stored for them.
+
+- `Scanner/ShiftFree-v0` (`envs/shift_free/`): the readout as a time axis. Fat is displaced along the frequency-encode
+  axis by its frequency difference over the bandwidth per pixel. Three marked regions lie between fat discs at hidden
+  distances; per region the bandwidth, the readout direction and (level 3) the phase-encode axis of its scan are
+  delivered: fat off the region at the highest signal-to-noise ratio that allows.
+- `Scanner/GhostAside-v0` (`envs/ghost_aside/`): the line-to-line time axis. A tube whose signal pulsates leaves
+  ghosts along the phase-encode axis at (phase field of view) x dist(rate x TR x averages). Three tubes pulsate at
+  hidden rates; per tube the phase-encode axis and the repetition time of the fastest scan without a ghost on its
+  two regions are delivered.
+
+Their size ceilings in `tests/test_observation_budget.py` are first values (16300 characters each).
+
+### Two candidate families on spatial encoding: `Scanner/Resolve-v0` and `Scanner/FoldAway-v0`
+
+Both are single-skill families on the spin echo, registered as `candidate` (no stored gate yet), with levels 1 to 3
+(level 1 states the method). `Scanner/Resolve-v0`: three pairs of small features at hidden spacings; deliver, per
+pair, the geometry of the fastest scan of the whole object that separates the pair (a dip of one half between the two
+peaks, read between the pixels). `Scanner/FoldAway-v0`: an object larger than the affordable field of view and four
+marked regions; deliver, per region, the fastest geometry in which no aliased signal lands on the region (checked
+against a twin scan without wrap-around). No existing id, reward or engine number changes.
+
+### Two single-skill candidate families: `Scanner/ErnstFlip-v0` and `Scanner/T1Vial-v0`
+
+Both are new ids (`kind="candidate"`: no stored gate yet); no reward of an existing id changes.
+
+- `Scanner/ErnstFlip-v0`: for five marked vials of hidden T1, the nominal flip angle at which a 2D spoiled gradient echo
+  at a stated repetition time gives each its highest signal. Pass: at the delivered angle every vial gives at least
+  99.5 % of the largest signal it can give at any flip angle. The budget pays for two gradient-echo scans. Level 1
+  states the method (two scans, a printed table of the 2D signal ratio), level 2 withholds it, level 3 adds a hidden
+  transmit scale. The textbook angle arccos(exp(-TR / T1)) of the true T1 fails at every level (the slice profile).
+- `Scanner/T1Vial-v0`: T1 of three marked vials on a system with a calibrated transmitter, each within a factor 1.10.
+  Level 1 states inversion recovery with three inversion times and the signed three-parameter fit, level 2 has 60 % of
+  the scan time, level 3 has vials from 60 to 2000 ms that differ by a factor of ten or more.
 
 ### A refused call is charged by its class: this changes when an episode ends
 
@@ -301,6 +377,25 @@ the `info` keys, the log format and the `serve` / `verify` commands do.
   for families from other packages, `integrations/container/` (written and linted, not run), a canary string in
   exported records.
 - The gate plays on the public split `gate` and tunes on `tune` (before: string seeds on `train`).
+
+### Volume worlds: the hidden object in three dimensions (no scan of them yet)
+
+No reward, no scan data and no id changes: a 2D exam is bit for bit what it was.
+
+- **Two world kinds, `head3d` and `qa3d`** (`mrgym.scanner.volume`). A world is a seeded recipe of analytic shapes, not
+  a voxel array: a head (scalp, fat, skull, CSF, cortex, white matter, ventricles, deep nuclei, air cavities, eyes;
+  lesions, straight vessels with a hidden direction and speed, placed inserts and a pose as options) and a cylinder
+  test object (the vial section of the 2D `qa` phantom of the same seed, a ball, a pair of crossed wedges, a block
+  with two crossed ramps). It is evaluated at points, on a plane of any position and angle on the engine's grid, and on
+  a coarse lattice; regions are balls and cylinders with their truth. What it holds, the coordinate convention and the
+  measured numbers: [docs/physics/volume.md](docs/physics/volume.md).
+- **Nothing images a volume world yet.** It has no fields and the engine takes 2D worlds only; the map of MR physics
+  is unchanged.
+- **A baseline for the work that follows** (`tests/test_compat_2d_unchanged.py`, `tests/golden/compat_2d.json`): for
+  every 2D world kind and console sequence the world, the protocol schema, the scanner card, the `plan` output, the
+  header and the noise-free image, the refusal of the parameters a 2D exam does not simulate, the golden engine digests
+  and the id fingerprints, as recorded on the tree before this change. `make golden` checks it and the new
+  `tests/golden/volume_digests.json`.
 
 ## 0.1.0.dev0
 

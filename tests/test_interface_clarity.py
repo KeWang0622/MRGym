@@ -28,9 +28,11 @@ from mrgym.scanner import console, session
 NOWRAP, T1, NULL, QA, SNR, CLINIC, FAT, BAND, SPEC, EXPLORE = (
     "Scanner/NoWrap-v1", "Scanner/T1Transmit-v1", "Scanner/NullTissue-v0", "Scanner/PhantomQA-v0", "Scanner/SNRSpec-v0",
     "Scanner/ArtefactClinic-v0", "Scanner/FatSuppress-v0", "Scanner/BandFree-v0", "Scanner/ProtocolToSpec-v0", "Scanner/Explore-v0")
+ERNST, T1VIAL = "Scanner/ErnstFlip-v0", "Scanner/T1Vial-v0"
 TARGET_SCAN = (NOWRAP, NULL, FAT, BAND, SNR, SPEC, CLINIC)                # the deliverable is evaluated on a scan the task names
+TARGET_SCAN += ("Scanner/ShiftFree-v0", "Scanner/GhostAside-v0", "Scanner/Resolve-v0", "Scanner/FoldAway-v0", ERNST, "Scanner/EPISetup-v0")   # single-skill families of subject B
 FREQ, TRANSMIT = "Scanner/FrequencyAdjust-v0", "Scanner/TransmitAdjust-v0"
-OWN_SCAN = (QA, T1, EXPLORE, FREQ, TRANSMIT, "Scanner/T2Decay-v0", "Scanner/FatFraction-v0")                              # the deliverable is a measurement on the agent's own scans
+OWN_SCAN = (QA, T1, EXPLORE, FREQ, TRANSMIT, "Scanner/T2Decay-v0", "Scanner/FatFraction-v0", "Scanner/NoiseSNR-v0", "Scanner/GradientCal-v0", T1VIAL)   # the deliverable is a measurement on the agent's own scans
 IR = {"sequence": "ir", "tr_ms": 800, "ti_ms": 100, "matrix": 64, "partial_fourier": 0.6}
 LOCALISER = {"sequence": "spgr", "tr_ms": 12, "flip_deg": 10, "fov_mm": 288, "matrix": 96}
 CLAUSE_MAX = 160                                                          # characters of a clause that is printed only when its condition holds

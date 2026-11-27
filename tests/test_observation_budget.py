@@ -256,7 +256,7 @@ def test_ranges_are_stated_in_words_and_checked_for_plan_scan_and_a_delivered_pr
 # is a ratchet: it is lowered when the text gets shorter and raised only with a reason in the changelog.
 CEILING = {"Scanner/ArtefactClinic-v0": 17800, "Scanner/BandFree-v0": 16100, "Scanner/Explore-v0": 12000, "Scanner/FatSuppress-v0": 16100,
            "Scanner/FrequencyAdjust-v0": 14300, "Scanner/TransmitAdjust-v0": 14800, "Scanner/NoWrap-v1": 15500, "Scanner/NullTissue-v0": 14900, "Scanner/PhantomQA-v0": 16500, "Scanner/ProtocolToSpec-v0": 15900,
-           "Scanner/SNRSpec-v0": 15200, "Scanner/T1Transmit-v1": 13900, "Scanner/T2Decay-v0": 14100, "Scanner/FatFraction-v0": 14900}
+           "Scanner/SNRSpec-v0": 15200, "Scanner/T1Transmit-v1": 13900, "Scanner/T2Decay-v0": 14100, "Scanner/FatFraction-v0": 14900, "Scanner/ShiftFree-v0": 16300, "Scanner/GhostAside-v0": 16300, "Scanner/FoldAway-v0": 17700, "Scanner/Resolve-v0": 17500, "Scanner/NoiseSNR-v0": 14600, "Scanner/GradientCal-v0": 14100, "Scanner/ErnstFlip-v0": 15800, "Scanner/T1Vial-v0": 14600, "Scanner/EPISetup-v0": 17900}
 
 
 def _budget_tool():

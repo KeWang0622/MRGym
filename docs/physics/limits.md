@@ -11,9 +11,18 @@ Rules of this page:
 - "Planned" refers to [ROADMAP.md](../ROADMAP.md). Its entries are plans, not promises.
 - `mrgym validate` checks the scanner against formulas and against calculations written separately by the same
   authors ([validation.md](validation.md)); [external.md](external.md) compares it with another group's code and
-  with published operating points. No image here was compared with a measurement on a real scanner.
+  with published operating points; [measured.md](measured.md) compares it with measured data.
 
-**Out of scope.** MR Gym has never been compared with data from an MR scanner. It computes a stated model. Not
+**Compared with measurement, and not.** [measured.md](measured.md) puts public phantom sessions on real scanners
+next to the engine's own model of the same protocol: the ACR series measured with the QA functions of this package,
+inversion-recovery T1 and spin-echo T2 of the NIST plates, the six echoes of a fat-water phantom, a gel sphere, and
+published phantom measurements. What is compared there are statistics of images, signals of regions and fitted
+values, row by row, with the differences that were found
+([Known differences from measurement](measured.md#known-differences-from-measurement)). What has not been done: no
+image of the six console sequences has been compared pixel by pixel with a scan of the same object, and no tissue
+in a body has been compared at all.
+
+**Out of scope.** MR Gym computes a stated model. Not
 modelled, and not testable with `mrgym validate --perturb`: magnetisation transfer and exchange; restricted or
 anisotropic diffusion; flow, perfusion, physiological motion (one periodic line-modulation model exists, block 7);
 eddy currents, concomitant fields, gradient impulse response; SAR in W/kg, local SAR, nerve stimulation; B0 drift
@@ -32,6 +41,7 @@ python examples/textbook/12_approach_to_steady_state.py    # first sampled line 
 python examples/textbook/13_slice_profile_vfa.py           # two-angle T1 on a 2D slice against 3D
 mrgym validate --group rf                                  # the slice-selective pulse and the slice integral (rows R1 to R12)
 python tools/external/run_all.py                           # the external ladder (rows L1.1 to L3.10)
+python tools/measured/run_all.py                           # the comparison with measured data (rungs M0 to M9; minutes)
 mrgym timing                                               # seconds of computation per scan
 mrgym scan sequence=se tr_ms=3000 te_ms=90 matrix=256      # prints the header line with TA and SAR
 python -c "from mrgym.scanner import world; print(world.DEFAULT_SPEC, world.B1_SHAPE, world.GRID)"
@@ -55,8 +65,22 @@ this repository; the tests arrive with the fix. Until then, treat results that d
 | The fat-saturation factor is the same at every TR and flip angle. | Fat recovers between the saturation pulse and the excitation, and the steady state depends on TR, the T1 of fat and the flip angle. | `Scanner/FatSuppress-v0` |
 | `rf_pulse=fast` excites a slice 1.2 to 1.4 times the prescribed `slice_mm`. | The console calibrates the slice gradient so that the width at half maximum equals the prescription for every pulse. | any task where the agent may set `rf_pulse` |
 
+Two more were reported on 2026-11-27 by the signal core ([core.md](core.md)), which re-derives every served sequence
+from the Bloch equation. They are being checked with a separate simulation before the engine is changed:
+
+| What the engine does | What the derivation gives | Tasks it can affect |
+|---|---|---|
+| Balanced SSFP with `phase_cycle_deg` other than 0 or 180 puts the dark bands at the mirrored off-resonance: the phase advance enters with the wrong sign. | With the pulse phase advancing by Δ per TR, the precession per TR seen by the pulse is 2π·Δf·TR − Δ. | `Scanner/BandFree-v0`, if a delivery uses another phase cycle than 0 or 180 |
+| Balanced SSFP on a selected slice ignores the small off-resonance each position through the slice gains from the pulse itself. | About 1.2 % of the slice signal. | any balanced SSFP image |
+
 The training result on the front page was measured on `Scanner/NoWrap-v1` and `Scanner/NullTissue-v0`. Whether any
 of the four enters those episodes has not been checked yet.
+
+These four came from an audit against textbook physics. What a comparison with measured data found is listed
+separately, each with its number and with what would close it:
+[Known differences from measurement](measured.md#known-differences-from-measurement). One of them was a defect of
+the QA measurements and is fixed: the background regions of the ghosting test were placed from the isocentre and
+landed on a phantom that lay off centre.
 
 ---
 
@@ -146,7 +170,11 @@ of the four enters those episodes has not been checked yet.
   (`python examples/textbook/08_noise.py`; row K16).
 - **For a task.** Noise can be read from any empty region and is the same everywhere. Acceleration is not a way
   to buy time.
-- **Planned.** On the roadmap ("Receive arrays").
+- **Planned.** On the roadmap ("Receive arrays"). The first part exists as a library that no tool and no task
+  uses yet: a world can carry an array of receive elements, and its multi-channel data, coil combinations, SENSE
+  and g-factor maps are formed and checked in [array.md](array.md)
+  (`python -c "from mrgym.scanner import recon; recon.validate()"`). The scanner an agent talks to is unchanged
+  until the console offers acceleration and coil combination.
 
 ## 6. Piecewise-constant tissue, schematic anatomy
 
@@ -231,9 +259,9 @@ of the four enters those episodes has not been checked yet.
 - **Simplified.** Head: the field of three air spheres below the slice. Abdomen: gas spheres in the slice plane.
   Both get a first-order shim over the brain or the abdominal cavity and a smooth random term. QA phantom: a linear
   plus saddle field. The shim and the frequency adjustment are fixed for the session. The transmit pattern is a closed form
-  whose amplitude depends on the field strength. The receive profile is unrelated to the transmit pattern. There
-  is no gradient non-linearity (the world-spec key `gnl` warps positions for sensitivity studies only; no shipped
-  environment sets it), no concomitant field, no eddy current and no drift. A turned or shifted field of view sees
+  whose amplitude depends on the field strength. The receive profile is unrelated to the transmit pattern. Gradient
+  non-linearity is one radial warp of positions (the world-spec key `gnl`), used by level 3 of
+  `Scanner/GradientCal-v0` and off everywhere else. There is no concomitant field, no eddy current and no drift. A turned or shifted field of view sees
   the same fields: they are functions of the patient position.
 - **A real scanner** has a field shaped by the whole anatomy, lets the operator re-shim, and warps images away
   from the isocentre.
