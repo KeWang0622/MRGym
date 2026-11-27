@@ -1,7 +1,8 @@
 """The ``mrgym`` command.
 
     mrgym --version                         package version and scanner engine
-    mrgym list                              registered environments: kind, levels, and what the stored gate says
+    mrgym list                              registered environments by subject: kind of task, kind, levels, the stored gate
+    mrgym map                               the map: subjects x kinds of task, which physics is formed, which task asks for it
     mrgym demo                              one real episode on the scanner, printed as a transcript
     mrgym scan sequence=se tr_ms=500 ...    one scan of a phantom from the command line; writes a PNG
     mrgym play                              operate the scanner yourself (plan / scan / view / budget)
@@ -88,9 +89,20 @@ def cmd_list(a):
     if a.json:
         print(json.dumps(rows if not a.retired else dict(environments=rows, retired=retired), indent=1))
         return 0
-    for r in rows:
+    def show(r, task=""):
         levels = ",".join(map(str, r["levels"])) + (f" (claim: {','.join(map(str, r['claim_levels']))})" if r["practice_levels"] else "")
-        print(f"{r['id']:24s} {r['kind']:9s} levels {levels:22s} {r['title']}\n{'':24s} {r['status']}")
+        print(f"{r['id']:24s} {r['kind']:9s} levels {levels:22s} {task}{r['title']}\n{'':24s} {r['status']}")
+
+    if a.flat:
+        for r in rows:
+            show(r)
+    else:                                               # by subject, with the kind of task beside each id (mrgym.physics_map)
+        from . import physics_map
+        by_id = {r["id"]: r for r in rows}
+        for letter, title, ids in physics_map.groups():
+            print(f"{letter}  {title}")
+            for env_id, number in ids:
+                show(by_id[env_id], f"{f'{number} {physics_map.kind(number).name}' if number else '-':<11}")
     for r in retired:
         print(f"{r['id']:24s} retired   last served by mrgym {r['last_version']}" + (f"; successor {r['successor']}" if r["successor"] else ""))
     return 0
@@ -418,6 +430,7 @@ def main(argv=None) -> int:
     p = sub.add_parser("list", help="registered environments")
     p.add_argument("--json", action="store_true")
     p.add_argument("--retired", action="store_true", help="with --json: an object with the served and the retired ids")
+    p.add_argument("--flat", action="store_true", help="one list in the order of the ids, without the subjects and the kinds of task")
     p.set_defaults(fn=cmd_list)
     p = sub.add_parser("card", help="environment card as Markdown")
     p.add_argument("id")
@@ -528,9 +541,10 @@ def main(argv=None) -> int:
     p.add_argument("--refresh", action="store_true", help="harbor: render the existing tasks again from their stored seeds (no new instance)")
     p.set_defaults(fn=lambda a: export.cmd_export(a) if a.target == "episodes" else compat_export.cmd_export(a))
 
-    from . import coverage, qa
+    from . import coverage, physics_map, qa
     qa.add_parser(sub)
     coverage.add_parser(sub)
+    physics_map.add_parser(sub)
 
     a = ap.parse_args(argv)
     return int(a.fn(a) or 0)

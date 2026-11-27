@@ -2,7 +2,7 @@
  "ids": {
   "Scanner/ArtefactClinic-v0": {
    "engine": "mrgym-engine-0.2.0",
-   "fingerprint": "138fc6d0605ad977c129a80c9966bf2402a33b9248b0526464f34b667edb4b93",
+   "fingerprint": "7737eeada49bbda8d1668be2b6c3a74dbd984c6917c30dc678a99fc4cc087788",
    "frozen": false,
    "package": "0.1.0.dev0",
    "parts": {
@@ -18,12 +18,12 @@
     "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
     "registration": "efb6fafb8e1a24b66c098adb52e22312d24a6850a6e74e69a330e09233f85eee",
     "rules": "bb3912afce9799da179c75f206b04ca60ba5f39354fada79fc41c437dbfb6d93",
-    "scoring_source": "2fbf5703b4c1c295c841f093470904b7a2f94fbbd09f85cfb7499fe9505817e9"
+    "scoring_source": "82a0da8e93b50ab4c78e3c6801da02c2daba3a665af2f25aa11d377a19395582"
    }
   },
   "Scanner/BandFree-v0": {
    "engine": "mrgym-engine-0.2.0",
-   "fingerprint": "8c91eb06d391d4a56ba5ad544f1a11488b333ef219002c94e297c01fe37cce83",
+   "fingerprint": "b97ef4e5eb3d5a403a248145e5298e0005c815c13d37aed9c45a0a10099fe744",
    "frozen": false,
    "package": "0.1.0.dev0",
    "parts": {
@@ -39,7 +39,7 @@
     "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
     "registration": "3181a1caff524f9506bcf94151111e154478ed7c3e764dacb4e2e96dc79f0303",
     "rules": "902ab2bc40e31b6a3650c685898f8a00e8a94a897df130352bea885412926365",
-    "scoring_source": "c47c230fd0be9d80f0c6797140f14aafde5274c21128efe2d217e9f26baed1a1"
+    "scoring_source": "5d37676c6ebbd077e8fa6ef7505306e659227ebe0be2f2ffc9ba32e972ef848a"
    }
   },
   "Scanner/Explore-v0": {
@@ -76,6 +76,27 @@
     "registration": "3181a1caff524f9506bcf94151111e154478ed7c3e764dacb4e2e96dc79f0303",
     "rules": "64269dd22d80e22d7d39818cd4dfe22927f655c02ccc5d33607cfe39cd18ee2c",
     "scoring_source": "6e5db65dbe0c03c25e7df9ce85aa97a8de33c557fab9c0000115446d0017dbb2"
+   }
+  },
+  "Scanner/FrequencyAdjust-v0": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "6927fe7ecf733f1245e3d830e556e481cdb5bd1028896a1b343c44f50ddac7f8",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "76e23d952ef79ca30564e69066b08c74b67db153e6606b5761ccb7f423c495ae",
+    "L1.tools": "b1bfc4de86f4b5fbb0dabf9c719e2d2e291c5493883ddab313ed777f6b2dfc58",
+    "L1.transcript": "d8729b95246f66f500f65b53ac0cc32fb9fff0de78ed0ea7ab3720f3024e33c8",
+    "L2.statement": "244ebf401286971b86c1173baa12890170ae11e9e966b83cad21aafb2341a6e1",
+    "L2.tools": "05a9bade82b095aa1ee59adae236fd4c8a630ec208490c419833e6be8ca32c73",
+    "L2.transcript": "5ca4ff654fbbb4f16536067a8bf3ab03b5e8f1954d6962d9adbd17216c4faf84",
+    "L3.statement": "97ca38914e3e99d69c684a69a9185d9b642d5e758acc191f639fb6eaeb23051b",
+    "L3.tools": "fbe6353782d34c7c825d6835fa81326ea5a1414a94efecde0026eb260cbfcc59",
+    "L3.transcript": "d81dd3196f88d1f993d18d0e56f3cc28d6ba81cde7ff3cb5f3681b990ddb19b0",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "8dd640ee9d381e1ad7e7d0fdb7b3b4debc1be8e31a4d5d2755afe44aeff42c54",
+    "rules": "c61ed6d5aab5ec6a4dcab5188fd3e88eb7d8f6935b640548ead4702586a85df0",
+    "scoring_source": "cfcb786c796097278ec4d1ea8a0471402f3e657ac845cdc37da5242e214a4d38"
    }
   },
   "Scanner/NoWrap-v0": {
@@ -167,7 +188,7 @@
   },
   "Scanner/ProtocolToSpec-v0": {
    "engine": "mrgym-engine-0.2.0",
-   "fingerprint": "55e935f52d022cc827808176a53f7634025e12fbac2baacae70c451fe707270b",
+   "fingerprint": "53557b4669ff91412a3152b4c719e0172fe6f9b39f9401a1683d3d5b3c527a9f",
    "frozen": false,
    "package": "0.1.0.dev0",
    "parts": {
@@ -183,12 +204,12 @@
     "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
     "registration": "dd0e9d63472e0c0906fadfba9222a71e43cbbcd04ecd6fc57193503d928560ec",
     "rules": "3246468fbcf5d7ec20d4219576439ed9d757c7450ba15954c7311cfc8189fd25",
-    "scoring_source": "840207f7e98786e2e20b4b90ab5b3961842daa702539e565ae28550d49c5e482"
+    "scoring_source": "3dacdb91c354ec10e075f956ef8d5863d049b9e510e54ceac606285dd7470aba"
    }
   },
   "Scanner/SNRSpec-v0": {
    "engine": "mrgym-engine-0.2.0",
-   "fingerprint": "3831cc893b88149ae7612fc48ba44453e5770fa7bdcfbb1098f75298ab4e03e4",
+   "fingerprint": "040b0b7034164f6e9dce20ad959ad1f75f0d40476de2c04651a86fd1aea0da84",
    "frozen": false,
    "package": "0.1.0.dev0",
    "parts": {
@@ -204,7 +225,7 @@
     "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
     "registration": "71d6cb13268406534e526ea9ed0fd912c92d371c78599c186ffaf44329eafee5",
     "rules": "7fb9219b0b9f6866698fc087ce1f7e1cd9f3acd6effa96e79e76ac26616f8079",
-    "scoring_source": "d2514da18643a319d5a29338c737a44b79f1d17c3beb8993eae03c5f05f7918c"
+    "scoring_source": "02162c2e8e5646bc26d988a6fc0745313a10b52d89c7c4f93205c9b21d53e05d"
    }
   },
   "Scanner/T1Transmit-v0": {
@@ -247,6 +268,27 @@
     "registration": "3181a1caff524f9506bcf94151111e154478ed7c3e764dacb4e2e96dc79f0303",
     "rules": "9063fea2762ce3fa996f1e4ab183079873a692a68b5c0ce36a9df83d2dc07b55",
     "scoring_source": "844c8837020bbb3abcf683cde22b9b643e27457fb47a217d072a368ce7b0280c"
+   }
+  },
+  "Scanner/TransmitAdjust-v0": {
+   "engine": "mrgym-engine-0.2.0",
+   "fingerprint": "de2becde97ed3b6441e388897b87a2baffa24e7209d36343c05a1944b49179b5",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "154c88cffa57b92ffeb1377b3ed8414f049ac86522fb70d5385fe29c2a785aa1",
+    "L1.tools": "cc5a3615f8f5888a1427732e9ad52aec0237845dbb0502a65b6e98d0d8614deb",
+    "L1.transcript": "7da7da2656d44ecfed2b05e3ed69eece5dba90bff4781f729b2d123d81b4bc78",
+    "L2.statement": "6ccaa0cd915b71499f0588fa4b0854dbc37db966ca5aa7ba1f35ae8d4487f5d7",
+    "L2.tools": "013720709398faa5dfef456118adad7222efcd14da34b9d15ddba5135a816e43",
+    "L2.transcript": "084db2d2622a5820c500228fdec63bb5c426e4745f8a4a888be21f43d6bd516e",
+    "L3.statement": "0f45b50df99c2fe79fcbb7092b0c56d1ffb153ec59c2c5af7261c69e8c0df902",
+    "L3.tools": "013720709398faa5dfef456118adad7222efcd14da34b9d15ddba5135a816e43",
+    "L3.transcript": "ce50829a856fe74fe3f0df48d2eb961145d33e4f5da135fd5efeda96cfef88a9",
+    "engine": "18c253f69eb40c770fc417c5b595c8e067bb1b98573e2d4f034c4b8b606f35c6",
+    "registration": "8dd640ee9d381e1ad7e7d0fdb7b3b4debc1be8e31a4d5d2755afe44aeff42c54",
+    "rules": "cd52f27186434671fd7a03b6c13631cbf3dddfb33d764970f98c2a1930b43b92",
+    "scoring_source": "3021cdbeda526be39cecaae52bd3b7347cef2a96bea098972eeab74bc589c00d"
    }
   }
  },

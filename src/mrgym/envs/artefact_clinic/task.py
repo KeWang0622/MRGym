@@ -114,6 +114,16 @@ def _protocol_text(p: dict) -> str:
 
 
 WINDOWED = ("te_ms", "tr_ms", "slice_mm")
+# Outcome labels of a delivered, measured answer that fails (worst first) and the checks behind each: (label, stems),
+# a check belongs to a requirement when its name is the stem or ``<stem>_<finding>``. The label is the first part of
+# the pass rule that the delivery misses, in the order in which ``score`` declares the checks: the diagnosis, then the
+# image the delivered protocol gives, then the requirements of the examination. It names the requirement, never the
+# finding: ``diagnosis_wrong`` for one finding or for all four.
+REQUIREMENTS = (("diagnosis_wrong", ("diagnosis",)), ("remedy_leaves_artefact", ("clean",)),
+                ("locked_parameter_changed", ("locked_parameters",)),
+                ("parameter_outside_window", tuple(f"{k.split('_')[0]}_window" for k in WINDOWED)),
+                ("pixel_too_large", ("pixel_size",)), ("scan_too_long", ("scan_time",)), ("snr_too_low", ("snr_reference",)))
+OUTCOMES = tuple(label for label, _ in REQUIREMENTS)
 
 
 def _budget_text(cfg: dict) -> str:
@@ -270,6 +280,14 @@ def score(cfg: dict, answer, world: dict | None = None, engine=None) -> dict:
                     snr_reference=round(snr, 1), scan_s=pl["scan_s"], pixel_mm=round(rp["fov_mm"] / rp["matrix"], 4),
                     water_fat_shift_mm=round(pl["derived"]["water_fat_shift_px"] * rp["fov_mm"] / rp["matrix"], 3),
                     echo=C.echo_class(rp["te_ms"], world["b0_t"]), diagnosis_correct=len(truth) - len(wrong), findings=len(truth))
+
+
+def outcome(score: dict) -> str:
+    """The outcome label of a delivered, measured answer that fails a check: one of ``OUTCOMES``, the first requirement
+    of ``REQUIREMENTS`` with a failed check. A function of the names and values of ``score["checks"]`` and nothing else."""
+    failed = [k for k, ok in score["checks"].items() if not ok]
+    missed = lambda stems: any(k == s or k.startswith(s + "_") for k in failed for s in stems)   # noqa: E731
+    return next((label for label, stems in REQUIREMENTS if missed(stems)), OUTCOMES[-1])
 
 
 def _task_kind() -> dict:

@@ -287,7 +287,38 @@
     },
     "MAX_ATTEMPTS": 64,
     "MAX_CAUSES": 2,
+    "OUTCOMES": ["diagnosis_wrong", "remedy_leaves_artefact", "locked_parameter_changed", "parameter_outside_window", "pixel_too_large", "scan_too_long", "snr_too_low"],
     "READING": "How images are read: the reference policy reads single pixels of stored images inside each finding. A text-only agent gets the same numbers from `read_regions`: a circle of radius 1 mm on a pixel centre (centre + (i - n // 2) x field of view / n) returns that pixel alone when pixels are larger than 1 mm, which holds for every experiment of the reference (matrix at most 224 on a 240 mm field of view); 16 circles per call, free of charge. At level 3 the reference also reads two phase images (`view` with kind phase; `read_regions` returns the complex mean of a circle): the complex difference of the complaint and the one-average scan along the phase-encode line of a ghost finding shows where its copies went. ",
+    "REQUIREMENTS": [
+     [
+      "diagnosis_wrong",
+      ["diagnosis"]
+     ],
+     [
+      "remedy_leaves_artefact",
+      ["clean"]
+     ],
+     [
+      "locked_parameter_changed",
+      ["locked_parameters"]
+     ],
+     [
+      "parameter_outside_window",
+      ["te_window", "tr_window", "slice_window"]
+     ],
+     [
+      "pixel_too_large",
+      ["pixel_size"]
+     ],
+     [
+      "scan_too_long",
+      ["scan_time"]
+     ],
+     [
+      "snr_too_low",
+      ["snr_reference"]
+     ]
+    ],
     "SUBMIT_DOC": "Deliver the diagnosis and the corrected protocol: for each marked finding the list of its causes (an empty list when the finding is the object itself), and one protocol for the examination.",
     "WINDOWED": ["te_ms", "tr_ms", "slice_mm"]
    },
@@ -1861,11 +1892,26 @@
     },
     "MAX_ATTEMPTS": 64,
     "OIL_BANDWIDTH_MIN": 90.0,
+    "OUTCOMES": ["band_on_region", "second_acquisition_not_needed", "bandwidth_too_high"],
     "QA": {
      "n_ring": [5, 6],
      "roi_radius_mm": 6.0
     },
     "REFERENCE_DRIFT_HZ": 26.0,
+    "REQUIREMENTS": [
+     [
+      "band_on_region",
+      ["band_free"]
+     ],
+     [
+      "second_acquisition_not_needed",
+      ["acquisitions_needed"]
+     ],
+     [
+      "bandwidth_too_high",
+      ["bandwidth_low"]
+     ]
+    ],
     "SINGLE_UP_TO": 400.0,
     "SUBMIT_DOC": "Deliver, for each of the two images, the receiver bandwidth of the balanced SSFP image and its phase cycle: one phase cycle for a single acquisition, two for a pair of acquisitions of which every region uses the one that shows it better.",
     "TARGET": {
@@ -3066,6 +3112,452 @@
     }
    },
    "submit_doc": "Deliver, for each marked region, the method of the fat-suppressed target image of that region: fat_sat, or stir with the inversion time in milliseconds."
+  },
+  "Scanner/FrequencyAdjust-v0": {
+   "card": {
+    "competencies": ["qc.centre_frequency", "parameter.te", "artefact.chemical_shift"],
+    "controls": [
+     {
+      "must": "pass",
+      "name": "reference",
+      "what": "multi-echo spgr, phase differences on a ladder of echo-time differences (0.3 ms to two echo spacings); oil named by its shift"
+     },
+     {
+      "must": "fail",
+      "name": "prior",
+      "what": "no scan; 0 Hz in every region"
+     },
+     {
+      "must": "fail",
+      "name": "fixed_recipe",
+      "what": "one token scan, then one constant offset for every region, tuned on other worlds"
+     },
+     {
+      "must": "fail",
+      "name": "wrong_units",
+      "what": "the reference's offsets in rad/s (the phase slope, not divided by 2 pi)"
+     },
+     {
+      "must": "fail",
+      "name": "one_echo_sweep",
+      "what": "three single-echo scans; phase / (2 pi TE) of each, averaged (the receive phase is ignored)"
+     },
+     {
+      "must": "ablation",
+      "name": "single_spacing",
+      "what": "two echoes 2 ms apart, no ladder: the method stated at level 1"
+     },
+     {
+      "must": "ablation",
+      "name": "lock_on_fat",
+      "what": "the reference without the species step: a number for every region"
+     },
+     {
+      "must": "reported",
+      "name": "open_loop",
+      "what": "both scans at every level and the reference's estimator (a fixed scan list)"
+     }
+    ],
+    "deliver": "For each marked region, the off-resonance of its water in Hz; at level 3 the word \"oil\" for a region that holds oil",
+    "deliverable": {
+     "format": {
+      "offset_hz": {
+       "<region id>": "<Hz>, level 3: or \"oil\""
+      }
+     },
+     "tool": "submit"
+    },
+    "determinism": "same (seed, level, tool calls) -> same observations, log hash chain and reward; a repeated scan draws new noise; the verifier reads the hidden field and scans nothing",
+    "given": "A test object with vials in a hidden, non-uniform field; a scanner whose centre frequency is off; a scan-time budget",
+    "hidden": ["the error of the centre frequency (up to 100 Hz at level 1, 500 Hz at level 2, 500 Hz at level 3)", "the field over the object", "which marked vials hold oil (level 3)", "the phase of the receive coil", "tissue values, transmit gain, noise level", "the 128-bit world seed"],
+    "id": "Scanner/FrequencyAdjust-v0",
+    "kind": "candidate",
+    "learnability": {
+     "calibration": [],
+     "check": null,
+     "trainable_by": []
+    },
+    "levels": {
+     "1": {
+      "budget_s": [30.0, 30.0],
+      "summary": "the method is stated; offsets up to 200 Hz: two echoes 2 ms apart do not wrap"
+     },
+     "2": {
+      "budget_s": [40.0, 40.0],
+      "summary": "the method is withheld; offsets up to 600 Hz: the echo-time difference of level 1 wraps"
+     },
+     "3": {
+      "budget_s": [40.0, 40.0],
+      "summary": "as level 2, and one or two of the three marked vials hold oil, 3.4 ppm below water: they have to be named"
+     }
+    },
+    "limits": {
+     "max_scanner_requests": 32,
+     "max_tool_calls": 40
+    },
+    "practice_levels": [],
+    "reward": {
+     "error": "largest over the regions of water of |delivered - true offset|, Hz",
+     "gates": ["the scanner log replays and is within budget", "at least one accepted scan", "deliverable valid: exactly the region ids, numbers in -5000 to 5000 Hz (level 3: or \"oil\")"],
+     "passing": "all gates; every region of water within 3 Hz; every region of oil delivered as \"oil\"",
+     "range": [0.0, 1.0],
+     "score": "none: the reward is 1 for a pass and 0 otherwise",
+     "when": "only at submit; 0 on every other step"
+    },
+    "scored_by": "The hidden field and centre-frequency error: each delivered offset within 3 Hz of their mean over the region; every region of oil named. The verifier scans nothing",
+    "summary": "The first adjustment of every examination, as a number. A gradient echo carries the phase 2 pi x offset x TE on top of the unknown phase of the receive coil, so the offset is in the phase difference of two echoes, modulo 1 / (the echo-time difference). A short difference covers a wide range and is less precise, a long one is more precise and wraps; fat lies 3.4 ppm below water and a frequency read on it is not the water frequency. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.",
+    "task_kind": "undetermined",
+    "task_kind_levels": {},
+    "task_kind_why": "no stored gate result",
+    "title": "Off-resonance of the water in marked regions (the frequency adjustment)",
+    "told": ["region centres and radii", "the sign convention", "a bound of the offset", "that some regions hold oil (level 3)", "the tolerance", "the method (level 1)", "the instrument datasheet", "realised protocol, timing and cost of every plan and scan"],
+    "world": {
+     "agent_side_formulas": "offset = (phase of echo 2 - phase of echo 1) / (2 pi x echo-time difference), modulo 1 / (echo-time difference); fat main line 3.4 ppm x 42.58 MHz/T x B0 below water",
+     "phantom": "QA phantom (a disc of gel with vials; at level 3 two vials of oil), 3 T",
+     "sequences_useful": ["spgr"]
+    }
+   },
+   "constants": {
+    "BASE": {
+     "b0_hz": 40.0,
+     "b0_t": 3.0,
+     "kind": "qa",
+     "sigma0": 0.06
+    },
+    "COMPETENCIES": ["qc.centre_frequency", "parameter.te", "artefact.chemical_shift"],
+    "ENV_ID": "Scanner/FrequencyAdjust-v0",
+    "FAMILY": "freq_adjust",
+    "FAT_PPM": 3.4,
+    "LEVELS": {
+     "1": {
+      "budget_s": 30.0,
+      "hints": ["method"],
+      "n_regions": 2,
+      "offset_bound_hz": 200.0,
+      "summary": "the method is stated; offsets up to 200 Hz: two echoes 2 ms apart do not wrap",
+      "world_spec": {
+       "b0_hz": 40.0,
+       "b0_t": 3.0,
+       "cf_offset_hz": 100.0,
+       "kind": "qa",
+       "sigma0": 0.06
+      }
+     },
+     "2": {
+      "budget_s": 40.0,
+      "n_regions": 3,
+      "offset_bound_hz": 600.0,
+      "summary": "the method is withheld; offsets up to 600 Hz: the echo-time difference of level 1 wraps",
+      "world_spec": {
+       "b0_hz": 40.0,
+       "b0_t": 3.0,
+       "cf_offset_hz": 500.0,
+       "kind": "qa",
+       "sigma0": 0.06
+      }
+     },
+     "3": {
+      "budget_s": 40.0,
+      "n_oil": [1, 2],
+      "n_regions": 3,
+      "offset_bound_hz": 600.0,
+      "summary": "as level 2, and one or two of the three marked vials hold oil, 3.4 ppm below water: they have to be named",
+      "world_spec": {
+       "b0_hz": 40.0,
+       "b0_t": 3.0,
+       "cf_offset_hz": 500.0,
+       "kind": "qa",
+       "qa": {
+        "n_oil": 2
+       },
+       "sigma0": 0.06
+      }
+     }
+    },
+    "METHOD_SCAN": {
+     "bandwidth_hz_per_px": 1000.0,
+     "echo_spacing_ms": 2.0,
+     "flip_deg": 15.0,
+     "matrix": 64,
+     "n_echoes": 2,
+     "sequence": "spgr",
+     "tr_ms": 30.0
+    },
+    "OFFSET_VALID_HZ": [-5000.0, 5000.0],
+    "OIL": "oil",
+    "OUTCOMES": ["species_wrong", "no_offset_within", "some_offsets_within"],
+    "SUBMIT_DOC": "Deliver, for each marked region, the off-resonance of its water in Hz (water frequency minus the scanner's centre frequency).",
+    "TOLERANCE_HZ": 3.0
+   },
+   "episode": {
+    "chain_head": "d3cd7f5a23d30c1deecb18a2c9618736a2525bd6122bfe4b11708f6f5bcf28b8",
+    "passed": true,
+    "policy_error": null,
+    "reward": 1.0,
+    "steps": 6,
+    "texts_sha256": "d9dcc413439395ec8cb89bc03e4e8f7d204346773da489fd296bf50d3f03c8f6",
+    "used_s": 17.88
+   },
+   "levels": {
+    "1": {
+     "hints": "How to do it (this level states the method).\n  1. Scan `spgr` with two echoes 2 ms apart (for example tr_ms 30, flip_deg 15, matrix 64,\n     bandwidth_hz_per_px 1000, n_echoes 2, echo_spacing_ms 2) and read out the marked regions.\n  2. Per region: d = phase_rad of echo 2 - phase_rad of echo 1. Add or subtract 2 pi until d lies between -pi and pi.\n  3. offset_hz = d / (2 pi x 0.002 s).\n  With 2 ms between the echoes this is right for offsets up to 250 Hz either way, which is enough here.",
+     "instance": {
+      "budget_s": 30.0,
+      "family": "freq_adjust",
+      "level": 1,
+      "max_requests": 32,
+      "seed": "6207bf751d16b620cb0ab60d66e323ef",
+      "task": {
+       "deliverable": {
+        "offset_hz": {
+         "<region id>": "<number, Hz>"
+        }
+       },
+       "family": "freq_adjust",
+       "hints": ["method"],
+       "offset_bound_hz": 200.0,
+       "oil_possible": false,
+       "regions": [
+        {
+         "id": "R1",
+         "radius_mm": 11.5,
+         "x_mm": 34.08,
+         "y_mm": -44.85
+        },
+        {
+         "id": "R2",
+         "radius_mm": 11.5,
+         "x_mm": -34.77,
+         "y_mm": 41.05
+        }
+       ],
+       "tolerance_hz": 3.0
+      },
+      "task_id": "snapshot",
+      "world_spec": {
+       "b0_hz": 40.0,
+       "b0_t": 3.0,
+       "cf_offset_hz": 100.0,
+       "kind": "qa",
+       "sigma0": 0.06
+      }
+     },
+     "statement": "# Find the off-resonance of the water in each marked region\nA test object with vials lies in the field of view. The frequency adjustment of the scanner has not been run.\nThe scanner's centre frequency is therefore not the frequency of the water, and the static field is not uniform:\nthe water of each region is off resonance by its own amount.\nDeliver that amount for each marked region (R1, R2) with `submit`, in Hz:\n    offset = frequency of the water in the region - centre frequency of the scanner.\nA positive offset means the water precesses faster than the scanner's reference.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one vial):\n  R1: y -44.85, x 34.08, radius 11.5\n  R2: y 41.05, x -34.77, radius 11.5\nEvery marked region holds water.\nAt every marked region the offset of water is between -200 and +200 Hz.\nYou may use any sequence and any parameters the console accepts; only the delivered values are evaluated.\nNothing else about the object or the state of the system is known in advance.\n\nPassing: for every region the delivered offset is within 3 Hz of the mean offset of the water over the region.\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.\n\nHow to do it (this level states the method).\n  1. Scan `spgr` with two echoes 2 ms apart (for example tr_ms 30, flip_deg 15, matrix 64,\n     bandwidth_hz_per_px 1000, n_echoes 2, echo_spacing_ms 2) and read out the marked regions.\n  2. Per region: d = phase_rad of echo 2 - phase_rad of echo 1. Add or subtract 2 pi until d lies between -pi and pi.\n  3. offset_hz = d / (2 pi x 0.002 s).\n  With 2 ms between the echoes this is right for offsets up to 250 Hz either way, which is enough here.",
+     "submit_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "offset_hz": {
+        "additionalProperties": false,
+        "description": "off-resonance of the water of every marked region in Hz (water minus scanner centre frequency), by region id",
+        "properties": {
+         "R1": {
+          "maximum": 5000.0,
+          "minimum": -5000.0,
+          "type": "number"
+         },
+         "R2": {
+          "maximum": 5000.0,
+          "minimum": -5000.0,
+          "type": "number"
+         }
+        },
+        "required": ["R1", "R2"],
+        "type": "object"
+       }
+      },
+      "required": ["offset_hz"],
+      "type": "object"
+     }
+    },
+    "2": {
+     "hints": "",
+     "instance": {
+      "budget_s": 40.0,
+      "family": "freq_adjust",
+      "level": 2,
+      "max_requests": 32,
+      "seed": "18367cbdb336a6e2e7c183d4392185fe",
+      "task": {
+       "deliverable": {
+        "offset_hz": {
+         "<region id>": "<number, Hz>"
+        }
+       },
+       "family": "freq_adjust",
+       "offset_bound_hz": 600.0,
+       "oil_possible": false,
+       "regions": [
+        {
+         "id": "R1",
+         "radius_mm": 11.5,
+         "x_mm": -25.43,
+         "y_mm": -53.28
+        },
+        {
+         "id": "R2",
+         "radius_mm": 11.5,
+         "x_mm": 30.44,
+         "y_mm": -46.17
+        },
+        {
+         "id": "R3",
+         "radius_mm": 11.5,
+         "x_mm": -56.67,
+         "y_mm": -14.56
+        }
+       ],
+       "tolerance_hz": 3.0
+      },
+      "task_id": "snapshot",
+      "world_spec": {
+       "b0_hz": 40.0,
+       "b0_t": 3.0,
+       "cf_offset_hz": 500.0,
+       "kind": "qa",
+       "sigma0": 0.06
+      }
+     },
+     "statement": "# Find the off-resonance of the water in each marked region\nA test object with vials lies in the field of view. The frequency adjustment of the scanner has not been run.\nThe scanner's centre frequency is therefore not the frequency of the water, and the static field is not uniform:\nthe water of each region is off resonance by its own amount.\nDeliver that amount for each marked region (R1, R2, R3) with `submit`, in Hz:\n    offset = frequency of the water in the region - centre frequency of the scanner.\nA positive offset means the water precesses faster than the scanner's reference.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one vial):\n  R1: y -53.28, x -25.43, radius 11.5\n  R2: y -46.17, x 30.44, radius 11.5\n  R3: y -14.56, x -56.67, radius 11.5\nEvery marked region holds water.\nAt every marked region the offset of water is between -600 and +600 Hz.\nYou may use any sequence and any parameters the console accepts; only the delivered values are evaluated.\nNothing else about the object or the state of the system is known in advance.\n\nPassing: for every region the delivered offset is within 3 Hz of the mean offset of the water over the region.\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
+     "submit_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "offset_hz": {
+        "additionalProperties": false,
+        "description": "off-resonance of the water of every marked region in Hz (water minus scanner centre frequency), by region id",
+        "properties": {
+         "R1": {
+          "maximum": 5000.0,
+          "minimum": -5000.0,
+          "type": "number"
+         },
+         "R2": {
+          "maximum": 5000.0,
+          "minimum": -5000.0,
+          "type": "number"
+         },
+         "R3": {
+          "maximum": 5000.0,
+          "minimum": -5000.0,
+          "type": "number"
+         }
+        },
+        "required": ["R1", "R2", "R3"],
+        "type": "object"
+       }
+      },
+      "required": ["offset_hz"],
+      "type": "object"
+     }
+    },
+    "3": {
+     "hints": "",
+     "instance": {
+      "budget_s": 40.0,
+      "family": "freq_adjust",
+      "level": 3,
+      "max_requests": 32,
+      "seed": "29a2d379395d912dd8c4dc837ee0be1f",
+      "task": {
+       "deliverable": {
+        "offset_hz": {
+         "<region id>": "<number, Hz>, or \"oil\""
+        }
+       },
+       "family": "freq_adjust",
+       "offset_bound_hz": 600.0,
+       "oil_possible": true,
+       "regions": [
+        {
+         "id": "R1",
+         "radius_mm": 11.5,
+         "x_mm": 44.88,
+         "y_mm": -39.46
+        },
+        {
+         "id": "R2",
+         "radius_mm": 11.5,
+         "x_mm": 1.41,
+         "y_mm": -0.0
+        },
+        {
+         "id": "R3",
+         "radius_mm": 11.5,
+         "x_mm": 36.6,
+         "y_mm": 46.58
+        }
+       ],
+       "tolerance_hz": 3.0
+      },
+      "task_id": "snapshot",
+      "world_spec": {
+       "b0_hz": 40.0,
+       "b0_t": 3.0,
+       "cf_offset_hz": 500.0,
+       "kind": "qa",
+       "qa": {
+        "n_oil": 2
+       },
+       "sigma0": 0.06
+      }
+     },
+     "statement": "# Find the off-resonance of the water in each marked region\nA test object with vials lies in the field of view. The frequency adjustment of the scanner has not been run.\nThe scanner's centre frequency is therefore not the frequency of the water, and the static field is not uniform:\nthe water of each region is off resonance by its own amount.\nDeliver that amount for each marked region (R1, R2, R3) with `submit`, in Hz:\n    offset = frequency of the water in the region - centre frequency of the scanner.\nA positive offset means the water precesses faster than the scanner's reference.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one vial):\n  R1: y -39.46, x 44.88, radius 11.5\n  R2: y -0, x 1.41, radius 11.5\n  R3: y 46.58, x 36.6, radius 11.5\nSome of the marked regions hold oil instead of water; at least one holds water.\nA region of oil cannot give the water frequency: deliver the word \"oil\" for it instead of a number.\nAt every marked region the offset of water is between -600 and +600 Hz.\nYou may use any sequence and any parameters the console accepts; only the delivered values are evaluated.\nNothing else about the object or the state of the system is known in advance.\n\nPassing: for every region of water the delivered offset is within 3 Hz of the mean offset of the water over the region,\nand every region of oil is delivered as \"oil\".\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
+     "submit_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "offset_hz": {
+        "additionalProperties": false,
+        "description": "off-resonance of the water of every marked region in Hz (water minus scanner centre frequency), by region id; the word \"oil\" for a region that holds oil",
+        "properties": {
+         "R1": {
+          "anyOf": [
+           {
+            "maximum": 5000.0,
+            "minimum": -5000.0,
+            "type": "number"
+           },
+           {
+            "enum": ["oil"],
+            "type": "string"
+           }
+          ]
+         },
+         "R2": {
+          "anyOf": [
+           {
+            "maximum": 5000.0,
+            "minimum": -5000.0,
+            "type": "number"
+           },
+           {
+            "enum": ["oil"],
+            "type": "string"
+           }
+          ]
+         },
+         "R3": {
+          "anyOf": [
+           {
+            "maximum": 5000.0,
+            "minimum": -5000.0,
+            "type": "number"
+           },
+           {
+            "enum": ["oil"],
+            "type": "string"
+           }
+          ]
+         }
+        },
+        "required": ["R1", "R2", "R3"],
+        "type": "object"
+       }
+      },
+      "required": ["offset_hz"],
+      "type": "object"
+     }
+    }
+   },
+   "submit_doc": "Deliver, for each marked region, the off-resonance of its water in Hz (water frequency minus the scanner's centre frequency)."
   },
   "Scanner/NoWrap-v1": {
    "card": {
@@ -5251,10 +5743,29 @@
     "MAX_ATTEMPTS": 400,
     "NEAR": 1.25,
     "OPEN_LOOP": ["always_ti", "always_te", "open_loop_card", "open_loop_all", "open_loop_short"],
+    "OUTCOMES": ["t1_contrast_too_low", "t2_contrast_too_low", "snr_too_low", "scan_too_long"],
     "PAD": 15,
     "PATIENCE": 40,
     "PRICE_S": 30.0,
     "REACH": 1.9,
+    "REQUIREMENTS": [
+     [
+      "t1_contrast_too_low",
+      ["t1_contrast"]
+     ],
+     [
+      "t2_contrast_too_low",
+      ["t2_contrast"]
+     ],
+     [
+      "snr_too_low",
+      ["snr"]
+     ],
+     [
+      "scan_too_long",
+      ["time"]
+     ]
+    ],
     "SEARCH_GRID": 64,
     "SNR_MIN": 20.0,
     "SNR_ROOM": [0.15, 0.35],
@@ -6070,10 +6581,21 @@
      "B": [144, 160, 192]
     },
     "MAX_ATTEMPTS": 60,
+    "OUTCOMES": ["snr_too_low", "scan_too_long"],
     "QA": {
      "n_ring": [4, 5],
      "vial_t1_ms": [300.0, 2000.0]
     },
+    "REQUIREMENTS": [
+     [
+      "snr_too_low",
+      ["snr"]
+     ],
+     [
+      "scan_too_long",
+      ["time"]
+     ]
+    ],
     "SCAN": {
      "fov_mm": 240.0,
      "sequence": "se",
@@ -7103,6 +7625,564 @@
     }
    },
    "submit_doc": "Deliver T1 of every marked region, in milliseconds."
+  },
+  "Scanner/TransmitAdjust-v0": {
+   "card": {
+    "competencies": ["qc.transmit_gain", "parameter.flip_angle", "option.2d_3d", "artefact.b1_shading"],
+    "controls": [
+     {
+      "must": "pass",
+      "name": "reference",
+      "what": "non-selective dual-TR scan with strong spoiling, cut to the budget by partial Fourier; the dual-TR formula"
+     },
+     {
+      "must": "fail",
+      "name": "prior",
+      "what": "no scan; 1.0 in every region"
+     },
+     {
+      "must": "fail",
+      "name": "fixed_recipe",
+      "what": "one token scan, then a constant times a bowl around the isocentre, tuned on other worlds"
+     },
+     {
+      "must": "fail",
+      "name": "wrong_units",
+      "what": "the reference's factors in percent"
+     },
+     {
+      "must": "fail",
+      "name": "afi_2d",
+      "what": "the same dual-TR scan slice-selective (2D) with the same formula"
+     },
+     {
+      "must": "fail",
+      "name": "flip_sweep",
+      "what": "2D gradient echoes at five nominal flip angles; the largest signal is taken for 90 degrees actual"
+     },
+     {
+      "must": "ablation",
+      "name": "untrimmed",
+      "what": "the level-1 protocol as stated, whatever the budget"
+     },
+     {
+      "must": "reported",
+      "name": "open_loop",
+      "what": "a fixed scan list (the reference's protocol at its smallest partial Fourier) and the same formula"
+     },
+     {
+      "must": "reported",
+      "name": "default_spoiling",
+      "what": "the reference with the console's default spoiler moment and RF phase increment"
+     }
+    ],
+    "deliver": "For each marked region, the ratio of the actual to the nominal flip angle",
+    "deliverable": {
+     "format": {
+      "flip_ratio": {
+       "<region id>": "<actual / nominal flip angle>"
+      }
+     },
+     "tool": "submit"
+    },
+    "determinism": "same (seed, level, tool calls) -> same observations, log hash chain and reward; a repeated scan draws new noise; the verifier reads the hidden transmit field and scans nothing",
+    "given": "A test object with vials; a scanner whose transmitter is not calibrated and whose transmit field is not uniform; a scan-time budget",
+    "hidden": ["the transmit-gain error (8 to 30 % either way)", "the transmit pattern (its size is drawn per instance; larger at level 3)", "T1, T2 and diffusion coefficient of every material (they set how well a spoiler works)", "the receive profile, the field", "the noise level", "the 128-bit world seed"],
+    "id": "Scanner/TransmitAdjust-v0",
+    "kind": "candidate",
+    "learnability": {
+     "calibration": [],
+     "check": null,
+     "trainable_by": []
+    },
+    "levels": {
+     "1": {
+      "budget_s": [100.0, 100.0],
+      "summary": "the method is stated: a non-selective dual-TR scan with strong spoiling and its formula"
+     },
+     "2": {
+      "budget_s": [100.0, 100.0],
+      "summary": "the method is withheld: a 2D scan gives a factor that is far too low without a sign of it"
+     },
+     "3": {
+      "budget_s": [65.0, 65.0],
+      "summary": "the transmit pattern is stronger and the budget does not pay the level-1 protocol"
+     }
+    },
+    "limits": {
+     "max_scanner_requests": 32,
+     "max_tool_calls": 40
+    },
+    "practice_levels": [],
+    "reward": {
+     "error": "largest over the regions of |delivered / true - 1|",
+     "gates": ["the scanner log replays and is within budget", "at least one accepted scan", "deliverable valid: exactly the region ids, values in 0.2 to 3"],
+     "passing": "all gates and, for every region, error <= 0.04",
+     "range": [0.0, 1.0],
+     "score": "none: the reward is 1 for a pass and 0 otherwise",
+     "when": "only at submit; 0 on every other step"
+    },
+    "scored_by": "The hidden transmit gain and transmit pattern: each delivered factor within 4 % of their product, averaged over the region. The verifier scans nothing",
+    "summary": "The second adjustment of every examination, as a number per region. The textbook dual-TR formula returns the flip angle only where every voxel has one flip angle and the spoiling is strong: on this scanner the 2D (slice-selective) version reads low and the 3D version with the default spoiling reads high in materials with a long T2 (controls `afi_2d` and `default_spoiling`). Which measurement is valid is stated in the datasheet and is the content of the task. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined, the gate result is not stored yet.",
+    "task_kind": "undetermined",
+    "task_kind_levels": {},
+    "task_kind_why": "no stored gate result",
+    "title": "Flip-angle factor in marked regions (the transmit adjustment)",
+    "told": ["region centres and radii", "a bound of the factor", "the tolerance", "the method (level 1)", "the instrument datasheet (slice profile, spoiling)", "realised protocol, timing and cost of every plan and scan"],
+    "world": {
+     "agent_side_formulas": "r = S2 / S1 = (1 + n cos a) / (n + cos a) for TR much shorter than T1 and ideal spoiling, n = TR2 / TR1; factor = a / nominal angle",
+     "phantom": "QA phantom (a disc of gel with 5 to 7 vials), 3 T, body-coil receive",
+     "sequences_useful": ["afi"]
+    }
+   },
+   "constants": {
+    "BASE": {
+     "b0_t": 3.0,
+     "cf_offset_hz": 25.0,
+     "kind": "qa",
+     "qa": {
+      "n_ring": [5, 6]
+     },
+     "sigma0": 0.173,
+     "sigma0_log_sd": 0.12,
+     "tx_gain_dev": [0.08, 0.3]
+    },
+    "COMPETENCIES": ["qc.transmit_gain", "parameter.flip_angle", "option.2d_3d", "artefact.b1_shading"],
+    "ENV_ID": "Scanner/TransmitAdjust-v0",
+    "FAMILY": "transmit_adjust",
+    "LEVELS": {
+     "1": {
+      "budget_s": 100.0,
+      "hints": ["method"],
+      "summary": "the method is stated: a non-selective dual-TR scan with strong spoiling and its formula",
+      "world_spec": {
+       "b0_t": 3.0,
+       "b1_shape_amp": [0.14, 0.24],
+       "cf_offset_hz": 25.0,
+       "kind": "qa",
+       "qa": {
+        "n_ring": [5, 6]
+       },
+       "sigma0": 0.173,
+       "sigma0_log_sd": 0.12,
+       "tx_gain_dev": [0.08, 0.3]
+      }
+     },
+     "2": {
+      "budget_s": 100.0,
+      "summary": "the method is withheld: a 2D scan gives a factor that is far too low without a sign of it",
+      "world_spec": {
+       "b0_t": 3.0,
+       "b1_shape_amp": [0.14, 0.24],
+       "cf_offset_hz": 25.0,
+       "kind": "qa",
+       "qa": {
+        "n_ring": [5, 6]
+       },
+       "sigma0": 0.173,
+       "sigma0_log_sd": 0.12,
+       "tx_gain_dev": [0.08, 0.3]
+      }
+     },
+     "3": {
+      "budget_s": 65.0,
+      "summary": "the transmit pattern is stronger and the budget does not pay the level-1 protocol",
+      "world_spec": {
+       "b0_t": 3.0,
+       "b1_shape_amp": [0.2, 0.3],
+       "cf_offset_hz": 25.0,
+       "kind": "qa",
+       "qa": {
+        "n_ring": [5, 6]
+       },
+       "sigma0": 0.173,
+       "sigma0_log_sd": 0.12,
+       "tx_gain_dev": [0.08, 0.3]
+      }
+     }
+    },
+    "METHOD_SCAN": {
+     "bandwidth_hz_per_px": 500.0,
+     "excitation": "nonselective",
+     "flip_deg": 60.0,
+     "matrix": 32,
+     "rf_phase_increment_deg": 45.0,
+     "sequence": "afi",
+     "slice_mm": 10.0,
+     "spoiler_mt_ms_per_m": 585.0,
+     "tr_ms": 25.0,
+     "tr_ratio": 5
+    },
+    "OUTCOMES": ["no_region_within", "some_regions_within"],
+    "RATIO_BOUND": [0.4, 1.7],
+    "RATIO_VALID": [0.2, 3.0],
+    "SUBMIT_DOC": "Deliver, for each marked region, the ratio of the actual to the nominal flip angle (1.0 = calibrated).",
+    "TOLERANCE": 0.04
+   },
+   "episode": {
+    "chain_head": "65333a3b3189640d9800ceed8bcd2c7df422a8bd06bb0b41c58bc0a1c6437de1",
+    "passed": true,
+    "policy_error": null,
+    "reward": 1.0,
+    "steps": 4,
+    "texts_sha256": "aa4fa6c26e5b1e5da71b4cddbbec718d831a5eea1f313ee18a14d007b61bb828",
+    "used_s": 83.85
+   },
+   "levels": {
+    "1": {
+     "hints": "How to do it (this level states the method).\n  1. Scan `afi` with excitation nonselective, tr_ms 25, tr_ratio 5, flip_deg 60, spoiler_mt_ms_per_m 585,\n     rf_phase_increment_deg 45, matrix 32, slice_mm 10, bandwidth_hz_per_px 500, and read out the marked regions.\n     The scan returns two images.\n  2. Per region: r = (complex-mean magnitude in image 2) / (complex-mean magnitude in image 1). n = 5 (the tr_ratio).\n  3. actual flip angle = arccos((r x n - 1) / (n - r)). Factor = actual flip angle / 60 degrees.\n  The formula needs one flip angle per voxel: with a slice-selective excitation it reads far too low.\n  It also needs strong spoiling: with the console's default spoiler it can read several percent too high.",
+     "instance": {
+      "budget_s": 100.0,
+      "family": "transmit_adjust",
+      "level": 1,
+      "max_requests": 32,
+      "seed": "d6270741771da298dece8bc3f260aed1",
+      "task": {
+       "deliverable": {
+        "flip_ratio": {
+         "<region id>": "<number: actual / nominal flip angle>"
+        }
+       },
+       "family": "transmit_adjust",
+       "hints": ["method"],
+       "ratio_bound": [0.4, 1.7],
+       "regions": [
+        {
+         "id": "R1",
+         "radius_mm": 11.5,
+         "x_mm": 53.45,
+         "y_mm": -24.41
+        },
+        {
+         "id": "R2",
+         "radius_mm": 11.5,
+         "x_mm": 49.86,
+         "y_mm": 30.6
+        },
+        {
+         "id": "R3",
+         "radius_mm": 11.5,
+         "x_mm": -3.52,
+         "y_mm": 57.09
+        },
+        {
+         "id": "R4",
+         "radius_mm": 11.5,
+         "x_mm": 6.55,
+         "y_mm": -57.44
+        },
+        {
+         "id": "R5",
+         "radius_mm": 11.5,
+         "x_mm": -50.29,
+         "y_mm": 25.13
+        },
+        {
+         "id": "R6",
+         "radius_mm": 11.5,
+         "x_mm": -46.05,
+         "y_mm": -32.77
+        }
+       ],
+       "tolerance": 0.04
+      },
+      "task_id": "snapshot",
+      "world_spec": {
+       "b0_t": 3.0,
+       "b1_shape_amp": [0.14, 0.24],
+       "cf_offset_hz": 25.0,
+       "kind": "qa",
+       "qa": {
+        "n_ring": [5, 6]
+       },
+       "sigma0": 0.173,
+       "sigma0_log_sd": 0.12,
+       "tx_gain_dev": [0.08, 0.3]
+      }
+     },
+     "statement": "# Calibrate the transmitter: the flip-angle factor in each marked region\nA test object with vials lies in the field of view. The transmit adjustment of the scanner has not been run.\nThe flip angle a spin experiences is therefore the nominal flip angle times an unknown factor,\nand the factor is not the same everywhere in the object.\nDeliver that factor for each marked region (R1, R2, R3, R4, R5, R6) with `submit`:\n    factor = actual flip angle / nominal flip angle, as the mean over the region (1.0 = calibrated).\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -24.41, x 53.45, radius 11.5\n  R2: y 30.6, x 49.86, radius 11.5\n  R3: y 57.09, x -3.52, radius 11.5\n  R4: y -57.44, x 6.55, radius 11.5\n  R5: y 25.13, x -50.29, radius 11.5\n  R6: y -32.77, x -46.05, radius 11.5\nIn every marked region the factor is between 0.4 and 1.7.\nYou may use any sequence and any parameters the console accepts; only the delivered values are evaluated.\nNothing else about the object or the state of the system is known in advance.\n\nPassing: for every region the delivered factor is within 4 % of the true factor\n(between 0.96 x and 1.04 x the true factor).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.\n\nHow to do it (this level states the method).\n  1. Scan `afi` with excitation nonselective, tr_ms 25, tr_ratio 5, flip_deg 60, spoiler_mt_ms_per_m 585,\n     rf_phase_increment_deg 45, matrix 32, slice_mm 10, bandwidth_hz_per_px 500, and read out the marked regions.\n     The scan returns two images.\n  2. Per region: r = (complex-mean magnitude in image 2) / (complex-mean magnitude in image 1). n = 5 (the tr_ratio).\n  3. actual flip angle = arccos((r x n - 1) / (n - r)). Factor = actual flip angle / 60 degrees.\n  The formula needs one flip angle per voxel: with a slice-selective excitation it reads far too low.\n  It also needs strong spoiling: with the console's default spoiler it can read several percent too high.",
+     "submit_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "flip_ratio": {
+        "additionalProperties": false,
+        "description": "actual / nominal flip angle of every marked region (a ratio, 1.0 = calibrated), by region id",
+        "properties": {
+         "R1": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R2": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R3": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R4": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R5": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R6": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         }
+        },
+        "required": ["R1", "R2", "R3", "R4", "R5", "R6"],
+        "type": "object"
+       }
+      },
+      "required": ["flip_ratio"],
+      "type": "object"
+     }
+    },
+    "2": {
+     "hints": "",
+     "instance": {
+      "budget_s": 100.0,
+      "family": "transmit_adjust",
+      "level": 2,
+      "max_requests": 32,
+      "seed": "7257dc2a83f8c9431263cf0d6d7111d3",
+      "task": {
+       "deliverable": {
+        "flip_ratio": {
+         "<region id>": "<number: actual / nominal flip angle>"
+        }
+       },
+       "family": "transmit_adjust",
+       "ratio_bound": [0.4, 1.7],
+       "regions": [
+        {
+         "id": "R1",
+         "radius_mm": 11.5,
+         "x_mm": -31.68,
+         "y_mm": 46.06
+        },
+        {
+         "id": "R2",
+         "radius_mm": 11.5,
+         "x_mm": 22.21,
+         "y_mm": 49.04
+        },
+        {
+         "id": "R3",
+         "radius_mm": 11.5,
+         "x_mm": -26.77,
+         "y_mm": -51.27
+        },
+        {
+         "id": "R4",
+         "radius_mm": 11.5,
+         "x_mm": -57.84,
+         "y_mm": -2.34
+        },
+        {
+         "id": "R5",
+         "radius_mm": 11.5,
+         "x_mm": 28.71,
+         "y_mm": -47.82
+        },
+        {
+         "id": "R6",
+         "radius_mm": 11.5,
+         "x_mm": 53.74,
+         "y_mm": 0.95
+        },
+        {
+         "id": "R7",
+         "radius_mm": 11.5,
+         "x_mm": -2.1,
+         "y_mm": 0.76
+        }
+       ],
+       "tolerance": 0.04
+      },
+      "task_id": "snapshot",
+      "world_spec": {
+       "b0_t": 3.0,
+       "b1_shape_amp": [0.14, 0.24],
+       "cf_offset_hz": 25.0,
+       "kind": "qa",
+       "qa": {
+        "n_ring": [5, 6]
+       },
+       "sigma0": 0.173,
+       "sigma0_log_sd": 0.12,
+       "tx_gain_dev": [0.08, 0.3]
+      }
+     },
+     "statement": "# Calibrate the transmitter: the flip-angle factor in each marked region\nA test object with vials lies in the field of view. The transmit adjustment of the scanner has not been run.\nThe flip angle a spin experiences is therefore the nominal flip angle times an unknown factor,\nand the factor is not the same everywhere in the object.\nDeliver that factor for each marked region (R1, R2, R3, R4, R5, R6, R7) with `submit`:\n    factor = actual flip angle / nominal flip angle, as the mean over the region (1.0 = calibrated).\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y 46.06, x -31.68, radius 11.5\n  R2: y 49.04, x 22.21, radius 11.5\n  R3: y -51.27, x -26.77, radius 11.5\n  R4: y -2.34, x -57.84, radius 11.5\n  R5: y -47.82, x 28.71, radius 11.5\n  R6: y 0.95, x 53.74, radius 11.5\n  R7: y 0.76, x -2.1, radius 11.5\nIn every marked region the factor is between 0.4 and 1.7.\nYou may use any sequence and any parameters the console accepts; only the delivered values are evaluated.\nNothing else about the object or the state of the system is known in advance.\n\nPassing: for every region the delivered factor is within 4 % of the true factor\n(between 0.96 x and 1.04 x the true factor).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
+     "submit_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "flip_ratio": {
+        "additionalProperties": false,
+        "description": "actual / nominal flip angle of every marked region (a ratio, 1.0 = calibrated), by region id",
+        "properties": {
+         "R1": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R2": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R3": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R4": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R5": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R6": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R7": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         }
+        },
+        "required": ["R1", "R2", "R3", "R4", "R5", "R6", "R7"],
+        "type": "object"
+       }
+      },
+      "required": ["flip_ratio"],
+      "type": "object"
+     }
+    },
+    "3": {
+     "hints": "",
+     "instance": {
+      "budget_s": 65.0,
+      "family": "transmit_adjust",
+      "level": 3,
+      "max_requests": 32,
+      "seed": "1b8c261e7fccacd5afcc1710fbaf4fe1",
+      "task": {
+       "deliverable": {
+        "flip_ratio": {
+         "<region id>": "<number: actual / nominal flip angle>"
+        }
+       },
+       "family": "transmit_adjust",
+       "ratio_bound": [0.4, 1.7],
+       "regions": [
+        {
+         "id": "R1",
+         "radius_mm": 11.5,
+         "x_mm": 5.22,
+         "y_mm": -57.71
+        },
+        {
+         "id": "R2",
+         "radius_mm": 11.5,
+         "x_mm": -52.07,
+         "y_mm": -22.18
+        },
+        {
+         "id": "R3",
+         "radius_mm": 11.5,
+         "x_mm": 55.82,
+         "y_mm": -18.04
+        },
+        {
+         "id": "R4",
+         "radius_mm": 11.5,
+         "x_mm": 33.24,
+         "y_mm": 47.3
+        },
+        {
+         "id": "R5",
+         "radius_mm": 11.5,
+         "x_mm": -33.67,
+         "y_mm": 45.39
+        }
+       ],
+       "tolerance": 0.04
+      },
+      "task_id": "snapshot",
+      "world_spec": {
+       "b0_t": 3.0,
+       "b1_shape_amp": [0.2, 0.3],
+       "cf_offset_hz": 25.0,
+       "kind": "qa",
+       "qa": {
+        "n_ring": [5, 6]
+       },
+       "sigma0": 0.173,
+       "sigma0_log_sd": 0.12,
+       "tx_gain_dev": [0.08, 0.3]
+      }
+     },
+     "statement": "# Calibrate the transmitter: the flip-angle factor in each marked region\nA test object with vials lies in the field of view. The transmit adjustment of the scanner has not been run.\nThe flip angle a spin experiences is therefore the nominal flip angle times an unknown factor,\nand the factor is not the same everywhere in the object.\nDeliver that factor for each marked region (R1, R2, R3, R4, R5) with `submit`:\n    factor = actual flip angle / nominal flip angle, as the mean over the region (1.0 = calibrated).\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -57.71, x 5.22, radius 11.5\n  R2: y -22.18, x -52.07, radius 11.5\n  R3: y -18.04, x 55.82, radius 11.5\n  R4: y 47.3, x 33.24, radius 11.5\n  R5: y 45.39, x -33.67, radius 11.5\nIn every marked region the factor is between 0.4 and 1.7.\nYou may use any sequence and any parameters the console accepts; only the delivered values are evaluated.\nNothing else about the object or the state of the system is known in advance.\n\nPassing: for every region the delivered factor is within 4 % of the true factor\n(between 0.96 x and 1.04 x the true factor).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
+     "submit_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "flip_ratio": {
+        "additionalProperties": false,
+        "description": "actual / nominal flip angle of every marked region (a ratio, 1.0 = calibrated), by region id",
+        "properties": {
+         "R1": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R2": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R3": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R4": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         },
+         "R5": {
+          "maximum": 3.0,
+          "minimum": 0.2,
+          "type": "number"
+         }
+        },
+        "required": ["R1", "R2", "R3", "R4", "R5"],
+        "type": "object"
+       }
+      },
+      "required": ["flip_ratio"],
+      "type": "object"
+     }
+    }
+   },
+   "submit_doc": "Deliver, for each marked region, the ratio of the actual to the nominal flip angle (1.0 = calibrated)."
   }
  },
  "shared": {

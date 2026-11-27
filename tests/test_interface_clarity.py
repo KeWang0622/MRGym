@@ -29,7 +29,8 @@ NOWRAP, T1, NULL, QA, SNR, CLINIC, FAT, BAND, SPEC, EXPLORE = (
     "Scanner/NoWrap-v1", "Scanner/T1Transmit-v1", "Scanner/NullTissue-v0", "Scanner/PhantomQA-v0", "Scanner/SNRSpec-v0",
     "Scanner/ArtefactClinic-v0", "Scanner/FatSuppress-v0", "Scanner/BandFree-v0", "Scanner/ProtocolToSpec-v0", "Scanner/Explore-v0")
 TARGET_SCAN = (NOWRAP, NULL, FAT, BAND, SNR, SPEC, CLINIC)                # the deliverable is evaluated on a scan the task names
-OWN_SCAN = (QA, T1, EXPLORE)                                              # the deliverable is a measurement on the agent's own scans
+FREQ, TRANSMIT = "Scanner/FrequencyAdjust-v0", "Scanner/TransmitAdjust-v0"
+OWN_SCAN = (QA, T1, EXPLORE, FREQ, TRANSMIT)                              # the deliverable is a measurement on the agent's own scans
 IR = {"sequence": "ir", "tr_ms": 800, "ti_ms": 100, "matrix": 64, "partial_fourier": 0.6}
 LOCALISER = {"sequence": "spgr", "tr_ms": 12, "flip_deg": 10, "fov_mm": 288, "matrix": 96}
 CLAUSE_MAX = 160                                                          # characters of a clause that is printed only when its condition holds

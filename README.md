@@ -58,23 +58,29 @@ The agent sees the task text and the results of its own tool calls, nothing else
 ## Tasks
 
 <!-- TASKS:START -->
-| Task | What you do | Status |
-|---|---|---|
-| [`Scanner/NoWrap-v1`](envs/scanner-nowrap-v1/) | find the smallest, fastest field of view around the object | ready |
-| [`Scanner/NullTissue-v0`](envs/scanner-nulltissue-v0/) | find the inversion time that makes each vial dark | ready |
-| [`Scanner/FatSuppress-v0`](envs/scanner-fatsuppress-v0/) | choose the fat suppression that works in each region | ready |
-| [`Scanner/BandFree-v0`](envs/scanner-bandfree-v0/) | keep the dark bands of balanced SSFP off the object | ready |
-| [`Scanner/SNRSpec-v0`](envs/scanner-snrspec-v0/) | reach a required signal-to-noise ratio in the least scan time | ready |
-| [`Scanner/PhantomQA-v0`](envs/scanner-phantomqa-v0/) | run the phantom quality tests and name what is broken | ready |
-| [`Scanner/ArtefactClinic-v0`](envs/scanner-artefactclinic-v0/) | say what causes each artefact and fix the protocol | ready |
-| [`Scanner/ProtocolToSpec-v0`](envs/scanner-protocoltospec-v0/) | turn written requirements into a protocol that meets them | experimental |
-| [`Scanner/T1Transmit-v1`](envs/scanner-t1transmit-v1/) | measure T1 when the transmit field is miscalibrated | experimental |
-| [`Scanner/Explore-v0`](envs/scanner-explore-v0/) | scan freely; nothing is asked and nothing is scored | no score |
-<!-- TASKS:END -->
+| Task | What you do | Kind | Status |
+|---|---|---|---|
+| [`Scanner/Explore-v0`](envs/scanner-explore-v0/) | scan freely; nothing is asked and nothing is scored | - | no score |
+| **A · Signal and contrast**: what signal a tissue gives | | | |
+| [`Scanner/T1Transmit-v1`](envs/scanner-t1transmit-v1/) | measure T1 when the transmit field is miscalibrated | measure | experimental |
+| [`Scanner/NullTissue-v0`](envs/scanner-nulltissue-v0/) | find the inversion time that makes each vial dark | set | ready |
+| [`Scanner/FatSuppress-v0`](envs/scanner-fatsuppress-v0/) | choose the fat suppression that works in each region | set | ready |
+| [`Scanner/ProtocolToSpec-v0`](envs/scanner-protocoltospec-v0/) | turn written requirements into a protocol that meets them | trade | experimental |
+| **B · Spatial encoding and reconstruction**: where the signal lands in the image | | | |
+| [`Scanner/NoWrap-v1`](envs/scanner-nowrap-v1/) | find the smallest, fastest field of view around the object | set | ready |
+| **C · The system**: what the machine adds: field, RF, gradients, noise, limits | | | |
+| [`Scanner/PhantomQA-v0`](envs/scanner-phantomqa-v0/) | run the phantom quality tests and name what is broken | measure | ready |
+| [`Scanner/FrequencyAdjust-v0`](envs/scanner-frequencyadjust-v0/) | find how far off resonance the water is | measure | experimental |
+| [`Scanner/TransmitAdjust-v0`](envs/scanner-transmitadjust-v0/) | measure the real flip angle against the nominal one | measure | experimental |
+| **D · Image quality and artefacts**: how good the image is, and what went wrong | | | |
+| [`Scanner/SNRSpec-v0`](envs/scanner-snrspec-v0/) | reach a required signal-to-noise ratio in the least scan time | set | ready |
+| [`Scanner/BandFree-v0`](envs/scanner-bandfree-v0/) | keep the dark bands of balanced SSFP off the object | set | ready |
+| [`Scanner/ArtefactClinic-v0`](envs/scanner-artefactclinic-v0/) | say what causes each artefact and fix the protocol | trade | ready |
 
-A task is ready when it has been checked on 300 fresh objects: a scripted solution passes, and shortcuts that ignore
-the object fail. Every task has levels of difficulty, which `mrgym list` prints. Each name above links to the task's
-card; [envs/](envs/README.md) has the full table.
+A task is ready when it has been checked on 300 fresh objects: a scripted solution passes, and shortcuts that ignore the
+object fail. Each task has levels of difficulty (`mrgym list`); [envs/](envs/README.md) has the full table.
+[The map](docs/tasks.md) lists 110 pieces of MR physics: the scanner forms 61, and 11 have a task of their own.
+<!-- TASKS:END -->
 
 ## Add a task
 

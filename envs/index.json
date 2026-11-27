@@ -103,6 +103,26 @@
    }
   },
   {
+   "id": "Scanner/FrequencyAdjust-v0",
+   "folder": "scanner-frequencyadjust-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Off-resonance of the water in marked regions (the frequency adjustment)",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": "undetermined",
+   "gate": null
+  },
+  {
    "id": "Scanner/NoWrap-v1",
    "folder": "scanner-nowrap-v1",
    "kind": "admitted",
@@ -311,6 +331,26 @@
      "3": "practice"
     }
    }
+  },
+  {
+   "id": "Scanner/TransmitAdjust-v0",
+   "folder": "scanner-transmitadjust-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    1,
+    2,
+    3
+   ],
+   "practice_levels": [],
+   "title": "Flip-angle factor in marked regions (the transmit adjustment)",
+   "status": "CANDIDATE: the gate has not been run (no stored result)",
+   "task_kind": "undetermined",
+   "gate": null
   }
  ],
  "retired": [

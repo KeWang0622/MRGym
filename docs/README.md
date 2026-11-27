@@ -13,9 +13,11 @@
 
 More, by topic:
 
+- Tasks: [the map](tasks.md) of the MR physics that is covered and of the task that asks for each piece
 - Physics: [conventions](physics/conventions.md), [what is simplified](physics/limits.md),
   [references](physics/references.md), [phantoms and QA tests](physics/phantoms.md),
-  [comparison with other simulators](physics/external.md)
+  [comparison with other simulators](physics/external.md),
+  [the design layer: pulses, gradient programs, block-list sequences](physics/design.md)
 - Training: [signals and curricula](TRAINING.md), [the full report](experiments/RESULTS-27b.md), the plans written
   before the runs ([learnability](experiments/PREREG-learnability.md), [27B](experiments/PREREG-27b.md))
 - Results: [analysis plan](ANALYSIS_PLAN.md), [archive of the pilot runs](results/README.md)

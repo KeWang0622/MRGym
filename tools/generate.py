@@ -5,8 +5,10 @@
     python tools/generate.py --timing   also re-measure the scan timing table in the README (machine dependent)
 
 Generated: envs/ (index.json, README.md with the full environment table, one card per environment id), docs/scanner.md
-(the datasheet shipped in the package), docs/physics/validation.md (from ``mrgym validate``), the marked blocks listed
-in ``BLOCKS`` (README.md: the task table; docs/TOUR.md: inventory counts, the demo transcript, the results line,
+(the datasheet shipped in the package), docs/physics/validation.md (from ``mrgym validate``), docs/tasks.md (the map,
+from ``mrgym.physics_map``; a map that is inconsistent with the registry or names a check that does not exist stops both
+modes), the marked blocks listed
+in ``BLOCKS`` (README.md: the task table, grouped by the subjects of the map; docs/TOUR.md: inventory counts, the demo transcript, the results line,
 the timing table), and every ``<!-- STAT:key -->...<!-- /STAT -->`` span of README.md and docs/*.md, filled from
 docs/results/results.json, and their POWER and GATE_OC blocks (the power table of the designs and the operating
 characteristic of the gate). Numbers that depend on the machine (measured errors at rounding level, timings) are
@@ -44,6 +46,20 @@ WHAT_YOU_DO = {
     "Scanner/ProtocolToSpec-v0": "turn written requirements into a protocol that meets them",
     "Scanner/T1Transmit-v1": "measure T1 when the transmit field is miscalibrated",
     "Scanner/Explore-v0": "scan freely; nothing is asked and nothing is scored",
+    "Scanner/FrequencyAdjust-v0": "find how far off resonance the water is",
+    "Scanner/TransmitAdjust-v0": "measure the real flip angle against the nominal one",
+    "Scanner/ErnstFlip-v0": "find the flip angle that gives each vial most signal",
+    "Scanner/T1Vial-v0": "measure the T1 of each vial",
+    "Scanner/T2Decay-v0": "measure the T2 of each vial",
+    "Scanner/FatFraction-v0": "measure the fat fraction of each mixture",
+    "Scanner/Resolve-v0": "find the fastest scan that still separates two fine features",
+    "Scanner/FoldAway-v0": "let the object wrap, but not onto your region",
+    "Scanner/ShiftFree-v0": "choose the bandwidth that keeps shifted fat off the structure",
+    "Scanner/GhostAside-v0": "steer motion ghosts away from the region you need",
+    "Scanner/NoiseSNR-v0": "measure the signal-to-noise ratio the way the standards do",
+    "Scanner/GradientCal-v0": "measure the gradient scale error with a known phantom",
+    "Scanner/Conspicuity-v0": "choose the protocol that makes a lesion stand out most",
+    "Scanner/EPISetup-v0": "set up echo-planar imaging within distortion and ghost limits",
 }
 # The front page uses plain words for the kind of the registry; envs/README.md and docs/ADDING_A_TASK.md define the kinds.
 STATUS = dict(admitted="ready", candidate="experimental", practice="experimental", sandbox="no score")
@@ -122,20 +138,48 @@ def env_cards():
 
 
 def tasks_table():
-    """The task table of the front page: one row per registered id, linked to its card, with what is done in the task
-    in at most ten plain words (``WHAT_YOU_DO``, else the title of the card) and a status from the kind of the registry
-    (``STATUS``). Ready tasks first."""
+    """The task table of the front page: one row per registered id, linked to its card, under a bold row for its
+    subject on the map (``mrgym.physics_map``; the sandbox first, outside the subjects), with what is done in the task
+    in at most ten plain words (``WHAT_YOU_DO``, else the title of the card), the kind of task (measure, set, trade)
+    and a status from the kind of the registry (``STATUS``). Inside a subject: by kind of task, ready tasks first."""
     import mrgym
-    from mrgym import cards
-    order = list(STATUS)
-    ids = sorted(mrgym.list_envs(), key=lambda i: (order.index(mrgym.spec(i).kind), list(WHAT_YOU_DO).index(i) if i in WHAT_YOU_DO else len(WHAT_YOU_DO), i))
-    rows = []
-    for env_id in ids:
+    from mrgym import physics_map
+    for env_id in mrgym.list_envs():
         text = WHAT_YOU_DO.get(env_id) or mrgym.card(env_id)["title"]
         if len(text.split()) > 10:
             raise SystemExit(f"the front-page line of {env_id} has more than ten words: {text!r}")
-        rows.append(f"| [`{env_id}`](envs/{cards.slug(env_id)}/) | {text} | {STATUS[mrgym.spec(env_id).kind]} |")
-    return "\n".join(["| Task | What you do | Status |", "|---|---|---|"] + rows)
+    return physics_map.readme_table(WHAT_YOU_DO, STATUS)
+
+
+def tasks_note():
+    """The paragraph under the task table. Its numbers are read: the instances of the stored checks of the ready tasks,
+    and the counts of the map (items listed, formed by the scanner, isolated by a task)."""
+    import textwrap
+
+    import mrgym
+    from mrgym import physics_map
+    n = sorted({v["n"] for i in mrgym.list_envs() if mrgym.spec(i).kind == "admitted" for v in (mrgym.card(i)["gate"] or {}).get("levels", {}).values()})
+    ready = "" if not n else (f"A task is ready when it has been checked on {'' if len(n) == 1 else 'at least '}{n[0]} fresh objects: a scripted "
+                              "solution passes, and shortcuts that ignore the object fail. ")
+    c = physics_map.coverage()["total"]
+    text = (ready + "Each task has levels of difficulty (`mrgym list`); [envs/](envs/README.md) has the full table. "
+            f"[The map](docs/tasks.md) lists {c['listed']} pieces of MR physics: the scanner forms {c['formed']}, and "
+            f"{c['isolated']} have a task of their own.")
+    text = re.sub(r"\[[^\]]*\]|`[^`]*`", lambda m: m.group(0).replace(" ", "\0"), text)            # no line break inside a link text or a command
+    return textwrap.fill(text, width=120, break_long_words=False, break_on_hyphens=False).replace("\0", " ")
+
+
+def tasks_block():
+    return tasks_table() + "\n\n" + tasks_note()
+
+
+def task_map():
+    """docs/tasks.md from ``mrgym.physics_map``. The page is written only from a map without problems."""
+    from mrgym import physics_map
+    problems = physics_map.validate(ROOT)
+    if problems:
+        raise SystemExit("the map (src/mrgym/physics_map.py) has problems:\n  " + "\n  ".join(problems))
+    return physics_map.doc_page()
 
 
 def datasheet():
@@ -292,7 +336,8 @@ def main(argv=None):
     files["docs/scanner.md"] = datasheet()
     val_md, rows = validation()
     files["docs/physics/validation.md"] = val_md
-    bodies = dict(TASKS=tasks_table, COUNTS=lambda: counts(rows), DEMO=demo, RESULTS=results_block)
+    files["docs/tasks.md"] = task_map()
+    bodies = dict(TASKS=tasks_block, COUNTS=lambda: counts(rows), DEMO=demo, RESULTS=results_block)
     if a.timing:
         bodies["TIMING"] = timing_block
     for rel, names in BLOCKS.items():

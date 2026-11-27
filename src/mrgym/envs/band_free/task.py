@@ -72,6 +72,14 @@ MAX_ATTEMPTS = 64
 # examined competencies this family exercises (ids of ``mrgym.coverage.COMPETENCIES``)
 COMPETENCIES = ("parameter.tr", "parameter.receive_bandwidth", "option.2d_3d", "artefact.chemical_shift", "artefact.b0_distortion",
                 "qc.centre_frequency")
+# Outcome labels of a delivered, measured answer that fails (worst first) and the checks behind each: (label, stems),
+# a check belongs to a requirement when its name is ``<stem>_<image>``. The label is the first of the three pass rules
+# that the delivery misses, in the order of the rules (the order in which ``score`` declares the checks of one image);
+# it names the rule, never the image or the region.
+REQUIREMENTS = (("band_on_region", ("band_free",)),                            # rule 1
+                ("second_acquisition_not_needed", ("acquisitions_needed",)),   # rule 2
+                ("bandwidth_too_high", ("bandwidth_low",)))                    # rule 3
+OUTCOMES = tuple(label for label, _ in REQUIREMENTS)
 QA = dict(n_ring=(5, 6), roi_radius_mm=6.0)
 HIGH_RATIO = dict(vial_t1_ms=(1500.0, 2500.0), vial_t2_ms=(40.0, 60.0))            # T1 / T2 of 25 to 62
 BASE = dict(kind="qa", b0_t=3.0, cf_offset_hz=150.0)
@@ -437,6 +445,14 @@ def score(cfg: dict, answer, world: dict | None = None, engine=None) -> dict:
                             lowest_bandwidth=dict(ref[name]), bandwidth_ratio=None if lowest is None else round(bw / lowest, 4))
     worst = min(d["keep_worst"] for d in images.values())
     return F.result(checks, "; ".join(notes), error=round(1.0 - worst, 5), keep_worst=worst, images=images)
+
+
+def outcome(score: dict) -> str:
+    """The outcome label of a delivered, measured answer that fails a check: one of ``OUTCOMES``, the first requirement
+    of ``REQUIREMENTS`` with a failed check. A function of the names and values of ``score["checks"]`` and nothing else."""
+    failed = [k for k, ok in score["checks"].items() if not ok]
+    missed = lambda stems: any(k == s or k.startswith(s + "_") for k in failed for s in stems)   # noqa: E731
+    return next((label for label, stems in REQUIREMENTS if missed(stems)), OUTCOMES[-1])
 
 
 def task_kind(stored: dict | None = None) -> dict:

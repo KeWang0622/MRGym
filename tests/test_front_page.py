@@ -43,7 +43,8 @@ def test_the_python_block_of_the_front_page_runs_as_written_and_ends_with_reward
 def test_the_front_page_is_short_and_uses_plain_words():
     readme = _read("README.md")
     lines = readme.rstrip("\n").split("\n")
-    assert len(lines) <= 120
+    start, end = lines.index("<!-- TASKS:START -->"), lines.index("<!-- TASKS:END -->")
+    assert len(lines) - (end - start + 1) <= 105                              # the task table grows with the tasks; the rest stays short
     code = False
     for n, ln in enumerate(lines, 1):
         code = code != ln.startswith("```")
@@ -58,18 +59,39 @@ def test_the_front_page_is_short_and_uses_plain_words():
 
 
 def test_the_task_table_has_one_row_per_registered_id_with_its_card_and_a_plain_status():
+    """One table, grouped by the subjects of the map (``mrgym.physics_map``): the sandbox, then a bold row per subject
+    and under it its tasks. Columns: Task, What you do, Kind, Status."""
+    from mrgym import physics_map
     generate = _tool("generate")
     table = generate.tasks_table()
-    assert table in _read("README.md")
-    rows = [ln.split(" | ") for ln in table.splitlines()[2:]]
-    assert sorted(re.search(r"`([^`]+)`", r[0])[1] for r in rows) == sorted(mrgym.list_envs())
-    for name, what, status in rows:
+    assert generate.tasks_block() == table + "\n\n" + generate.tasks_note() and generate.tasks_block() in _read("README.md")
+    lines = table.splitlines()
+    assert lines[0] == "| Task | What you do | Kind | Status |"
+    assert [ln for ln in lines if ln.startswith("| **")] == [f"| **{s.letter} · {s.title}**: {s.line} | | | |" for s in physics_map.SUBJECTS]
+    rows, subject, placed = [], None, {}
+    for ln in lines[2:]:
+        if ln.startswith("| **"):
+            subject = ln[4]
+        else:
+            rows.append(ln.split(" | "))
+            placed[re.search(r"`([^`]+)`", ln)[1]] = subject
+    assert sorted(placed) == sorted(mrgym.list_envs())
+    kinds = [k.name for k in physics_map.KINDS]
+    for name, what, kind, status in rows:
         env_id = re.search(r"`([^`]+)`", name)[1]
         assert f"](envs/{cards.slug(env_id)}/)" in name and os.path.exists(os.path.join(ROOT, "envs", cards.slug(env_id), "README.md"))
         assert status.rstrip(" |") == generate.STATUS[mrgym.spec(env_id).kind] and 3 <= len(what.split()) <= 10, env_id
+        on_map = physics_map.family_of(env_id)
+        assert kind == (kinds[on_map[1].kind - 1] if on_map else "-") and placed[env_id] == (physics_map.cell(on_map[1])[0] if on_map else None)
     assert set(generate.STATUS) == set(cards.KINDS) and generate.STATUS["admitted"] == "ready"
-    statuses = [r[2].rstrip(" |") for r in rows]
-    assert statuses == sorted(statuses, key=["ready", "experimental", "no score"].index)        # ready tasks first
+    for s in physics_map.SUBJECTS:                                       # inside a subject: by kind of task, and ready tasks first inside a kind
+        mine = [(kinds.index(r[2]), ["ready", "experimental", "no score"].index(r[3].rstrip(" |"))) for r in rows
+                if placed[re.search(r"`([^`]+)`", r[0])[1]] == s.letter]
+        assert mine == sorted(mine), s.letter
+    note, c = generate.tasks_note(), physics_map.coverage()["total"]    # the paragraph under the table: its numbers are those of the map
+    assert (f"[The map](docs/tasks.md) lists {c['listed']} pieces of MR physics: the scanner forms {c['formed']}, and {c['isolated']} have a task "
+            "of their own." in " ".join(note.split()))
+    assert len(note.splitlines()) <= 3 and all(len(ln) <= 120 for ln in note.splitlines()) and "[The\n" not in note
 
 
 def test_what_left_the_front_page_is_generated_on_the_tour_page():

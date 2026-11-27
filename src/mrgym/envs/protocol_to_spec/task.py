@@ -50,6 +50,13 @@ IMAGES = ("A", "B")
 OPEN_LOOP = ("always_ti", "always_te", "open_loop_card", "open_loop_all", "open_loop_short")     # the fixed lists of scans among the policies
 FIELDS = oracle.FIELDS
 T1_RATIO, T2_RATIO, SNR_MIN = 4.0, 1.5, 20.0                            # the specification, the same in every instance
+# Outcome labels of a delivered, measured answer that fails (worst first) and the checks behind each: (label, stems),
+# a check belongs to a requirement when its name is the stem or ``<stem>_<image>``. The label is the first of the four
+# requirements of the specification that the delivery misses, in the order in which ``score`` declares the checks of
+# one image (the scan time of the examination last); it names the requirement, never the image.
+REQUIREMENTS = (("t1_contrast_too_low", ("t1_contrast",)), ("t2_contrast_too_low", ("t2_contrast",)), ("snr_too_low", ("snr",)),
+                ("scan_too_long", ("time",)))
+OUTCOMES = tuple(label for label, _ in REQUIREMENTS)
 CONSOLE = dict(overhead_s=30.0, repeat_overhead_s=3.0)                  # this console: adjustments before a scan, and before one that reuses them
 PRICE_S = CONSOLE["overhead_s"]
 BUDGET_S = 63.0                                                         # the standard protocol at low resolution and one repeat of it
@@ -378,6 +385,14 @@ def score(cfg: dict, answer, world: dict | None = None, engine=None) -> dict:
     # ``error`` is minus the margin of the examination (the smallest logarithmic slack of any requirement): negative
     # exactly when it passes; the oracle's value is the smallest attainable
     return F.result(checks, "; ".join(bad), error=-min(slacks + [math.log(limit / total)]), images=detail, scan_s=total)
+
+
+def outcome(score: dict) -> str:
+    """The outcome label of a delivered, measured answer that fails a check: one of ``OUTCOMES``, the first requirement
+    of ``REQUIREMENTS`` with a failed check. A function of the names and values of ``score["checks"]`` and nothing else."""
+    failed = [k for k, ok in score["checks"].items() if not ok]
+    missed = lambda stems: any(k == s or k.startswith(s + "_") for k in failed for s in stems)   # noqa: E731
+    return next((label for label, stems in REQUIREMENTS if missed(stems)), OUTCOMES[-1])
 
 
 def task_kind(stored: dict | None = None) -> dict:

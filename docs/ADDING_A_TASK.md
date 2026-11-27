@@ -114,7 +114,7 @@ The front page says "ready" for admitted and "experimental" for the other two.
 4. `prior`, `fixed_recipe` and `wrong_units` fail; `tune` looks at other worlds only.
 5. `open_loop` is reported, and the card says measurement task or decision task.
 6. `mrgym gate <id> --n 60 --workers 2` gives the verdict you expect; then `--n 300 --write`.
-7. `mrgym check <id>` passes every line.
+7. `mrgym check <id>` passes every line; one line in `FAMILIES` of `src/mrgym/physics_map.py` puts the task on [the map](tasks.md).
 8. `tests/scoring/<your_task>.py` holds a scoring table ([CONTRIBUTING.md](../CONTRIBUTING.md#scoring-table)).
 9. `python tools/audit/golden.py --write`, `python tools/generate.py`, then `make test` and `make lint`.
 10. [CHANGELOG.md](../CHANGELOG.md) has a line, and `kind` in `spec.py` is what the stored result says.

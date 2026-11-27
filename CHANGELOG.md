@@ -38,6 +38,42 @@ No reward, no scan data and no id changes.
   was used by nothing here. Commit `294ae25` is the last one that holds it.
 - `python tools/check_links.py` checks every relative link of the Markdown pages; `make check` runs it.
 
+### The map: which MRI physics is covered, and which task asks for which piece
+
+`src/mrgym/physics_map.py` is one authored table: four subjects (signal and contrast; spatial encoding and
+reconstruction; the system; image quality and artefacts), five kinds of task (measure, set, trade, request, design),
+the items of MRI physics that textbooks and curricula name, each with the status of the engine and one row per scored
+family: its kind, the item it isolates, the items it uses. The statuses: formed (the scanner serves it, and a check
+that exists shows it), partial, computed (the package computes it and checks it, for example in `mrgym.design`, but
+no console sequence or task reaches it), absent. An item that is not fully formed names the piece of engine work it
+waits for, one of seven (a 3D world, a receive array, spin systems, a field model, the block-list core, realistic
+anatomy, measured data), or none where ordinary work on the present engine is enough. Generated from the table: `docs/tasks.md`, `mrgym map`,
+one line under the title of every environment card, and the task table of the README, which is now grouped by subject
+with the kind of task beside each id and a sentence with the counts of the map. `mrgym list` groups the ids by
+subject and prints the kind of task beside each; `mrgym list --flat` prints the list as before. No reward, statement,
+tool or fingerprint changes: the map is read by no environment, and a family can be filed elsewhere without a new id.
+A new family needs one line in `FAMILIES` (`mrgym map --assert`, CONTRIBUTING.md).
+
+### Four families name the requirement a failed delivery misses (the label changes, no reward does)
+
+`info["outcome"]` of a delivered, measured answer that fails was `check_failed` on `Scanner/SNRSpec-v0`,
+`Scanner/BandFree-v0`, `Scanner/ArtefactClinic-v0` and `Scanner/ProtocolToSpec-v0`. It is now the first requirement of
+the pass rule that the delivery misses, in the order in which the verifier declares its checks (`task.REQUIREMENTS`,
+`task.OUTCOMES`, `task.outcome`). The label names the requirement, never the image, finding or region:
+
+| Family | Labels, worst first |
+|---|---|
+| SNRSpec | `snr_too_low`, `scan_too_long` |
+| BandFree | `band_on_region`, `second_acquisition_not_needed`, `bandwidth_too_high` |
+| ArtefactClinic | `diagnosis_wrong`, `remedy_leaves_artefact`, `locked_parameter_changed`, `parameter_outside_window`, `pixel_too_large`, `scan_too_long`, `snr_too_low` |
+| ProtocolToSpec | `t1_contrast_too_low`, `t2_contrast_too_low`, `snr_too_low`, `scan_too_long` |
+
+Unchanged: `passed`, `checks`, the reward, `progress` and every tolerance. The label is a function of the stored
+`checks`, so a record written before this entry is relabelled without a re-run:
+`python tools/audit/policy_identity.py relabel RUN/episodes`. Counts of `check_failed` on these four ids are not
+comparable across this entry; counts of every other label are. `tools/audit/policy_identity.py play` / `compare`
+plays every control policy on two trees and compares reward, checks and deliverable episode by episode.
+
 ### A refused call is charged by its class: this changes when an episode ends
 
 A call refused with class `shape` or `vocabulary` (for how it is written) is a rejected call, and a call refused with

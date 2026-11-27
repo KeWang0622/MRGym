@@ -90,7 +90,9 @@ it and are kept as they are.)
    answer that uses only what the task states, a sweep without a model, the wrong unit), and the ablations with the
    levels at which each must lose.
 3. **`spec.py`.** `SPECS`, a list of keyword dicts for `register`, with `kind="candidate"`. The sub-package is found
-   by listing the directory: no shared file is edited.
+   by listing the directory. One line in one shared file places the family on the map: `FAMILIES` in
+   `src/mrgym/physics_map.py` (the kind of task, the one item it isolates, the items it uses, the families it builds
+   on; a family listed under `PLANNED` moves its line). `mrgym map --assert` checks it.
 4. **A scoring table** (next section) and the snapshot of the task: `python tools/audit/golden.py --write`.
 5. **Run the gate and read the table.** The status is whatever the gate says.
 
@@ -98,7 +100,8 @@ it and are kept as they are.)
    mrgym gate <id> --n 300 --write
    ```
 6. **Run the structural check.** `mrgym check <id>` must pass.
-7. **Regenerate.** `python tools/generate.py` rewrites the card under `envs/` and the task table of the README.
+7. **Regenerate.** `python tools/generate.py` rewrites the card under `envs/`, the task table of the README and the
+   map (`docs/tasks.md`).
 8. **Changelog.** Add a line under "Unreleased". If a reward of a released id can change, register a new `-vN` and
    leave the old id as it is.
 

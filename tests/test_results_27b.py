@@ -322,7 +322,7 @@ def test_the_front_page_says_what_it_is_before_it_shows_training_and_the_recipe_
     assert "mrgym demo" in readme[order[2]:order[3]] and "import mrgym" in readme[order[2]:order[3]]
     training = readme[order[5]:order[6]]
     assert "<!-- TRAINING:START -->" in training and "(docs/RECIPE.md)" in training
-    assert len(readme.rstrip("\n").split("\n")) <= 120 and "<details>" not in readme
+    assert "<details>" not in readme                    # the length of the front page: tests/test_front_page.py
     for name in ("TRAINING", "RECIPE_NEEDS", "RECIPE_SETTINGS", "RECIPE_PITFALLS", "RECIPE_STATUS", "RECIPE_REACH"):
         assert f"<!-- {name}:START -->" in recipe
     lo, hi = (round(100 * x) for x in learn.ENTRY_BAND)

@@ -23,6 +23,9 @@ Thresholds (``THRESHOLDS``; printed always, enforced by ``--assert``): the numbe
 environment exercises, that every scored environment declares at least one row, that every declared id is a row of
 the map, and that every row marked "now" is exercised by an environment or names a check that exists (a row of
 ``mrgym validate`` or a command).
+
+This map follows one outline line by line. The map of the physics itself, by subject and with every task placed on it,
+is ``mrgym.physics_map`` (``mrgym map``, ``docs/tasks.md``).
 """
 from __future__ import annotations
 
