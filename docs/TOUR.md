@@ -4,7 +4,7 @@ What is in the box: the demo, the scanner, an episode, speed, limits and where t
 [README](../README.md) is the short version; the [scanner manual](scanner.md) is what the agent reads.
 
 <!-- COUNTS:START -->
-| 6 sequences | 5 phantoms | 2 field strengths | 25 tissue rows, each with a source tag | 63 physics checks | 23 environments (admitted, candidate, practice, sandbox) |
+| 6 sequences | 5 phantoms | 2 field strengths | 25 tissue rows, each with a source tag | 79 physics checks | 23 environments (candidate, practice, sandbox) |
 |---|---|---|---|---|---|
 <!-- COUNTS:END -->
 
@@ -32,13 +32,13 @@ $ mrgym demo
 Scanner/NoWrap-v1 · level 2 · seed 0
 scripted solution (no language model): shows the task can be solved through the tools
   agent -> scanner_info {}
-      (instrument card, 1367 characters)
+      (instrument card, 1380 characters)
   agent -> scan {"sequence":"spgr","tr_ms":11.0,"flip_deg":10.0,"fov_mm":288.0,"matrix":160,"averages":2,"circles":[]}
-      scan_index 0 · 1 image 160x160 (y, x) stored · cost 10.52 s · te_ms 3.33
+      scan_index 0 · 1 image 160x160 (y, x) stored · cost 10.52 s · te_ms 3.32
       no regions requested
   agent -> view {"scan_index":0,"image_index":0,"kind":"magnitude"}
       scan_index 0 (spgr), image_index 0, magnitude, 160x160 (y, x), FOV 288 x 288 mm, pixel 1.8 x 1.8 mm
-      16x16 block means, one digit per 18.0 x 18.0 mm block (y, x), 0-9 spans 0..0.4401; row = y (top = -144 mm), column = x (left = -144 mm); block centres: y_mm after each...
+      16x16 block means, one digit per 18.0 x 18.0 mm block (y, x), 0-9 spans 0..0.4376; row = y (top = -144 mm), column = x (left = -144 mm); block centres: y_mm after each...
       0000000000000000 -136
   agent -> submit {"pe_dir":"y","fov_mm":168.0,"phase_fov":0.595238,"matrix":84,"centre_y_mm":-1.0,"centre_x_mm":16.3,"rotation_deg":90.0}
       deliverable received; the episode is over

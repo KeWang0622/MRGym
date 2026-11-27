@@ -655,14 +655,15 @@ def doc_page(m: dict) -> str:
             f"- Stupic et al. 2021 (article body): a spherical shell of {n['shell_mm']:g} mm inner diameter; array spheres of {n['sphere_mm']:g} mm inner and "
             f"{n['sphere_outer_mm']:g} mm outer diameter; {n['ring_n']} spheres on a {n['ring_mm']:g} mm radius and 4 inside on a {n['grid_mm']:g} mm grid; the Ni-12 "
             f"solution at 3 T and 20.0 degrees C: T1 {n['t1_ms'][11]:g} ms, T2 {n['t2_ms_sphere_12']:g} ms; regions of 10 mm diameter.",
-            "- The reference T1 list of the ISMRM reproducibility challenge (`rrsg2020/analysis`, `src/nist.py`, phantoms with serial number below 0043, 20 degrees C): "
-            + ", ".join(f"{v:g}" for v in n["t1_ms"]) + " ms. Its twelfth value is the Ni-12 value of the article, which is how the list is tied to 3 T.",
-            "", "Read later, and not in this world yet:", "",
-            "- Tables S1, S2 and S4 of the article (sphere positions, T1 and T2 of every sphere of both plates at 1.5 and 3 T, the water). They are in the package as "
-            "`anatomy.NIST_S1`, `NIST_S2` and the T2 plate `anatomy.nist_t2`. The world `nist_t1` was built before and is unchanged: it exists at 3 T only, its "
-            "order of the spheres (1 to 10 round the ring, 11 to 14 on the inner grid) turned out to be the published one, and T2 of a sphere is still T1 x "
-            f"({n['t2_ms_sphere_12']:g} / {n['t1_ms'][11]:g}), the ratio of sphere 12, a declared rule and not the published T2. The differences, with the outline of the plate, are rows "
-            "M0.2 to M0.4 and M0.8 of [measured.md](measured.md).",
+            "- Table S1 of the supporting information of the article (NiCl2 array), column \"NMR measured T1 @ 3.0 T\", 20 degrees C: "
+            + ", ".join(f"{v:g}" for v in n["t1_ms"]) + " ms. The list of the ISMRM reproducibility challenge (`rrsg2020/analysis`, `src/nist.py`, phantoms "
+            "with serial number below 0043), from which engine 0.2.0 took the values, is the same except that it writes the fifth as 496.",
+            "", "In the package, and not in this world yet:", "",
+            "- The other columns of Tables S1, S2 and S4 of the article (sphere positions, T1 and T2 of every sphere of both plates at 1.5 and 3 T, the water). They "
+            "are in the package as `anatomy.NIST_S1`, `NIST_S2` and the T2 plate `anatomy.nist_t2`. The world `nist_t1` uses the 3 T column of T1 only: it exists "
+            "at 3 T only, its order of the spheres (1 to 10 round the ring, 11 to 14 on the inner grid) turned out to be the published one, and T2 of a sphere is "
+            f"still T1 x ({n['t2_ms_sphere_12']:g} / {n['t1_ms'][11]:g}), the ratio of sphere 12, a declared rule and not the published T2. The differences, with "
+            "the outline of the plate, are rows M0.3, M0.4 and M0.8 of [measured.md](measured.md); row M0.2 holds the T1 list equal to the table.",
             f"- The relaxation times of the water round the spheres (\"long-T1 deionized water\" in the article): declared, T1 {n['fill']['t1_ms']:g} ms, T2 {n['fill']['t2_ms']:g} ms.",
             "- The second list of the same file (serial numbers from 0043) was opened and is not used; the temperature correction of the file was not read.",
             "- The inversion-recovery protocol of the challenge has been run on this world and compared with the maps the challenge collected on real scanners, and "

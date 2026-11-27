@@ -3,7 +3,7 @@
   {
    "id": "Scanner/ArtefactClinic-v0",
    "folder": "scanner-artefactclinic-v0",
-   "kind": "admitted",
+   "kind": "candidate",
    "levels": [
     1,
     2,
@@ -16,7 +16,7 @@
    ],
    "practice_levels": [],
    "title": "Artefact clinic: diagnose the marked findings and correct the protocol",
-   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 7 % (95 % bounds)",
+   "status": "CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one",
    "task_kind": {
     "1": "measurement",
     "2": "measurement",
@@ -35,7 +35,7 @@
   {
    "id": "Scanner/BandFree-v0",
    "folder": "scanner-bandfree-v0",
-   "kind": "admitted",
+   "kind": "candidate",
    "levels": [
     1,
     2,
@@ -48,8 +48,8 @@
    ],
    "practice_levels": [],
    "title": "Keep the dark bands of two balanced SSFP images off their marked regions",
-   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 94 %, no policy that ignores the object passes more than 3 % (95 % bounds)",
-   "task_kind": "measurement",
+   "status": "CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one",
+   "task_kind": "undetermined",
    "gate": {
     "engine": "mrgym-engine-0.2.0",
     "instances_per_level": 300,
@@ -141,7 +141,7 @@
   {
    "id": "Scanner/FatSuppress-v0",
    "folder": "scanner-fatsuppress-v0",
-   "kind": "admitted",
+   "kind": "candidate",
    "levels": [
     1,
     2,
@@ -154,8 +154,8 @@
    ],
    "practice_levels": [],
    "title": "Suppress the fat in each marked region and keep the water signal",
-   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 98 %, no policy that ignores the object passes more than 6 % (95 % bounds)",
-   "task_kind": "measurement",
+   "status": "CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one. NOT READY on this engine: spectral fat saturation leaves the fat lines outside the band of its pulse, more than the task's threshold allows, so inversion recovery is the answer in every region and the choice the task examines does not arise; it needs other thresholds, which is a new id (Scanner/FatSuppress-v1, not built)",
+   "task_kind": "undetermined",
    "gate": {
     "engine": "mrgym-engine-0.2.0",
     "instances_per_level": 300,
@@ -252,7 +252,7 @@
   {
    "id": "Scanner/NoWrap-v1",
    "folder": "scanner-nowrap-v1",
-   "kind": "admitted",
+   "kind": "candidate",
    "levels": [
     0,
     1,
@@ -268,7 +268,7 @@
     1
    ],
    "title": "The fastest geometry without wrap-around",
-   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 6 % (95 % bounds)",
+   "status": "CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one",
    "task_kind": "measurement",
    "gate": {
     "engine": "mrgym-engine-0.2.0",
@@ -302,7 +302,7 @@
   {
    "id": "Scanner/NullTissue-v0",
    "folder": "scanner-nulltissue-v0",
-   "kind": "admitted",
+   "kind": "candidate",
    "levels": [
     0,
     1,
@@ -318,7 +318,7 @@
     0
    ],
    "title": "Null each marked material with inversion recovery",
-   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 92 %, no policy that ignores the object passes more than 3 % (95 % bounds)",
+   "status": "CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one",
    "task_kind": null,
    "gate": {
     "engine": "mrgym-engine-0.2.0",
@@ -333,7 +333,7 @@
   {
    "id": "Scanner/PhantomQA-v0",
    "folder": "scanner-phantomqa-v0",
-   "kind": "admitted",
+   "kind": "candidate",
    "levels": [
     1,
     2,
@@ -346,7 +346,7 @@
    ],
    "practice_levels": [],
    "title": "Phantom QA: measure, judge and diagnose",
-   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 3 % (95 % bounds)",
+   "status": "CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one",
    "task_kind": {
     "rule": "open_loop within 25 points of the reference = measurement task, else decision task",
     "levels": {
@@ -355,24 +355,24 @@
       "reference": 1.0,
       "open_loop": 1.0,
       "gap_points": 0.0,
-      "n": 300
+      "n": 60
      },
      "2": {
       "kind": "measurement",
       "reference": 1.0,
       "open_loop": 1.0,
       "gap_points": 0.0,
-      "n": 300
+      "n": 60
      },
      "3": {
-      "kind": "measurement",
+      "kind": "decision",
       "reference": 1.0,
-      "open_loop": 0.7733,
-      "gap_points": 22.7,
-      "n": 300
+      "open_loop": 0.6667,
+      "gap_points": 33.3,
+      "n": 60
      }
     },
-    "source": "mrgym gate Scanner/PhantomQA-v0 --n 300 --write on mrgym-engine-0.2.0, 2026-11-25"
+    "source": "mrgym gate Scanner/PhantomQA-v0 --n 60 --write on mrgym-engine-0.3.0, 2026-11-27"
    },
    "gate": {
     "engine": "mrgym-engine-0.2.0",
@@ -400,7 +400,7 @@
    ],
    "practice_levels": [],
    "title": "Adapt the standard protocol until the examination meets its specification",
-   "status": "PRACTICE: level(s) 1, 3 admitted; fixed_recipe#2 passes 25 of 300 (upper bound 11.4 % > 10 %)",
+   "status": "PRACTICE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one",
    "task_kind": {
     "kind": "measurement",
     "levels": {
@@ -443,7 +443,7 @@
   {
    "id": "Scanner/SNRSpec-v0",
    "folder": "scanner-snrspec-v0",
-   "kind": "admitted",
+   "kind": "candidate",
    "levels": [
     1,
     2,
@@ -456,7 +456,7 @@
    ],
    "practice_levels": [],
    "title": "Meet a signal-to-noise requirement in the shortest scan time",
-   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 97 %, no policy that ignores the object passes more than 3 % (95 % bounds)",
+   "status": "CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one",
    "task_kind": {
     "kind": "measurement",
     "evidence": "reference minus open_loop, points of pass rate: 0 at level 1, -0.7 at level 2, 0.3 at level 3 (n = 300 per level, engine mrgym-engine-0.2.0)"
@@ -507,7 +507,7 @@
    ],
    "practice_levels": [],
    "title": "T1 in marked regions with an uncalibrated transmit field",
-   "status": "PRACTICE: level(s) 1 admitted; ignores_profile loses only 9.0 points against the reference (lower bound 6.3 < 25)",
+   "status": "PRACTICE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one",
    "task_kind": "measurement",
    "gate": {
     "engine": "mrgym-engine-0.2.0",

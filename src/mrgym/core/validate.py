@@ -11,7 +11,7 @@ Groups
   engine      every sequence the scanner serves, written as a block list, against the engine's own numbers
               (``scanner/signal.py``, ``scanner/epg.py``, ``scanner/kspace.py``): the protocols and tissues of rows S1 to
               S15 and R1 to R12 of ``mrgym validate``. Where the engine itself approximates, the row says which side
-              is exact. Fat saturation is left out (a known error of engine 0.2.0, fixed elsewhere).
+              is exact. Rows Q16 to Q16d: the fat-saturation pulse of engine 0.3.0 as an event of the block list.
   sequences   the sequences the scanner does not serve, each against at least two independent checks: closed forms
               (their source is named, with "paper not opened" where it was not read for this work), the isochromat ensemble, the
               engine's or the design layer's separately written code
@@ -133,16 +133,19 @@ def check_agreement():
         z2, w2 = O.slice_columns(tbw)
         err = max(err, abs(w2.sum() - wq.sum()), np.abs(z2 + z2[::-1]).max())
         for window in ("hann", "hamming"):
+            err = max(err, abs(O.slice_calibration(tbw, window) - engine_rf.fwhm_factor(tbw, window)))
             for deg in (5, 30, 90, 120, 180):
                 a, b = O.selective_rotation(B.Selective(tbw, window), D(deg), z2)
                 a0, b0 = engine_rf.cayley_klein(D(deg), tbw, z2, window=window)
                 ar, br = O.selective_rotation(B.Selective(tbw, window, rephase=0.0, width=engine_rf.REFOCUS_WIDTH), D(deg), z2)
                 ar0, br0 = engine_rf.cayley_klein(D(deg), tbw, z2 / engine_rf.REFOCUS_WIDTH, rephase=0.0, window=window)
                 err = max(err, np.abs(a - a0).max(), np.abs(b - b0).max(), np.abs(ar - ar0).max(), np.abs(br - br0).max())
-    rows.append(_row("C2", "agreement", "slice columns: positions and weights of the integral through the slice; the rotation of the windowed "
-                     "sinc at every column (fast, normal, sharp; Hann, Hamming; 5 to 180 deg; excitation and the refocusing pulse on the 1.5 x "
-                     "slice), computed with `design.rotation.rotate`", "`scanner/rf.py::quadrature` and `cayley_klein` (rows R1 to R3 of "
-                     "`mrgym validate` check that cascade)", err, 1e-12))
+    rows.append(_row("C2", "agreement", "slice columns: the calibration of the slice gradient (nominal bandwidths across the width at half "
+                     "maximum of the small-flip-angle profile, by bisection on the transform of the design layer's pulse), positions and "
+                     "weights of the integral through the slice; the rotation of the windowed sinc at every column (fast, normal, sharp; Hann, "
+                     "Hamming; 5 to 180 deg; excitation and the refocusing pulse on the 1.5 x slice), computed with `design.rotation.rotate`",
+                     "`scanner/rf.py::fwhm_factor`, `quadrature` and `cayley_klein` (rows R1 to R3 and R13 of `mrgym validate` check that "
+                     "cascade and that calibration)", err, 1e-12))
 
     # C3 the design layer's phase graph on its own block lists
     S, err = design_sequence, 0.0
@@ -427,7 +430,7 @@ def _served_amplitudes(eng, w, proto, per_class=3, model="flip"):
         else:
             sel = B.Selective(tbw, window, model=model)
             seq, labels = L.served(rp, selective=sel, inv_eff=w["system"]["inv_eff"])
-            zeta, wz = O.slice_columns(tbw, two_sided=False)
+            zeta, wz = O.slice_columns(tbw, two_sided=False, window=window)
             shp = (idx.size, zeta.size)
             sp = O.spins(cls["t1_ms"], cls["t2_ms"], b1=np.broadcast_to(eng.b1[sup][idx][:, None], shp), adc_um2_ms=cls["adc_um2_ms"],
                          zeta=np.broadcast_to(zeta[None, :], shp), df_hz=np.broadcast_to(np.asarray(df)[..., None], shp))
@@ -441,6 +444,47 @@ def _served_amplitudes(eng, w, proto, per_class=3, model="flip"):
         for a, b in zip(mine, served):
             worst = max(worst, float(np.max(np.abs(a / decay - b)) / np.max(np.abs(b))))
     return worst, rp
+
+
+def _served_saturated(proto, per_class=2):
+    """Largest relative difference between the amplitude maps the engine serves under fat saturation, line by line
+    (``Engine._species``), and the core, for a protocol on an abdomen world at 1.5 T (three fat tissues in a field that
+    moves their lines across the band of the pulse); and the smallest and largest saturation factor met. The band
+    of the pulse (which share of the saturation a line receives) is the engine's; the steady state is the core's."""
+    from ..scanner import console, kspace, tissue
+    from ..scanner import world as W
+    w = W.make_world("5b" * 16, dict(kind="abdomen", b0_t=1.5, n=320))
+    eng = kspace.Engine(w)
+    rp = console.plan(proto, w["console"])["realised"]
+    tbw, window = eng.pulse(rp)
+    sy, f0 = w["system"], GAMMA_HZ_PER_T * 1e-6 * w["b0_t"]                # Hz per ppm
+    centre = tissue.FAT_PPM * f0 + sy.get("fatsat_offset_hz", 0.0) + rp.get("fatsat_offset_hz", 0.0)
+    worst, q_seen = 0.0, []
+    for c, name in enumerate(w["names"]):
+        cls, sup = w["tissues"][name], eng.sup[c]
+        lines, served = eng._species(rp, c)
+        if lines is None:
+            continue
+        idx = np.flatnonzero(w["weights"][c][sup] > 0.5)
+        idx = idx[::max(1, idx.size // per_class)][:per_class]
+        for j, (ppm, _) in enumerate(lines):
+            for i in idx:
+                q = 1 - sy["fatsat_eff"] * float(kspace.sat_band(eng.df[sup][i] + ppm * f0 - centre, sy["fatsat_bw_hz"]))
+                q_seen.append(q)
+                sat = (q, rp["fatsat_delay_ms"])
+                want = served[0][j, i] / (w["weights"][c][sup][i] * cls["pd"])
+                if tbw is None:
+                    seq, labels = L.served(rp, inv_eff=sy["inv_eff"], sat=sat)
+                    mine = periodic.steady_state(seq, O.spins(cls["t1_ms"], cls["t2_ms"], b1=eng.b1[sup][i], adc_um2_ms=cls["adc_um2_ms"])).of(labels[0])[0, 0]
+                else:
+                    sel = B.Selective(tbw, window, model="flip")
+                    seq, labels = L.served(rp, selective=sel, inv_eff=sy["inv_eff"], sat=sat)
+                    zeta, wz = O.slice_columns(tbw, two_sided=False, window=window)
+                    sp = O.spins(cls["t1_ms"], cls["t2_ms"], b1=eng.b1[sup][i], adc_um2_ms=cls["adc_um2_ms"], zeta=zeta)
+                    mine = np.sum(wz * O.column_phase(sel, rp["flip_deg"], sp).real * periodic.steady_state(seq, sp).of(labels[0])[0])
+                decay = math.exp(-rp["te_ms"] / cls["t2_ms"]) if rp["sequence"] in ("se", "ir") else 1.0
+                worst = max(worst, abs(mine / decay - want) / abs(want))
+    return worst, min(q_seen), max(q_seen)
 
 
 def check_engine():
@@ -659,18 +703,21 @@ def check_engine():
         t1v, t2v, tr, al = 900.0, 90.0, 6.0, 45.0
         df = rng.uniform(-80, 80, 9)
         free = 2 * math.pi * df * tr * 1e-3
-        ref = S.bssfp(D(al), free + D(cyc), tr, t1v, t2v) * np.exp(0.5j * free) * math.exp(-0.5 * tr / t2v)
-        minus = periodic.steady_state(L.bssfp(tr, al, -cyc), O.spins(t1v, t2v, df_hz=df)).signal[0]
-        plus = periodic.steady_state(L.bssfp(tr, al, +cyc), O.spins(t1v, t2v, df_hz=-df)).signal[0]
-        worst = max(worst, _rel(minus, ref))
-        sign = max(sign, _rel(np.abs(plus), np.abs(ref)))
+        ref = S.bssfp(D(al), free - D(cyc), tr, t1v, t2v) * np.exp(0.5j * free) * math.exp(-0.5 * tr / t2v)
+        plus = periodic.steady_state(L.bssfp(tr, al, +cyc), O.spins(t1v, t2v, df_hz=df)).signal[0]
+        worst = max(worst, _rel(plus, ref))
+    for cyc in (90.0, 137.0, 270.0):                                   # the same sign in what the engine serves: its amplitude maps
+        sign = max(sign, _served_amplitudes(eng, w, dict(sequence="bssfp", tr_ms=6.0, flip_deg=45.0, phase_cycle_deg=cyc, matrix=64,
+                                                         excitation="nonselective"), per_class=6)[0])
     rows.append(_row("Q10", "engine", "bssfp, hard pulse: 200 random (T1, T2, TR, flip angle, off-resonance over three bands) of row S14 with the "
-                     "180 deg cycle, and phase cycles of 0, 90, 137, 270 deg", "`scanner/signal.py::bssfp` x exp(i pi df TR) x exp(-TR / 2 T2), with "
-                     "the RF phase DEcreasing by `phase_cycle_deg` per TR. Both sides are exact", worst, 1e-10, unit="relative"))
-    rows.append(_row("Q10b", "engine", "the sign of the phase cycle: an RF phase that ADVANCES by 90, 137, 270 deg per TR (what conventions.md, "
-                     "section 7, says `phase_cycle_deg` is), magnitudes", "the engine's magnitudes at the OPPOSITE off-resonance: the engine moves "
-                     "the bands the wrong way for cycles other than 0 and 180 deg (reported; `library.served` reproduces the engine)", sign, 1e-10,
-                     unit="relative"))
+                     "180 deg cycle, and phase cycles of 0, 90, 137, 270 deg", "`scanner/signal.py::bssfp` at the precession per TR seen from the "
+                     "pulse, 2 pi df TR - `phase_cycle_deg`, x exp(i pi df TR) x exp(-TR / 2 T2): the RF phase ADVANCES by `phase_cycle_deg` "
+                     "per TR, as the engine counts it since 0.3.0. Both sides are exact", worst, 1e-10, unit="relative"))
+    rows.append(_row("Q10b", "engine", "the sign of the phase cycle in what the engine serves: `Engine.amplitudes` of a nonselective bssfp with "
+                     "phase cycles of 90, 137, 270 deg on a phantom world with a field (6 voxels of each of 7 materials)",
+                     "`library.served` with the RF phase advancing by `phase_cycle_deg` per TR (conventions.md, section 5). Engine 0.2.0 put "
+                     "the bands at the opposite off-resonance; this row found it, and with 0.3.0 the two agree at the same off-resonance",
+                     sign, 1e-6, unit="relative"))
     direct = model = 0.0
     for flip, tbw, tr, df in ((50, 4, 8.0, 12.0), (30, 2, 5.0, -40.0), (70, 8, 6.0, 55.0)):
         cls = dict(t1_ms=900.0, t2_ms=90.0)
@@ -738,6 +785,67 @@ def check_engine():
     rows.append(_row("Q14", "engine", "signal left by a field gradient through the slice (0.25 to 1.7 cycles across the thickness at the echo, "
                      "2 deg): the columns given their own off-resonance in the block list (row R11)", "`scanner/rf.py::dephasing_factor`: "
                      "sinc(cycles) x window(cycles / tbw), the small-tip form the engine applies (the bound of row R11)", deph, 2e-3))
+    # ---------------- the saturation pulse of engine 0.3.0: an event of every repetition, Mz -> q Mz a delay before the excitation
+    sat_sp = O.spins([260.0, 340.0, 1000.0, 2500.0], 60.0)
+    worst = 0.0
+    for flip, tr, q, d in itertools.product([10, 30, 60, 90], [30.0, 500.0, 4000.0], [0.0, 0.1, 0.5, 1.0], [4.5, 7.0, 12.0]):
+        got = periodic.steady_state(L.spgr(tr, flip, spoiling="ideal", sat=(q, d)), sat_sp).signal[0]
+        worst = max(worst, _rel(got, S.spgr(D(flip), tr, sat_sp.t1_ms, sat=(q, d))))
+    for tr, te, q, d in itertools.product([300.0, 600.0, 4000.0], [15.0, 90.0], [0.0, 0.2, 1.0], [7.0, 12.0]):
+        got = periodic.steady_state(L.se(tr, te, 80.0, sat=(q, d)), sat_sp).signal[0]
+        worst = max(worst, _rel(got, S.se(D(80.0), tr, te, sat_sp.t1_ms, sat=(q, d)) * math.exp(-te / 60.0)))
+    for tr, ti, q, d in itertools.product([1500.0, 4000.0], [150.0, 400.0], [0.0, 0.2, 1.0], [7.0, 12.0]):
+        got = periodic.steady_state(L.ir(tr, 15.0, ti, 85.0, 0.93, sat=(q, d)), sat_sp).signal[0]
+        worst = max(worst, float(np.abs(got - S.ir_se(D(85.0), tr, 15.0, ti, sat_sp.t1_ms, 0.93, sat=(q, d)) * math.exp(-15.0 / 60.0)).max()))
+    ratio = []
+    for tr, flip in ((30.0, 10.0), (30.0, 60.0), (500.0, 60.0), (4000.0, 90.0)):          # the cases of the audit: fat at 1.5 T, a perfect pulse on the line
+        one = O.spins(343.0, 58.0)
+        ratio.append(periodic.steady_state(L.spgr(tr, flip, spoiling="ideal", sat=(0.0, 7.0)), one).signal[0, 0].real
+                     / periodic.steady_state(L.spgr(tr, flip, spoiling="ideal"), one).signal[0, 0].real)
+    rows.append(_row("Q16", "engine", "a saturation pulse in every repetition (Mz x q, 4.5 to 12 ms before the excitation; q 0 to 1), hard pulse, "
+                     "ideal spoiling: spgr and epi (144 cases x 4 T1), se (36 x 4), ir (24 x 4; absolute, the signal crosses zero)",
+                     "`scanner/signal.py::spgr`, `se`, `ir_se` with `sat` (the closed form (beta0 + q beta1) / (1 - q alpha), engine 0.3.0). "
+                     "Both sides are exact. A fully saturated line of T1 343 ms (fat at 1.5 T), the pulse 7 ms before the excitation, keeps " + ", ".join(f"{v:.3f}" for v in ratio)
+                     + " of its signal at TR / flip angle 30 ms / 10 deg, 30 / 60, 500 / 60, 4000 / 90: not one factor", worst, 1e-12,
+                     unit="relative"))
+    worst = 0.0
+    for flip, tr, t1v, t2v, q, d in ((30, 30.0, 340.0, 60.0, 0.0, 7.0), (60, 30.0, 260.0, 50.0, 0.2, 7.0), (20, 12.0, 340.0, 60.0, 0.5, 4.5),
+                                     (60, 100.0, 340.0, 60.0, 0.05, 12.0), (10, 30.0, 1000.0, 80.0, 0.0, 7.0), (45, 20.0, 300.0, 40.0, 1.0, 7.0)):
+        got = periodic.steady_state(L.spgr(tr, flip, sat=(q, d)), O.spins(t1v, t2v)).signal[0, 0]
+        worst = max(worst, abs(got - engine_epg.spgr(D(flip), tr, t1v, t2v, 117.0, 0.0, sat=(q, d))) / abs(got))
+    rows.append(_row("Q16b", "engine", "the same pulse in the RF-spoiled steady state of spgr, acting on the longitudinal states of every order "
+                     "(6 cases, 0 to 100 % saturated, no diffusion)", "`scanner/epg.py::spgr` with `sat`, the engine's phase graph (separate "
+                     "code; with diffusion the two models differ in where the spoiler plays and are not compared)", worst, 1e-10, unit="relative"))
+    worst = 0.0
+    for seq, tbw, flip, tr, te, ti, t1v, q, d in (("spgr", 4, 30.0, 30.0, None, None, 260.0, 0.05, 7.0), ("spgr", 2, 60.0, 30.0, None, None, 340.0, 0.3, 6.5),
+                                                  ("epi", 4, 90.0, 2000.0, None, None, 340.0, 0.0, 7.0), ("se", 4, 90.0, 500.0, 20.0, None, 260.0, 0.1, 7.0),
+                                                  ("se", 8, 90.0, 600.0, 15.0, None, 340.0, 0.6, 8.0), ("ir", 4, 90.0, 1500.0, 20.0, 150.0, 260.0, 0.05, 7.0)):
+        cls = dict(t1_ms=t1v, t2_ms=80.0)
+        sps, wz = _slice_spins(cls, tbw, flip)
+        sel = B.Selective(tbw)
+        seq_c = (L.spgr(tr, flip, spoiling="ideal", selective=sel, sat=(q, d)) if seq in ("spgr", "epi")
+                 else L.se(tr, te, flip, selective=sel, sat=(q, d)) if seq == "se" else L.ir(tr, te, ti, flip, 0.93, selective=sel, sat=(q, d)))
+        mine = np.sum(wz * periodic.steady_state(seq_c, sps).signal[0]) / (math.exp(-te / 80.0) if te else 1.0)
+        rp = dict(sequence=seq, tr_ms=tr, te_ms=te, ti_ms=ti)
+        ref = kspace.slice_signal(rp, cls, np.array([D(flip)]), tbw, tier=1, inv_eff=0.93, sat=(q, d))[0][0]
+        worst = max(worst, abs(mine - ref) / abs(ref))
+    rows.append(_row("Q16c", "engine", "the same through the slice with the rotation of every column: spgr and epi (ideal spoiling), se, ir; "
+                     "fast, normal and sharp pulses (6 cases)", "`scanner/kspace.py::slice_signal` with `sat`. Both sides are exact", worst, 1e-12,
+                     unit="relative"))
+    worst, q_lo, q_hi = 0.0, 1.0, 0.0
+    for proto in (dict(sequence="spgr", tr_ms=30.0, flip_deg=30.0, excitation="nonselective"), dict(sequence="spgr", tr_ms=30.0, flip_deg=30.0),
+                  dict(sequence="se", tr_ms=600.0), dict(sequence="ir", tr_ms=1500.0, ti_ms=150.0), dict(sequence="epi", tr_ms=2000.0)):
+        err, lo, hi = _served_saturated(dict(proto, matrix=64, fat_sat=True))
+        worst, q_lo, q_hi = max(worst, err), min(q_lo, lo), max(q_hi, hi)
+    rows.append(_row("Q16d", "engine", "fat saturation as the engine SERVES it, line by line (`Engine._species`): spgr (hard and selective, RF "
+                     "spoiled), se, ir, epi on an abdomen world at 1.5 T, 2 voxels of each of 3 fat tissues x 6 lines; the lines keep "
+                     f"{100 * q_lo:.0f} to {100 * q_hi:.0f} % of their longitudinal magnetisation at the pulse",
+                     "`library.served` with the saturation of each line as an event (the share of the band a line receives is the engine's, "
+                     "`kspace.sat_band`). The engine interpolates over the flip angle and over q; the core solves every line, voxel and "
+                     "column. For the RF-spoiled spgr the core plays the spoiler before the saturation pulse and the engine spreads it "
+                     "over the whole TR: with the diffusion of fat the two models differ by the size printed here; se, ir and epi agree to "
+                     "the engine's interpolation (1e-8)", worst, 1e-4, unit="relative"))
+
     bias, same = [], 0.0
     for tbw in (2, 4):
         for t1v, (f1, f2) in itertools.product((300.0, 1000.0, 2500.0), ((4, 20), (3, 17), (6, 35))):

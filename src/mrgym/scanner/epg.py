@@ -11,6 +11,12 @@ Sequence model
   (dimensionless; dk = spoiler moment in rad/m). No T2': a static off-resonance distribution multiplies the state
   of order k by a factor that is 1 for k = 0 at the pulse, so it only enters as exp(-TE / T2') at the echo. For the
   same reason a uniform off-resonance does not change the k = 0 amplitude.
+- Optional saturation (``sat`` = (q, delay_ms); ordinary spoiled gradient echo only): a spectrally selective pulse
+  ``delay_ms`` before every excitation multiplies the longitudinal states of every order by q (a pulse turns Z_k of
+  every k by the same angle; q is the cosine of it). The transverse states are left as they are: what the pulse
+  turns from the transverse plane into z and back, and the dephasing by its own spoiler, are not modelled. The
+  longitudinal recovery is split at the pulse: Z_0 recovers for TR - delay, is multiplied by q, and recovers for
+  the delay.
 
 Method. States F_k (k >= 0), F_-k^* and Z_k as in Weigel 2015. Substituting
     F_k = exp(i phi_j) exp(-i k j phi) G_k,   Z_k = exp(-i k j phi) W_k
@@ -47,19 +53,21 @@ def _realify(n, lin, anti=None):
     return sp.csr_matrix((np.concatenate(v), (np.concatenate(r), np.concatenate(c))), shape=(2 * n, 2 * n))
 
 
-def _interval(k_states, e1, e2, phi, bd):
-    """Relaxation + diffusion + spoiler shift + frame phase of one raster interval. Returns (S, b)."""
+def _interval(k_states, e1, e2, phi, bd, sat=None):
+    """Relaxation + diffusion + spoiler shift + frame phase of one raster interval. Returns (S, b). ``sat`` = (q, Es):
+    a saturation Z -> q Z that leaves Es = exp(-delay / T1) of recovery before the next pulse."""
     k = np.arange(k_states)
+    q, es = (1.0, 1.0) if sat is None else sat
     d_l = np.exp(-bd * k * k)
     d_up = np.exp(-bd * (k * k + k + 1 / 3))            # order k -> k + 1
     d_dn = np.exp(-bd * (k * k - k + 1 / 3))            # order -k -> -k + 1
     lin = ([3 * k[1:], 3 * k[:-1] + 1, 3 * k + 2],
            [3 * (k[1:] - 1), 3 * (k[:-1] + 1) + 1, 3 * k + 2],
            [np.exp(1j * phi * (k[1:] - 1)) * e2 * d_up[:-1], np.exp(1j * phi * (k[:-1] + 1)) * e2 * d_dn[1:],
-            np.exp(1j * phi * k) * e1 * d_l])
+            np.exp(1j * phi * k) * (e1 if sat is None else q * e1) * d_l])
     anti = ([0], [4], [np.exp(-1j * phi) * e2 * d_dn[1]])             # F_0' = conj(Gm_0')
     b = np.zeros(6 * k_states)
-    b[4] = 1 - e1                                         # Re W_0
+    b[4] = 1 - e1 if sat is None else q * es * (1 - e1 / es) + (1 - es)       # Re W_0
     return _realify(3 * k_states, lin, anti), b
 
 
@@ -84,14 +92,21 @@ def n_states(tr_ms, t2_ms, tol=1e-6, k_cap=1500):
     return int(min(k_cap, max(8, np.ceil(-np.log(tol) * t2_ms / tr_ms) + 2)))
 
 
-def steady_state(a, tr_ms, t1_ms, t2_ms, phi_deg=117.0, pattern=(1,), bd=0.0, tol=1e-6):
+def steady_state(a, tr_ms, t1_ms, t2_ms, phi_deg=117.0, pattern=(1,), bd=0.0, tol=1e-6, sat=None):
     """Complex echo amplitudes (TE = 0, per unit M0) right after every pulsed raster position of one period.
 
     ``a``: actual flip angle in rad (scalar). Returns an array with one entry per non-zero element of ``pattern``.
+    ``sat`` = (q, delay_ms): a saturation of the longitudinal states ``delay_ms`` before every pulse (pattern (1,) only).
     """
     kk = n_states(tr_ms, t2_ms, tol)
     phi = np.deg2rad(phi_deg)
-    s_op, b = _interval(kk, np.exp(-tr_ms / t1_ms), np.exp(-tr_ms / t2_ms), phi, bd)
+    if sat is not None:
+        if tuple(pattern) != (1,):
+            raise ValueError("saturation is modelled for one pulse per raster interval only")
+        if not 0 <= sat[1] <= tr_ms:
+            raise ValueError("the saturation delay must lie inside the repetition")
+        sat = (float(sat[0]), float(np.exp(-sat[1] / t1_ms)))
+    s_op, b = _interval(kk, np.exp(-tr_ms / t1_ms), np.exp(-tr_ms / t2_ms), phi, bd, sat)
     rfs = {p: _rf(kk, a * p) for p in set(pattern) if p}
     steps = [(s_op @ rfs[p]) if p else s_op for p in pattern]
     m, c = sp.identity(6 * kk, format="csr"), np.zeros(6 * kk)
@@ -108,14 +123,15 @@ def steady_state(a, tr_ms, t1_ms, t2_ms, phi_deg=117.0, pattern=(1,), bd=0.0, to
 
 
 @functools.lru_cache(maxsize=200000)
-def _cached(a, tr_ms, t1_ms, t2_ms, phi_deg, pattern, bd):
-    return steady_state(a, tr_ms, t1_ms, t2_ms, phi_deg, pattern, bd)
+def _cached(a, tr_ms, t1_ms, t2_ms, phi_deg, pattern, bd, sat=None):
+    return steady_state(a, tr_ms, t1_ms, t2_ms, phi_deg, pattern, bd, sat=sat)
 
 
-def spgr(a, tr_ms, t1_ms, t2_ms, phi_deg=117.0, bd=0.0):
-    """RF-spoiled gradient echo; ``a`` may be an array. Complex."""
+def spgr(a, tr_ms, t1_ms, t2_ms, phi_deg=117.0, bd=0.0, sat=None):
+    """RF-spoiled gradient echo; ``a`` may be an array. Complex. ``sat`` = (q, delay_ms): see the module text."""
     a = np.asarray(a, float)
-    flat = [_cached(float(x), float(tr_ms), float(t1_ms), float(t2_ms), float(phi_deg), (1,), float(bd))[0]
+    more = () if sat is None else ((float(sat[0]), float(sat[1])),)
+    flat = [_cached(float(x), float(tr_ms), float(t1_ms), float(t2_ms), float(phi_deg), (1,), float(bd), *more)[0]
             for x in a.ravel()]
     return np.array(flat).reshape(a.shape)
 

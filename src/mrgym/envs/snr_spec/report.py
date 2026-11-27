@@ -36,7 +36,14 @@ def noise_check(world: dict, engine, protocol: dict, repeats: int = 64, seed: in
     rp = console.plan(protocol, world["console"])["realised"]
     rng = np.random.default_rng(seed)
     stack = np.array([engine.acquire(rp, rng)[0] for _ in range(repeats)])
-    measured = float(np.sqrt(0.5 * (stack.real.var(axis=0, ddof=1).mean() + stack.imag.var(axis=0, ddof=1).mean())))
+    if rp["lines"] < rp["lines_full"]:
+        # partial Fourier (homodyne detection): the reconstruction keeps the component in phase with the signal, so the
+        # noise of a pixel is the scatter of that component where there is signal
+        clean = engine.acquire(rp)[0]
+        signal = np.abs(clean) > 0.5 * np.abs(clean).max()
+        measured = float(np.sqrt((stack * np.conj(clean / np.maximum(np.abs(clean), 1e-30))).real.var(axis=0, ddof=1)[signal].mean()))
+    else:
+        measured = float(np.sqrt(0.5 * (stack.real.var(axis=0, ddof=1).mean() + stack.imag.var(axis=0, ddof=1).mean())))
     return dict(measured=measured, formula=engine.noise_sd(rp), policy_law=controls.noise_factor(rp) * world["system"]["sigma0"],
                 header=console.plan(protocol, world["console"])["header"])
 

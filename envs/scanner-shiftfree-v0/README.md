@@ -70,7 +70,7 @@ Limits: 48 scanner requests and 64 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.2.0`). `mrgym gate Scanner/ShiftFree-v0 --n 300 --write` measures and stores it.
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/ShiftFree-v0 --n 300 --write` measures and stores it.
 
 | Policy | Must | What it does |
 |---|---|---|
@@ -102,8 +102,8 @@ highest signal-to-noise ratio this allows:
     you choose bandwidth_hz_per_px and ro_polarity.
 Regions (circles; centre and radius in mm from the isocentre):
   R1: y -26.8, x -39.2, radius 5, signal-to-noise floor 16.8
-  R2: y -24.6, x 41, radius 5, signal-to-noise floor 17.4
-  R3: y 34.3, x -1.9, radius 5, signal-to-noise floor 16.8
+  R2: y -24.6, x 41, radius 5, signal-to-noise floor 17.5
+  R3: y 34.3, x -1.9, radius 5, signal-to-noise floor 16.9
 Deliver the settings of every region's scan with `submit`. The target scans are not run in this episode: the scanner
 evaluates the settings you deliver, without noise.
 Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names.

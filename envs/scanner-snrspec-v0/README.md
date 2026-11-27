@@ -3,7 +3,7 @@
 
 **D · Image quality and artefacts** · quality · kind 2, set · isolates D5: SNR, resolution and scan time: what each costs the others. [The map](../../docs/tasks.md)
 
-**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 97 %, no policy that ignores the object passes more than 3 % (95 % bounds)
+**Status:** CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
 
 The everyday protocol question: this much SNR at this pixel size, as fast as possible. Signal and noise have to be measured on cheap scans and scaled with the SNR laws (voxel volume, lines, averages, bandwidth); the repetition time trades recovery of the hidden T1 against time, the bandwidth trades noise against decay of the hidden T2 over a longer echo time, and averages come in integers. This is a measurement task: a fixed list of scans with a fixed solver passes within 25 points of the reference at every level (reference minus open loop, points: 0 at level 1, -0.7 at level 2, 0.3 at level 3; 300 instances per level).
 
@@ -70,6 +70,8 @@ Limits: 40 scanner requests and 48 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/SNRSpec-v0 --n 300 --write` measures and stores it. The table below is that older result.
+
 Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/SNRSpec-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 
 | Policy | Must | Level 1 | Level 2 | Level 3 | What it does |
@@ -103,7 +105,7 @@ A test object with vials of unknown materials lies in the field of
 view. The examination needs 2 spin-echo images, A and B. Each has a prescribed geometry and a required signal-to-noise
 ratio (SNR) in two marked regions:
     image A: sequence se, fov_mm 240, matrix 96 (pixel 2.5 mm), slice_mm 5; SNR at least 131 in R1 and R2
-    image B: sequence se, fov_mm 240, matrix 160 (pixel 1.5 mm), slice_mm 5; SNR at least 92.5 in R3 and R4
+    image B: sequence se, fov_mm 240, matrix 160 (pixel 1.5 mm), slice_mm 5; SNR at least 93 in R3 and R4
 For each image you choose tr_ms, averages and bandwidth_hz_per_px. Everything else is fixed: the fields above, te_ms at
 the console minimum for the bandwidth you choose, full k-space, every other parameter at its default.
 Regions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):

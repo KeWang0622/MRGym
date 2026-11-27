@@ -23,6 +23,9 @@ it. It moves in two cases only, both deliberate, and both by this command:
 
 Entries may be added by later packages (a new id, a new golden case, a new key of a world); a stored entry must stay
 equal. ``tools/audit/golden.py --check`` runs the same comparison (``make golden``).
+
+Moved once: recorded on engine 0.2.0, recorded again (``--write --rebase``) on engine 0.3.0, the one legitimate reason
+for the scans of this file to move (``tests/test_compat_2d_unchanged.py``, last paragraph of its docstring).
 """
 from __future__ import annotations
 

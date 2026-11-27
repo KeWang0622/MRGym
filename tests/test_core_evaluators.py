@@ -132,11 +132,14 @@ def test_spins_and_columns():
 
 
 def test_a_designed_pulse_is_a_block():
-    """A pulse of the design layer as slice columns, and the same pulse as the console's selective block."""
+    """A pulse of the design layer as slice columns, and the same pulse as the console's selective block. The design
+    layer takes the thickness its gradient spans with the nominal bandwidth of the pulse; the console's slice is the
+    width at half maximum of the profile (engine 0.3.0), ``slice_calibration`` nominal bandwidths wide."""
     from mrgym.design import pulses
     tbw, flip, thick = 4.0, 35.0, 5.0
     zeta, w = O.slice_columns(tbw)
-    pulse = pulses.sinc(flip, 2.0, tbw, thick, n=128)
+    assert O.slice_calibration(tbw) == pytest.approx(0.994, abs=1e-3) and O.slice_calibration(2.0) == pytest.approx(1.197, abs=1e-3)
+    pulse = pulses.sinc(flip, 2.0, tbw, thick / O.slice_calibration(tbw), n=128)
     sp = O.grid([dict(t1_ms=900.0, t2_ms=70.0)], zeta)
     a = periodic.steady_state([B.repeat([B.rf_designed(pulse, zeta * thick), B.adc("e"), B.gradient(1, ms=12.0)], 1, spoil_inc_deg=117.0)], sp).signal[0]
     b = periodic.steady_state(L.spgr(12.0, flip, selective=B.Selective(tbw)), sp).signal[0]

@@ -48,7 +48,8 @@ in the module docstrings. The block list of `design.sequence` has a fuller relat
   multiplies by +i by default, so that the signal of a pulse about x is real and positive, as the engine reports it.
 - **How this was checked against the engine.** Rows D4 and P1 compare (a, b) and the sub-pulse weights with
   `rf.cayley_klein` and `rf.sinc_pulse` for every console pulse; D5 and D5b compare peak B1, energy, slice gradient
-  and the RF power figure with `console.py`; E7, E8 compare the phase graph with `epg.steady_state`; E6b and E9
+  and the RF power figure with `console.py` (from engine 0.3.0 the console calibrates its slice gradient: the
+  designed `sinc` that equals a console pulse of `slice_mm` has the thickness `slice_mm / rf.fwhm_factor(tbw)`); E7, E8 compare the phase graph with `epg.steady_state`; E6b and E9
   compare with `signal.bssfp` and `signal.ir_gre`; E11 compares a slice-selective pulse, column by column, with
   `kspace.slice_signal`; G1 compares the trapezoid with `console._lobe_ms`. The signs themselves are pinned by D1
   (closed form with phase and off-resonance) and by `tests/test_design_rotation.py`.
@@ -105,8 +106,8 @@ stated equations. They do not show that the equations describe a scanner.
 | D2 | rectangular pulse off resonance (model piecewise), 200 random amplitudes, offsets and B1 scales | one rotation by |w_eff| T about the effective field (w1 cos p, w1 sin p, dw); Mz = 1 - 2 (w1/w_eff)^2 sin^2(w_eff T/2) | 3.5e-15 | ≤ 1.0e-12 | pass |
 | D3 | the same pulse in the model split (hard sub-pulses): order of convergence with the raster, 50 to 800 samples | second order: the error falls by 4 when the raster is halved | 5.9e-05 in the order | ≤ 0.02 | pass |
 | D3b | error of the model split for that pulse at 100 samples (10 us raster) | the effective-field closed form | 1.3e-04 | ≤ 0.001 | pass |
-| D4 | agreement with the engine: (a, b) of `scanner/rf.py::cayley_klein` for the pulses fast / normal / sharp, Hann and Hamming, 5 to 180 deg, as excitation (with the rephasing lobe) and as the refocusing pulse on the 1.5 x slice | the engine | 3.7e-14 | ≤ 1.0e-12 | pass |
-| D5 | peak B1, energy and slice gradient of the three console pulses | `rf.peak_factor`, `rf.energy_factor`, `console._b1_ut`, G = tbw / (duration gamma thickness) | 4.4e-16 relative | ≤ 1.0e-12 | pass |
+| D4 | agreement with the engine: (a, b) of `scanner/rf.py::cayley_klein` for the pulses fast / normal / sharp, Hann and Hamming, 5 to 180 deg, as excitation (with the rephasing lobe) and as the refocusing pulse on the 1.5 x slice | the engine | 4.7e-14 | ≤ 1.0e-12 | pass |
+| D5 | peak B1, energy and slice gradient of the three console pulses | `rf.peak_factor`, `rf.energy_factor`, `console._b1_ut`, G = `rf.fwhm_factor` tbw / (duration gamma thickness) | 4.4e-16 relative | ≤ 1.0e-12 | pass |
 | D5b | RF power figure and slice gradient of a console protocol (spgr, 30 deg, TR 20 ms, 5 mm) | `console.plan`: 100 B1rms^2 / (3 uT)^2 printed to 0.01 %, gradient printed to 0.001 mT/m | 0.8966 of the printed rounding | ≤ 1 | pass |
 | D5c | gyromagnetic ratio of this layer | `console.GAMMA_HZ_PER_T` | 0 | ≤ 0 | pass |
 | D6 | slice profile of a 1 degree windowed sinc (time-bandwidth 2, 4, 8; Hann, Hamming, Blackman) | small-tip approximation: Mxy = -i x the Fourier sum of the sub-pulse angles with the precession that follows each | 5.5e-05 of the flip angle | ≤ 1.0e-04 | pass |
@@ -121,7 +122,7 @@ stated equations. They do not show that the equations describe a scanner.
 | D10bo | the same (model piecewise): order of convergence with the raster, 200 to 1,600 samples | second order (symmetric splitting, samples at interval centres) | 2.3e-05 in the order | ≤ 0.02 | pass |
 | D11 | `bloch` without relaxation, from a tilted start | `apply(rotate(...))` | 5.6e-15 | ≤ 1.0e-12 | pass |
 | D12 | a time-varying gradient along an oblique direction on three axes | the same waveform on one axis at the projected positions | 4.7e-16 | ≤ 1.0e-12 | pass |
-| D13 | time of one rotation: 512 samples x 2,000 positions (best of 3) | requirement | 0.008942 s | ≤ 0.1 | pass |
+| D13 | time of one rotation: 512 samples x 2,000 positions (best of 3) | requirement | 0.009009 s | ≤ 0.1 | pass |
 
 ### Pulse generators
 
@@ -178,9 +179,9 @@ stated equations. They do not show that the equations describe a scanner.
 | E9 | inversion recovery from equilibrium (4 inversion times, one at the null) and in the steady state with a 30 deg readout | 1 - 2 exp(-TI / T1); the engine's `signal.ir_gre` | 1.4e-17 | ≤ 1.0e-12 | pass |
 | E10 | pulsed-gradient spin echo in the phase graph (4 cycles per 2 mm voxel, 12 ms lobes 40 ms apart) | exp(-b D) with b from `gradients.b_value` of the same lobes, and b = q^2 (Delta - delta / 3) (Stejskal & Tanner 1965) | 5.2e-11 | ≤ 1.0e-06 | pass |
 | E10b | `bd_of_b` for that lobe | bd = D kappa^2 t | 0 relative | ≤ 1.0e-12 | pass |
-| E11 | spoiled gradient echo of a slice-selective pulse (fast, normal, sharp): one column per position of the engine's quadrature, each with its own (a, b), summed | the engine's slice integral `scanner/kspace.py::slice_signal` (ideal spoiling) | 2.7e-14 relative | ≤ 1.0e-09 | pass |
+| E11 | spoiled gradient echo of a slice-selective pulse (fast, normal, sharp): one column per position of the engine's quadrature, each with its own (a, b), summed | the engine's slice integral `scanner/kspace.py::slice_signal` (ideal spoiling) | 3.3e-14 relative | ≤ 1.0e-09 | pass |
 | E12 | the whole state after three pulses with positive and negative dephasing, read back as the magnetisation of single isochromats | the isochromat ensemble | 1.2e-15 | ≤ 1.0e-12 | pass |
-| E13 | time of a train of 400 refocusing pulses with 64 states (best of 3) | requirement | 0.0293 s | ≤ 0.1 | pass |
+| E13 | time of a train of 400 refocusing pulses with 64 states (best of 3) | requirement | 0.02882 s | ≤ 0.1 | pass |
 
 ### Gradient programs and limits
 

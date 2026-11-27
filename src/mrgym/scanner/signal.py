@@ -26,9 +26,9 @@ def t2star_ms(t2_ms, t2p_ms):
     return 1.0 / (1.0 / np.asarray(t2_ms, float) + 1.0 / np.asarray(t2p_ms, float))
 
 
-def mz_steady(events, t1_ms):
-    """Periodic longitudinal magnetisation just before the first event of a cycle of ('rf', factor) and ('wait', ms)
-    events, with every transverse component crushed. Mz -> factor * Mz at a pulse; Mz -> 1 + (Mz - 1) E during a wait."""
+def mz_chain(events, t1_ms):
+    """(a, b) of the affine map Mz -> a Mz + b that a list of ('rf', factor) and ('wait', ms) events makes, with every
+    transverse component crushed. Mz -> factor * Mz at a pulse; Mz -> 1 + (Mz - 1) E during a wait."""
     a, b = 1.0, 0.0
     for kind, v in events:
         if kind == "rf":
@@ -36,14 +36,71 @@ def mz_steady(events, t1_ms):
         else:
             e = np.exp(-v / t1_ms)
             a, b = a * e, b * e + (1 - e)
+    return a, b
+
+
+def mz_steady(events, t1_ms):
+    """Periodic longitudinal magnetisation just before the first event of a cycle of ('rf', factor) and ('wait', ms)
+    events, with every transverse component crushed."""
+    a, b = mz_chain(events, t1_ms)
     return b / (1 - a)
 
 
-def spgr(a, tr_ms, t1_ms):
+def saturated(events, delay_ms):
+    """The cycle ``events`` with a saturation pulse (Mz -> q Mz) played ``delay_ms`` before its end: (the events up to
+    the saturation, the wait after it). The cycle must end with a wait of at least ``delay_ms``."""
+    kind, last = events[-1]
+    if kind != "wait" or np.any(np.asarray(last) < delay_ms - 1e-9):
+        raise ValueError("a saturation pulse needs a wait of at least its delay at the end of the cycle")
+    return list(events[:-1]) + [("wait", last - delay_ms)], delay_ms
+
+
+def mz_saturated_terms(events, t1_ms, delay_ms):
+    """(alpha, beta0, beta1) of the periodic longitudinal magnetisation just before the first event of ``events`` when
+    a saturation Mz -> q Mz is played ``delay_ms`` before the end of every cycle:
+
+        Mz = (beta0 + q beta1) / (1 - q alpha)
+
+    With (a, b) the affine map of the events up to the saturation and Es = exp(-delay / T1): after the saturation and
+    the delay the magnetisation is Es q (a Mz + b) + 1 - Es, which must be Mz again. q = 1 is the cycle without
+    saturation."""
+    before, delay = saturated(events, delay_ms)
+    a, b = mz_chain(before, t1_ms)
+    es = np.exp(-delay / t1_ms)
+    return es * a, 1 - es, es * b
+
+
+def mz_saturated(events, t1_ms, q, delay_ms):
+    """Periodic Mz just before the first event of ``events`` with a saturation Mz -> q Mz ``delay_ms`` before the end
+    of every cycle (``mz_saturated_terms``)."""
+    alpha, beta0, beta1 = mz_saturated_terms(events, t1_ms, delay_ms)
+    return (beta0 + q * beta1) / (1 - q * alpha)
+
+
+def spgr_events(a, tr_ms):
+    return [("rf", np.cos(a)), ("wait", tr_ms)]
+
+
+def se_events(a, tr_ms, te_ms, refocus=None):
+    """Cycle of the spin echo: excitation a, refocusing pulse that takes Mz to ``refocus`` x Mz (default cos 2a)."""
+    return [("rf", np.cos(a)), ("wait", te_ms / 2), ("rf", np.cos(2 * a) if refocus is None else refocus), ("wait", tr_ms - te_ms / 2)]
+
+
+def ir_events(a, tr_ms, te_ms, ti_ms, inv_eff=1.0, refocus=None):
+    return [("rf", np.cos(a)), ("wait", te_ms / 2), ("rf", np.cos(2 * a) if refocus is None else refocus),
+            ("wait", tr_ms - ti_ms - te_ms / 2), ("rf", -inv_eff), ("wait", ti_ms)]
+
+
+def spgr(a, tr_ms, t1_ms, sat=None):
     """Spoiled gradient echo, IDEAL spoiling (no transverse magnetisation survives a repetition).
 
     S = sin a (1 - E1) / (1 - E1 cos a),  E1 = exp(-TR / T1)
+
+    ``sat`` = (q, delay_ms): a saturation pulse Mz -> q Mz ``delay_ms`` before every excitation. With
+    Es = exp(-delay / T1) and Er = exp(-(TR - delay) / T1):  S = sin a ((1 - Es) + q Es (1 - Er)) / (1 - q E1 cos a).
     """
+    if sat is not None:
+        return np.sin(a) * mz_saturated(spgr_events(a, np.asarray(tr_ms, float)), t1_ms, sat[0], sat[1])
     e1 = np.exp(-np.asarray(tr_ms, float) / t1_ms)
     return np.sin(a) * (1 - e1) / (1 - e1 * np.cos(a))
 
@@ -74,26 +131,30 @@ def ir_gre(a_read, ti_ms, tr_ms, t1_ms, inv_eff=1.0):
     return np.sin(a_read) * (1 - (1 + inv_eff) * eti + inv_eff * etr) / (1 + inv_eff * np.cos(a_read) * etr)
 
 
-def se(a, tr_ms, te_ms, t1_ms):
-    """Spin echo with excitation a and refocusing 2a (both scale with B1+). Ideal pulses: 1 - 2 E(TR - TE/2) + E(TR)."""
-    beta = 2 * a
-    mz = mz_steady([("rf", np.cos(a)), ("wait", te_ms / 2), ("rf", np.cos(beta)), ("wait", tr_ms - te_ms / 2)], t1_ms)
-    return mz * np.sin(a) * np.sin(beta / 2) ** 2
+def se(a, tr_ms, te_ms, t1_ms, sat=None):
+    """Spin echo with excitation a and refocusing 2a (both scale with B1+). Ideal pulses: 1 - 2 E(TR - TE/2) + E(TR).
+    ``sat`` = (q, delay_ms): a saturation pulse Mz -> q Mz ``delay_ms`` before every excitation."""
+    events = se_events(a, tr_ms, te_ms)
+    mz = mz_steady(events, t1_ms) if sat is None else mz_saturated(events, t1_ms, sat[0], sat[1])
+    return mz * np.sin(a) * np.sin(a) ** 2
 
 
-def ir_se(a, tr_ms, te_ms, ti_ms, t1_ms, inv_eff=1.0):
-    """Inversion (adiabatic, efficiency kappa) - TI - spin echo. Signed."""
-    beta = 2 * a
-    mz = mz_steady([("rf", np.cos(a)), ("wait", te_ms / 2), ("rf", np.cos(beta)), ("wait", tr_ms - ti_ms - te_ms / 2),
-                    ("rf", -inv_eff), ("wait", ti_ms)], t1_ms)
-    return mz * np.sin(a) * np.sin(beta / 2) ** 2
+def ir_se(a, tr_ms, te_ms, ti_ms, t1_ms, inv_eff=1.0, sat=None):
+    """Inversion (adiabatic, efficiency kappa) - TI - spin echo. Signed. ``sat`` as in ``se`` (the saturation pulse lies
+    between the inversion and the excitation)."""
+    events = ir_events(a, tr_ms, te_ms, ti_ms, inv_eff)
+    mz = mz_steady(events, t1_ms) if sat is None else mz_saturated(events, t1_ms, sat[0], sat[1])
+    return mz * np.sin(a) * np.sin(a) ** 2
 
 
 def bssfp(a, theta, tr_ms, t1_ms, t2_ms):
     """Balanced SSFP, complex transverse magnetisation right after the pulse, in the frame of that pulse.
 
-    ``theta`` (rad) = precession per TR in the frame that follows the RF phase cycle: 2 pi df TR + (phase increment).
-    With the usual 180 degree increment the pass band is centred on df = 0 and the nulls sit at df = (n + 1/2) / TR.
+    ``theta`` (rad) = precession per TR in the frame that follows the RF phase cycle: 2 pi df TR - (phase increment).
+    A spin that is faster by df gains 2 pi df TR per repetition; the pulse it meets has advanced by the increment, so
+    the spin is ahead of the pulse by the difference. The signal is lowest where theta is a whole number of turns:
+    df = (n + increment / 360 degrees) / TR. With the usual 180 degree increment the pass band is centred on df = 0
+    and the nulls sit at df = (n + 1/2) / TR.
         M+ = M0 (1 - E1) sin a (1 - E2 exp(-i theta)) / (C cos theta + D)
         C = E2 (E1 - 1)(1 + cos a),  D = (1 - E1 cos a) - (E1 - cos a) E2^2
     Convention: demodulated with the pulse phase, real and positive at the centre of the pass band. The echo at

@@ -13,14 +13,14 @@ encoding (`excitation`).
 | | |
 |---|---|
 | Field strength | 1.5 T or 3 T, stated by `scanner_info` |
-| Slice | one axial slice through the isocentre, 1 to 10 mm (default 5 mm); a selective pulse cannot go below 1.47 mm |
+| Slice | one axial slice through the isocentre, 1 to 10 mm (default 5 mm); a selective pulse cannot go below 1.46 mm (`fast`: 1.76 mm, `sharp`: 1.47 mm) |
 | Field of view | 80 to 500 mm along the readout, centred on the isocentre unless shifted (`centre_y_mm`, `centre_x_mm`) and upright unless turned in the plane (`rotation_deg`); the phase direction can be shorter (`phase_fov`) |
 | Matrix | 32 to 512 along the readout, even; the pixel is square; the smallest pixel is stated by `scanner_info` |
 | Readout | 2x oversampled with a band filter: the readout direction does not wrap; the phase direction does |
 | Gradients | 40 mT/m, 150 T/m/s per axis; lobes are played at 80 % of both |
-| RF, selective | Hann-windowed sinc, 128 samples: `fast` 1 ms with time-bandwidth product 2, `normal` 2 ms with 4, `sharp` 4 ms with 8, followed by a rephasing lobe of half the selection area; spin echo: 90° of that duration, 180° 1.5 times as long on a slice 1.5 times as thick; peak B1 at most 20 µT (a pulse that would exceed it is lengthened) |
+| RF, selective | Hann-windowed sinc, 128 samples: `fast` 1 ms with time-bandwidth product 2, `normal` 2 ms with 4, `sharp` 4 ms with 8, followed by a rephasing lobe of half the selection area; the slice gradient is calibrated per pulse, so that the full width at half maximum of the profile of a small flip angle is `slice_mm`; spin echo: 90° of that duration, 180° 1.5 times as long on a slice 1.5 times as thick; peak B1 at most 20 µT (a pulse that would exceed it is lengthened) |
 | RF, nonselective | hard excitation pulse 1 ms; spin echo 90° 2 ms and 180° 3 ms |
-| RF, other | adiabatic inversion 8 ms (not slice-selective); fat saturation 8 ms |
+| RF, other | adiabatic inversion 8 ms (not slice-selective); fat saturation 8 ms, ending 2 ms before the excitation pulse starts |
 | RF power limit | B1rms 3.0 µT at 3 T, 6.0 µT at 1.5 T; every plan shows the percentage used |
 | Time raster | 0.01 ms; requested times are rounded up to it |
 | Receive | one channel |
@@ -63,7 +63,8 @@ The header line is what a console prints above an image (`plan` with `verbose`, 
 against water in pixels and its axis (the centroid of the multi-peak fat signal sits at about 3.0 ppm),
 `rel. SNR` the voxel volume times the square root of the sampling time relative to a reference protocol. All of
 them follow from the protocol alone; none depends on the object. A shifted or turned field of view is printed after
-the field of view (`@ y +12 x +0 rot +30`), a 3D scan after the slice thickness (`SL 5.0 3Dx32`).
+the field of view (`@ y +12 x +0 rot +30`), a 3D scan after the slice thickness (`SL 5.0 3Dx32`), adjustments that
+differ from their defaults at the end (`ADJ cf +25 Hz tx x1.1 shim y -0.10 x +0.20 Hz/mm`).
 
 ## 3. Protocol parameters (names carry their units)
 
@@ -79,7 +80,7 @@ Geometry and receiver, all sequences:
 | `bandwidth_hz_per_px` | 50 to 3000 (`epi`: 500 to 3000) | 300 (`epi`: 1500) | receiver bandwidth per pixel; readout duration = 1 / bandwidth |
 | `pe_dir` | `y`, `x` | `y` | phase-encode axis; the readout runs along the other one |
 | `ro_polarity` | 1, -1 | 1 | direction of the readout; it sets the side to which off-resonant spins and fat are displaced (section 5) |
-| `partial_fourier` | 0.55 to 1 | 1 | fraction of phase-encode lines acquired; the rest is zero-filled |
+| `partial_fourier` | 0.55 to 1 | 1 | fraction of phase-encode lines acquired; the others are synthesised by the reconstruction (section 5): scan time falls, and so does the SNR |
 | `phase_oversampling` | 0 to 1 | 0 | extra phase field of view, acquired and discarded |
 | `averages` | 1 to 64 | 1 | complex averages |
 | `centre_y_mm`, `centre_x_mm` | -150 to 150 | 0 | position of the centre of the field of view, mm from the isocentre (off-centre shift) |
@@ -89,6 +90,9 @@ Geometry and receiver, all sequences:
 | `te_ms` | a number, or `"min"` | `"min"` | echo time, centre of the excitation to centre of the readout; `"min"` is the shortest the console can realise for the matrix, field of view and bandwidth, and `plan` prints it (not `bssfp`: TE = TR / 2) |
 | `fat_sat` | true, false | false (`epi`: true) | spectral fat saturation before every excitation (`spgr`, `se`, `ir`, `epi`) |
 | `fatsat_offset_hz` | -300 to 300 | 0 | shift of the centre frequency of the fat-saturation pulse from the nominal fat line (the same sequences) |
+| `cf_shift_hz` | -500 to 500 | 0 | adjustment: Hz added to the centre frequency of the scanner for this scan; a spin that is Δf off resonance becomes Δf - `cf_shift_hz` off |
+| `tx_scale` | 0.5 to 2 | 1 | adjustment: factor on the transmit amplitude of this scan; every excitation and refocusing angle is `tx_scale` x nominal x local transmit factor |
+| `shim_y_hz_per_mm`, `shim_x_hz_per_mm` | -2 to 2 | 0 | adjustment: linear field terms added for this scan; the off-resonance at (y, x) mm from the isocentre changes by `shim_y_hz_per_mm` x y + `shim_x_hz_per_mm` x x |
 
 Per sequence:
 
@@ -122,23 +126,37 @@ Per sequence:
   and large matrix lengthen it; so does a longer pulse (`sharp`) and a thinner slice.
 - **Minimum TR**: everything that has to be played, including the pulse and the ramp of its slice gradient. A large
   spoiler moment costs repetition time (about 1 ms per 32 mT·ms/m); fat saturation costs 10 ms.
-- **Slice gradient** of a selective pulse: time-bandwidth product / (duration x γ x slice thickness), 9.4 mT/m for a
-  5 mm slice with any of the three pulses. Above 80 % of the gradient limit the scan is refused (`SLICE_TOO_THIN`):
-  the thinnest selective slice is 1.47 mm.
+- **Slice gradient** of a selective pulse: k x time-bandwidth product / (duration x γ x slice thickness) with k =
+  1.197 (`fast`), 0.994 (`normal`), 1.000 (`sharp`): the gradient at which the profile of a small flip angle is
+  `slice_mm` wide at half its maximum. 11.2, 9.3 and 9.4 mT/m for a 5 mm slice. Above 80 % of the gradient limit the
+  scan is refused (`SLICE_TOO_THIN`): the thinnest selective slice is 1.46 mm (`fast`: 1.76 mm, `sharp`: 1.47 mm).
 - **RF power** is the time-averaged B1² as percent of the limit; above 100 % the scan is refused. It is computed from
-  the nominal flip angle. A shaped pulse carries more energy than a hard pulse of the same duration and angle: 1.80,
-  3.11 and 7.16 times for `fast`, `normal` and `sharp`.
+  the nominal flip angle times `tx_scale`. A shaped pulse carries more energy than a hard pulse of the same duration
+  and angle: 1.80, 3.11 and 7.16 times for `fast`, `normal` and `sharp`.
+- **Adjustments** (`cf_shift_hz`, `tx_scale`, `shim_y_hz_per_mm`, `shim_x_hz_per_mm`) cost no scan time. `tx_scale`
+  changes the RF power with its square and the peak B1 in proportion (a pulse that would exceed the peak is
+  lengthened, as always).
 - **Readout gradient** is shown as percent of the limit; bandwidth x matrix / field of view is bounded by it.
 - **Noise** enters at the receiver, sample by sample, with a variance proportional to the receiver bandwidth. What
   that does to an image for a given voxel size, bandwidth, number of lines and averages follows from the
-  reconstruction. The level itself is not given; it can be measured.
+  reconstruction. The level itself is not given; it can be measured. With `partial_fourier` below 1 the lines that
+  stand in for their missing partners count twice: of L lines with l acquired, the noise is that of a full scan
+  times sqrt((3 L - 2 l - 3) / L), and the relative SNR of the header is divided by it (x 0.82 at 0.75, x 0.73 at 0.55
+  for 128 lines).
 
 ## 5. Signal mechanism of each sequence
 
 Notation: a = (local transmit factor) x nominal flip angle; E(t) = exp(-t / T1).
 
 **Encoding, all sequences.** The scanner samples k-space on the lattice the protocol prescribes and reconstructs by
-an inverse FFT. What follows from that is in the data: an object larger than the phase field of view wraps; edges
+an inverse FFT. With `partial_fourier` below 1 the lines on one side of the centre beyond the fraction are not
+acquired, and the reconstruction synthesises them (homodyne detection): the lines that have no partner count twice,
+and the image is the part of that transform that is in phase with a low-resolution image made from the lines
+acquired on both sides. Where the phase of the object changes slowly the resolution is the nominal one; where it
+changes within the resolution of that low-resolution image (few lines at 0.55), signal is lost. The phase of such
+an image is the low-resolution phase. Its background is not Rayleigh distributed: it is close to the magnitude of
+one Gaussian component, with a mean of 0.80 to 0.83 times the noise SD of a pixel for fractions up to 0.75 (a fully
+sampled image has the Rayleigh mean, 1.25 times), and more as the fraction approaches 1. What follows from that is in the data: an object larger than the phase field of view wraps; edges
 ring; during the readout the signal decays and spins that are off resonance by Δf appear displaced along the readout
 by Δf / `bandwidth_hz_per_px` pixels, towards negative positions for positive Δf and positive readout polarity. Fat
 resonates 3.4 ppm below water (about 220 Hz at 1.5 T and 434 Hz at 3 T; a multi-peak spectrum is used), so it is
@@ -156,8 +174,11 @@ formula at a. Where the signal is not proportional to the flip angle it is not: 
 θ(z) passes the Ernst angle, contribute more than their share, so signal-against-flip-angle curves are flatter and
 shifted, and a method that inverts a formula for the flip angle or for T1 with the nominal angle is biased (two-angle
 T1 mapping reads tens of percent low). The profile can be computed from the pulse given in section 1 (a cascade of
-128 small rotations about the pulse axis, each between two half-steps of precession about z proportional to z);
-the scanner does not correct for it. In `se` and `ir` the 180° pulse has a profile of its own on a slice 1.5 times
+128 small rotations about the pulse axis, each between two half-steps of precession about z; per sub-pulse a spin at
+height z precesses by 2π x k x time-bandwidth product x (z / `slice_mm`) / 128, with the k of section 4); the scanner
+does not correct for it. The three pulses excite the same thickness at half maximum; they differ in how much signal
+comes from the transition outside it (about 21 %, 15 % and 7 % of a small-flip-angle signal for `fast`, `normal`
+and `sharp`) and in how the profile broadens with the flip angle. In `se` and `ir` the 180° pulse has a profile of its own on a slice 1.5 times
 as thick: a spin at height z contributes its transverse magnetisation times the refocusing efficiency at z, and
 its longitudinal magnetisation is inverted only in part, so the echo of a 2D slice is below the ideal value even
 with a perfect transmitter. The inversion pulse of `ir` is not slice-selective. With `excitation: nonselective`
@@ -210,17 +231,39 @@ T1 and ideal pulses, S = M0 · (1 - (1 + κ) E(TI)) · exp(-TE / T2); at finite 
 has recovered only for TR - TI - TE/2.
 
 **`bssfp`: balanced steady-state free precession.** All gradients are balanced, so the steady state depends on the
-phase a spin accumulates per TR, θ = 2π·Δf·TR + `phase_cycle_deg`:
+phase by which a spin runs ahead of the RF pulse per TR, θ = 2π·Δf·TR - `phase_cycle_deg` (the spin gains 2π·Δf·TR,
+the phase of the pulse advances by `phase_cycle_deg`):
 
     S = M0 (1 - E1) sin a (1 - E2 exp(-iθ)) / (C cos θ + D),  C = E2 (E1 - 1)(1 + cos a),  D = (1 - E1 cos a) - (E1 - cos a) E2²
 
 with E1 = exp(-TR / T1), E2 = exp(-TR / T2), read at TE = TR / 2. The signal is high over a band of off-resonance
-and collapses where Δf = (m + 1/2) / TR for the default phase cycle of 180°: dark bands in an inhomogeneous field.
+and collapses where θ is a whole number of turns, Δf = (m + `phase_cycle_deg` / 360°) / TR: dark bands in an
+inhomogeneous field, at (m + 1/2) / TR for the default phase cycle of 180°. A larger phase cycle moves the bands
+towards higher frequency.
 
 **Fat saturation.** A spectrally selective pulse before every excitation removes a fraction (the efficiency) of the
-magnetisation within a band around its centre frequency. The centre is meant to sit on the fat line; on a given
-system it can miss it, and where the field is off resonance the fat line itself moves. `fatsat_offset_hz` shifts
-the pulse.
+longitudinal magnetisation of every resonance line within a band around its centre frequency (edges about 8 Hz
+soft). The centre is meant to sit on the main fat line; on a given system it can miss it, and where the field is off
+resonance the lines themselves move. `fatsat_offset_hz` shifts the pulse. Two things follow. Fat is not one line:
+of the six lines of the spectrum used here (-3.80, -3.40, -2.60, -1.94, -0.39 and +0.60 ppm from water with 8.7,
+69.4, 12.8, 0.4, 3.9 and 4.8 % of the signal) a band of 1.3 ppm on the main line holds the first two, 78 %; the
+rest stays, and the two lines next to water can only be saturated together with water. And the pulse is played in
+every repetition, 7 ms before the centre of a 2 ms excitation (half the pulse, the 2 ms gap, half the excitation):
+a saturated line recovers during that time, and its steady state is not that of the unsaturated scan times a
+constant. With E = exp(-t / T1) and q = 1 - efficiency x band, ideal spoiling and a flip angle a,
+
+    Mz at the excitation = (1 - E(7 ms) + q · E(7 ms) · (1 - E(TR - 7 ms))) / (1 - q · E(TR) · cos a)
+
+for a gradient echo; in a spin echo the same recovery follows the refocusing pulse. What fat saturation leaves
+therefore depends on TR, T1 and the flip angle; a ratio measured at one repetition time is not the ratio at another.
+
+**Adjustments.** `cf_shift_hz` moves the centre frequency of the scanner for one scan: every off-resonance falls by
+it, and with it the displacement along the readout, the phase of gradient echoes, the position of the bSSFP bands
+and the band of the fat-saturation pulse. `shim_y_hz_per_mm` and `shim_x_hz_per_mm` add a field that is linear in
+the patient coordinates (a turned or shifted field of view sees the same field); there is no term through the slice
+and none of higher order. `tx_scale` multiplies the transmit amplitude: excitation and refocusing angles scale with
+it; the adiabatic inversion and the fat-saturation pulse do not. The scanner applies no adjustment of its own
+beyond the hidden state it starts with: what a setting should be has to be measured.
 
 **Motion.** A session can hold material whose signal pulses or whose position shifts periodically (flow,
 respiration). Each phase-encode line then sees the object at the time it is acquired (line by line: lines in

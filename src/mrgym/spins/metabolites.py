@@ -38,7 +38,7 @@ WATER_3T = dict(gm=dict(water=0.78, t1_ms=1331.0, t2_ms=110.0), wm=dict(water=0.
                 csf=dict(water=0.97, t1_ms=3817.0, t2_ms=503.0))
 
 # the engine's six-peak fat spectrum: ppm relative to water and relative amplitude (mrgym.scanner.tissue.FAT_PEAKS)  [E]
-ENGINE_FAT_PEAKS = ((-3.80, 0.087), (-3.40, 0.693), (-2.60, 0.128), (-1.94, 0.004), (-0.39, 0.039), (0.60, 0.048))
+ENGINE_FAT_PEAKS = ((-3.80, 0.087), (-3.40, 0.694), (-2.60, 0.128), (-1.94, 0.004), (-0.39, 0.039), (0.60, 0.048))
 
 
 @dataclasses.dataclass(frozen=True)
@@ -115,8 +115,9 @@ BASIS = (
     Metabolite("triglyceride", "six-peak triglyceride spectrum of the engine",
                tuple(_singlet(f"fat_{k + 1}", round(WATER_PPM + ppm, 4), 1, "triglyceride", amp / sum(a for _, a in ENGINE_FAT_PEAKS))
                      for k, (ppm, amp) in enumerate(ENGINE_FAT_PEAKS)),
-               "mrgym.scanner.tissue.FAT_PEAKS (the engine attributes them to Hamilton 2011; the table read for this release has "
-               "4.20 ppm and 8.8 / 70.0 / 12.0 / 0.6 / 3.9 / 4.7 % where the engine has 4.31 ppm and 8.7 / 69.3 / 12.8 / 0.4 / 3.9 / 4.8 %)", "E",
+               "mrgym.scanner.tissue.FAT_PEAKS: the six-peak model that Hernando 2017 lists, without its room-temperature shift (the engine "
+               "cites it as that since 0.3.0); the liver table of Hamilton 2011, read for this release, has 4.20 ppm and "
+               "8.8 / 70.0 / 12.0 / 0.6 / 3.9 / 4.7 % where the model has 4.31 ppm and 8.7 / 69.4 / 12.8 / 0.4 / 3.9 / 4.8 %", "E",
                "uncoupled lines whose amplitudes sum to 1, as in the engine"),
 )
 _BY_NAME = {m.name: m for m in BASIS}

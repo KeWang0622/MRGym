@@ -37,8 +37,13 @@ def test_the_file_was_recorded_on_this_engine_version():
 
 
 def test_the_file_covers_every_sequence_phantom_and_field():
-    assert sorted(GOLDEN["images"]) == sorted(G.image_keys()) and len(G.image_keys()) == 6 * 3 * 2 + len(G.VARIANTS)
+    assert sorted(GOLDEN["images"]) == sorted(G.image_keys()) and len(G.image_keys()) == 6 * 3 * 2 + len(G.VARIANTS) + len(G.VARIANTS_0_3)
     assert {v.get("excitation") for v in G.VARIANTS.values()} >= {"nonselective"} and len(G.VARIANTS) >= 6 + 3
+    # engine 0.3.0: fat saturation on a phantom that holds fat, partial Fourier, each of the four adjustments
+    said = [set(v) for v in G.VARIANTS_0_3.values()]
+    assert any("fat_sat" in v for v in said) and any("partial_fourier" in v for v in said)
+    assert set(mrgym.scanner.console.ADJUSTMENTS) <= set().union(*said)
+    assert any(c["fat"] for c in mrgym.scanner.world.make_world(G.SEED, dict(G.WORLD_SPECS["qa_oil"], n=64))["tissues"].values())
     assert set(G.PROTOCOLS) == set(mrgym.scanner.console.SEQUENCES)
     assert len(GOLDEN["noisy"]) == len(G.PROTOCOLS) + 2 and len(GOLDEN["prices"]) == len(G.PRICE_GRID)
 

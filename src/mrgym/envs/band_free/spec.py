@@ -4,4 +4,4 @@
 current engine; then "admitted". A family whose gate rejects a level is "practice".
 """
 SPECS = [dict(id="Scanner/BandFree-v0", entry_point="mrgym.envs.family:FamilyEnv", card="mrgym.envs.band_free.task:card",
-              kind="admitted", family="mrgym.envs.band_free", levels=(1, 2, 3), default_level=2, max_steps=64)]
+              kind="candidate", family="mrgym.envs.band_free", levels=(1, 2, 3), default_level=2, max_steps=64)]

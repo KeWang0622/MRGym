@@ -106,7 +106,7 @@ def check_rotation():
                 for rephase, width in ((0.5, 1.0), (0.0, rf.REFOCUS_WIDTH)):
                     zeta = np.linspace(-4, 4, 321)
                     ae, be = rf.cayley_klein(math.radians(alpha_deg), tbw, zeta / width, rephase=rephase, window=window)
-                    thick = 5.0 * width
+                    thick = 5.0 * width / rf.fwhm_factor(tbw, window)      # the console calibrates the slice gradient: 5 mm is the FWHM
                     pulse = pulses.sinc(alpha_deg, dur * width, tbw, thick, window, "excitation" if rephase else "refocusing", n=rf.N_SAMPLES)
                     a, b = pulse.rotate(zeta * 5.0)
                     err = max(err, np.abs(a - ae).max(), np.abs(b - be).max())
@@ -118,15 +118,16 @@ def check_rotation():
     err = 0.0
     for dur, tbw in rf.PULSES.values():
         for flip in (10.0, 90.0, 180.0):
-            pulse = pulses.sinc(flip, dur, tbw, 5.0, n=rf.N_SAMPLES)
+            cal = rf.fwhm_factor(tbw)
+            pulse = pulses.sinc(flip, dur, tbw, 5.0 / cal, n=rf.N_SAMPLES)
             hard = console._b1_ut(flip, dur)
             err = max(err, abs(pulse.peak_b1_ut / (rf.peak_factor(tbw) * hard) - 1), abs(pulse.energy_ut2_ms / (hard ** 2 * dur * rf.energy_factor(tbw)) - 1),
-                      abs(pulse.g_mt_m[0] / (1e3 * tbw / (dur * 1e-3 * console.GAMMA_HZ_PER_T * 5e-3)) - 1))
+                      abs(pulse.g_mt_m[0] / (1e3 * cal * tbw / (dur * 1e-3 * console.GAMMA_HZ_PER_T * 5e-3)) - 1))
     rows.append(_row("D5", "rotation", "peak B1, energy and slice gradient of the three console pulses", "`rf.peak_factor`, `rf.energy_factor`, "
-                     "`console._b1_ut`, G = tbw / (duration gamma thickness)", err, 1e-12, unit="relative"))
+                     "`console._b1_ut`, G = `rf.fwhm_factor` tbw / (duration gamma thickness)", err, 1e-12, unit="relative"))
     plan = console.plan(dict(sequence="spgr", flip_deg=30.0, tr_ms=20.0, slice_mm=5.0))
     dur, tbw = plan["realised"]["rf_ms"], rf.PULSES[plan["realised"]["rf_pulse"]][1]
-    pulse = pulses.sinc(30.0, dur, tbw, 5.0, n=rf.N_SAMPLES)
+    pulse = pulses.sinc(30.0, dur, tbw, 5.0 / rf.fwhm_factor(tbw), n=rf.N_SAMPLES)
     power = 100.0 * pulse.b1rms_ut(plan["timing"]["cycle_ms"]) ** 2 / 3.0 ** 2
     rows.append(_row("D5b", "rotation", "RF power figure and slice gradient of a console protocol (spgr, 30 deg, TR 20 ms, 5 mm)",
                      "`console.plan`: 100 B1rms^2 / (3 uT)^2 printed to 0.01 %, gradient printed to 0.001 mT/m",
@@ -696,7 +697,7 @@ def check_sequence():
         pos = np.concatenate([-zeta[:0:-1], zeta]) * 5.0
         weights = np.concatenate([wq[:0:-1], wq]) / 2
         weights[zeta.size - 1] = wq[0]
-        pulse = pulses.sinc(flip, dur, tbw, 5.0, n=rf.N_SAMPLES)
+        pulse = pulses.sinc(flip, dur, tbw, 5.0 / rf.fwhm_factor(tbw), n=rf.N_SAMPLES)
         cycle = [S.rf_pulse(pulse, pos, weights=weights), S.readout(), S.delay(tr), S.spoil()]
         r = S.run(S.repeat(cycle, int(25 * t1 / tr) + 5), t1, t2)
         ref = kspace.slice_signal(dict(sequence="spgr", tr_ms=tr), dict(t1_ms=t1), math.radians(flip), tbw, tier=1)[0][0]

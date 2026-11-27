@@ -14,6 +14,10 @@ The six sequences the scanner serves, written as the model the engine computes t
   ir      the same after an inversion of efficiency ``inv_eff`` that acts on Mz only.
   bssfp   balanced SSFP, sample at TR / 2, RF phase advancing by ``phase_inc_deg`` per TR.
 ``served`` maps a realised protocol of the console to these.
+Saturation (``sat=(q, delay_ms)`` of spgr, epi, se, ir): the engine's model of a spectrally selective saturation
+pulse for ONE resonance line, an event of every repetition that multiplies the longitudinal magnetisation by q
+``delay_ms`` before the excitation (engine 0.3.0; q = 1 - efficiency x the share of the band the line lies in).
+The lines of fat are saturated differently, so a fat tissue is one block list per line.
 
 Eleven sequences the scanner does not serve, to show that a new sequence is data:
   fse, mese          CPMG echo train (constant or variable refocusing angles, real or ideal crushers); the echoes
@@ -54,14 +58,30 @@ def _refocus(sel):
 
 
 # ---------------------------------------------------------------------------------------------- the six served
-def spgr(tr_ms, flip_deg, te_ms=0.0, spoiling="rf", phase_inc_deg=117.0, spoiler_mt_ms_per_m=100.0, selective=None, repetitions=1):
+def _saturation(sat, room_ms):
+    """The blocks that end a repetition with a saturation pulse: ([Mz -> q Mz, delay], the delay). ``room_ms``: the
+    time between the last event before it and the next excitation."""
+    if sat is None:
+        return [], 0.0
+    q, delay = float(sat[0]), float(sat[1])
+    if not 0 <= delay <= room_ms:
+        raise ValueError("the saturation pulse does not fit before the excitation")
+    return [B.mz(q), B.delay(delay)], delay
+
+
+def spgr(tr_ms, flip_deg, te_ms=0.0, spoiling="rf", phase_inc_deg=117.0, spoiler_mt_ms_per_m=100.0, selective=None, repetitions=1, sat=None):
+    """``sat``: with spoiling="rf" the saturation multiplies the longitudinal states of every order, the spoiler has
+    finished its cycle before it, and nothing else happens to the transverse states. Without diffusion this is the
+    engine's model exactly (row Q16b); the engine spreads the cycle over the whole TR, so with diffusion the two
+    differ slightly (row Q16d)."""
     exc = B.rf(flip_deg, selective=selective)
+    tail, d = _saturation(sat, tr_ms - te_ms)
     if spoiling == "ideal":
-        body = [exc, B.delay(te_ms), B.adc("echo", static_ms=te_ms), B.delay(tr_ms - te_ms), B.spoil()]
+        body = [exc, B.delay(te_ms), B.adc("echo", static_ms=te_ms), B.delay(tr_ms - te_ms - d), B.spoil()] + tail
         return B.sequence([B.repeat(body, repetitions)], name="spgr-ideal")
     if spoiling != "rf" or te_ms:
         raise ValueError("spgr: spoiling is 'rf' (sample right after the pulse) or 'ideal'; for a real spoiler lobe use spgr_lobe")
-    body = [exc, B.adc("echo"), B.gradient(1, ms=tr_ms)]
+    body = [exc, B.adc("echo"), B.gradient(1, ms=tr_ms - d)] + tail
     return B.sequence([B.repeat(body, repetitions, spoil_inc_deg=phase_inc_deg)], cycle_mm=spoiler_cycle_mm(spoiler_mt_ms_per_m), name="spgr")
 
 
@@ -80,27 +100,32 @@ def afi(tr1_ms, tr_ratio, flip_deg, spoiling="rf", phase_inc_deg=117.0, spoiler_
     return B.sequence([rep], cycle_mm=spoiler_cycle_mm(spoiler_mt_ms_per_m), name="afi")
 
 
-def epi(tr_ms, flip_deg=90.0, selective=None, repetitions=1):
-    seq = spgr(tr_ms, flip_deg, spoiling="ideal", selective=selective, repetitions=repetitions)
+def epi(tr_ms, flip_deg=90.0, selective=None, repetitions=1, sat=None):
+    seq = spgr(tr_ms, flip_deg, spoiling="ideal", selective=selective, repetitions=repetitions, sat=sat)
     return dataclasses.replace(seq, name="epi")
 
 
-def se(tr_ms, te_ms, flip_deg=90.0, selective=None, crusher_cycles=None, repetitions=1):
+def se(tr_ms, te_ms, flip_deg=90.0, selective=None, crusher_cycles=None, repetitions=1, sat=None):
     """``crusher_cycles`` None: the ideal crushed refocusing pulse and an ideal spoiler at the end of the TR (the
     engine's model). A number: real crushers of that many cycles either side of the refocusing pulse and nothing
     else, which keeps the stimulated echoes of the following repetitions (docs/physics/limits.md, 8a)."""
     exc = B.rf(flip_deg, 0.0, selective=selective)
     if crusher_cycles is None:
+        tail, d = _saturation(sat, tr_ms - te_ms)
         body = [exc, B.delay(te_ms / 2), B.rf(2 * flip_deg, 90.0, crushed=True, selective=_refocus(selective)), B.delay(te_ms / 2),
-                B.adc("echo"), B.delay(tr_ms - te_ms), B.spoil()]
+                B.adc("echo"), B.delay(tr_ms - te_ms - d), B.spoil()] + tail
     else:
+        if sat is not None:
+            raise ValueError("se: the saturation pulse is modelled with the ideal crushed refocusing pulse only")
         body = [exc, B.delay(te_ms / 2), B.gradient(crusher_cycles), B.rf(2 * flip_deg, 90.0, selective=_refocus(selective)),
                 B.gradient(crusher_cycles), B.delay(te_ms / 2), B.adc("echo"), B.delay(tr_ms - te_ms)]
     return B.sequence([B.repeat(body, repetitions)], name="se")
 
 
-def ir(tr_ms, te_ms, ti_ms, flip_deg=90.0, inv_eff=1.0, selective=None, repetitions=1):
-    body = [B.mz(-inv_eff), B.delay(ti_ms), B.rf(flip_deg, 0.0, selective=selective), B.delay(te_ms / 2),
+def ir(tr_ms, te_ms, ti_ms, flip_deg=90.0, inv_eff=1.0, selective=None, repetitions=1, sat=None):
+    """``sat``: the saturation pulse lies between the inversion and the excitation."""
+    prep, d = _saturation(sat, ti_ms)
+    body = [B.mz(-inv_eff), B.delay(ti_ms - d)] + prep + [B.rf(flip_deg, 0.0, selective=selective), B.delay(te_ms / 2),
             B.rf(2 * flip_deg, 90.0, crushed=True, selective=_refocus(selective)), B.delay(te_ms / 2), B.adc("echo"),
             B.delay(tr_ms - ti_ms - te_ms), B.spoil()]
     return B.sequence([B.repeat(body, repetitions)], name="ir")
@@ -120,26 +145,31 @@ def ir_gre(tr_ms, ti_ms, flip_deg, inv_eff=1.0, repetitions=1):
     return B.sequence([B.repeat(body, repetitions)], name="ir-gre")
 
 
-def served(rp, selective=None, inv_eff=1.0, tier=2):
+def served(rp, selective=None, inv_eff=1.0, tier=2, sat=None):
     """The block list of a realised protocol of the console (``console.plan(...)["realised"]``): (sequence, labels of
     the samples that are the engine's contrasts, in order). ``selective``: the excitation pulse, or None for the hard
-    pulse. Fat saturation is not in it. The engine's bssfp advances its frame by +phase_cycle_deg per TR, which is an
-    RF phase that DEcreases by phase_cycle_deg per TR in the convention of this package (row Q5b)."""
+    pulse. ``sat`` = (q, delay_ms): the saturation of ONE resonance line by the fat-saturation pulse of the protocol
+    (spgr, epi, se, ir; the caller gives q of the line and the delay the console planned, ``fatsat_delay_ms``); None:
+    a line the pulse does not reach, or a protocol without fat saturation. ``phase_cycle_deg`` of bssfp is the advance
+    of the RF phase per TR (rows Q10, Q10b; engine 0.2.0 counted it the other way and this function followed it until
+    the engine was corrected)."""
     name = rp["sequence"]
+    if sat is not None and name in ("afi", "bssfp"):
+        raise ValueError(f"no saturation pulse in the block list of {name}")
     if name == "spgr":
         kw = dict(spoiling="rf", phase_inc_deg=rp["rf_phase_increment_deg"], spoiler_mt_ms_per_m=rp["spoiler_mt_ms_per_m"]) if tier == 2 else dict(spoiling="ideal")
-        return spgr(rp["tr_ms"], rp["flip_deg"], selective=selective, **kw), ("echo",)
+        return spgr(rp["tr_ms"], rp["flip_deg"], selective=selective, sat=sat, **kw), ("echo",)
     if name == "afi":
         kw = dict(spoiling="rf", phase_inc_deg=rp["rf_phase_increment_deg"], spoiler_mt_ms_per_m=rp["spoiler_mt_ms_per_m"]) if tier == 2 else dict(spoiling="ideal")
         return afi(rp["tr_ms"], rp["tr_ratio"], rp["flip_deg"], selective=selective, **kw), (("s", 0), ("s", 1))
     if name == "epi":
-        return epi(rp["tr_ms"], rp["flip_deg"], selective=selective), ("echo",)
+        return epi(rp["tr_ms"], rp["flip_deg"], selective=selective, sat=sat), ("echo",)
     if name == "se":
-        return se(rp["tr_ms"], rp["te_ms"], rp["flip_deg"], selective=selective), ("echo",)
+        return se(rp["tr_ms"], rp["te_ms"], rp["flip_deg"], selective=selective, sat=sat), ("echo",)
     if name == "ir":
-        return ir(rp["tr_ms"], rp["te_ms"], rp["ti_ms"], rp["flip_deg"], inv_eff, selective=selective), ("echo",)
+        return ir(rp["tr_ms"], rp["te_ms"], rp["ti_ms"], rp["flip_deg"], inv_eff, selective=selective, sat=sat), ("echo",)
     if name == "bssfp":
-        return bssfp(rp["tr_ms"], rp["flip_deg"], -rp["phase_cycle_deg"], selective=selective), ("echo",)
+        return bssfp(rp["tr_ms"], rp["flip_deg"], rp["phase_cycle_deg"], selective=selective), ("echo",)
     raise ValueError(f"no block list for sequence {name!r}")
 
 

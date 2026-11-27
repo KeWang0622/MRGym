@@ -77,7 +77,7 @@ def test(id, quantity, measured, engine, difference, tolerance, ok, note=""):
 # that grows past its ceiling fails ``--check`` and tests/test_measured.py; one that shrinks is good news and a
 # reason to lower the ceiling.
 CEILINGS = {
-    "M0.2": 0.75, "M0.3": 3.6, "M0.4": 21.0, "M0.6": 70.0, "M0.7": 43.0, "M0.8": 22.0, "M1.5": 5.5, "M1.6": 2.8, "M2.3": 11.0, "M3b.4": 1.0,
+    "M0.3": 3.6, "M0.4": 21.0, "M0.6": 70.0, "M0.7": 43.0, "M0.8": 22.0, "M1.5": 5.5, "M1.6": 2.8, "M2.3": 11.0, "M3b.4": 1.0,
     "M4.2": 0.12, "M5.2": 17.0, "M6.3": 1.3, "M6.4": 1.0, "M6.5": 0.02, "M6.6": 0.22, "M6.8": 4.2, "M6.11": 21.0, "M6.12": 4.0, "M7.5": 4.6, "M8.3": 0.10,
     "M9.3": 160.0, "M9.4": 9.0, "M9.5": 4.0, "M9.6": 0.33, "M9.7": 1.3,
 }
@@ -164,8 +164,9 @@ def rung_m0():
     rows = [
         test("M0.1", "places of the 14 spheres of the T1 plate (world `nist_t1`)", f"Table S1, stated accuracy ±{t['position_accuracy_mm']:g} mm",
              f"largest distance {dist:.2f} mm, same order", f"{dist:.2f} mm", f"≤ {t['position_accuracy_mm']:g} mm (the table's accuracy)", dist <= t["position_accuracy_mm"]),
-        declared("M0.2", "T1 of the 14 spheres of `nist_t1` at 3 T", f"Table S1; sphere {k + 1}: {s1[k, 2]:g} ± {t['t1_3t_standard_deviation_ms_nicl2'][k]:g} ms",
-                 f"sphere {k + 1}: {t1[k]:g} ms; the other 13 equal the table", f"{d_t1[k]:+.1f} ms", abs(d_t1[k]), 11),
+        test("M0.2", "T1 of the 14 spheres of `nist_t1` at 3 T", "Table S1, column \"NMR measured T1 @ 3.0 T\"",
+             f"{int(np.sum(d_t1 == 0))} of 14 equal the table" + ("" if not d_t1[k] else f"; sphere {k + 1}: {t1[k]:g} ms against {s1[k, 2]:g} ms"),
+             f"{abs(d_t1[k]):g} ms", "0 (a transcription; engine 0.2.0 had 496.0 for sphere 5, the table 496.7)", not np.any(d_t1)),
         declared("M0.3", "T2 of the 14 spheres of `nist_t1` at 3 T", "Table S1: measured for every sphere", "T1 × 31.86 / 44.53, a declared rule",
                  f"{rng_span(rule)} %", np.abs(rule).max(), 9),
         declared("M0.4", "water round the spheres of `nist_t1` at 3 T: T1, T2", f"Table S4: {water[0]:.0f} ms, {water[1]:.0f} ms",
@@ -194,8 +195,9 @@ def rung_m0():
                               "agrees with that."))
     return dict(rung="M0", title="The NIST plate of the package against the published tables; console timing", rows=rows, extracts=["nist_tables"],
                 source="Stupic 2021, supporting information (CC BY)",
-                notes=["The tables are NMR reference measurements at 20 °C. Rows M0.2 to M0.4 and M0.8 are about the older world `nist_t1`, which this branch does "
-                       "not change; M0.5 is the data added here."])
+                notes=["The tables are NMR reference measurements at 20 °C. Rows M0.2 to M0.4 and M0.8 are about the older world `nist_t1`: its T1 list is the "
+                       "table since engine 0.3.0 (M0.2; on 0.2.0 sphere 5 was 0.7 ms off), its T2 rule, its water and its outline are as they were. M0.5 is the "
+                       "data of both plates."])
 
 
 # ------------------------------------------------------------------------------------------------ M1
@@ -513,7 +515,8 @@ def rung_m4_m8():
              "≤ 1 point (declared by this tool: the table gives the shares to 0.1 point and no spread)", np.abs(d_amp).max() <= 1.0),
         declared("M4.2", "position of the six peaks relative to water", "the table's ppm − 4.7", ", ".join(f"{e[0]:+.2f}" for e in eng_sorted) + " ppm",
                  f"{HAMILTON[k][0]:g} ppm peak at {4.7 + eng_sorted[k][0]:.2f} ppm ({d_ppm[k]:+.2f}); the others within {np.sort(np.abs(d_ppm))[-2]:.2f}", np.abs(d_ppm).max(), 11,
-                 note="The engine's list is the six-peak model of the Hernando papers, not the table it names."),
+                 note="The engine's list is the six-peak model that Hernando 2017 lists, and since engine 0.3.0 the engine cites it as that (0.2.0 named this "
+                      "table). The model puts the glycerol peak at 4.31 ppm; that is kept and stated."),
         test("M4.3", "fat fraction of the phantom with the published six-echo protocols run through the engine: mean error over the 11 vials",
              f"published {pub['bias_percent']:+.2f} % (95 % interval {pub['bias_ci_percent'][0]:g} to {pub['bias_ci_percent'][1]:g}); per acquisition of the shipped maps "
              f"{rng_span(shipped, '{:+.2f}')} % ({n} acquisitions)", f"{rng_span(b_eng, '{:+.2f}')} % (4 protocols); {rng_span(b_eq, '{:+.2f}')} % with equal T1 of oil and water",
@@ -961,12 +964,14 @@ KNOWN = [
     (8, "The console has no echo train, so it cannot say the T2 error of the multi-echo spin echo that published T2 protocols are. The design layer computes it.",
      ("M3b.4", "M3b.1"), "multi-echo spin echo in the console through the design layer's phase graph (engine package: block-list core)"),
     (9, "The NIST world exists at 3 T only, with a declared T2 rule and declared water. The published T1 and T2 of both plates at both fields are in the package since this branch.",
-     ("M0.3", "M0.4", "M0.8", "M0.5"), "`nist_t2` and the 1.5 T plates as world kinds, `nist_t1` on the published T2, water and outline (the engine fix in progress and "
-     "one branch of `world.py`)"),
+     ("M0.3", "M0.4", "M0.8", "M0.5"), "`nist_t2` and the 1.5 T plates as world kinds, `nist_t1` on the published T2, water and outline (an engine version of its "
+     "own, since it changes the data of `nist_t1`, and one branch of `world.py`)"),
     (10, "Incomplete RF spoiling moves variable-flip-angle T1 at the default phase increment, which is one vendor's style. This is real physics, but no measured number per vendor was found.",
      ("M2.3",), "RF-spoiling presets per vendor and a measured series (rung M10)"),
-    (11, "Transcription items: one T1 of the NIST list, one fat peak position, and the name of the fat model.",
-     ("M0.2", "M4.2"), "the engine fix in progress (it bumps the engine id)"),
+    (11, "The fat spectrum is the six-peak model of Hernando 2017, cited as that since engine 0.3.0: its glycerol peak sits at 4.31 ppm where the liver table of "
+         "Hamilton 2011 has 4.2 ppm. (The two transcription items that stood here on engine 0.2.0, T1 of one NIST sphere and the amplitude and name of the fat model, "
+         "are corrected: rows M0.2 and M4.1.)",
+     ("M4.2",), "a fat spectrum per kind of fat instead of one model (ordinary engine work)"),
     (12, "The ACR world lacks structures every real image shows.", ("M6.12",), "the inserts and wedges of the phantom through the slice (engine package: 3D world)"),
     # found by rung M9, after the twelve of the research pass
     (13, "Inversion efficiency is one number per session. In the measurement it falls with T2: the inversion is less complete in a tissue that relaxes during the pulse.",

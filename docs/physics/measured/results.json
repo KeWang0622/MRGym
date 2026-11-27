@@ -1,8 +1,8 @@
 {
  "schema": "mrgym-measured/1",
- "engine": "mrgym-engine-0.2.0",
+ "engine": "mrgym-engine-0.3.0",
  "command": "python tools/measured/run_all.py --write",
- "tool": "29a9c27288f4a852",
+ "tool": "be84f1dc21d17324",
  "extracts": {
   "M1_t1_challenge.json": "3c70c0e9133c95abf768dd9c7db15fc356fc6cd9884c375c4cc655912a406df3",
   "M6_acr.json": "18bb6a5aef0eec9cab5acd40e3076de62331750fd9e1a9d976a4973f2c7b0d0f",
@@ -117,15 +117,12 @@
     {
      "id": "M0.2",
      "quantity": "T1 of the 14 spheres of `nist_t1` at 3 T",
-     "measured": "Table S1; sphere 5: 496.7 ± 0.41 ms",
-     "engine": "sphere 5: 496 ms; the other 13 equal the table",
-     "difference": "-0.7 ms",
-     "tolerance": "declared difference",
-     "declared": true,
-     "size": 0.6999999999999886,
-     "ceiling": 0.75,
+     "measured": "Table S1, column \"NMR measured T1 @ 3.0 T\"",
+     "engine": "14 of 14 equal the table",
+     "difference": "0 ms",
+     "tolerance": "0 (a transcription; engine 0.2.0 had 496.0 for sphere 5, the table 496.7)",
+     "declared": false,
      "passed": true,
-     "known": 11,
      "note": ""
     },
     {
@@ -215,9 +212,9 @@
    ],
    "source": "Stupic 2021, supporting information (CC BY)",
    "notes": [
-    "The tables are NMR reference measurements at 20 °C. Rows M0.2 to M0.4 and M0.8 are about the older world `nist_t1`, which this branch does not change; M0.5 is the data added here."
+    "The tables are NMR reference measurements at 20 °C. Rows M0.2 to M0.4 and M0.8 are about the older world `nist_t1`: its T1 list is the table since engine 0.3.0 (M0.2; on 0.2.0 sphere 5 was 0.7 ms off), its T2 rule, its water and its outline are as they were. M0.5 is the data of both plates."
    ],
-   "engine": "mrgym-engine-0.2.0",
+   "engine": "mrgym-engine-0.3.0",
    "date_utc": "2026-11-27"
   },
   {
@@ -228,7 +225,7 @@
      "id": "M1.1",
      "quantity": "scatter of T1 inside a sphere, complex fit, spheres 1, 2, 6 to 9 (coefficient of variation, %)",
      "measured": "3.0, 2.0, 1.6, 1.8, 2.4, 4.7 (median of 9 maps)",
-     "engine": "3.2, 2.2, 1.3, 1.6, 2.2, 4.4 (12 systems)",
+     "engine": "3.2, 2.2, 1.3, 1.5, 2.2, 4.4 (12 systems)",
      "difference": "-0.4 to +0.2 points",
      "tolerance": "within the interquartile range of the maps, per sphere (1.0, 0.6, 0.5, 0.5, 0.7, 1.8 points)",
      "declared": false,
@@ -250,8 +247,8 @@
      "id": "M1.3",
      "quantity": "collapse of the estimator below 90 ms: T1 error of spheres 11 to 14 (63, 45, 31, 22 ms)",
      "measured": "-33 % [-68, -17]; -12 % [-67, +16]; +31 % [-39, +99]; +142 % [+28, +278] (34 maps)",
-     "engine": "-27 %; -2 %; +59 %; +195 %",
-     "difference": "+7; +10; +28; +54 points",
+     "engine": "-27 %; -2 %; +61 %; +196 %",
+     "difference": "+6; +9; +29; +54 points",
      "tolerance": "inside the interquartile range of the maps, each sphere",
      "declared": false,
      "passed": true,
@@ -272,7 +269,7 @@
      "id": "M1.5",
      "quantity": "spread of the T1 error between sites, spheres 1 to 7 (T1 250 to 2000 ms): interquartile range",
      "measured": "4.5 points; median error -5.4 to -0.5 % (34 maps); by phantom version -3.1 % (serial ≤ 42, 23 maps) and -0.1 % (serial ≥ 43, 11 maps)",
-     "engine": "0.2 points; median error -0.03 to +0.12 %",
+     "engine": "0.2 points; median error -0.04 to +0.12 %",
      "difference": "4.3 points of spread missing",
      "tolerance": "declared difference",
      "declared": true,
@@ -286,11 +283,11 @@
      "id": "M1.6",
      "quantity": "receiver noise: default noise of the package over the noise that gives the measured scatter",
      "measured": "scatter of spheres 3 to 5: 1.28 % (median of 34 maps)",
-     "engine": "3.23 % at the default noise",
+     "engine": "3.21 % at the default noise",
      "difference": "default noise × 2.5 too high",
      "tolerance": "declared difference",
      "declared": true,
-     "size": 2.5121231983355403,
+     "size": 2.4993774039428676,
      "ceiling": 2.8,
      "passed": true,
      "known": 2,
@@ -306,7 +303,7 @@
     "Engine: world `nist_t1`, sequence `ir`, TR 2550 ms, TE 14 ms, TI 50 / 400 / 1100 / 2500 ms, matrix 256, 2 mm, 130 Hz per pixel, 12 drawn systems, the challenge's estimator, regions of 88 pixels.",
     "The measured bias by phantom version is a reading of the database; that the reference list of the older units causes it is a hypothesis."
    ],
-   "engine": "mrgym-engine-0.2.0",
+   "engine": "mrgym-engine-0.3.0",
    "date_utc": "2026-11-27"
   },
   {
@@ -357,7 +354,7 @@
    "notes": [
     "Engine: world `nist_t1` with T1 and T2 of Table S1 (3 T), 3D `spgr`, 2, 5, 10, 20, 25, 30 degrees, 280 Hz per pixel, matrix 256; realised TR 9.33 ms, TE 3.04 ms (published 6.6 / 2.44: the console is slower, row M0.6); fitted with the nominal angles as both papers do, no B1 map."
    ],
-   "engine": "mrgym-engine-0.2.0",
+   "engine": "mrgym-engine-0.3.0",
    "date_utc": "2026-11-27"
   },
   {
@@ -392,7 +389,7 @@
    "notes": [
     "Engine: the slice integral of `spgr` with `rf_pulse=fast` (time-bandwidth 2, Hann window), ideal and default spoiling, T2 = T1 / 10 and T1 / 2 (the paper does not state T2); the four results span the range shown."
    ],
-   "engine": "mrgym-engine-0.2.0",
+   "engine": "mrgym-engine-0.3.0",
    "date_utc": "2026-11-27"
   },
   {
@@ -452,7 +449,7 @@
    "notes": [
     "Protocol of the paper: 3 T, 18 echoes of 12 ms, TR 1500 ms, 3 mm, refocusing slice 1.2 × the excitation slice. Engine: the block-list EPG of the design layer through the slice profile of the console's windowed-sinc pulses; nothing is fitted."
    ],
-   "engine": "mrgym-engine-0.2.0",
+   "engine": "mrgym-engine-0.3.0",
    "date_utc": "2026-11-27"
   },
   {
@@ -463,8 +460,8 @@
      "id": "M4.1",
      "quantity": "share of the six fat peaks (% of the fat signal)",
      "measured": "4.7, 3.9, 0.6, 12, 70, 8.8 at 5.3, 4.2, 2.75, 2.1, 1.3, 0.9 ppm (Hamilton 2011, liver, Table 3)",
-     "engine": "4.8, 3.9, 0.4, 12.8, 69.3, 8.7",
-     "difference": "-0.7 to +0.8 points",
+     "engine": "4.8, 3.9, 0.4, 12.8, 69.4, 8.7",
+     "difference": "-0.6 to +0.8 points",
      "tolerance": "≤ 1 point (declared by this tool: the table gives the shares to 0.1 point and no spread)",
      "declared": false,
      "passed": true,
@@ -482,7 +479,7 @@
      "ceiling": 0.12,
      "passed": true,
      "known": 11,
-     "note": "The engine's list is the six-peak model of the Hernando papers, not the table it names."
+     "note": "The engine's list is the six-peak model that Hernando 2017 lists, and since engine 0.3.0 the engine cites it as that (0.2.0 named this table). The model puts the glycerol peak at 4.31 ppm; that is kept and stated."
     },
     {
      "id": "M4.3",
@@ -510,7 +507,7 @@
      "id": "M8.2",
      "quantity": "fat fraction fitted to the measured echoes with the engine's spectrum: mean error per acquisition",
      "measured": "shipped maps (the study's model): mean +0.20 %, -0.59 to +1.38 %; published +0.22 %",
-     "engine": "mean +0.10 %, -2.40 to +2.61 %; slope 0.970 to 1.010; with one peak -2.81 %",
+     "engine": "mean +0.10 %, -2.40 to +2.60 %; slope 0.970 to 1.010; with one peak -2.81 %",
      "difference": "-0.10 points in the mean",
      "tolerance": "mean inside the range of the shipped maps; slope inside the published 0.96 to 1.02",
      "declared": false,
@@ -525,7 +522,7 @@
      "difference": "-0.092 ppm = 2.5 SD",
      "tolerance": "declared difference",
      "declared": true,
-     "size": 0.09194990388047453,
+     "size": 0.09197597609354435,
      "ceiling": 0.1,
      "passed": true,
      "known": 1,
@@ -540,7 +537,7 @@
     "Measured: 24 of the 28 acquisitions of the archive (6 sites, 3 vendors, 1.5 and 3 T, 2 protocols); 4 were left out because 11 vials were not found by the segmentation. Vials were told apart by the fat-fraction map shipped with the data.",
     "Not carried into this tool: the temperature confound of the research pass (a phantom at 20 °C fitted with the 37 °C model), which it reproduced only by changing the engine's peak table in the process."
    ],
-   "engine": "mrgym-engine-0.2.0",
+   "engine": "mrgym-engine-0.3.0",
    "date_utc": "2026-11-27"
   },
   {
@@ -580,7 +577,7 @@
    "notes": [
     "The rows were computed when the database was last fetched; without --fetch they are shown as stored, and they go stale when the tissue table changes."
    ],
-   "engine": "mrgym-engine-0.2.0",
+   "engine": "mrgym-engine-0.3.0",
    "date_utc": "2026-11-27"
   },
   {
@@ -617,7 +614,7 @@
      "difference": "+1.1 points above the most uniform scanner",
      "tolerance": "declared difference",
      "declared": true,
-     "size": 1.1040867516494615,
+     "size": 1.1043357701613417,
      "ceiling": 1.3,
      "passed": true,
      "known": 4,
@@ -642,7 +639,7 @@
      "difference": "0.015 outside the real range",
      "tolerance": "declared difference",
      "declared": true,
-     "size": 0.015499313316718388,
+     "size": 0.01549909252203896,
      "ceiling": 0.02,
      "passed": true,
      "known": 4,
@@ -656,7 +653,7 @@
      "difference": "+0.20 against the receive array: the sign is wrong for an array",
      "tolerance": "declared difference",
      "declared": true,
-     "size": 0.2016236985145441,
+     "size": 0.201623825053161,
      "ceiling": 0.22,
      "passed": true,
      "known": 5,
@@ -677,11 +674,11 @@
      "id": "M6.8",
      "quantity": "SNR of the T1 series, slice 7 (signal of the large region over the corner noise)",
      "measured": "1.5 T: GE (coil HEAD) 311, 340, 421; Siemens 1056, 1238; 3 T: GE (coil HEAD) 828; Siemens 2691",
-     "engine": "1.5 T: 346; 3 T: 715",
-     "difference": "the Siemens scanners up to × 3.8 the engine",
+     "engine": "1.5 T: 348; 3 T: 719",
+     "difference": "the Siemens scanners up to × 3.7 the engine",
      "tolerance": "declared difference",
      "declared": true,
-     "size": 3.7632984444844944,
+     "size": 3.742346272809489,
      "ceiling": 4.2,
      "passed": true,
      "known": 2,
@@ -717,7 +714,7 @@
      "difference": "20 mm of real positioning not drawn",
      "tolerance": "declared difference",
      "declared": true,
-     "size": 20.23183576494044,
+     "size": 20.231839587062364,
      "ceiling": 21.0,
      "passed": true,
      "known": 6,
@@ -757,7 +754,7 @@
     "Measured: 154 DICOM files, 14 series (T1 and T2 axial) of 9 scanners (GE, Philips, Siemens; 1.5 and 3 T), slices 1, 5 and 7. Engine: world `acr`, the series of `mrgym.qa` (spin echo 500 / 20 and 2000 / 80 ms, matrix 256, 250 mm, 5 mm), 6 healthy systems per field.",
     "The provenance of the series is unknown: scanner state, image filters, coil combination, and whether a set was chosen because it fails a test."
    ],
-   "engine": "mrgym-engine-0.2.0",
+   "engine": "mrgym-engine-0.3.0",
    "date_utc": "2026-11-27"
   },
   {
@@ -812,11 +809,11 @@
      "id": "M7.5",
      "quantity": "SNR at the last TI, 2 × 2 × 3 mm, 253 Hz per pixel",
      "measured": "739 (HeadNeck_20 coil, corner noise)",
-     "engine": "170 at the default noise",
+     "engine": "171 at the default noise",
      "difference": "default noise × 4.3 too high for this coil",
      "tolerance": "declared difference",
      "declared": true,
-     "size": 4.343478214787532,
+     "size": 4.319298523196698,
      "ceiling": 4.6,
      "passed": true,
      "known": 2,
@@ -830,7 +827,7 @@
    "notes": [
     "Measured: Siemens Healthineers MAGNETOM Prisma Fit, 3 T; inversion recovery TR 4000 ms, TE 8.8 ms, 13 TI from 50 to 3000 ms; spin echo TR 3500 ms, 10 TE; mean of a central disc of 2067 pixels. Engine: sequence `ir` with the same TR, TI, matrix, slice and bandwidth on a disc with the fitted T1 and T2."
    ],
-   "engine": "mrgym-engine-0.2.0",
+   "engine": "mrgym-engine-0.3.0",
    "date_utc": "2026-11-27"
   },
   {
@@ -923,7 +920,7 @@
      "difference": "0.9 points of artefact level the healthy engine does not have",
      "tolerance": "declared difference",
      "declared": true,
-     "size": 0.922662013443937,
+     "size": 0.92266201344393,
      "ceiling": 1.3,
      "passed": true,
      "known": 14,
@@ -954,7 +951,7 @@
     "T2 is fitted where three or more echoes lie above 5 % of the sphere's first echo and above 4 % of the brightest sphere: spheres 1, 2, 3, 4, 5, 6, 7, 8, 9. Spheres 10, 11, 12, 13, 14 (published T2 22 ms and shorter, first TE 15 ms) have no T2 here; T1 of sphere 14 is not reported (its signal is 6 % of the brightest at TE 15 ms).",
     "The B1 map inside a sphere with short T1 is misread by the mapping method; the fit of the water round the spheres is used."
    ],
-   "engine": "mrgym-engine-0.2.0",
+   "engine": "mrgym-engine-0.3.0",
    "date_utc": "2026-11-27"
   }
  ],
@@ -1015,7 +1012,7 @@
    "numbers": [
     "default noise × 2.5 too high (M1.6)",
     "default noise × 4.3 too high for this coil (M7.5)",
-    "the Siemens scanners up to × 3.8 the engine (M6.8)"
+    "the Siemens scanners up to × 3.7 the engine (M6.8)"
    ],
    "closes": "a noise level per coil class (engine package: receive array)"
   },
@@ -1112,7 +1109,7 @@
     "+21 % (M0.8)",
     "0 columns differ (M0.5)"
    ],
-   "closes": "`nist_t2` and the 1.5 T plates as world kinds, `nist_t1` on the published T2, water and outline (the engine fix in progress and one branch of `world.py`)"
+   "closes": "`nist_t2` and the 1.5 T plates as world kinds, `nist_t1` on the published T2, water and outline (an engine version of its own, since it changes the data of `nist_t1`, and one branch of `world.py`)"
   },
   {
    "n": 10,
@@ -1127,16 +1124,14 @@
   },
   {
    "n": 11,
-   "what": "Transcription items: one T1 of the NIST list, one fat peak position, and the name of the fat model.",
+   "what": "The fat spectrum is the six-peak model of Hernando 2017, cited as that since engine 0.3.0: its glycerol peak sits at 4.31 ppm where the liver table of Hamilton 2011 has 4.2 ppm. (The two transcription items that stood here on engine 0.2.0, T1 of one NIST sphere and the amplitude and name of the fat model, are corrected: rows M0.2 and M4.1.)",
    "rows": [
-    "M0.2",
     "M4.2"
    ],
    "numbers": [
-    "-0.7 ms (M0.2)",
     "4.2 ppm peak at 4.31 ppm (+0.11); the others within 0.01 (M4.2)"
    ],
-   "closes": "the engine fix in progress (it bumps the engine id)"
+   "closes": "a fat spectrum per kind of fat instead of one model (ordinary engine work)"
   },
   {
    "n": 12,

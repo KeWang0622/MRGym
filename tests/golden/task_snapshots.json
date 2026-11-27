@@ -1,5 +1,5 @@
 {
- "engine": "0.2.0",
+ "engine": "0.3.0",
  "ids": {
   "Scanner/ArtefactClinic-v0": {
    "card": {
@@ -169,16 +169,16 @@
     "kind": "candidate",
     "levels": {
      "1": {
-      "budget_s": [57.0, 65.0],
+      "budget_s": [0.0, 0.0],
       "summary": "four findings, each with at most one cause from a small set: the one fat mechanism the protocol arms, or truncation, or none (the finding is the object); budget 1.5 x the scan time of the reference's experiments, always less than one run of the complaint protocol"
      },
      "2": {
-      "budget_s": [65.0, 74.0],
+      "budget_s": [0.0, 0.0],
       "summary": "four findings from the look-alike set of four causes: the armed fat mechanism, truncation, wrap-around, or the object itself (a real edge or another material next to the artefacts); less scan time; budget 1.3 x the scan time of the reference's experiments, always less than one run of the complaint protocol"
      },
      "3": {
-      "budget_s": [26.0, 27.0],
-      "summary": "four findings that look alike, all darker or all brighter than the gel. Dark: susceptibility signal loss, opposed-phase cancellation in a material that holds water and fat, or a material that is dark. Bright: a folded copy of a tube beside the object, a ghost copy of a vial that pulses, or a vial that is bright. Every episode holds both artefact causes of its look at least once; position and sheet are drawn independently of the causes. Two single-change experiments tell the three apart, and which two depends on the look (one scan can carry changes for both looks, so a fixed list of three scans serves either: see the open-loop control); the remedies have doses that the experiments measure (the slice from the measured loss at the echo time of the remedy, the averages from the measured displacement of the copy), and the delivered protocol needs a stated share of the SNR of the best clean protocol, so a dose stronger than needed fails as well. Every scan costs at least the console's 7 s of overhead and dummy cycles, and the budget is below four times that: the first look and two experiments. Not served here: chemical-shift displacement (it needs an in-phase echo and a low bandwidth, the cancellation an opposed echo) and truncation (at this pixel size doubling the matrix does not clean it); budget: the first look and the two experiments of the costlier look, never more than four times the 7 s every scan costs before its first line; cost of the minimal battery that diagnoses without looking / budget = 1.56 (median of 24 stored instances)"
+      "budget_s": [0.0, 0.0],
+      "summary": "four findings that look alike, all darker or all brighter than the gel. Dark: susceptibility signal loss, opposed-phase cancellation in a material that holds water and fat, or a material that is dark. Bright: a folded copy of a tube beside the object, a ghost copy of a vial that pulses, or a vial that is bright. Every episode holds both artefact causes of its look at least once; position and sheet are drawn independently of the causes. Two single-change experiments tell the three apart, and which two depends on the look (one scan can carry changes for both looks, so a fixed list of three scans serves either: see the open-loop control); the remedies have doses that the experiments measure (the slice from the measured loss at the echo time of the remedy, the averages from the measured displacement of the copy), and the delivered protocol needs a stated share of the SNR of the best clean protocol, so a dose stronger than needed fails as well. Every scan costs at least the console's 7 s of overhead and dummy cycles, and the budget is below four times that: the first look and two experiments. Not served here: chemical-shift displacement (it needs an in-phase echo and a low bandwidth, the cancellation an opposed echo) and truncation (at this pixel size doubling the matrix does not clean it); budget: the first look and the two experiments of the costlier look, never more than four times the 7 s every scan costs before its first line; cost of the minimal battery that diagnoses without looking / budget = stored with every instance"
      }
     },
     "limits": {
@@ -323,12 +323,12 @@
     "WINDOWED": ["te_ms", "tr_ms", "slice_mm"]
    },
    "episode": {
-    "chain_head": "f6be65339dfccf1a7eb138d4e774d6203f4eaef5728bddfb1f4e95b9c511acf1",
+    "chain_head": "4854545ca02195ea004d755a99e3e585b4d211bdd90bcc0c5ccec29e34717980",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 27,
-    "texts_sha256": "0a05d4c1808ccbc5969b6eeeda58feb34b41ed042c85f48df716ce7836434efe",
+    "texts_sha256": "7411b1859a1c09b59520439d04ada3bd3d23feeadffdaad8292eb86c7b0b3e9a",
     "used_s": 53.4
    },
    "levels": {
@@ -352,7 +352,7 @@
          "trunc": 0.1085
         },
         "F2": {
-         "mech": 0.1842,
+         "mech": 0.1843,
          "trunc": 0.0219
         },
         "F3": {
@@ -419,8 +419,8 @@
         "tr_ms": 208.0
        },
        "remedy_scan_s": 105.336,
-       "snr_complaint": 11392.9,
-       "snr_remedy": 2718.1,
+       "snr_complaint": 11456.7,
+       "snr_remedy": 2733.4,
        "solo": {
         "F1": {
          "chemshift": 0.01,
@@ -430,7 +430,7 @@
         },
         "F2": {
          "chemshift": 0.0249,
-         "fatphase": 0.1859,
+         "fatphase": 0.186,
          "truncation": 0.0219,
          "wrap": 0.0039
         },
@@ -567,7 +567,7 @@
         },
         "max_pixel_mm": 2.1429,
         "max_scan_s": 114.8,
-        "min_snr_reference": 1775.0,
+        "min_snr_reference": 1784.9,
         "te_ms": [0.5, 7.16]
        }
       },
@@ -592,7 +592,7 @@
        "sigma0": 0.0002158634918221042
       }
      },
-     "statement": "# Artefact clinic: say what each marked finding is, and correct the protocol\nThe scanner is a 1.5 T system. A test object (a body of gel with vials\nof unknown materials) lies in the scanner. The examination below was run on it, and a reader marked 4\nfindings on its image. Each finding is one of two things: produced by the acquisition (it would not be there with\nanother protocol), or the object itself (it is there whatever the protocol).\n\nCurrent protocol (107.0 s):\n    averages 8, bandwidth_hz_per_px 985.0, centre_x_mm 0.0, centre_y_mm 0.0, fat_sat false, flip_deg 66.0, fov_mm 240.0, matrix 112, partial_fourier 1.0, pe_dir x, phase_fov 0.53, phase_oversampling 0.0, ro_polarity 1, sequence spgr, slice_mm 5.0, te_ms 2.32, tr_ms 208.0\n    SPGR 1.5T | TR 208.0 TE 2.3 FA 66 | FOV 240x129 mm  112x60  SL 5.0 | BW 985 Hz/px  PE R>>L | NEX 8 | TA 1:47.0 | SAR 0 % | WFS 0.2 px (readout) | rel. SNR 1.23\nFindings (circles; centre and radius in mm from the isocentre):\n  F1: y -37.3, x -12.1, radius 3\n  F2: y 4.9, x -29.1, radius 3\n  F3: y 44.2, x 12.3, radius 3\n  F4: y 28.3, x 29.4, radius 3\nReference region for the signal-to-noise ratio (homogeneous gel):\n  REF: y 0, x 0, radius 8\n\nDeliver with `submit`:\n  causes     for each finding (F1, F2, F3, F4) the list of its causes, from\n             chemical_shift_displacement, opposed_phase_cancellation, truncation_ringing\n             (at most 2 per finding; an empty list means the finding is the object itself).\n  protocol   one protocol for the examination, on which every finding is free of acquisition artefacts. A field\n             left out takes the console default, not the current protocol's value.\nRequirements for the delivered protocol:\n  scan time at most 114.8 s; pixel size (fov_mm / matrix) at most 2.1429 mm;\n  signal-to-noise ratio in the reference region at least 1775 (mean magnitude in the region divided\n  by the noise SD of one pixel; in an empty region the noise SD is the SD of the magnitude / 0.655);\n  te_ms between 0.5 and 7.16; unchanged from the current protocol: centre_x_mm, centre_y_mm, fat_sat, flip_deg, fov_mm, pe_dir, ro_polarity, sequence, slice_mm, tr_ms.\nThe delivered protocol is not run in this episode: the scanner evaluates it. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nThe budget is smaller than one run of the current protocol: experiments have to be cheaper (shorter TR, one average). Nothing about the materials is known in advance.\n\nPassing: every finding is given exactly its causes; on a noise-free scan of the delivered protocol every finding\nagrees with the same scan without the artefact mechanisms (mean absolute difference at most 5 % of the\nsignal; at most 3 % against the object itself averaged over each pixel); every requirement is met.\nThe scanner's log must show that you measured.",
+     "statement": "# Artefact clinic: say what each marked finding is, and correct the protocol\nThe scanner is a 1.5 T system. A test object (a body of gel with vials\nof unknown materials) lies in the scanner. The examination below was run on it, and a reader marked 4\nfindings on its image. Each finding is one of two things: produced by the acquisition (it would not be there with\nanother protocol), or the object itself (it is there whatever the protocol).\n\nCurrent protocol (107.0 s):\n    sequence spgr, fov_mm 240.0, matrix 112, phase_fov 0.53, phase_oversampling 0.0, partial_fourier 1.0, slice_mm 5.0, pe_dir x, ro_polarity 1, tr_ms 208.0, flip_deg 66.0, averages 8, fat_sat false, centre_y_mm 0.0, centre_x_mm 0.0, bandwidth_hz_per_px 985.0, te_ms 2.32\n    SPGR 1.5T | TR 208.0 TE 2.3 FA 66 | FOV 240x129 mm  112x60  SL 5.0 | BW 985 Hz/px  PE R>>L | NEX 8 | TA 1:47.0 | SAR 0 % | WFS 0.2 px (readout) | rel. SNR 1.23\nFindings (circles; centre and radius in mm from the isocentre):\n  F1: y -37.3, x -12.1, radius 3\n  F2: y 4.9, x -29.1, radius 3\n  F3: y 44.2, x 12.3, radius 3\n  F4: y 28.3, x 29.4, radius 3\nReference region for the signal-to-noise ratio (homogeneous gel):\n  REF: y 0, x 0, radius 8\n\nDeliver with `submit`:\n  causes     for each finding (F1, F2, F3, F4) the list of its causes, from\n             chemical_shift_displacement, opposed_phase_cancellation, truncation_ringing\n             (at most 2 per finding; an empty list means the finding is the object itself).\n  protocol   one protocol for the examination, on which every finding is free of acquisition artefacts. A field\n             left out takes the console default, not the current protocol's value.\nRequirements for the delivered protocol:\n  scan time at most 114.8 s; pixel size (fov_mm / matrix) at most 2.1429 mm;\n  signal-to-noise ratio in the reference region at least 1784.9 (mean magnitude in the region divided\n  by the noise SD of one pixel; in an empty region the noise SD is the SD of the magnitude / 0.655);\n  te_ms between 0.5 and 7.16; unchanged from the current protocol: sequence, tr_ms, flip_deg, slice_mm, fov_mm, pe_dir, ro_polarity, fat_sat, centre_y_mm, centre_x_mm.\nThe delivered protocol is not run in this episode: the scanner evaluates it. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nThe budget is smaller than one run of the current protocol: experiments have to be cheaper (shorter TR, one average). Nothing about the materials is known in advance.\n\nPassing: every finding is given exactly its causes; on a noise-free scan of the delivered protocol every finding\nagrees with the same scan without the artefact mechanisms (mean absolute difference at most 5 % of the\nsignal; at most 3 % against the object itself averaged over each pixel); every requirement is met.\nThe scanner's log must show that you measured.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -650,6 +650,9 @@
           "type": "number"
          },
          "centre_y_mm": {
+          "type": "number"
+         },
+         "cf_shift_hz": {
           "type": "number"
          },
          "echo_spacing_ms": {
@@ -723,6 +726,12 @@
           "enum": ["afi", "bssfp", "epi", "ir", "se", "spgr"],
           "type": "string"
          },
+         "shim_x_hz_per_mm": {
+          "type": "number"
+         },
+         "shim_y_hz_per_mm": {
+          "type": "number"
+         },
          "slice_mm": {
           "type": "number"
          },
@@ -748,6 +757,9 @@
          },
          "tr_ratio": {
           "type": "integer"
+         },
+         "tx_scale": {
+          "type": "number"
          }
         },
         "required": ["sequence", "tr_ms"],
@@ -845,8 +857,8 @@
         "tr_ms": 199.0
        },
        "remedy_scan_s": 96.331,
-       "snr_complaint": 6881.0,
-       "snr_remedy": 1609.2,
+       "snr_complaint": 6919.5,
+       "snr_remedy": 1618.2,
        "solo": {
         "F1": {
          "chemshift": 0.0188,
@@ -868,7 +880,7 @@
         },
         "F4": {
          "chemshift": 0.0009,
-         "fatphase": 0.0276,
+         "fatphase": 0.0277,
          "truncation": 0.1187,
          "wrap": 0.004
         }
@@ -993,7 +1005,7 @@
         },
         "max_pixel_mm": 2.1429,
         "max_scan_s": 114.2,
-        "min_snr_reference": 989.0,
+        "min_snr_reference": 994.5,
         "te_ms": [2.05, 11.73]
        }
       },
@@ -1018,7 +1030,7 @@
        "sigma0": 0.0003448477100444339
       }
      },
-     "statement": "# Artefact clinic: say what each marked finding is, and correct the protocol\nThe scanner is a 1.5 T system. A test object (a body of gel with vials\nof unknown materials) lies in the scanner. The examination below was run on it, and a reader marked 4\nfindings on its image. Each finding is one of two things: produced by the acquisition (it would not be there with\nanother protocol), or the object itself (it is there whatever the protocol).\n\nCurrent protocol (109.1 s):\n    averages 8, bandwidth_hz_per_px 870.0, centre_x_mm 0.0, centre_y_mm 0.0, fat_sat false, flip_deg 74.0, fov_mm 240.0, matrix 112, partial_fourier 1.0, pe_dir x, phase_fov 0.58, phase_oversampling 0.0, ro_polarity 1, sequence spgr, slice_mm 5.0, te_ms 6.89, tr_ms 199.0\n    SPGR 1.5T | TR 199.0 TE 6.9 FA 74 | FOV 240x137 mm  112x64  SL 5.0 | BW 870 Hz/px  PE R>>L | NEX 8 | TA 1:49.1 | SAR 1 % | WFS 0.2 px (readout) | rel. SNR 1.35\nFindings (circles; centre and radius in mm from the isocentre):\n  F1: y 19.9, x -38.4, radius 3\n  F2: y -11.8, x 48.5, radius 3\n  F3: y -2, x 55.9, radius 3\n  F4: y -16.6, x 28.8, radius 3\nReference region for the signal-to-noise ratio (homogeneous gel):\n  REF: y 0, x 0, radius 8\n\nDeliver with `submit`:\n  causes     for each finding (F1, F2, F3, F4) the list of its causes, from\n             chemical_shift_displacement, opposed_phase_cancellation, truncation_ringing, wrap_around\n             (at most 2 per finding; an empty list means the finding is the object itself).\n  protocol   one protocol for the examination, on which every finding is free of acquisition artefacts. A field\n             left out takes the console default, not the current protocol's value.\nRequirements for the delivered protocol:\n  scan time at most 114.2 s; pixel size (fov_mm / matrix) at most 2.1429 mm;\n  signal-to-noise ratio in the reference region at least 989 (mean magnitude in the region divided\n  by the noise SD of one pixel; in an empty region the noise SD is the SD of the magnitude / 0.655);\n  te_ms between 2.05 and 11.73; unchanged from the current protocol: centre_x_mm, centre_y_mm, fat_sat, flip_deg, fov_mm, pe_dir, ro_polarity, sequence, slice_mm, tr_ms.\nThe delivered protocol is not run in this episode: the scanner evaluates it. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nThe budget is smaller than one run of the current protocol: experiments have to be cheaper (shorter TR, one average). Nothing about the materials is known in advance.\n\nPassing: every finding is given exactly its causes; on a noise-free scan of the delivered protocol every finding\nagrees with the same scan without the artefact mechanisms (mean absolute difference at most 5 % of the\nsignal; at most 3 % against the object itself averaged over each pixel); every requirement is met.\nThe scanner's log must show that you measured.",
+     "statement": "# Artefact clinic: say what each marked finding is, and correct the protocol\nThe scanner is a 1.5 T system. A test object (a body of gel with vials\nof unknown materials) lies in the scanner. The examination below was run on it, and a reader marked 4\nfindings on its image. Each finding is one of two things: produced by the acquisition (it would not be there with\nanother protocol), or the object itself (it is there whatever the protocol).\n\nCurrent protocol (109.1 s):\n    sequence spgr, fov_mm 240.0, matrix 112, phase_fov 0.58, phase_oversampling 0.0, partial_fourier 1.0, slice_mm 5.0, pe_dir x, ro_polarity 1, tr_ms 199.0, flip_deg 74.0, averages 8, fat_sat false, centre_y_mm 0.0, centre_x_mm 0.0, bandwidth_hz_per_px 870.0, te_ms 6.89\n    SPGR 1.5T | TR 199.0 TE 6.9 FA 74 | FOV 240x137 mm  112x64  SL 5.0 | BW 870 Hz/px  PE R>>L | NEX 8 | TA 1:49.1 | SAR 1 % | WFS 0.2 px (readout) | rel. SNR 1.35\nFindings (circles; centre and radius in mm from the isocentre):\n  F1: y 19.9, x -38.4, radius 3\n  F2: y -11.8, x 48.5, radius 3\n  F3: y -2, x 55.9, radius 3\n  F4: y -16.6, x 28.8, radius 3\nReference region for the signal-to-noise ratio (homogeneous gel):\n  REF: y 0, x 0, radius 8\n\nDeliver with `submit`:\n  causes     for each finding (F1, F2, F3, F4) the list of its causes, from\n             chemical_shift_displacement, opposed_phase_cancellation, truncation_ringing, wrap_around\n             (at most 2 per finding; an empty list means the finding is the object itself).\n  protocol   one protocol for the examination, on which every finding is free of acquisition artefacts. A field\n             left out takes the console default, not the current protocol's value.\nRequirements for the delivered protocol:\n  scan time at most 114.2 s; pixel size (fov_mm / matrix) at most 2.1429 mm;\n  signal-to-noise ratio in the reference region at least 994.5 (mean magnitude in the region divided\n  by the noise SD of one pixel; in an empty region the noise SD is the SD of the magnitude / 0.655);\n  te_ms between 2.05 and 11.73; unchanged from the current protocol: sequence, tr_ms, flip_deg, slice_mm, fov_mm, pe_dir, ro_polarity, fat_sat, centre_y_mm, centre_x_mm.\nThe delivered protocol is not run in this episode: the scanner evaluates it. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nThe budget is smaller than one run of the current protocol: experiments have to be cheaper (shorter TR, one average). Nothing about the materials is known in advance.\n\nPassing: every finding is given exactly its causes; on a noise-free scan of the delivered protocol every finding\nagrees with the same scan without the artefact mechanisms (mean absolute difference at most 5 % of the\nsignal; at most 3 % against the object itself averaged over each pixel); every requirement is met.\nThe scanner's log must show that you measured.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -1076,6 +1088,9 @@
           "type": "number"
          },
          "centre_y_mm": {
+          "type": "number"
+         },
+         "cf_shift_hz": {
           "type": "number"
          },
          "echo_spacing_ms": {
@@ -1149,6 +1164,12 @@
           "enum": ["afi", "bssfp", "epi", "ir", "se", "spgr"],
           "type": "string"
          },
+         "shim_x_hz_per_mm": {
+          "type": "number"
+         },
+         "shim_y_hz_per_mm": {
+          "type": "number"
+         },
          "slice_mm": {
           "type": "number"
          },
@@ -1174,6 +1195,9 @@
          },
          "tr_ratio": {
           "type": "integer"
+         },
+         "tx_scale": {
+          "type": "number"
          }
         },
         "required": ["sequence", "tr_ms"],
@@ -1202,7 +1226,7 @@
        },
        "complaint": {
         "F1": {
-         "mech": 0.5157,
+         "mech": 0.5156,
          "trunc": 0.0011
         },
         "F2": {
@@ -1238,7 +1262,7 @@
         "F4": "dark"
        },
        "mechanisms": ["chemshift", "fatphase", "truncation", "wrap", "motion", "dropout"],
-       "min_snr_reference": 730.1,
+       "min_snr_reference": 734.2,
        "pool": {},
        "remedied": {
         "F1": {
@@ -1278,13 +1302,13 @@
         "tr_ms": 15.0
        },
        "remedy_scan_s": 10.575,
-       "snr_complaint": 3272.4,
-       "snr_remedy": 793.6,
+       "snr_complaint": 3290.7,
+       "snr_remedy": 798.0,
        "solo": {
         "F1": {
          "chemshift": 0.0009,
          "dropout": 0.0,
-         "fatphase": 0.5154,
+         "fatphase": 0.5153,
          "motion": 0.0,
          "truncation": 0.0011,
          "wrap": 0.0
@@ -1448,7 +1472,7 @@
         "patches": [
          {
           "flat_mm": 9.9,
-          "peak_hz_per_mm": -14.8243,
+          "peak_hz_per_mm": -14.7417,
           "sigma_mm": 2.5,
           "x_mm": -45.49,
           "y_mm": 25.51
@@ -1480,19 +1504,19 @@
           "radius_mm": 12.0,
           "tissue": {
            "adc_um2_ms": 0.8665793173246688,
-           "pd": 0.6704613423114354,
+           "pd": 0.6703603371203795,
            "t1_ms": 841.166480607677,
            "t2_ms": 99.49743379920767,
            "t2p_ms": 116.3398991722355
           },
-          "weight": 0.8458,
+          "weight": 0.8459,
           "x_mm": -14.77,
           "y_mm": -28.26
          },
          {
           "radius_mm": 12.0,
           "tissue": "oil",
-          "weight": 0.1542,
+          "weight": 0.1541,
           "x_mm": -14.77,
           "y_mm": -28.26
          },
@@ -1500,19 +1524,19 @@
           "radius_mm": 12.0,
           "tissue": {
            "adc_um2_ms": 0.8665793173246688,
-           "pd": 0.8656071044453532,
+           "pd": 0.8653802421125503,
            "t1_ms": 841.166480607677,
            "t2_ms": 99.49743379920767,
            "t2p_ms": 116.3398991722355
           },
-          "weight": 0.7525,
+          "weight": 0.7527,
           "x_mm": 18.51,
           "y_mm": -20.03
          },
          {
           "radius_mm": 12.0,
           "tissue": "oil",
-          "weight": 0.2475,
+          "weight": 0.2473,
           "x_mm": 18.51,
           "y_mm": -20.03
          }
@@ -1525,7 +1549,7 @@
        "sigma0": 0.0005286262514670778
       }
      },
-     "statement": "# Artefact clinic: say what each marked finding is, and correct the protocol\nThe scanner is a 3 T system. A test object (a body of gel with vials\nof unknown materials) lies in the scanner. The examination below was run on it, and a reader marked 4\nfindings on its image. Each finding is one of two things: produced by the acquisition (it would not be there with\nanother protocol), or the object itself (it is there whatever the protocol).\n\nCurrent protocol (10.6 s):\n    averages 7, bandwidth_hz_per_px 2490.0, centre_x_mm 0.0, centre_y_mm 0.0, fat_sat false, flip_deg 38.0, fov_mm 240.0, matrix 68, partial_fourier 1.0, pe_dir y, phase_fov 0.51, phase_oversampling 0.0, ro_polarity 1, sequence spgr, slice_mm 8.0, te_ms 5.73, tr_ms 15.0\n    SPGR 3.0T | TR 15.0 TE 5.7 FA 38 | FOV 240x120 mm  68x34  SL 8.0 | BW 2490 Hz/px  PE A>>P | NEX 7 | TA 0:10.6 | SAR 7 % | WFS 0.2 px (readout) | rel. SNR 4.72\nFindings (circles; centre and radius in mm from the isocentre):\n  F1: y -20, x 18.5, radius 4.6\n  F2: y 25.5, x -45.5, radius 4.6\n  F3: y 19.9, x 49.2, radius 4.6\n  F4: y -28.3, x -14.8, radius 4.6\nReference region for the signal-to-noise ratio (homogeneous gel):\n  REF: y 0, x 71.2, radius 6\n\nDeliver with `submit`:\n  causes     for each finding (F1, F2, F3, F4) the list of its causes, from\n             opposed_phase_cancellation, wrap_around, periodic_motion_ghost, susceptibility_signal_loss\n             (at most 2 per finding; an empty list means the finding is the object itself).\n  protocol   one protocol for the examination, on which every finding is free of acquisition artefacts. A field\n             left out takes the console default, not the current protocol's value.\nRequirements for the delivered protocol:\n  scan time at most 11.6 s; pixel size (fov_mm / matrix) at most 3.5295 mm;\n  signal-to-noise ratio in the reference region at least 92 % of that of the protocol with the highest\n  signal-to-noise ratio that meets everything else here (as thick a slice and as many averages as keep every finding clean) (mean magnitude in the region divided\n  by the noise SD of one pixel; in an empty region the noise SD is the SD of the magnitude / 0.655);\n  te_ms between 3.31 and 8.15; slice_mm between 1.5 and 8; unchanged from the current protocol: centre_x_mm, centre_y_mm, fat_sat, flip_deg, fov_mm, pe_dir, ro_polarity, sequence, tr_ms.\nThe delivered protocol is not run in this episode: the scanner evaluates it. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nThe budget holds the current protocol once and two more scans, fewer than there are single experiments that tell the possible causes apart: decide what each scan changes. Nothing about the materials is known in advance.\n\nPassing: every finding is given exactly its causes; on a noise-free scan of the delivered protocol every finding\nagrees with the same scan without the artefact mechanisms (mean absolute difference at most 5 % of the\nsignal; at most 3 % against the object itself averaged over each pixel); every requirement is met.\nThe scanner's log must show that you measured.",
+     "statement": "# Artefact clinic: say what each marked finding is, and correct the protocol\nThe scanner is a 3 T system. A test object (a body of gel with vials\nof unknown materials) lies in the scanner. The examination below was run on it, and a reader marked 4\nfindings on its image. Each finding is one of two things: produced by the acquisition (it would not be there with\nanother protocol), or the object itself (it is there whatever the protocol).\n\nCurrent protocol (10.6 s):\n    sequence spgr, fov_mm 240.0, matrix 68, phase_fov 0.51, phase_oversampling 0.0, partial_fourier 1.0, slice_mm 8.0, pe_dir y, ro_polarity 1, tr_ms 15.0, flip_deg 38.0, averages 7, fat_sat false, centre_y_mm 0.0, centre_x_mm 0.0, bandwidth_hz_per_px 2490.0, te_ms 5.73\n    SPGR 3.0T | TR 15.0 TE 5.7 FA 38 | FOV 240x120 mm  68x34  SL 8.0 | BW 2490 Hz/px  PE A>>P | NEX 7 | TA 0:10.6 | SAR 7 % | WFS 0.2 px (readout) | rel. SNR 4.72\nFindings (circles; centre and radius in mm from the isocentre):\n  F1: y -20, x 18.5, radius 4.6\n  F2: y 25.5, x -45.5, radius 4.6\n  F3: y 19.9, x 49.2, radius 4.6\n  F4: y -28.3, x -14.8, radius 4.6\nReference region for the signal-to-noise ratio (homogeneous gel):\n  REF: y 0, x 71.2, radius 6\n\nDeliver with `submit`:\n  causes     for each finding (F1, F2, F3, F4) the list of its causes, from\n             opposed_phase_cancellation, wrap_around, periodic_motion_ghost, susceptibility_signal_loss\n             (at most 2 per finding; an empty list means the finding is the object itself).\n  protocol   one protocol for the examination, on which every finding is free of acquisition artefacts. A field\n             left out takes the console default, not the current protocol's value.\nRequirements for the delivered protocol:\n  scan time at most 11.6 s; pixel size (fov_mm / matrix) at most 3.5295 mm;\n  signal-to-noise ratio in the reference region at least 92 % of that of the protocol with the highest\n  signal-to-noise ratio that meets everything else here (as thick a slice and as many averages as keep every finding clean) (mean magnitude in the region divided\n  by the noise SD of one pixel; in an empty region the noise SD is the SD of the magnitude / 0.655);\n  te_ms between 3.31 and 8.15; slice_mm between 1.5 and 8; unchanged from the current protocol: sequence, tr_ms, flip_deg, fov_mm, pe_dir, ro_polarity, fat_sat, centre_y_mm, centre_x_mm.\nThe delivered protocol is not run in this episode: the scanner evaluates it. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nThe budget holds the current protocol once and two more scans, fewer than there are single experiments that tell the possible causes apart: decide what each scan changes. Nothing about the materials is known in advance.\n\nPassing: every finding is given exactly its causes; on a noise-free scan of the delivered protocol every finding\nagrees with the same scan without the artefact mechanisms (mean absolute difference at most 5 % of the\nsignal; at most 3 % against the object itself averaged over each pixel); every requirement is met.\nThe scanner's log must show that you measured.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -1583,6 +1607,9 @@
           "type": "number"
          },
          "centre_y_mm": {
+          "type": "number"
+         },
+         "cf_shift_hz": {
           "type": "number"
          },
          "echo_spacing_ms": {
@@ -1656,6 +1683,12 @@
           "enum": ["afi", "bssfp", "epi", "ir", "se", "spgr"],
           "type": "string"
          },
+         "shim_x_hz_per_mm": {
+          "type": "number"
+         },
+         "shim_y_hz_per_mm": {
+          "type": "number"
+         },
          "slice_mm": {
           "type": "number"
          },
@@ -1681,6 +1714,9 @@
          },
          "tr_ratio": {
           "type": "integer"
+         },
+         "tx_scale": {
+          "type": "number"
          }
         },
         "required": ["sequence", "tr_ms"],
@@ -1800,18 +1836,14 @@
      "when": "only at submit; 0 on every other step"
     },
     "scored_by": "Noise-free scans of the delivered protocols on the hidden object and the echo amplitudes on the marked regions over a drift of the centre frequency either way: every marked region of an image must keep its signal; the number of acquisitions and the bandwidth are compared with the best band-free protocol of the hidden object",
-    "summary": "What a frequency scout is for. The dark bands of balanced SSFP repeat every 1 / TR in frequency; where the marked regions fall in that pattern depends on the field, on the error of the frequency adjustment, on the material (oil sits 3.4 ppm below water) and on the repetition time, and how wide a band is depends on the material and on the excitation. The target is a 2D image: the slice profile of the selective pulse adds spins at smaller flip angles, whose signal peaks next to the band, so the band is narrower than the hard-pulse formula says and a band model has to carry the slice profile (a 3D acquisition with a hard pulse costs a multiple of the scan time and shows another band). A low bandwidth gives the least noise and the longest repetition time. The answer, for each of the two images, is the lowest bandwidth at which one phase cycle keeps every region clear of the bands with a margin for frequency drift, or the recognition that no single acquisition can, and then the pair of phase cycles that does. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: -2.3 at level 1, -1.3 at level 2, -1 at level 3; 300 instances per level; 25 points or more make a decision task).",
-    "task_kind": "measurement",
-    "task_kind_levels": {
-     "1": "measurement",
-     "2": "measurement",
-     "3": "measurement"
-    },
-    "task_kind_why": "reference minus open_loop, points of pass rate: -2.3 at level 1, -1.3 at level 2, -1 at level 3 (n = 300 per level, engine mrgym-engine-0.2.0)",
+    "summary": "What a frequency scout is for. The dark bands of balanced SSFP repeat every 1 / TR in frequency; where the marked regions fall in that pattern depends on the field, on the error of the frequency adjustment, on the material (oil sits 3.4 ppm below water) and on the repetition time, and how wide a band is depends on the material and on the excitation. The target is a 2D image: the slice profile of the selective pulse adds spins at smaller flip angles, whose signal peaks next to the band, so the band is narrower than the hard-pulse formula says and a band model has to carry the slice profile (a 3D acquisition with a hard pulse costs a multiple of the scan time and shows another band). A low bandwidth gives the least noise and the longest repetition time. The answer, for each of the two images, is the lowest bandwidth at which one phase cycle keeps every region clear of the bands with a margin for frequency drift, or the recognition that no single acquisition can, and then the pair of phase cycles that does. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined on this engine, the stored gate result is from mrgym-engine-0.2.0.",
+    "task_kind": "undetermined",
+    "task_kind_levels": {},
+    "task_kind_why": "the stored gate result is from mrgym-engine-0.2.0, the engine is mrgym-engine-0.3.0",
     "title": "Keep the dark bands of two balanced SSFP images off their marked regions",
     "told": ["the target images and the allowed bandwidths", "the regions of each image", "the three pass rules with every number", "the instrument datasheet (it gives the selective pulse)", "realised protocol, timing and cost of every plan and scan"],
     "world": {
-     "agent_side_formulas": "phase per TR = 360 x off-resonance x TR + phase cycle; steady-state signal of bssfp as a function of that phase, integrated over the slice profile of the documented pulse (datasheet); off-resonance = phase slope of a multi-echo spgr",
+     "agent_side_formulas": "phase per TR = 360 x off-resonance x TR - phase cycle; steady-state signal of bssfp as a function of that phase, integrated over the slice profile of the documented pulse (datasheet); off-resonance = phase slope of a multi-echo spgr",
      "phantom": "QA phantom (a disc of gel with vials; at level 3 one vial of oil), 3 T, field spread drawn per instance",
      "sequences_useful": ["bssfp", "spgr"]
     }
@@ -1921,13 +1953,13 @@
     }
    },
    "episode": {
-    "chain_head": "ecfb137d40d462046f29e5f064d6d49b4708eb7c865c71f956d0e4c8d4eef05f",
+    "chain_head": "f4dce9a8a228d6e2a4e2a9ff077a9ffaca7b926ce1d9c1fa137f406df52b7f6e",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 27,
-    "texts_sha256": "2aab46a7f1fa4c74fffe8af747ddca4adf8194abf8a5b1abd0db0e050fb08dab",
-    "used_s": 41.2306
+    "texts_sha256": "e4789d23517527212b92d95bdb1aed9776566d0290a1972fc101bfad6f1ced65",
+    "used_s": 41.30748
    },
    "levels": {
     "1": {
@@ -2474,7 +2506,7 @@
     "told": ["the fixed fields of the scan", "the regions", "every limit: echo-time window, pixel ceiling, displacement, ghost, wrap, fat, SNR floor", "the definition of SNR", "the instrument datasheet", "realised protocol, timing and cost of every plan and scan"],
     "world": {
      "agent_side_formulas": "stated at level 1 only: displacement = off-resonance x echo spacing x phase field of view; ghost of a source = |tan| (in the image) or |sin| (against the scan without delay) of 2 pi x bandwidth x matrix x delay x readout coordinate / fov; the SNR laws. Not given: the fat spectrum has several lines",
-     "fixed": "full k-space and no fat saturation: the engine's partial-Fourier noise and its fat-saturation pulse are under revision",
+     "fixed": "full k-space and no fat saturation: the family was built before engine 0.3.0 corrected the noise of partial Fourier and the fat-saturation pulse, and its instances and search were made without either",
      "phantom": "QA phantom (an elongated disc of gel with vials; at level 3 also a disc of oil), 1.5 T",
      "sequences_useful": ["spgr", "epi"]
     }
@@ -2634,12 +2666,12 @@
     "VIAL_REACH_MM": 15.75
    },
    "episode": {
-    "chain_head": "cf3b011401300665c04ae9428a9e8288228162a21384a36ea253424e45888d67",
+    "chain_head": "93f260c4a86cc426abb12a80cfa108302946a91788b52981f3ebbdd7408a673e",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 15,
-    "texts_sha256": "7b00c678f91e3162e7f6f1c50aad4abf37f5b2bff2fb3c129314825bcba36c25",
+    "texts_sha256": "43e3f221b88bb2ac6456dffb919442e46acc009647229043855aa6659644d092",
     "used_s": 57.992
    },
    "levels": {
@@ -2695,7 +2727,7 @@
         "tr_ms": 2000.0
        },
        "snr_definition": "mean of the magnitude image over the pixels of a region / standard deviation of the noise in one pixel, one channel (real or imaginary part)",
-       "snr_min": 55.9,
+       "snr_min": 56.2,
        "te_window_ms": [30.0, 45.0],
        "wrap_max": 0.002
       },
@@ -2725,7 +2757,7 @@
        "tx_gain_dev": [0.0, 0.05]
       }
      },
-     "statement": "# Set up a single-shot EPI that meets its limits in the least scan time\nA test object with vials of unknown materials lies in the field of\nview. The examination needs a single-shot gradient-echo EPI of the regions R1 and R2:\n    sequence epi, fov_mm 240, slice_mm 5, tr_ms 2000, flip_deg 90, full k-space, no fat saturation,\n    echo spacing at the console minimum of the bandwidth.\nYou choose pe_dir, pe_polarity, bandwidth_hz_per_px, matrix, phase_fov, centre_pe_mm, te_ms and averages. centre_pe_mm is the\ncentre of the field of view along the phase-encode axis, in mm from the isocentre; along the readout it stays on the isocentre.\nConvention of this console: with pe_polarity 1 a spin above resonance is displaced towards the negative end of the\nphase-encode axis (-y for pe_dir y, -x for pe_dir x), a spin below resonance (fat) towards the positive end; pe_polarity -1 reverses both.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -20.48, x 32.48, radius 6\n  R2: y -51, x -22.05, radius 6\nRequirements:\n  - echo time: te_ms between 30 and 45 ms\n  - pixel: fov_mm / matrix at most 3.75 mm\n  - displacement: the off-resonance field shifts the material of each region by at most 3 mm along the phase-encode axis\n  - ghost: the Nyquist ghost of each region (its copy half a phase field of view away) is at most 5 % of the region's signal\n  - wrap: the object does not wrap around in the phase-encode direction\n  - SNR: at least 55.9 in each region; SNR = mean of the magnitude image over the pixels of a region / standard deviation of the noise in one pixel, one channel (real or imaginary part)\n  - scan time: not longer than the shortest scan time with which any protocol meets the requirements above\nDeliver the protocol with `submit`. The scan is not run in this episode: the scanner evaluates the protocol you\ndeliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the object, the field, the noise or the state of the system is known in advance.\n\nPassing: every requirement holds, evaluated on noise-free scans of your protocol on the hidden object: displacement,\nghost and wrap against the same scan with that one mechanism switched off, the SNR with the noise level of this\nscanner. The scanner's log must show that you measured. An answer in the wrong unit is wrong.\n\nHow to do it (this level states the method).\n  1. Field. Run a gradient echo of your own with two echoes (spgr, n_echoes 2). The off-resonance of a region in Hz is the\n     difference of its two phase read-outs / (2 pi x the echo spacing in seconds). The same image shows how far the\n     object reaches along y and along x.\n  2. Displacement of a region in the EPI = its off-resonance x echo spacing x phase field of view (Hz x s x mm), along\n     the phase-encode axis. `plan` prints the echo spacing of a bandwidth. Find, for each phase-encode axis, the lowest\n     bandwidth whose largest displacement stays below the limit; a shorter phase field of view lowers it further.\n  3. Wrap. The phase field of view must hold the object along the phase-encode axis with about 6 mm to spare on each\n     side: centre it on the object with centre_pe_mm (the object does not lie on the isocentre, and the off-resonance\n     field moves its edges by the displacement of step 2).\n  4. Ghost. In an EPI the ghost of anything lies half a phase field of view away along the phase-encode axis. Relative\n     to its source its size is |tan(phi)|, with phi = 2 pi x bandwidth_hz_per_px x matrix x delay x readout coordinate\n     of the source / fov_mm (delay in seconds; the readout runs along x when pe_dir is y and along y when pe_dir is x).\n     Measure it once in an EPI of your own at a high bandwidth, where a ghost falls on empty space, and solve for the\n     delay. The ghost of a marked region in a candidate protocol is then |sin(phi)| at its readout coordinate.\n  5. SNR. Run the best candidate once and read the regions. The noise of one pixel is the mean magnitude of a\n     signal-free area / 1.253; it scales as matrix x sqrt(lines x bandwidth / averages) / (fov x phase field of view\n     in mm), so measure it on any scan with many signal-free pixels and scale it to the candidate.\n  6. Deliver the candidate that meets every limit with the fewest averages: the smallest matrix that meets the pixel\n     ceiling, the shortest echo time inside the window.",
+     "statement": "# Set up a single-shot EPI that meets its limits in the least scan time\nA test object with vials of unknown materials lies in the field of\nview. The examination needs a single-shot gradient-echo EPI of the regions R1 and R2:\n    sequence epi, fov_mm 240, slice_mm 5, tr_ms 2000, flip_deg 90, full k-space, no fat saturation,\n    echo spacing at the console minimum of the bandwidth.\nYou choose pe_dir, pe_polarity, bandwidth_hz_per_px, matrix, phase_fov, centre_pe_mm, te_ms and averages. centre_pe_mm is the\ncentre of the field of view along the phase-encode axis, in mm from the isocentre; along the readout it stays on the isocentre.\nConvention of this console: with pe_polarity 1 a spin above resonance is displaced towards the negative end of the\nphase-encode axis (-y for pe_dir y, -x for pe_dir x), a spin below resonance (fat) towards the positive end; pe_polarity -1 reverses both.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -20.48, x 32.48, radius 6\n  R2: y -51, x -22.05, radius 6\nRequirements:\n  - echo time: te_ms between 30 and 45 ms\n  - pixel: fov_mm / matrix at most 3.75 mm\n  - displacement: the off-resonance field shifts the material of each region by at most 3 mm along the phase-encode axis\n  - ghost: the Nyquist ghost of each region (its copy half a phase field of view away) is at most 5 % of the region's signal\n  - wrap: the object does not wrap around in the phase-encode direction\n  - SNR: at least 56.2 in each region; SNR = mean of the magnitude image over the pixels of a region / standard deviation of the noise in one pixel, one channel (real or imaginary part)\n  - scan time: not longer than the shortest scan time with which any protocol meets the requirements above\nDeliver the protocol with `submit`. The scan is not run in this episode: the scanner evaluates the protocol you\ndeliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the object, the field, the noise or the state of the system is known in advance.\n\nPassing: every requirement holds, evaluated on noise-free scans of your protocol on the hidden object: displacement,\nghost and wrap against the same scan with that one mechanism switched off, the SNR with the noise level of this\nscanner. The scanner's log must show that you measured. An answer in the wrong unit is wrong.\n\nHow to do it (this level states the method).\n  1. Field. Run a gradient echo of your own with two echoes (spgr, n_echoes 2). The off-resonance of a region in Hz is the\n     difference of its two phase read-outs / (2 pi x the echo spacing in seconds). The same image shows how far the\n     object reaches along y and along x.\n  2. Displacement of a region in the EPI = its off-resonance x echo spacing x phase field of view (Hz x s x mm), along\n     the phase-encode axis. `plan` prints the echo spacing of a bandwidth. Find, for each phase-encode axis, the lowest\n     bandwidth whose largest displacement stays below the limit; a shorter phase field of view lowers it further.\n  3. Wrap. The phase field of view must hold the object along the phase-encode axis with about 6 mm to spare on each\n     side: centre it on the object with centre_pe_mm (the object does not lie on the isocentre, and the off-resonance\n     field moves its edges by the displacement of step 2).\n  4. Ghost. In an EPI the ghost of anything lies half a phase field of view away along the phase-encode axis. Relative\n     to its source its size is |tan(phi)|, with phi = 2 pi x bandwidth_hz_per_px x matrix x delay x readout coordinate\n     of the source / fov_mm (delay in seconds; the readout runs along x when pe_dir is y and along y when pe_dir is x).\n     Measure it once in an EPI of your own at a high bandwidth, where a ghost falls on empty space, and solve for the\n     delay. The ghost of a marked region in a candidate protocol is then |sin(phi)| at its readout coordinate.\n  5. SNR. Run the best candidate once and read the regions. The noise of one pixel is the mean magnitude of a\n     signal-free area / 1.253; it scales as matrix x sqrt(lines x bandwidth / averages) / (fov x phase field of view\n     in mm), so measure it on any scan with many signal-free pixels and scale it to the candidate.\n  6. Deliver the candidate that meets every limit with the fewest averages: the smallest matrix that meets the pixel\n     ceiling, the shortest echo time inside the window.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -2831,7 +2863,7 @@
         "tr_ms": 2000.0
        },
        "snr_definition": "mean of the magnitude image over the pixels of a region / standard deviation of the noise in one pixel, one channel (real or imaginary part)",
-       "snr_min": 17.8,
+       "snr_min": 17.9,
        "te_window_ms": [35.0, 50.0],
        "wrap_max": 0.002
       },
@@ -2861,7 +2893,7 @@
        "tx_gain_dev": [0.0, 0.05]
       }
      },
-     "statement": "# Set up a single-shot EPI that meets its limits in the least scan time\nA test object with vials of unknown materials lies in the field of\nview. The examination needs a single-shot gradient-echo EPI of the regions R1 and R2:\n    sequence epi, fov_mm 240, slice_mm 5, tr_ms 2000, flip_deg 90, full k-space, no fat saturation,\n    echo spacing at the console minimum of the bandwidth.\nYou choose pe_dir, pe_polarity, bandwidth_hz_per_px, matrix, phase_fov, centre_pe_mm, te_ms and averages. centre_pe_mm is the\ncentre of the field of view along the phase-encode axis, in mm from the isocentre; along the readout it stays on the isocentre.\nConvention of this console: with pe_polarity 1 a spin above resonance is displaced towards the negative end of the\nphase-encode axis (-y for pe_dir y, -x for pe_dir x), a spin below resonance (fat) towards the positive end; pe_polarity -1 reverses both.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -6.29, x 24.69, radius 6\n  R2: y 9.53, x -47.17, radius 6\nRequirements:\n  - echo time: te_ms between 35 and 50 ms\n  - pixel: fov_mm / matrix at most 3.4 mm\n  - displacement: the off-resonance field shifts the material of each region by at most 3 mm along the phase-encode axis\n  - ghost: the Nyquist ghost of each region (its copy half a phase field of view away) is at most 5 % of the region's signal\n  - wrap: the object does not wrap around in the phase-encode direction\n  - SNR: at least 17.8 in each region; SNR = mean of the magnitude image over the pixels of a region / standard deviation of the noise in one pixel, one channel (real or imaginary part)\n  - scan time: not longer than the shortest scan time with which any protocol meets the requirements above\nDeliver the protocol with `submit`. The scan is not run in this episode: the scanner evaluates the protocol you\ndeliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the object, the field, the noise or the state of the system is known in advance.\n\nPassing: every requirement holds, evaluated on noise-free scans of your protocol on the hidden object: displacement,\nghost and wrap against the same scan with that one mechanism switched off, the SNR with the noise level of this\nscanner. The scanner's log must show that you measured. An answer in the wrong unit is wrong.",
+     "statement": "# Set up a single-shot EPI that meets its limits in the least scan time\nA test object with vials of unknown materials lies in the field of\nview. The examination needs a single-shot gradient-echo EPI of the regions R1 and R2:\n    sequence epi, fov_mm 240, slice_mm 5, tr_ms 2000, flip_deg 90, full k-space, no fat saturation,\n    echo spacing at the console minimum of the bandwidth.\nYou choose pe_dir, pe_polarity, bandwidth_hz_per_px, matrix, phase_fov, centre_pe_mm, te_ms and averages. centre_pe_mm is the\ncentre of the field of view along the phase-encode axis, in mm from the isocentre; along the readout it stays on the isocentre.\nConvention of this console: with pe_polarity 1 a spin above resonance is displaced towards the negative end of the\nphase-encode axis (-y for pe_dir y, -x for pe_dir x), a spin below resonance (fat) towards the positive end; pe_polarity -1 reverses both.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -6.29, x 24.69, radius 6\n  R2: y 9.53, x -47.17, radius 6\nRequirements:\n  - echo time: te_ms between 35 and 50 ms\n  - pixel: fov_mm / matrix at most 3.4 mm\n  - displacement: the off-resonance field shifts the material of each region by at most 3 mm along the phase-encode axis\n  - ghost: the Nyquist ghost of each region (its copy half a phase field of view away) is at most 5 % of the region's signal\n  - wrap: the object does not wrap around in the phase-encode direction\n  - SNR: at least 17.9 in each region; SNR = mean of the magnitude image over the pixels of a region / standard deviation of the noise in one pixel, one channel (real or imaginary part)\n  - scan time: not longer than the shortest scan time with which any protocol meets the requirements above\nDeliver the protocol with `submit`. The scan is not run in this episode: the scanner evaluates the protocol you\ndeliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the object, the field, the noise or the state of the system is known in advance.\n\nPassing: every requirement holds, evaluated on noise-free scans of your protocol on the hidden object: displacement,\nghost and wrap against the same scan with that one mechanism switched off, the SNR with the noise level of this\nscanner. The scanner's log must show that you measured. An answer in the wrong unit is wrong.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -2967,7 +2999,7 @@
         "tr_ms": 2000.0
        },
        "snr_definition": "mean of the magnitude image over the pixels of a region / standard deviation of the noise in one pixel, one channel (real or imaginary part)",
-       "snr_min": 8.71,
+       "snr_min": 8.76,
        "te_window_ms": [35.0, 50.0],
        "wrap_max": 0.002
       },
@@ -3005,7 +3037,7 @@
        "tx_gain_dev": [0.0, 0.05]
       }
      },
-     "statement": "# Set up a single-shot EPI that meets its limits in the least scan time\nA test object with vials of unknown materials lies in the field of\nview. The examination needs a single-shot gradient-echo EPI of the regions R1 and R2:\n    sequence epi, fov_mm 240, slice_mm 5, tr_ms 2000, flip_deg 90, full k-space, no fat saturation,\n    echo spacing at the console minimum of the bandwidth.\nYou choose pe_dir, pe_polarity, bandwidth_hz_per_px, matrix, phase_fov, centre_pe_mm, te_ms and averages. centre_pe_mm is the\ncentre of the field of view along the phase-encode axis, in mm from the isocentre; along the readout it stays on the isocentre.\nConvention of this console: with pe_polarity 1 a spin above resonance is displaced towards the negative end of the\nphase-encode axis (-y for pe_dir y, -x for pe_dir x), a spin below resonance (fat) towards the positive end; pe_polarity -1 reverses both.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -45.13, x -1.61, radius 6\n  R2: y -16.76, x -55.1, radius 6\nRequirements:\n  - echo time: te_ms between 35 and 50 ms\n  - pixel: fov_mm / matrix at most 3.75 mm\n  - displacement: the off-resonance field shifts the material of each region by at most 3 mm along the phase-encode axis\n  - ghost: the Nyquist ghost of each region (its copy half a phase field of view away) is at most 5 % of the region's signal\n  - wrap: the object does not wrap around in the phase-encode direction (where the displaced image of the oil lands is judged by the next line only)\n  - fat: the object holds a disc of oil; its displaced image may change the signal of R1 and R2 by at most 5 %\n  - SNR: at least 8.71 in each region; SNR = mean of the magnitude image over the pixels of a region / standard deviation of the noise in one pixel, one channel (real or imaginary part)\n  - scan time: not longer than the shortest scan time with which any protocol meets the requirements above\nDeliver the protocol with `submit`. The scan is not run in this episode: the scanner evaluates the protocol you\ndeliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the object, the field, the noise or the state of the system is known in advance.\n\nPassing: every requirement holds, evaluated on noise-free scans of your protocol on the hidden object: displacement,\nghost, wrap and fat against the same scan with that one mechanism switched off, the SNR with the noise level of this\nscanner. The scanner's log must show that you measured. An answer in the wrong unit is wrong.",
+     "statement": "# Set up a single-shot EPI that meets its limits in the least scan time\nA test object with vials of unknown materials lies in the field of\nview. The examination needs a single-shot gradient-echo EPI of the regions R1 and R2:\n    sequence epi, fov_mm 240, slice_mm 5, tr_ms 2000, flip_deg 90, full k-space, no fat saturation,\n    echo spacing at the console minimum of the bandwidth.\nYou choose pe_dir, pe_polarity, bandwidth_hz_per_px, matrix, phase_fov, centre_pe_mm, te_ms and averages. centre_pe_mm is the\ncentre of the field of view along the phase-encode axis, in mm from the isocentre; along the readout it stays on the isocentre.\nConvention of this console: with pe_polarity 1 a spin above resonance is displaced towards the negative end of the\nphase-encode axis (-y for pe_dir y, -x for pe_dir x), a spin below resonance (fat) towards the positive end; pe_polarity -1 reverses both.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -45.13, x -1.61, radius 6\n  R2: y -16.76, x -55.1, radius 6\nRequirements:\n  - echo time: te_ms between 35 and 50 ms\n  - pixel: fov_mm / matrix at most 3.75 mm\n  - displacement: the off-resonance field shifts the material of each region by at most 3 mm along the phase-encode axis\n  - ghost: the Nyquist ghost of each region (its copy half a phase field of view away) is at most 5 % of the region's signal\n  - wrap: the object does not wrap around in the phase-encode direction (where the displaced image of the oil lands is judged by the next line only)\n  - fat: the object holds a disc of oil; its displaced image may change the signal of R1 and R2 by at most 5 %\n  - SNR: at least 8.76 in each region; SNR = mean of the magnitude image over the pixels of a region / standard deviation of the noise in one pixel, one channel (real or imaginary part)\n  - scan time: not longer than the shortest scan time with which any protocol meets the requirements above\nDeliver the protocol with `submit`. The scan is not run in this episode: the scanner evaluates the protocol you\ndeliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the object, the field, the noise or the state of the system is known in advance.\n\nPassing: every requirement holds, evaluated on noise-free scans of your protocol on the hidden object: displacement,\nghost, wrap and fat against the same scan with that one mechanism switched off, the SNR with the noise level of this\nscanner. The scanner's log must show that you measured. An answer in the wrong unit is wrong.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -3250,12 +3282,12 @@
     "TR_RANGE_MS": [12.0, 30.0]
    },
    "episode": {
-    "chain_head": "4103e389b0910ca4c025cdc8628df71dad76bf2a65ce1f1f02ba5be06f2fe262",
+    "chain_head": "016f50c5c4d581779355af5642e07cc22595a7589c70b5874a6d5fb398fef267",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 4,
-    "texts_sha256": "c1383bbb94045ed514c6b03d43564fa315e932033f47ce8ccfe216f60bdae8ba",
+    "texts_sha256": "f9c005ea939016efeac1c6f4afad5e22fe295d2391624c1463419817dea880a2",
     "used_s": 15.96
    },
    "levels": {
@@ -3820,12 +3852,12 @@
     }
    },
    "episode": {
-    "chain_head": "46706a3a689f724050755307d3cef862a19a3ccb4d55950eb8da8a8bf3f091ac",
+    "chain_head": "1ac51872eaae5dd8d779f8993fcbb97bb81e62a02d1c3de468149f420fd2475a",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 4,
-    "texts_sha256": "02ee3b4c9fca47a1c331e85aec9b7b9b76b02968decf3ad2e9a0f894f51d3119",
+    "texts_sha256": "a37b8a4f8f64e26ae7276e42654f5d62c63b4ea63a4e1e2715547157f8781f33",
     "used_s": 30.06
    },
    "levels": {
@@ -3850,7 +3882,7 @@
         },
         {
          "ppm": -3.4,
-         "share": 0.693
+         "share": 0.694
         },
         {
          "ppm": -2.6,
@@ -4023,7 +4055,7 @@
        }
       }
      },
-     "statement": "# Measure the fat fraction of each marked disc\nA test object lies in the field of view: a disc of gel with 4 smaller discs, each a uniform mixture of water and fat.\nDeliver the proton-density fat fraction of each marked disc, in percent, with `submit`:\n    fat fraction = 100 x fat protons / (fat protons + water protons),\nthe share of the signal that is fat when neither T1 nor T2* weights it.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one disc):\n  D1: y 39.5, x -20.66, radius 10\n  D2: y -22.32, x -38.59, radius 10\n  D3: y -41.36, x 16.63, radius 10\n  D4: y 11.69, x 43.02, radius 10\nThe fat fractions lie between 5 and 45 percent.\nThe fat of this scanner has six peaks (frequency relative to water, share of the fat signal):\n    -3.80 ppm 8.7 %, -3.40 ppm 69.3 %, -2.60 ppm 12.8 %, -1.94 ppm 0.4 %, -0.39 ppm 3.9 %, +0.60 ppm 4.8 %\nAt 1.5 T, 1 ppm is 63.87 Hz. The field at a disc is off resonance by an unknown amount below 80 Hz.\nT1 and T2* of the water and of the fat differ from disc to disc and are not known.\n\nPassing: for every disc the delivered fat fraction lies within 3 percentage points of the true one.\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.\n\nHow to do it (this level states the method; fat is the smaller part of every disc).\n  1. Run one `spgr` scan: flip_deg 3, tr_ms 60, n_echoes 6, te_ms 2.3, echo_spacing_ms 2.3, matrix 64,\n     partial_fourier 0.75, bandwidth_hz_per_px 800, averages 8. Fat is opposed to water in echoes 1, 3, 5 and\n     in phase in echoes 2, 4, 6. (The low flip angle keeps T1 out: at a high one fat, which recovers faster, is over-weighted.)\n  2. Read `mean_magnitude` of each disc: m1 ... m6 at the echo times t1 ... t6 (ms). The fat vector of the six peaks is\n     c1 = -0.793 at t1, c2 = +0.817 at t2 and c4 = +0.556 at t4 (not -1, +1, +1).\n  3. Decay rate from two in-phase echoes, first guess: R = ln(m2 / m4) / (t4 - t2).\n  4. The in-phase signal carried back to the first echo time: I = m2 x exp(R x (t2 - t1)).\n     F = (I - m1) / (c2 - c1), W = I - c2 x F.\n  5. The fat vector shrinks between t2 and t4; take that out of the decay:\n     R = ln(m2 x (W + c4 x F) / (m4 x (W + c2 x F))) / (t4 - t2). Do step 4 again with this R.\n  6. Fat fraction = 100 x F / (W + F) percent.",
+     "statement": "# Measure the fat fraction of each marked disc\nA test object lies in the field of view: a disc of gel with 4 smaller discs, each a uniform mixture of water and fat.\nDeliver the proton-density fat fraction of each marked disc, in percent, with `submit`:\n    fat fraction = 100 x fat protons / (fat protons + water protons),\nthe share of the signal that is fat when neither T1 nor T2* weights it.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one disc):\n  D1: y 39.5, x -20.66, radius 10\n  D2: y -22.32, x -38.59, radius 10\n  D3: y -41.36, x 16.63, radius 10\n  D4: y 11.69, x 43.02, radius 10\nThe fat fractions lie between 5 and 45 percent.\nThe fat of this scanner has six peaks (frequency relative to water, share of the fat signal):\n    -3.80 ppm 8.7 %, -3.40 ppm 69.4 %, -2.60 ppm 12.8 %, -1.94 ppm 0.4 %, -0.39 ppm 3.9 %, +0.60 ppm 4.8 %\nAt 1.5 T, 1 ppm is 63.87 Hz. The field at a disc is off resonance by an unknown amount below 80 Hz.\nT1 and T2* of the water and of the fat differ from disc to disc and are not known.\n\nPassing: for every disc the delivered fat fraction lies within 3 percentage points of the true one.\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.\n\nHow to do it (this level states the method; fat is the smaller part of every disc).\n  1. Run one `spgr` scan: flip_deg 3, tr_ms 60, n_echoes 6, te_ms 2.3, echo_spacing_ms 2.3, matrix 64,\n     partial_fourier 0.75, bandwidth_hz_per_px 800, averages 8. Fat is opposed to water in echoes 1, 3, 5 and\n     in phase in echoes 2, 4, 6. (The low flip angle keeps T1 out: at a high one fat, which recovers faster, is over-weighted.)\n  2. Read `mean_magnitude` of each disc: m1 ... m6 at the echo times t1 ... t6 (ms). The fat vector of the six peaks is\n     c1 = -0.793 at t1, c2 = +0.817 at t2 and c4 = +0.556 at t4 (not -1, +1, +1).\n  3. Decay rate from two in-phase echoes, first guess: R = ln(m2 / m4) / (t4 - t2).\n  4. The in-phase signal carried back to the first echo time: I = m2 x exp(R x (t2 - t1)).\n     F = (I - m1) / (c2 - c1), W = I - c2 x F.\n  5. The fat vector shrinks between t2 and t4; take that out of the decay:\n     R = ln(m2 x (W + c4 x F) / (m4 x (W + c2 x F))) / (t4 - t2). Do step 4 again with this R.\n  6. Fat fraction = 100 x F / (W + F) percent.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -4081,7 +4113,7 @@
         },
         {
          "ppm": -3.4,
-         "share": 0.693
+         "share": 0.694
         },
         {
          "ppm": -2.6,
@@ -4253,7 +4285,7 @@
        }
       }
      },
-     "statement": "# Measure the fat fraction of each marked disc\nA test object lies in the field of view: a disc of gel with 4 smaller discs, each a uniform mixture of water and fat.\nDeliver the proton-density fat fraction of each marked disc, in percent, with `submit`:\n    fat fraction = 100 x fat protons / (fat protons + water protons),\nthe share of the signal that is fat when neither T1 nor T2* weights it.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one disc):\n  D1: y -41.64, x 29.46, radius 10\n  D2: y 20.63, x 46.64, radius 10\n  D3: y 44.7, x -24.56, radius 10\n  D4: y -20.05, x -46.9, radius 10\nThe fat fractions lie between 5 and 45 percent.\nThe fat of this scanner has six peaks (frequency relative to water, share of the fat signal):\n    -3.80 ppm 8.7 %, -3.40 ppm 69.3 %, -2.60 ppm 12.8 %, -1.94 ppm 0.4 %, -0.39 ppm 3.9 %, +0.60 ppm 4.8 %\nAt 1.5 T, 1 ppm is 63.87 Hz. The field at a disc is off resonance by an unknown amount below 80 Hz.\nT1 and T2* of the water and of the fat differ from disc to disc and are not known.\n\nPassing: for every disc the delivered fat fraction lies within 3 percentage points of the true one.\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
+     "statement": "# Measure the fat fraction of each marked disc\nA test object lies in the field of view: a disc of gel with 4 smaller discs, each a uniform mixture of water and fat.\nDeliver the proton-density fat fraction of each marked disc, in percent, with `submit`:\n    fat fraction = 100 x fat protons / (fat protons + water protons),\nthe share of the signal that is fat when neither T1 nor T2* weights it.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one disc):\n  D1: y -41.64, x 29.46, radius 10\n  D2: y 20.63, x 46.64, radius 10\n  D3: y 44.7, x -24.56, radius 10\n  D4: y -20.05, x -46.9, radius 10\nThe fat fractions lie between 5 and 45 percent.\nThe fat of this scanner has six peaks (frequency relative to water, share of the fat signal):\n    -3.80 ppm 8.7 %, -3.40 ppm 69.4 %, -2.60 ppm 12.8 %, -1.94 ppm 0.4 %, -0.39 ppm 3.9 %, +0.60 ppm 4.8 %\nAt 1.5 T, 1 ppm is 63.87 Hz. The field at a disc is off resonance by an unknown amount below 80 Hz.\nT1 and T2* of the water and of the fat differ from disc to disc and are not known.\n\nPassing: for every disc the delivered fat fraction lies within 3 percentage points of the true one.\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -4311,7 +4343,7 @@
         },
         {
          "ppm": -3.4,
-         "share": 0.693
+         "share": 0.694
         },
         {
          "ppm": -2.6,
@@ -4483,7 +4515,7 @@
        }
       }
      },
-     "statement": "# Measure the fat fraction of each marked disc\nA test object lies in the field of view: a disc of gel with 4 smaller discs, each a uniform mixture of water and fat.\nDeliver the proton-density fat fraction of each marked disc, in percent, with `submit`:\n    fat fraction = 100 x fat protons / (fat protons + water protons),\nthe share of the signal that is fat when neither T1 nor T2* weights it.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one disc):\n  D1: y -50.93, x -10.83, radius 10\n  D2: y -4.18, x 51.9, radius 10\n  D3: y 52.07, x -0.27, radius 10\n  D4: y 2.75, x -52, radius 10\nThe fat fractions lie between 5 and 95 percent.\nThe fat of this scanner has six peaks (frequency relative to water, share of the fat signal):\n    -3.80 ppm 8.7 %, -3.40 ppm 69.3 %, -2.60 ppm 12.8 %, -1.94 ppm 0.4 %, -0.39 ppm 3.9 %, +0.60 ppm 4.8 %\nAt 1.5 T, 1 ppm is 63.87 Hz. The field at a disc is off resonance by an unknown amount below 80 Hz.\nT1 and T2* of the water and of the fat differ from disc to disc and are not known.\n\nPassing: for every disc the delivered fat fraction lies within 3 percentage points of the true one.\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
+     "statement": "# Measure the fat fraction of each marked disc\nA test object lies in the field of view: a disc of gel with 4 smaller discs, each a uniform mixture of water and fat.\nDeliver the proton-density fat fraction of each marked disc, in percent, with `submit`:\n    fat fraction = 100 x fat protons / (fat protons + water protons),\nthe share of the signal that is fat when neither T1 nor T2* weights it.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one disc):\n  D1: y -50.93, x -10.83, radius 10\n  D2: y -4.18, x 51.9, radius 10\n  D3: y 52.07, x -0.27, radius 10\n  D4: y 2.75, x -52, radius 10\nThe fat fractions lie between 5 and 95 percent.\nThe fat of this scanner has six peaks (frequency relative to water, share of the fat signal):\n    -3.80 ppm 8.7 %, -3.40 ppm 69.4 %, -2.60 ppm 12.8 %, -1.94 ppm 0.4 %, -0.39 ppm 3.9 %, +0.60 ppm 4.8 %\nAt 1.5 T, 1 ppm is 63.87 Hz. The field at a disc is off resonance by an unknown amount below 80 Hz.\nT1 and T2* of the water and of the fat differ from disc to disc and are not known.\n\nPassing: for every disc the delivered fat fraction lies within 3 percentage points of the true one.\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -4630,14 +4662,10 @@
      "when": "only at submit; 0 on every other step"
     },
     "scored_by": "Noise-free scans of the target image on the hidden object: every region must be suppressed by its method, and inversion recovery passes only where fat saturation is not enough",
-    "summary": "The daily choice between spectral fat saturation and STIR. Fat saturation keeps the water signal but fails where the field is inhomogeneous, where the frequency adjustment is off and where the pulse is weak; STIR works everywhere but removes a large part of the water signal, and its inversion time depends on the T1 of that fat, on the repetition time and on how complete the inversion is. Neither can be looked up: fat saturation has to be tried on this object, and the null has to be measured. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0 at level 1, 0 at level 2, 0 at level 3; 300 instances per level; 25 points or more make a decision task).",
-    "task_kind": "measurement",
-    "task_kind_levels": {
-     "1": "measurement",
-     "2": "measurement",
-     "3": "measurement"
-    },
-    "task_kind_why": "reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.2.0)",
+    "summary": "The daily choice between spectral fat saturation and STIR. Fat saturation keeps the water signal but fails where the field is inhomogeneous, where the frequency adjustment is off and where the pulse is weak; STIR works everywhere but removes a large part of the water signal, and its inversion time depends on the T1 of that fat, on the repetition time and on how complete the inversion is. Neither can be looked up: fat saturation has to be tried on this object, and the null has to be measured. On engine 0.3.0 this choice does not arise: fat saturation leaves the lines of the fat spectrum outside the band of its pulse, more than the task allows, so it passes in no region and the answer is inversion recovery everywhere; the id needs a successor with other thresholds. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined on this engine, the stored gate result is from mrgym-engine-0.2.0.",
+    "task_kind": "undetermined",
+    "task_kind_levels": {},
+    "task_kind_why": "the stored gate result is from mrgym-engine-0.2.0, the engine is mrgym-engine-0.3.0",
     "title": "Suppress the fat in each marked region and keep the water signal",
     "told": ["the target scan and its repetition time", "the regions, and that each contains fat", "both pass thresholds", "the instrument datasheet", "realised protocol, timing and cost of every plan and scan"],
     "world": {
@@ -4732,12 +4760,12 @@
     "SUBMIT_DOC": "Deliver, for each marked region, the method of the fat-suppressed target image of that region: fat_sat, or stir with the inversion time in milliseconds."
    },
    "episode": {
-    "chain_head": "b5f5176c711e5bdcf6143676232d023590598519d4cb4ae0c1bc4267a9358b90",
+    "chain_head": "23711cacd088ac4d42065e16f962bb91b2f55b23b846e8fdff72d956a2a96d85",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 25,
-    "texts_sha256": "f9d633d6319f57d8526fb1d65c0ce0b59417d678a05fd1d36e44062f95654602",
+    "texts_sha256": "ba447497831d2416e4eed40615312c49df4f587c3a64c60a346bb281637877af",
     "used_s": 114.36
    },
    "levels": {
@@ -5516,12 +5544,12 @@
     "WRAP_MAX": 0.05
    },
    "episode": {
-    "chain_head": "1e6d52fe038f037f287b0b2bd1ecfba7667257aff25a0bd6fc62a108d31a20e4",
+    "chain_head": "3b2c0e7223245604c4fa2347cb960a3ae2e8a1c569ed07791c0276f0dbd7f80b",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 4,
-    "texts_sha256": "232585bf12231960217e0a84b00faa7f22aeba807e1cdd5304c06bba8df2505d",
+    "texts_sha256": "85e4aa21589e65c6eb86d7f0275a312b0d4e1642e96c8dabce60c61323438a04",
     "used_s": 10.524
    },
    "levels": {
@@ -6351,12 +6379,12 @@
     "TOLERANCE_HZ": 3.0
    },
    "episode": {
-    "chain_head": "d3cd7f5a23d30c1deecb18a2c9618736a2525bd6122bfe4b11708f6f5bcf28b8",
+    "chain_head": "ed94fccbc2ef3e677261485ce21e17b6bcadc2403e33b0e998bbb466f8d5c58c",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 6,
-    "texts_sha256": "d9dcc413439395ec8cb89bc03e4e8f7d204346773da489fd296bf50d3f03c8f6",
+    "texts_sha256": "efc76fb390a512998b6c54cfbe24584f89a61bff6c6192f1172574ac9efaf6a2",
     "used_s": 17.88
    },
    "levels": {
@@ -6792,12 +6820,12 @@
     "TUBE_T1_MS": [400.0, 520.0]
    },
    "episode": {
-    "chain_head": "1ca0a44fbfdc534c524f7fd73b3b1777d222209dcd6f26d96eba61693d36ba23",
+    "chain_head": "e93bdf78470c9bd13af8fe0466927cfa98ca8c757bc9f1c045fe10cc419bf14b",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 8,
-    "texts_sha256": "ddbd8270f280451a044eda36dc8d2b881de7b14733b49c227f444dc0e319671a",
+    "texts_sha256": "799234b69dc5cabcb7553d95971d7530f9445830f6a4bfadf9496f2e773b48d7",
     "used_s": 83.4
    },
    "levels": {
@@ -7987,12 +8015,12 @@
     "TOLERANCE": 0.003
    },
    "episode": {
-    "chain_head": "fbdd6f450a9f091213d04864790c155136bdbe7381f69e34eb230f5cabda0983",
+    "chain_head": "f811e15cdbcdf065dbf86cb0f2d3bd6da8b983bb3e6e7c3a723f240faa4936ab",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 12,
-    "texts_sha256": "9b936f6cfb325261b49f9a319fda92b3e36ab6887947f55387a02df553dac2a9",
+    "texts_sha256": "7656de356d5916c38c7a86ee472a77ee796edaeedb75eb63931dc8db6a530179",
     "used_s": 52.2
    },
    "levels": {
@@ -8540,12 +8568,12 @@
     "WRAP_LIMIT": 0.002
    },
    "episode": {
-    "chain_head": "f16e6acb115aad7ac8d7976d60c7397e53a37f14dfad2140f2c1677f1babf902",
+    "chain_head": "9e0e870e6e6e8162ec6d17238ee9dda0f17c3e40a45426d76937f930be0a3d36",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 4,
-    "texts_sha256": "686eb0441aadd8d0bfb750e5a695b9866cf73aea8bea7b39a53062001738889c",
+    "texts_sha256": "d7b346fe517c3645e6c92e9f1b5029154a2d1e9ff8f3caea660fbb469f868b4a",
     "used_s": 10.524
    },
    "levels": {
@@ -9145,12 +9173,12 @@
     "TOLERANCE": 0.1
    },
    "episode": {
-    "chain_head": "394b2701f699405123d2cc6c110ea259afe0d8dbfa6cd220070d7a05969be83f",
+    "chain_head": "e7ab5350f61d2059cad74615f8147967d15e76a137e8c2bbcf7c27a0f3f5808c",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 20,
-    "texts_sha256": "97f366e78667d581f280438a89abf444f51e2d96e5a2f9491f886f3d3b645a02",
+    "texts_sha256": "bc0f20288cf5bb8f63b50e18d23c41f425cd96e261569f40e0bd5b547ae24799",
     "used_s": 314.4
    },
    "levels": {
@@ -9226,7 +9254,7 @@
        "grad_delay_us": 0.4,
        "kind": "acr",
        "n": 800,
-       "sigma0": 0.022024151504373906,
+       "sigma0": 0.022147453935508446,
        "sigma0_log_sd": 0.0,
        "tx_gain_dev": [0.0, 0.03]
       }
@@ -9328,7 +9356,7 @@
        "grad_delay_us": 0.4,
        "kind": "acr",
        "n": 800,
-       "sigma0": 0.04564288127603004,
+       "sigma0": 0.04589841331057891,
        "sigma0_log_sd": 0.0,
        "tx_gain_dev": [0.0, 0.03]
       }
@@ -9438,7 +9466,7 @@
         }
        ],
        "n": 800,
-       "sigma0": 0.0037041878935548532,
+       "sigma0": 0.00372492581612395,
        "sigma0_log_sd": 0.0,
        "tx_gain_dev": [0.0, 0.03]
       }
@@ -9576,8 +9604,7 @@
     "FAR_RATIO": 0.5,
     "FIRST_PROBE": {
      "bandwidth_hz_per_px": 300.0,
-     "matrix": 64,
-     "partial_fourier": 0.6,
+     "matrix": 32,
      "sequence": "ir",
      "ti_ms": 740.0,
      "tr_ms": 800.0
@@ -9658,17 +9685,17 @@
     "SUBMIT_DOC": "Deliver, for each marked region, the inversion time (milliseconds) of the target scan that nulls it."
    },
    "episode": {
-    "chain_head": "8251915fe683280527def52d7182a0ed34e7b0f954015b3ac3c8bd1ec8c920e5",
+    "chain_head": "a2a2f5f59438c4e6c55b60f0f0a06ee65350949fca7911d0a032d267d74cf6bf",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
-    "steps": 11,
-    "texts_sha256": "8ad15306463434cfebcb16e8c5224cccbc7735e2b0b635c733cdd438d081cd1e",
-    "used_s": 193.44
+    "steps": 12,
+    "texts_sha256": "5af7e395d14fa87d43fd12e2020032770b11ec718e31b46d4d427dd3fae514d8",
+    "used_s": 157.2
    },
    "levels": {
     "0": {
-     "hints": "How to do it (this level states the procedure).\n  1. Probe with `ir` at a repetition time short enough for several scans (for example tr_ms 800, matrix 64,\n     partial_fourier 0.6, bandwidth_hz_per_px 300): three or more inversion times spread from 60 ms to\n     tr_ms - 50 ms, read out on the marked regions.\n  2. Sign the signal. At the longest inversion time every material is past its null, so its signal is positive. A\n     read-out whose phase differs from the region's phase in that scan by more than pi / 2 is negative.\n  3. Per region, fit S(TI) = a - b exp(-TI / T1) to the signed signals. Let q = b / a.\n  4. The probes ran at another repetition time than the target scan, so carry the fit over. With E(TR) = exp(-(TR - TE / 2) / T1):\n     k = (q - 1) / (1 - q E(TR_probe)), then TI_null = T1 ln((1 + k) / (1 + k E(TR_target))).",
+     "hints": "How to do it (this level states the procedure).\n  1. Probe with `ir` at a repetition time short enough for several scans (for example tr_ms 800, matrix 32,\n     bandwidth_hz_per_px 300, fully sampled): three or more inversion times spread from 60 ms to\n     tr_ms - 50 ms, read out on the marked regions.\n  2. Sign the signal. At the longest inversion time every material is past its null, so its signal is positive. A\n     read-out whose phase differs from the region's phase in that scan by more than pi / 2 is negative.\n  3. Per region, fit S(TI) = a - b exp(-TI / T1) to the signed signals. Let q = b / a.\n  4. The probes ran at another repetition time than the target scan, so carry the fit over. With E(TR) = exp(-(TR - TE / 2) / T1):\n     k = (q - 1) / (1 - q E(TR_probe)), then TI_null = T1 ln((1 + k) / (1 + k E(TR_target))).",
      "instance": {
       "budget_s": 185.0,
       "family": "null_tissue",
@@ -9718,7 +9745,7 @@
        }
       }
      },
-     "statement": "# Null each marked material with inversion recovery\nA test object with vials of unknown materials lies in the field of\nview. For each marked region the examination needs an inversion-recovery image in which the material of that region\ngives no signal. The scan is the same for all of them except for its inversion time:\n    sequence ir, tr_ms 6000, te_ms at the console minimum, matrix 128, bandwidth_hz_per_px 300,\n    field of view at the console default, 1 average, slice 5 mm.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -19.69, x 50.27, radius 11.5\n  R2: y -51.22, x -22.05, radius 11.5\nDeliver one inversion time per region (R1, R2) with `submit`. The target scans are not run in this episode: the scanner\nevaluates the inversion times you deliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the materials or the state of the system is known in advance.\n\nPassing: for every region, in the target scan with the inversion time you delivered for it, its signal is at most\n5 % of its signal in the same scan without the inversion pulse. The scanner's log must show that you\nmeasured. An answer in the wrong unit is wrong.\n\nHow to do it (this level states the procedure).\n  1. Probe with `ir` at a repetition time short enough for several scans (for example tr_ms 800, matrix 64,\n     partial_fourier 0.6, bandwidth_hz_per_px 300): three or more inversion times spread from 60 ms to\n     tr_ms - 50 ms, read out on the marked regions.\n  2. Sign the signal. At the longest inversion time every material is past its null, so its signal is positive. A\n     read-out whose phase differs from the region's phase in that scan by more than pi / 2 is negative.\n  3. Per region, fit S(TI) = a - b exp(-TI / T1) to the signed signals. Let q = b / a.\n  4. The probes ran at another repetition time than the target scan, so carry the fit over. With E(TR) = exp(-(TR - TE / 2) / T1):\n     k = (q - 1) / (1 - q E(TR_probe)), then TI_null = T1 ln((1 + k) / (1 + k E(TR_target))).",
+     "statement": "# Null each marked material with inversion recovery\nA test object with vials of unknown materials lies in the field of\nview. For each marked region the examination needs an inversion-recovery image in which the material of that region\ngives no signal. The scan is the same for all of them except for its inversion time:\n    sequence ir, tr_ms 6000, te_ms at the console minimum, matrix 128, bandwidth_hz_per_px 300,\n    field of view at the console default, 1 average, slice 5 mm.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -19.69, x 50.27, radius 11.5\n  R2: y -51.22, x -22.05, radius 11.5\nDeliver one inversion time per region (R1, R2) with `submit`. The target scans are not run in this episode: the scanner\nevaluates the inversion times you deliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the materials or the state of the system is known in advance.\n\nPassing: for every region, in the target scan with the inversion time you delivered for it, its signal is at most\n5 % of its signal in the same scan without the inversion pulse. The scanner's log must show that you\nmeasured. An answer in the wrong unit is wrong.\n\nHow to do it (this level states the procedure).\n  1. Probe with `ir` at a repetition time short enough for several scans (for example tr_ms 800, matrix 32,\n     bandwidth_hz_per_px 300, fully sampled): three or more inversion times spread from 60 ms to\n     tr_ms - 50 ms, read out on the marked regions.\n  2. Sign the signal. At the longest inversion time every material is past its null, so its signal is positive. A\n     read-out whose phase differs from the region's phase in that scan by more than pi / 2 is negative.\n  3. Per region, fit S(TI) = a - b exp(-TI / T1) to the signed signals. Let q = b / a.\n  4. The probes ran at another repetition time than the target scan, so carry the fit over. With E(TR) = exp(-(TR - TE / 2) / T1):\n     k = (q - 1) / (1 - q E(TR_probe)), then TI_null = T1 ln((1 + k) / (1 + k E(TR_target))).",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -10106,27 +10133,27 @@
       "1": {
        "gap_points": 0.0,
        "kind": "measurement",
-       "n": 300,
+       "n": 60,
        "open_loop": 1.0,
        "reference": 1.0
       },
       "2": {
        "gap_points": 0.0,
        "kind": "measurement",
-       "n": 300,
+       "n": 60,
        "open_loop": 1.0,
        "reference": 1.0
       },
       "3": {
-       "gap_points": 22.7,
-       "kind": "measurement",
-       "n": 300,
-       "open_loop": 0.7733,
+       "gap_points": 33.3,
+       "kind": "decision",
+       "n": 60,
+       "open_loop": 0.6667,
        "reference": 1.0
       }
      },
      "rule": "open_loop within 25 points of the reference = measurement task, else decision task",
-     "source": "mrgym gate Scanner/PhantomQA-v0 --n 300 --write on mrgym-engine-0.2.0, 2026-11-25"
+     "source": "mrgym gate Scanner/PhantomQA-v0 --n 60 --write on mrgym-engine-0.3.0, 2026-11-27"
     },
     "title": "Phantom QA: measure, judge and diagnose",
     "told": ["the phantom and its diameter", "the ACR T1 protocol of the site", "the definitions of the four quantities", "the limits and the tolerances", "the closed fault list with the test each fault moves", "the instrument datasheet", "realised protocol, timing and cost of every plan and scan"],
@@ -10258,12 +10285,12 @@
     }
    },
    "episode": {
-    "chain_head": "c6d1fe84d3c694ffb3e297e4afbd54d0f70245e94b5f49844580992a63d87363",
+    "chain_head": "ac6a93c2c9b9896dbdef6b3cf67a434930832578be8b61082b2426882d04cbc8",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 29,
-    "texts_sha256": "c8b86a0309525a8cf572d98590526d4b8944091f0bf18335ddc6384b8bb36863",
+    "texts_sha256": "cdcc7bfdc1ae7945d959cdaf5866651f465e9a4c27d4288245de19e7cc51ee0f",
     "used_s": 131.5
    },
    "levels": {
@@ -11003,12 +11030,12 @@
     "WINDOW_OK": [1.12, 1.45]
    },
    "episode": {
-    "chain_head": "42aa0375e09815f8f1c92d3bc88d1e17bc4456508a84d4705820a17335f79057",
+    "chain_head": "b83b0755cdfc68870dcd0dffa00bba3724db096f6f70d4700f402bc2720232a5",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 6,
-    "texts_sha256": "e95631af4f00b4463c770a37550e59d829a4d528bdf78028be0e36229ff560e6",
+    "texts_sha256": "791838dc1f8660d5c3736d9ca1b8b3cd81c9d9601da80e0d0642e6715da3ba10",
     "used_s": 62.6
    },
    "levels": {
@@ -11147,7 +11174,7 @@
         "n_ring": [6, 6],
         "vial_t1_ms": [50.0, 800.0]
        },
-       "sigma0": 0.10788599276978235,
+       "sigma0": 0.10848999358591664,
        "sigma0_log_sd": 0.0
       }
      },
@@ -11341,7 +11368,7 @@
         "n_ring": [6, 6],
         "vial_t1_ms": [50.0, 800.0]
        },
-       "sigma0": 0.03413689835576939,
+       "sigma0": 0.03432801412471981,
        "sigma0_log_sd": 0.0
       }
      },
@@ -11541,7 +11568,7 @@
         "n_ring": [6, 6],
         "vial_t1_ms": [50.0, 800.0]
        },
-       "sigma0": 0.004952583826590203,
+       "sigma0": 0.004980310916979196,
        "sigma0_log_sd": 0.0
       }
      },
@@ -11854,12 +11881,12 @@
     "TOL": 1.2
    },
    "episode": {
-    "chain_head": "d8e0fde40755889c6bec6022d5606af2e0bda572b842cd48dd54c386d8d054c6",
+    "chain_head": "4687ac00a1f37eb14675fb8fde725342e6cd16e04c209f0cd64a523f1dea95eb",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 4,
-    "texts_sha256": "d628915b472d1a04e7fae04af0f1cd7dbc97c1511031dec4d7ee29ab1345684e",
+    "texts_sha256": "d09b89da4a7772aa05d88a4456936fdf65e66335fcd486e4109ef71a619f6b1d",
     "used_s": 12.636
    },
    "levels": {
@@ -12994,13 +13021,13 @@
     "TIME_FACTOR": 1.15
    },
    "episode": {
-    "chain_head": "1ee907756610cbe665f824625224136f0f89ac07137472c9178ac6868ab12a1b",
+    "chain_head": "93e31db97aa51e96868f7a08b1cccced6e2e621b3c3cf7dedad44d747d5c672d",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 20,
-    "texts_sha256": "b8d579ad385babe65a7fde6fa5eda5c2fa5f477fa7f531718c25ba45b5175472",
-    "used_s": 229.34
+    "texts_sha256": "2c997e7e486aeed8508b6e357c3a0d59af811f487ca1d968a48336295956b3f1",
+    "used_s": 232.19
    },
    "levels": {
     "1": {
@@ -13037,7 +13064,7 @@
           "slice_mm": 5.0,
           "te_ms": "console minimum"
          },
-         "snr_min": 88.9
+         "snr_min": 89.4
         },
         "B": {
          "pixel_mm": 1.6666666666666667,
@@ -13051,7 +13078,7 @@
           "slice_mm": 5.0,
           "te_ms": "console minimum"
          },
-         "snr_min": 14.7
+         "snr_min": 14.8
         }
        },
        "level": 1,
@@ -13099,7 +13126,7 @@
        "tx_gain_dev": [0.05, 0.2]
       }
      },
-     "statement": "# Meet a signal-to-noise requirement in the shortest scan time\nA test object with vials of unknown materials lies in the field of\nview. The examination needs 2 spin-echo images, A and B. Each has a prescribed geometry and a required signal-to-noise\nratio (SNR) in two marked regions:\n    image A: sequence se, fov_mm 240, matrix 96 (pixel 2.5 mm), slice_mm 5; SNR at least 88.9 in R1 and R2\n    image B: sequence se, fov_mm 240, matrix 144 (pixel 1.667 mm), slice_mm 5; SNR at least 14.7 in R3 and R4\nFor each image you choose tr_ms, averages and bandwidth_hz_per_px. Everything else is fixed: the fields above, te_ms at\nthe console minimum for the bandwidth you choose, full k-space, every other parameter at its default.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y 47.51, x 23.6, radius 11.5\n  R2: y -1.1, x -2.74, radius 11.5\n  R3: y 40.71, x -37.25, radius 11.5\n  R4: y -58.06, x 2.27, radius 11.5\nSNR of a region = magnitude of the mean complex signal of the region's pixels / standard deviation of the noise in one pixel, one channel (real or imaginary part).\nDeliver the three numbers for each image with `submit`. The images are not run in this episode: the scanner evaluates\nthe protocols you deliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the materials, the noise or the state of the system is known in advance.\n\nPassing: for each image, (1) every one of its regions reaches the required SNR, evaluated on a noise-free scan of your\nprotocol with the noise level of this scanner, and (2) its scan time is at most 1.15 times the shortest scan time\nwith which any choice of tr_ms, averages and bandwidth_hz_per_px meets (1). The scanner's log must show that you\nmeasured. An answer in the wrong unit is wrong.",
+     "statement": "# Meet a signal-to-noise requirement in the shortest scan time\nA test object with vials of unknown materials lies in the field of\nview. The examination needs 2 spin-echo images, A and B. Each has a prescribed geometry and a required signal-to-noise\nratio (SNR) in two marked regions:\n    image A: sequence se, fov_mm 240, matrix 96 (pixel 2.5 mm), slice_mm 5; SNR at least 89.4 in R1 and R2\n    image B: sequence se, fov_mm 240, matrix 144 (pixel 1.667 mm), slice_mm 5; SNR at least 14.8 in R3 and R4\nFor each image you choose tr_ms, averages and bandwidth_hz_per_px. Everything else is fixed: the fields above, te_ms at\nthe console minimum for the bandwidth you choose, full k-space, every other parameter at its default.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y 47.51, x 23.6, radius 11.5\n  R2: y -1.1, x -2.74, radius 11.5\n  R3: y 40.71, x -37.25, radius 11.5\n  R4: y -58.06, x 2.27, radius 11.5\nSNR of a region = magnitude of the mean complex signal of the region's pixels / standard deviation of the noise in one pixel, one channel (real or imaginary part).\nDeliver the three numbers for each image with `submit`. The images are not run in this episode: the scanner evaluates\nthe protocols you deliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the materials, the noise or the state of the system is known in advance.\n\nPassing: for each image, (1) every one of its regions reaches the required SNR, evaluated on a noise-free scan of your\nprotocol with the noise level of this scanner, and (2) its scan time is at most 1.15 times the shortest scan time\nwith which any choice of tr_ms, averages and bandwidth_hz_per_px meets (1). The scanner's log must show that you\nmeasured. An answer in the wrong unit is wrong.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -13208,7 +13235,7 @@
           "slice_mm": 5.0,
           "te_ms": "console minimum"
          },
-         "snr_min": 92.5
+         "snr_min": 93.0
         }
        },
        "level": 2,
@@ -13256,7 +13283,7 @@
        "tx_gain_dev": [0.05, 0.2]
       }
      },
-     "statement": "# Meet a signal-to-noise requirement in the shortest scan time\nA test object with vials of unknown materials lies in the field of\nview. The examination needs 2 spin-echo images, A and B. Each has a prescribed geometry and a required signal-to-noise\nratio (SNR) in two marked regions:\n    image A: sequence se, fov_mm 240, matrix 96 (pixel 2.5 mm), slice_mm 5; SNR at least 131 in R1 and R2\n    image B: sequence se, fov_mm 240, matrix 160 (pixel 1.5 mm), slice_mm 5; SNR at least 92.5 in R3 and R4\nFor each image you choose tr_ms, averages and bandwidth_hz_per_px. Everything else is fixed: the fields above, te_ms at\nthe console minimum for the bandwidth you choose, full k-space, every other parameter at its default.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y 13.96, x 51.26, radius 11.5\n  R2: y -48.3, x 30.43, radius 11.5\n  R3: y 13.77, x -51.22, radius 11.5\n  R4: y -46.54, x -32.76, radius 11.5\nSNR of a region = magnitude of the mean complex signal of the region's pixels / standard deviation of the noise in one pixel, one channel (real or imaginary part).\nDeliver the three numbers for each image with `submit`. The images are not run in this episode: the scanner evaluates\nthe protocols you deliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the materials, the noise or the state of the system is known in advance.\n\nPassing: for each image, (1) every one of its regions reaches the required SNR, evaluated on a noise-free scan of your\nprotocol with the noise level of this scanner, and (2) its scan time is at most 1.15 times the shortest scan time\nwith which any choice of tr_ms, averages and bandwidth_hz_per_px meets (1). The scanner's log must show that you\nmeasured. An answer in the wrong unit is wrong.",
+     "statement": "# Meet a signal-to-noise requirement in the shortest scan time\nA test object with vials of unknown materials lies in the field of\nview. The examination needs 2 spin-echo images, A and B. Each has a prescribed geometry and a required signal-to-noise\nratio (SNR) in two marked regions:\n    image A: sequence se, fov_mm 240, matrix 96 (pixel 2.5 mm), slice_mm 5; SNR at least 131 in R1 and R2\n    image B: sequence se, fov_mm 240, matrix 160 (pixel 1.5 mm), slice_mm 5; SNR at least 93 in R3 and R4\nFor each image you choose tr_ms, averages and bandwidth_hz_per_px. Everything else is fixed: the fields above, te_ms at\nthe console minimum for the bandwidth you choose, full k-space, every other parameter at its default.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y 13.96, x 51.26, radius 11.5\n  R2: y -48.3, x 30.43, radius 11.5\n  R3: y 13.77, x -51.22, radius 11.5\n  R4: y -46.54, x -32.76, radius 11.5\nSNR of a region = magnitude of the mean complex signal of the region's pixels / standard deviation of the noise in one pixel, one channel (real or imaginary part).\nDeliver the three numbers for each image with `submit`. The images are not run in this episode: the scanner evaluates\nthe protocols you deliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the materials, the noise or the state of the system is known in advance.\n\nPassing: for each image, (1) every one of its regions reaches the required SNR, evaluated on a noise-free scan of your\nprotocol with the noise level of this scanner, and (2) its scan time is at most 1.15 times the shortest scan time\nwith which any choice of tr_ms, averages and bandwidth_hz_per_px meets (1). The scanner's log must show that you\nmeasured. An answer in the wrong unit is wrong.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -13351,7 +13378,7 @@
           "slice_mm": 5.0,
           "te_ms": "console minimum"
          },
-         "snr_min": 24.2
+         "snr_min": 24.3
         },
         "B": {
          "pixel_mm": 1.25,
@@ -13365,7 +13392,7 @@
           "slice_mm": 5.0,
           "te_ms": "console minimum"
          },
-         "snr_min": 15.3
+         "snr_min": 15.4
         }
        },
        "level": 3,
@@ -13413,7 +13440,7 @@
        "tx_gain_dev": [0.05, 0.2]
       }
      },
-     "statement": "# Meet a signal-to-noise requirement in the shortest scan time\nA test object with vials of unknown materials lies in the field of\nview. The examination needs 2 spin-echo images, A and B. Each has a prescribed geometry and a required signal-to-noise\nratio (SNR) in two marked regions:\n    image A: sequence se, fov_mm 240, matrix 96 (pixel 2.5 mm), slice_mm 5; SNR at least 24.2 in R1 and R2\n    image B: sequence se, fov_mm 240, matrix 192 (pixel 1.25 mm), slice_mm 5; SNR at least 15.3 in R3 and R4\nFor each image you choose tr_ms, averages and bandwidth_hz_per_px. Everything else is fixed: the fields above, te_ms at\nthe console minimum for the bandwidth you choose, full k-space, every other parameter at its default.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -28.35, x 45.85, radius 11.5\n  R2: y 25.77, x -47.46, radius 11.5\n  R3: y -46.54, x -25.66, radius 11.5\n  R4: y 46.88, x 28.44, radius 11.5\nSNR of a region = magnitude of the mean complex signal of the region's pixels / standard deviation of the noise in one pixel, one channel (real or imaginary part).\nDeliver the three numbers for each image with `submit`. The images are not run in this episode: the scanner evaluates\nthe protocols you deliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the materials, the noise or the state of the system is known in advance.\n\nPassing: for each image, (1) every one of its regions reaches the required SNR, evaluated on a noise-free scan of your\nprotocol with the noise level of this scanner, and (2) its scan time is at most 1.15 times the shortest scan time\nwith which any choice of tr_ms, averages and bandwidth_hz_per_px meets (1). The scanner's log must show that you\nmeasured. An answer in the wrong unit is wrong.",
+     "statement": "# Meet a signal-to-noise requirement in the shortest scan time\nA test object with vials of unknown materials lies in the field of\nview. The examination needs 2 spin-echo images, A and B. Each has a prescribed geometry and a required signal-to-noise\nratio (SNR) in two marked regions:\n    image A: sequence se, fov_mm 240, matrix 96 (pixel 2.5 mm), slice_mm 5; SNR at least 24.3 in R1 and R2\n    image B: sequence se, fov_mm 240, matrix 192 (pixel 1.25 mm), slice_mm 5; SNR at least 15.4 in R3 and R4\nFor each image you choose tr_ms, averages and bandwidth_hz_per_px. Everything else is fixed: the fields above, te_ms at\nthe console minimum for the bandwidth you choose, full k-space, every other parameter at its default.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -28.35, x 45.85, radius 11.5\n  R2: y 25.77, x -47.46, radius 11.5\n  R3: y -46.54, x -25.66, radius 11.5\n  R4: y 46.88, x 28.44, radius 11.5\nSNR of a region = magnitude of the mean complex signal of the region's pixels / standard deviation of the noise in one pixel, one channel (real or imaginary part).\nDeliver the three numbers for each image with `submit`. The images are not run in this episode: the scanner evaluates\nthe protocols you deliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.\nNothing about the materials, the noise or the state of the system is known in advance.\n\nPassing: for each image, (1) every one of its regions reaches the required SNR, evaluated on a noise-free scan of your\nprotocol with the noise level of this scanner, and (2) its scan time is at most 1.15 times the shortest scan time\nwith which any choice of tr_ms, averages and bandwidth_hz_per_px meets (1). The scanner's log must show that you\nmeasured. An answer in the wrong unit is wrong.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -13675,12 +13702,12 @@
     }
    },
    "episode": {
-    "chain_head": "1a695c58d6e2f7452a9e57fff1a0964c0699ce12c03c116bc0deeca7b206c2d2",
+    "chain_head": "9072c84dd865a2c9cd1288fc6a661549741725b625cfa936610acc29219ec4c8",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 10,
-    "texts_sha256": "2761c49c7f844cece3948c283486f895a854e7b68378f17052d3a70239376564",
+    "texts_sha256": "492a9e66a9cbdfc01784e8a87ee9ce913d50097fe73ed52cfafd2816a46e23be",
     "used_s": 63.9
    },
    "levels": {
@@ -13727,9 +13754,9 @@
         }
        ],
        "snr_floor": {
-        "R1": 41.8,
-        "R2": 37.5,
-        "R3": 39.5
+        "R1": 42.1,
+        "R2": 37.7,
+        "R3": 39.7
        },
        "target_scan": {
         "averages": 1,
@@ -13882,7 +13909,7 @@
        "sigma0": 0.021466832026364596
       }
      },
-     "statement": "# Keep displaced fat off each marked region\nA disc of gel holds discs of fat. Each marked region lies in the gel between fat discs: one on each side along x.\nIn an image fat is displaced along the frequency-encode axis. Where it lands on a region it adds to the region's signal.\nFor each region the examination needs a spin-echo scan of its own in which the fat stays off that region, at the\nhighest signal-to-noise ratio this allows:\n    sequence se, tr_ms 500, te_ms 30, fov_mm 240, matrix 192, 1 average, slice 5 mm, pe_dir y;\n    you choose bandwidth_hz_per_px and ro_polarity.\nRegions (circles; centre and radius in mm from the isocentre):\n  R1: y -28.8, x -37.6, radius 5, signal-to-noise floor 41.8\n  R2: y -28, x 40.5, radius 5, signal-to-noise floor 37.5\n  R3: y 34.8, x 2.8, radius 5, signal-to-noise floor 39.5\nDeliver the settings of every region's scan with `submit`. The target scans are not run in this episode: the scanner\nevaluates the settings you deliver, without noise.\nYour own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names.\nThat scan is not charged to the scan-time budget and not limited by it.\nWhere the fat discs lie is not known in advance.\n\nPassing, for every region, in the scan delivered for it:\n  1. the mean fat signal over the area of the region is at most 5 % of its mean water signal;\n  2. the region's signal-to-noise ratio (its mean water signal / standard deviation of the noise in the real part of a pixel) is at least its floor;\n  3. that ratio is at least 88 % of the highest one that any bandwidth and readout direction reaches under rule 1.\nThe scanner's log must show that you measured. A value in another unit is wrong.\n\nHow to do it (this level states the method).\n  1. Scan twice at one low bandwidth, once with ro_polarity 1 and once with -1 (for example se, tr_ms 150, matrix 192,\n     bandwidth_hz_per_px 150; fov_mm and pe_dir as in the target scan).\n  2. On both scans take a `profile` along x through the centre of a region. Read where the fat on each side begins: where\n     the signal crosses the level half a fat signal above what lies in front of the fat (gel, or the dark gap the fat left).\n  3. The two readout directions move a fat border by the same distance d in opposite directions. Its true position is the\n     mean of the two readings and d is half their difference.\n  4. The room on a side is the distance from the true fat border to the edge of the region. With ro_polarity 1 fat moves\n     towards +x: the fat on the -x side comes closer. With -1 the fat on the +x side does.\n  5. Take the direction whose fat has more room. The displacement is d x (probe bandwidth) / bandwidth. Rule 1 is reached\n     when it is about the room plus 0.25 mm: deliver the bandwidth whose displacement is 0.9 x (room + 0.25 mm).",
+     "statement": "# Keep displaced fat off each marked region\nA disc of gel holds discs of fat. Each marked region lies in the gel between fat discs: one on each side along x.\nIn an image fat is displaced along the frequency-encode axis. Where it lands on a region it adds to the region's signal.\nFor each region the examination needs a spin-echo scan of its own in which the fat stays off that region, at the\nhighest signal-to-noise ratio this allows:\n    sequence se, tr_ms 500, te_ms 30, fov_mm 240, matrix 192, 1 average, slice 5 mm, pe_dir y;\n    you choose bandwidth_hz_per_px and ro_polarity.\nRegions (circles; centre and radius in mm from the isocentre):\n  R1: y -28.8, x -37.6, radius 5, signal-to-noise floor 42.1\n  R2: y -28, x 40.5, radius 5, signal-to-noise floor 37.7\n  R3: y 34.8, x 2.8, radius 5, signal-to-noise floor 39.7\nDeliver the settings of every region's scan with `submit`. The target scans are not run in this episode: the scanner\nevaluates the settings you deliver, without noise.\nYour own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names.\nThat scan is not charged to the scan-time budget and not limited by it.\nWhere the fat discs lie is not known in advance.\n\nPassing, for every region, in the scan delivered for it:\n  1. the mean fat signal over the area of the region is at most 5 % of its mean water signal;\n  2. the region's signal-to-noise ratio (its mean water signal / standard deviation of the noise in the real part of a pixel) is at least its floor;\n  3. that ratio is at least 88 % of the highest one that any bandwidth and readout direction reaches under rule 1.\nThe scanner's log must show that you measured. A value in another unit is wrong.\n\nHow to do it (this level states the method).\n  1. Scan twice at one low bandwidth, once with ro_polarity 1 and once with -1 (for example se, tr_ms 150, matrix 192,\n     bandwidth_hz_per_px 150; fov_mm and pe_dir as in the target scan).\n  2. On both scans take a `profile` along x through the centre of a region. Read where the fat on each side begins: where\n     the signal crosses the level half a fat signal above what lies in front of the fat (gel, or the dark gap the fat left).\n  3. The two readout directions move a fat border by the same distance d in opposite directions. Its true position is the\n     mean of the two readings and d is half their difference.\n  4. The room on a side is the distance from the true fat border to the edge of the region. With ro_polarity 1 fat moves\n     towards +x: the fat on the -x side comes closer. With -1 the fat on the +x side does.\n  5. Take the direction whose fat has more room. The displacement is d x (probe bandwidth) / bandwidth. Rule 1 is reached\n     when it is about the room plus 0.25 mm: deliver the bandwidth whose displacement is 0.9 x (room + 0.25 mm).",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -13996,8 +14023,8 @@
        ],
        "snr_floor": {
         "R1": 16.8,
-        "R2": 17.4,
-        "R3": 16.8
+        "R2": 17.5,
+        "R3": 16.9
        },
        "target_scan": {
         "averages": 1,
@@ -14150,7 +14177,7 @@
        "sigma0": 0.028385444568250023
       }
      },
-     "statement": "# Keep displaced fat off each marked region\nA disc of gel holds discs of fat. Each marked region lies in the gel between fat discs: one on each side along x.\nIn an image fat is displaced along the frequency-encode axis. Where it lands on a region it adds to the region's signal.\nFor each region the examination needs a spin-echo scan of its own in which the fat stays off that region, at the\nhighest signal-to-noise ratio this allows:\n    sequence se, tr_ms 500, te_ms 30, fov_mm 240, matrix 192, 1 average, slice 5 mm, pe_dir y;\n    you choose bandwidth_hz_per_px and ro_polarity.\nRegions (circles; centre and radius in mm from the isocentre):\n  R1: y -26.8, x -39.2, radius 5, signal-to-noise floor 16.8\n  R2: y -24.6, x 41, radius 5, signal-to-noise floor 17.4\n  R3: y 34.3, x -1.9, radius 5, signal-to-noise floor 16.8\nDeliver the settings of every region's scan with `submit`. The target scans are not run in this episode: the scanner\nevaluates the settings you deliver, without noise.\nYour own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names.\nThat scan is not charged to the scan-time budget and not limited by it.\nWhere the fat discs lie is not known in advance.\n\nPassing, for every region, in the scan delivered for it:\n  1. the mean fat signal over the area of the region is at most 5 % of its mean water signal;\n  2. the region's signal-to-noise ratio (its mean water signal / standard deviation of the noise in the real part of a pixel) is at least its floor;\n  3. that ratio is at least 88 % of the highest one that any bandwidth and readout direction reaches under rule 1.\nThe scanner's log must show that you measured. A value in another unit is wrong.",
+     "statement": "# Keep displaced fat off each marked region\nA disc of gel holds discs of fat. Each marked region lies in the gel between fat discs: one on each side along x.\nIn an image fat is displaced along the frequency-encode axis. Where it lands on a region it adds to the region's signal.\nFor each region the examination needs a spin-echo scan of its own in which the fat stays off that region, at the\nhighest signal-to-noise ratio this allows:\n    sequence se, tr_ms 500, te_ms 30, fov_mm 240, matrix 192, 1 average, slice 5 mm, pe_dir y;\n    you choose bandwidth_hz_per_px and ro_polarity.\nRegions (circles; centre and radius in mm from the isocentre):\n  R1: y -26.8, x -39.2, radius 5, signal-to-noise floor 16.8\n  R2: y -24.6, x 41, radius 5, signal-to-noise floor 17.5\n  R3: y 34.3, x -1.9, radius 5, signal-to-noise floor 16.9\nDeliver the settings of every region's scan with `submit`. The target scans are not run in this episode: the scanner\nevaluates the settings you deliver, without noise.\nYour own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names.\nThat scan is not charged to the scan-time budget and not limited by it.\nWhere the fat discs lie is not known in advance.\n\nPassing, for every region, in the scan delivered for it:\n  1. the mean fat signal over the area of the region is at most 5 % of its mean water signal;\n  2. the region's signal-to-noise ratio (its mean water signal / standard deviation of the noise in the real part of a pixel) is at least its floor;\n  3. that ratio is at least 88 % of the highest one that any bandwidth and readout direction reaches under rule 1.\nThe scanner's log must show that you measured. A value in another unit is wrong.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -14264,9 +14291,9 @@
         }
        ],
        "snr_floor": {
-        "R1": 34.6,
-        "R2": 38.4,
-        "R3": 39.5
+        "R1": 34.8,
+        "R2": 38.6,
+        "R3": 39.7
        },
        "target_scan": {
         "averages": 1,
@@ -14508,7 +14535,7 @@
        "sigma0": 0.022509628360457282
       }
      },
-     "statement": "# Keep displaced fat off each marked region\nA disc of gel holds discs of fat. Each marked region lies in the gel between fat discs: one on each of its four sides, along x and along y.\nIn an image fat is displaced along the frequency-encode axis. Where it lands on a region it adds to the region's signal.\nFor each region the examination needs a spin-echo scan of its own in which the fat stays off that region, at the\nhighest signal-to-noise ratio this allows:\n    sequence se, tr_ms 500, te_ms 30, fov_mm 240, matrix 192, 1 average, slice 5 mm;\n    you choose bandwidth_hz_per_px, ro_polarity and pe_dir.\nRegions (circles; centre and radius in mm from the isocentre):\n  R1: y -28.8, x -37.6, radius 5, signal-to-noise floor 34.6\n  R2: y -24.9, x 38.9, radius 5, signal-to-noise floor 38.4\n  R3: y 35.2, x 0.8, radius 5, signal-to-noise floor 39.5\nDeliver the settings of every region's scan with `submit`. The target scans are not run in this episode: the scanner\nevaluates the settings you deliver, without noise.\nYour own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names.\nThat scan is not charged to the scan-time budget and not limited by it.\nWhere the fat discs lie is not known in advance.\n\nPassing, for every region, in the scan delivered for it:\n  1. the mean fat signal over the area of the region is at most 5 % of its mean water signal;\n  2. the region's signal-to-noise ratio (its mean water signal / standard deviation of the noise in the real part of a pixel) is at least its floor;\n  3. that ratio is at least 88 % of the highest one that any bandwidth, readout direction and phase-encode axis reaches under rule 1.\nThe scanner's log must show that you measured. A value in another unit is wrong.",
+     "statement": "# Keep displaced fat off each marked region\nA disc of gel holds discs of fat. Each marked region lies in the gel between fat discs: one on each of its four sides, along x and along y.\nIn an image fat is displaced along the frequency-encode axis. Where it lands on a region it adds to the region's signal.\nFor each region the examination needs a spin-echo scan of its own in which the fat stays off that region, at the\nhighest signal-to-noise ratio this allows:\n    sequence se, tr_ms 500, te_ms 30, fov_mm 240, matrix 192, 1 average, slice 5 mm;\n    you choose bandwidth_hz_per_px, ro_polarity and pe_dir.\nRegions (circles; centre and radius in mm from the isocentre):\n  R1: y -28.8, x -37.6, radius 5, signal-to-noise floor 34.8\n  R2: y -24.9, x 38.9, radius 5, signal-to-noise floor 38.6\n  R3: y 35.2, x 0.8, radius 5, signal-to-noise floor 39.7\nDeliver the settings of every region's scan with `submit`. The target scans are not run in this episode: the scanner\nevaluates the settings you deliver, without noise.\nYour own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names.\nThat scan is not charged to the scan-time budget and not limited by it.\nWhere the fat discs lie is not known in advance.\n\nPassing, for every region, in the scan delivered for it:\n  1. the mean fat signal over the area of the region is at most 5 % of its mean water signal;\n  2. the region's signal-to-noise ratio (its mean water signal / standard deviation of the noise in the real part of a pixel) is at least its floor;\n  3. that ratio is at least 88 % of the highest one that any bandwidth, readout direction and phase-encode axis reaches under rule 1.\nThe scanner's log must show that you measured. A value in another unit is wrong.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -14778,12 +14805,12 @@
     "TOLERANCE": 0.1
    },
    "episode": {
-    "chain_head": "48867494a650028bc78f702f5bfef2d48b313a9e4302e00ab0632adc6ed15059",
+    "chain_head": "bfe7b9082b2111315ab9266eefbcb62c8d4a8795dc01afb1a7793202c1137e20",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 9,
-    "texts_sha256": "65f48881b1804d6451d48a55304366662e6fdfa868d18184b20ec8f8c7341d8f",
+    "texts_sha256": "d8275b033ce4045d841849376b53b88c60f76a8a5dda50db39bea2b0f83a0204",
     "used_s": 82.58
    },
    "levels": {
@@ -15335,12 +15362,12 @@
     "WIDE_MS": [60.0, 2000.0]
    },
    "episode": {
-    "chain_head": "daf91d0b48deb27cce3d58e71b9b117cfddedc7f6d66c24349f2f03690fb762a",
+    "chain_head": "ce9ad1928e4d1c4f15370330c24c2fb570eb4a77783bd9e033a2ea9cf6f588d1",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 5,
-    "texts_sha256": "88010dab9e6b7b2fe6598ae90be93378d825a59022a9f2247ffcf1700ba996e9",
+    "texts_sha256": "7ec98a9348542e1845ae1ab81ff39a60edf7ec79f7a076a9d91c7bd1da5b9a1c",
     "used_s": 157.5
    },
    "levels": {
@@ -15403,7 +15430,7 @@
        "tx_gain_dev": [0.0, 0.0]
       }
      },
-     "statement": "# Measure T1 of each marked vial\nA test object with vials of unknown materials lies in the field of view.\nDeliver the longitudinal relaxation time T1 of each marked region, in milliseconds, with `submit`.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -15.72, x -54.18, radius 11.5\n  R2: y 53.81, x -20.03, radius 11.5\n  R3: y -48.9, x 18.97, radius 11.5\nT1 values lie between 300 and 1500 ms. Nothing else about the object is known, and the noise level is not given.\nThe transmit calibration is correct: at the slice centre the flip angle is the nominal one, everywhere in the object.\nYour own scans may use any sequence and any parameters the console accepts; they are charged to the scan-time budget.\nA region read-out is a mean over the image as reconstructed: with partial Fourier the zero-filled lines mix the\nmaterial around a vial into it.\n\nPassing: for every region the delivered T1 lies within a factor 1.1 of the true T1 (between T1 / 1.1 and 1.1 x T1).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.\n\nHow to do it (this level states the procedure).\n  1. Run three inversion-recovery scans: sequence ir, tr_ms 1500, matrix 32 (no partial Fourier), with\n     ti_ms 30, 400 and 1450. Each costs 52.5 s. Read out the marked regions.\n  2. Sign the read-outs. At ti_ms 1450 every material is past its null, so its signal is positive: S3 =\n     `complex_mean_magnitude`. A read-out of the same region whose `complex_mean_phase_rad` differs from that of the\n     ti_ms 1450 scan by more than pi / 2 (after wrapping the difference into -pi .. pi) is negative: S = -magnitude.\n  3. At a fixed repetition time the signal is exactly S(TI) = a - b exp(-TI / T1). a and b drop out of\n         q = (S3 - S2) / (S2 - S1) = (exp(-400 / T1) - exp(-1450 / T1)) / (exp(-30 / T1) - exp(-400 / T1)).\n     The right side grows with T1. Find the T1 at which it equals the measured q, by bisection between 50 and 5000 ms.\n  4. Deliver that T1 in milliseconds for the region.\nDo not use S = M (1 - 2 exp(-TI / T1)): it assumes a repetition time of many T1 and a complete inversion.",
+     "statement": "# Measure T1 of each marked vial\nA test object with vials of unknown materials lies in the field of view.\nDeliver the longitudinal relaxation time T1 of each marked region, in milliseconds, with `submit`.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -15.72, x -54.18, radius 11.5\n  R2: y 53.81, x -20.03, radius 11.5\n  R3: y -48.9, x 18.97, radius 11.5\nT1 values lie between 300 and 1500 ms. Nothing else about the object is known, and the noise level is not given.\nThe transmit calibration is correct: at the slice centre the flip angle is the nominal one, everywhere in the object.\nYour own scans may use any sequence and any parameters the console accepts; they are charged to the scan-time budget.\nA region read-out is a mean over the image as reconstructed: with partial Fourier the image takes its phase from a\nlow-resolution image, which mixes the material around a vial into the read-out, and its noise is higher.\n\nPassing: for every region the delivered T1 lies within a factor 1.1 of the true T1 (between T1 / 1.1 and 1.1 x T1).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.\n\nHow to do it (this level states the procedure).\n  1. Run three inversion-recovery scans: sequence ir, tr_ms 1500, matrix 32 (no partial Fourier), with\n     ti_ms 30, 400 and 1450. Each costs 52.5 s. Read out the marked regions.\n  2. Sign the read-outs. At ti_ms 1450 every material is past its null, so its signal is positive: S3 =\n     `complex_mean_magnitude`. A read-out of the same region whose `complex_mean_phase_rad` differs from that of the\n     ti_ms 1450 scan by more than pi / 2 (after wrapping the difference into -pi .. pi) is negative: S = -magnitude.\n  3. At a fixed repetition time the signal is exactly S(TI) = a - b exp(-TI / T1). a and b drop out of\n         q = (S3 - S2) / (S2 - S1) = (exp(-400 / T1) - exp(-1450 / T1)) / (exp(-30 / T1) - exp(-400 / T1)).\n     The right side grows with T1. Find the T1 at which it equals the measured q, by bisection between 50 and 5000 ms.\n  4. Deliver that T1 in milliseconds for the region.\nDo not use S = M (1 - 2 exp(-TI / T1)): it assumes a repetition time of many T1 and a complete inversion.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -15486,7 +15513,7 @@
        "tx_gain_dev": [0.0, 0.0]
       }
      },
-     "statement": "# Measure T1 of each marked vial\nA test object with vials of unknown materials lies in the field of view.\nDeliver the longitudinal relaxation time T1 of each marked region, in milliseconds, with `submit`.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -40.09, x 43.31, radius 11.5\n  R2: y 4.58, x -54.78, radius 11.5\n  R3: y -54.11, x -21.91, radius 11.5\nT1 values lie between 300 and 1500 ms. Nothing else about the object is known, and the noise level is not given.\nThe transmit calibration is correct: at the slice centre the flip angle is the nominal one, everywhere in the object.\nYour own scans may use any sequence and any parameters the console accepts; they are charged to the scan-time budget.\nA region read-out is a mean over the image as reconstructed: with partial Fourier the zero-filled lines mix the\nmaterial around a vial into it.\n\nPassing: for every region the delivered T1 lies within a factor 1.1 of the true T1 (between T1 / 1.1 and 1.1 x T1).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
+     "statement": "# Measure T1 of each marked vial\nA test object with vials of unknown materials lies in the field of view.\nDeliver the longitudinal relaxation time T1 of each marked region, in milliseconds, with `submit`.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -40.09, x 43.31, radius 11.5\n  R2: y 4.58, x -54.78, radius 11.5\n  R3: y -54.11, x -21.91, radius 11.5\nT1 values lie between 300 and 1500 ms. Nothing else about the object is known, and the noise level is not given.\nThe transmit calibration is correct: at the slice centre the flip angle is the nominal one, everywhere in the object.\nYour own scans may use any sequence and any parameters the console accepts; they are charged to the scan-time budget.\nA region read-out is a mean over the image as reconstructed: with partial Fourier the image takes its phase from a\nlow-resolution image, which mixes the material around a vial into the read-out, and its noise is higher.\n\nPassing: for every region the delivered T1 lies within a factor 1.1 of the true T1 (between T1 / 1.1 and 1.1 x T1).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -15570,7 +15597,7 @@
        "tx_gain_dev": [0.0, 0.0]
       }
      },
-     "statement": "# Measure T1 of each marked vial\nA test object with vials of unknown materials lies in the field of view.\nDeliver the longitudinal relaxation time T1 of each marked region, in milliseconds, with `submit`.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -22.16, x -52.36, radius 11.5\n  R2: y 48.21, x 29.93, radius 11.5\n  R3: y 42.64, x -39.04, radius 11.5\nT1 values lie between 60 and 2000 ms. The longest of the marked T1 values is at least 10 times the shortest. Nothing else about the object is known, and the noise level is not given.\nThe transmit calibration is correct: at the slice centre the flip angle is the nominal one, everywhere in the object.\nYour own scans may use any sequence and any parameters the console accepts; they are charged to the scan-time budget.\nA region read-out is a mean over the image as reconstructed: with partial Fourier the zero-filled lines mix the\nmaterial around a vial into it.\n\nPassing: for every region the delivered T1 lies within a factor 1.1 of the true T1 (between T1 / 1.1 and 1.1 x T1).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
+     "statement": "# Measure T1 of each marked vial\nA test object with vials of unknown materials lies in the field of view.\nDeliver the longitudinal relaxation time T1 of each marked region, in milliseconds, with `submit`.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -22.16, x -52.36, radius 11.5\n  R2: y 48.21, x 29.93, radius 11.5\n  R3: y 42.64, x -39.04, radius 11.5\nT1 values lie between 60 and 2000 ms. The longest of the marked T1 values is at least 10 times the shortest. Nothing else about the object is known, and the noise level is not given.\nThe transmit calibration is correct: at the slice centre the flip angle is the nominal one, everywhere in the object.\nYour own scans may use any sequence and any parameters the console accepts; they are charged to the scan-time budget.\nA region read-out is a mean over the image as reconstructed: with partial Fourier the image takes its phase from a\nlow-resolution image, which mixes the material around a vial into the read-out, and its noise is higher.\n\nPassing: for every region the delivered T1 lies within a factor 1.1 of the true T1 (between T1 / 1.1 and 1.1 x T1).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {
@@ -15811,12 +15838,12 @@
     "TOLERANCE": 0.1
    },
    "episode": {
-    "chain_head": "236e5f9c1c085c686f3340e226dd18dba9082f9fc7287e1e64220972df1c3dd9",
+    "chain_head": "dfd9c833a7f288a93b7b44cd3222dd9aaed0bf109369d3f45cd70b5cbdf33cc0",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 11,
-    "texts_sha256": "50ecc292c6060403511545f0f4d87402b3919a95556dfcb8b0674c43ef0a1426",
+    "texts_sha256": "d3849313b9b3e9b8362962b9bafe47423afd701dc19007763025426eca5b78a1",
     "used_s": 81.6199
    },
    "levels": {
@@ -16258,12 +16285,12 @@
     "TOLERANCE": 0.04
    },
    "episode": {
-    "chain_head": "65333a3b3189640d9800ceed8bcd2c7df422a8bd06bb0b41c58bc0a1c6437de1",
+    "chain_head": "2ba03f6313170c77509f93e946730a1456123e1cacfd7f87fa0fd52aaef8a075",
     "passed": true,
     "policy_error": null,
     "reward": 1.0,
     "steps": 4,
-    "texts_sha256": "aa4fa6c26e5b1e5da71b4cddbbec718d831a5eea1f313ee18a14d007b61bb828",
+    "texts_sha256": "289218de23cf5d598e741ce9651475ce3852363b03b0fd04fa1e508c93e432ed",
     "used_s": 83.85
    },
    "levels": {

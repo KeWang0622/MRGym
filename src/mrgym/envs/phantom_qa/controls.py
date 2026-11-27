@@ -330,16 +330,20 @@ def tune(cfgs):
 
 # ------------------------------------------------------------------------------------------------ the label of a level
 def stored_gate() -> dict | None:
-    """The stored gate result of the id (``mrgym gate <id> --write``), else the development run shipped with the
-    family (``gate_dev.json``; its ``n`` is in the file)."""
+    """The stored gate result of the id (``mrgym gate <id> --write``) when it was measured on the installed engine,
+    else the development run shipped with the family (``gate_dev.json``; its ``n`` is in the file), else whatever is
+    stored (a result of another engine: ``task_kind`` names the engine it reads)."""
+    import mrgym
+
     from ... import gate
     g = gate.load(task.ENV_ID)
-    if g:
+    if g and g.get("engine") == mrgym.ENGINE_ID:
         return g
     try:
-        return json.loads(importlib.resources.files(__package__).joinpath("gate_dev.json").read_text(encoding="utf-8"))
+        dev = json.loads(importlib.resources.files(__package__).joinpath("gate_dev.json").read_text(encoding="utf-8"))
     except (FileNotFoundError, OSError):
-        return None
+        dev = None
+    return dev if dev and (dev.get("engine") == mrgym.ENGINE_ID or not g) else g or dev
 
 
 def task_kind(g: dict | None = None) -> dict:

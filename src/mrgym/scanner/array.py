@@ -2,8 +2,9 @@
 
 A world with ``world["array"]`` has N receive elements in addition to its single receive profile
 (``fields["rx"]``, which plays the body coil). The key is additive: a world without it is the world of before, and
-nothing in ``kspace`` reads it. The array is formed here, from outside the engine, through two of its public
-functions (``Engine.amplitudes``, ``Engine.kspace``).
+nothing in ``kspace`` reads it. The array is formed here, from outside the engine, through two of its functions: the
+amplitude maps of every tissue class, line by line where fat saturation treats the lines of fat differently
+(``Engine._species``, the maps behind ``Engine.amplitudes``), and ``Engine.kspace``.
 
 The array (``world["array"]``, a dict; hidden from the agent except ``n``, see ``public``)
     n, names     channel count, channel names
@@ -30,8 +31,10 @@ Formation (``ArrayEngine``), [image, channel, phase line, readout sample]:
                image of that lattice, times the maps sampled there, back to k-space. The map is taken where the
                spins are: inside the object, with the off-resonance displacement along the readout undone. Fat is
                formed without its chemical shift, weighted, and only then given its spectrum, so that every fat
-               peak is weighted at the position of the fat. What is left is the variation of a map inside the blur
-               of one acquired sample (``ArrayEngine.fast``; measured by ``ArrayEngine.formation_error``).
+               peak is weighted at the position of the fat. Under fat saturation (engine 0.3.0) every line of fat
+               has its own amplitude map and is formed, weighted and given its own frequency separately. What is
+               left is the variation of a map inside the blur of one acquired sample (``ArrayEngine.fast``;
+               measured by ``ArrayEngine.formation_error``).
 Noise: white noise per channel, drawn channel by channel in the order of the single-channel receiver (real part, then
 imaginary part), mixed with the Cholesky factor of ``psi``. One element with ``psi = [[1]]`` draws the numbers of
 ``Engine.acquire_kspace`` in the same order.
@@ -372,6 +375,8 @@ class ArrayEngine:
         # weights the object with the maps first and applies the spectrum afterwards). It also serves the geometry.
         self.engine = kspace.Engine(self._with_rx(lambda t: np.ones((t["n"], t["n"]), complex)), tier=tier, fat_model="single",
                                     effects=self.effects - {"chemshift"})
+        # The same world with the lines of the fat model: it gives the amplitude maps (under fat saturation one per line).
+        self.species = kspace.Engine(self.engine.w, tier=tier, fat_model=fat_model, effects=self.effects)
         self.fat_model = fat_model
         self._clean, self._maps, self._near = {}, {}, {}
 
@@ -467,31 +472,45 @@ class ArrayEngine:
         Water: object k-space on the extended lattice -> image -> x maps -> k-space. Fat: the same, formed without
         its chemical shift (``self.engine``), so that fat is weighted where it is; the spectrum of the fat model then
         multiplies the readout samples, spectrum(t0 + tau) with tau the time of the sample: every peak is displaced
-        by its own shift, exactly as in the engine, after the coil has weighted it."""
-        eng, rp = self.engine._frame(rp)
+        by its own shift, exactly as in the engine, after the coil has weighted it. Under fat saturation the lines of
+        a fat class are saturated by their place in the band of the pulse and have their own amplitude maps
+        (``Engine._species``): each line is then formed and weighted by itself and given its own frequency."""
+        (seng, _), (eng, rp) = self.species._frame(rp), self.engine._frame(rp)
         w, eff = eng.w, self.effects
         rp_f, p, r, pick_pe, pick_ro, g = self._extended(rp, eng)
         n_c = len(w["names"])
-        amps = [eng.amplitudes(rp, c) for c in range(n_c)]              # [class][contrast]
+        species = [seng._species(rp, c) for c in range(n_c)]            # [class] (lines or None, [contrast])
         fat = [bool(w["tissues"][nm]["fat"]) for nm in w["names"]]
         maps = self._lattice_maps(eng, rp, p, r, g)
         echo = "gre" if rp["sequence"] in ("spgr", "afi", "epi") else "se"
         tau = rp["ro_polarity"] * (np.arange(g["k_ro"]) - g["k_ro"] // 2) / (g["k_ro"] * rp["bandwidth_hz_per_px"])
         peaks = tissue.FAT_PEAKS if self.fat_model == "multipeak" else ((tissue.FAT_PPM, 1.0),)
+        n_lines = max([len(lines) for lines, _ in species if lines is not None], default=0)
+        # the groups that are formed separately: water; fat that evolves as one species; line j of the fat that does not
+        groups = [("water", None), ("fat", None)] + [("line", j) for j in range(n_lines)]
         out = []
-        for k in range(len(amps[0])):
+        for k in range(len(species[0][1])):
             for te in rp["echo_times_ms"]:
                 acc = 0.0
-                for is_fat in (False, True):
-                    keep = [v == is_fat for v in fat]
-                    if not any(keep):
+                t0 = 1e-3 * te if echo == "gre" else 0.0
+                t = t0 + (tau if "chemshift" in eff else 0 * tau)
+                carrier = S.fat_spectrum(np.array(t0), w["b0_t"], ((tissue.FAT_PPM, 1.0),))      # what the one-line engine put in at the echo
+                for kind, j in groups:
+                    amps, spec = [None] * n_c, None
+                    for c in range(n_c):
+                        lines, amp = species[c]
+                        if kind == "line" and lines is not None:
+                            amps[c] = lines[j][1] * amp[k][j]                    # share of the line x its amplitude map
+                            spec = S.fat_spectrum(t, w["b0_t"], ((lines[j][0], 1.0),))
+                        elif lines is None and (kind == "fat") == fat[c] and kind != "line":
+                            amps[c] = amp[k]
+                            spec = S.fat_spectrum(t, w["b0_t"], peaks) if fat[c] else None
+                    if all(a is None for a in amps):
                         continue
-                    k0 = eng.kspace(rp_f, te, [amps[c][k] if keep[c] else np.zeros_like(amps[c][k]) for c in range(n_c)])
+                    k0 = eng.kspace(rp_f, te, [np.zeros(int(np.count_nonzero(eng.sup[c])), complex) if a is None else a for c, a in enumerate(amps)])
                     part = np.fft.fft2(np.fft.ifft2(np.fft.ifftshift(k0))[None] * maps, axes=(1, 2))[:, pick_pe][:, :, pick_ro]
-                    if is_fat:
-                        t0 = 1e-3 * te if echo == "gre" else 0.0
-                        spec = S.fat_spectrum(t0 + (tau if "chemshift" in eff else 0 * tau), w["b0_t"], peaks)
-                        part = part * (spec / S.fat_spectrum(np.array(t0), w["b0_t"], ((tissue.FAT_PPM, 1.0),)))[None, None, :]
+                    if spec is not None:
+                        part = part * (spec / carrier)[None, None, :]
                     acc = acc + part
                 out.append(acc)
         return np.array(out)

@@ -25,7 +25,7 @@ validation:
     mode: no-network
   task_distribution:
     generator_seed: 0
-    dataset_version: "mrgym-engine-0.2.0"
+    dataset_version: "mrgym-engine-0.3.0"
   capabilities:
     verifier:
       kind: reward_channel

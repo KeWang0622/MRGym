@@ -22,7 +22,7 @@ Verified on the published code: run `v17` at commit `18089f2` (8 x H200, 60 step
 | Never-trained level · `NoWrap-v1 L3` | 0 % (0 / 96) | 4 % (4 / 96) | +4.2 [-0.9, +9.2] |
 | Another task family (never trained) · `NullTissue-v0 L0` | 33 % (32 / 96) | 77 % (74 / 96) | +43.8 [+31.5, +56.0] |
 
-Evidence: run `v17` at commit `18089f2`, 48 secret instances x 2 episodes per row, base and trained on the same instances. The trained level's gain was measured in 4 independent training runs: +33.3 [+22.0, +44.7] (`v17`), +57.3 [+46.9, +67.7] (`v07`), +53.1 [+38.0, +68.3] (`v09`), +44.8 [+33.5, +56.1] (`v11`). Exploratory: the pre-registered rule needs 2 trained environments, each run trained 1 that meets it. The other family's row is a practice level whose text states the method. [Full report](../docs/experiments/RESULTS-27b.md).
+Evidence: run `v17` at commit `18089f2`, 48 secret instances x 2 episodes per row, base and trained on the same instances. The trained level's gain was measured in 4 independent training runs: +33.3 [+22.0, +44.7] (`v17`), +57.3 [+46.9, +67.7] (`v07`), +53.1 [+38.0, +68.3] (`v09`), +44.8 [+33.5, +56.1] (`v11`). Exploratory: the pre-registered rule needs 2 trained environments, each run trained 1 that meets it. The other family's row is a practice level whose text states the method. Measured on engine `mrgym-engine-0.2.0`; this package serves engine `mrgym-engine-0.3.0`, on which the runs have not been repeated. [Full report](../docs/experiments/RESULTS-27b.md).
 <!-- TRAINING:END -->
 
 ## What you need

@@ -80,18 +80,25 @@ def test_the_task_table_has_one_row_per_registered_id_with_its_card_and_a_plain_
     for name, what, kind, status in rows:
         env_id = re.search(r"`([^`]+)`", name)[1]
         assert f"](envs/{cards.slug(env_id)}/)" in name and os.path.exists(os.path.join(ROOT, "envs", cards.slug(env_id), "README.md"))
-        assert status.rstrip(" |") == generate.STATUS[mrgym.spec(env_id).kind] and 3 <= len(what.split()) <= 10, env_id
+        spec = mrgym.spec(env_id)                                       # an id known not to work as stated on this engine says so, whatever its kind
+        assert status.rstrip(" |") == (generate.NOT_READY if spec.not_ready else generate.STATUS[spec.kind]) and 3 <= len(what.split()) <= 10, env_id
+        assert "ready" != status.rstrip(" |") or (mrgym.card(env_id)["gate"] or {}).get("engine") == mrgym.ENGINE_ID, env_id
         on_map = physics_map.family_of(env_id)
         assert kind == (kinds[on_map[1].kind - 1] if on_map else "-") and placed[env_id] == (physics_map.cell(on_map[1])[0] if on_map else None)
     assert set(generate.STATUS) == set(cards.KINDS) and generate.STATUS["admitted"] == "ready"
     for s in physics_map.SUBJECTS:                                       # inside a subject: by kind of task, and ready tasks first inside a kind
-        mine = [(kinds.index(r[2]), ["ready", "experimental", "no score"].index(r[3].rstrip(" |"))) for r in rows
+        mine = [(kinds.index(r[2]), ["ready", "experimental", "no score", generate.NOT_READY].index(r[3].rstrip(" |"))) for r in rows
                 if placed[re.search(r"`([^`]+)`", r[0])[1]] == s.letter]
         assert mine == sorted(mine), s.letter
     note, c = generate.tasks_note(), physics_map.coverage()["total"]    # the paragraph under the table: its numbers are those of the map
     assert (f"[The map](docs/tasks.md) lists {c['listed']} pieces of MR physics: the scanner forms {c['formed']}, and {c['isolated']} have a task "
             "of their own." in " ".join(note.split()))
-    assert len(note.splitlines()) <= 3 and all(len(ln) <= 120 for ln in note.splitlines()) and "[The\n" not in note
+    assert len(note.splitlines()) <= 5 and all(len(ln) <= 120 for ln in note.splitlines()) and "[The\n" not in note
+    # a check counts on the engine it was made on: with every stored check from another engine no task is ready, and the note says so
+    gates = [g for g in (mrgym.card(i)["gate"] for i in mrgym.list_envs()) if g]
+    if gates and all(g["engine"] != mrgym.ENGINE_ID for g in gates):
+        assert "| ready |" not in table and "No task is marked ready" in note and mrgym.ENGINE_VERSION in note
+    assert ("its card says why" in note) == any(mrgym.spec(i).not_ready for i in mrgym.list_envs())
 
 
 def test_what_left_the_front_page_is_generated_on_the_tour_page():

@@ -1,5 +1,11 @@
 """``Scanner/FatSuppress-v0``: the verifier's rules on a table of deliverables, scoring mutants, the hidden world
-(everything comes out of ``make_world``; the keys the family uses, with a physics check), the independent oracle, and the controls on a few instances."""
+(everything comes out of ``make_world``; the keys the family uses, with a physics check), the independent oracle, and the controls on a few instances.
+
+Engine 0.3.0. Fat saturation acts line by line and drives a steady state: the lines outside the band of the pulse keep
+their signal (9 to 31 % of the fat spectrum for the bands of this family), so with the thresholds of the task statement
+(5 % and 3 %) fat saturation passes in no region, the best answer is inversion recovery everywhere, and the second pass
+rule ("inversion recovery only where fat saturation is not enough") cannot fail. The table states that; the rule
+itself is checked with thresholds at which it can decide (``test_the_method_rule_decides_where_fat_saturation_can_be_enough``)."""
 import copy
 
 import numpy as np
@@ -28,26 +34,28 @@ def _instance(level, seed):
 
 @pytest.fixture(scope="module")
 def mixed():
-    """A level-1 instance with a region where fat saturation clearly works and one where it clearly does not."""
+    """A level-1 instance with a region where the saturation pulse holds the main fat lines (what is left is the lines
+    outside its band, about a quarter) and one where it misses."""
     for seed in range(60):
         cfg, world, engine = _instance(1, f"table:{seed}")
         tr = oracle.truth(cfg, world)
-        works = [i for i, r in tr.items() if r["fat_sat_left"] < 0.02]
-        fails = [i for i, r in tr.items() if r["fat_sat_left"] > 0.30]
+        works = [i for i, r in tr.items() if r["fat_sat_left"] < 0.25]
+        fails = [i for i, r in tr.items() if r["fat_sat_left"] > 0.40]
         if works and fails:
             return dict(cfg=cfg, world=world, engine=engine, truth=tr, works=works[0], fails=fails[0])
     raise AssertionError("no instance for the table")
 
 
 def _rows(s):
-    """Deliverables and what each region's two checks must say. The base is the oracle's answer."""
+    """Deliverables and what each region's two checks must say. The base is the oracle's answer: inversion recovery
+    at the null in every region."""
     tr, a, b = s["truth"], s["works"], s["fails"]
     base = oracle.answer(s["cfg"], s["world"])
-    assert base[a]["method"] == "fat_sat" and base[b]["method"] == "stir"
+    assert {e["method"] for e in base.values()} == {"stir"} and min(r["fat_sat_left"] for r in tr.values()) > task.FAT_MAX
     with_ = lambda **kw: {**base, **kw}                                    # noqa: E731
     return [
         ("oracle", base, {}),
-        ("stir where fat saturation works", with_(**{a: dict(method="stir", ti_ms=tr[a]["null_ms"])}), {f"method_{a}": False, f"suppressed_{a}": True}),
+        ("fat saturation where its band holds the main lines", with_(**{a: dict(method="fat_sat")}), {f"suppressed_{a}": False, f"method_{a}": True}),
         ("fat saturation where it fails", with_(**{b: dict(method="fat_sat")}), {f"suppressed_{b}": False, f"method_{b}": True}),
         ("null missed by a quarter", with_(**{b: dict(method="stir", ti_ms=round(1.25 * tr[b]["null_ms"], 1))}), {f"suppressed_{b}": False}),
         ("null of another region", with_(**{b: dict(method="stir", ti_ms=round(tr[b]["null_ms"] * 0.8, 1))}), {f"suppressed_{b}": False}),
@@ -100,9 +108,9 @@ def _mutants(s):
         real = task.residuals
         mp.setattr(task, "residuals", lambda *x, **k: {i: dict(r, delivered=min(r["delivered"], 0.01)) for i, r in real(*x, **k).items()})
 
-    return [("method rule dropped", method_rule_dropped, ("stir where fat saturation works",)),
+    return [("method rule dropped", method_rule_dropped, ("oracle",)),      # cannot be seen with the thresholds of the task: see the next test
             ("threshold inverted", threshold_inverted, ("oracle", "null missed by a quarter")),
-            ("first region only", first_region_only, ("stir where fat saturation works", "fat saturation where it fails", "null missed by a quarter")),
+            ("first region only", first_region_only, ("fat saturation where its band holds the main lines", "fat saturation where it fails", "null missed by a quarter")),
             ("best region instead of every", best_region_instead_of_every, ("fat saturation where it fails", "null missed by a quarter")),
             ("fat saturation not scanned", fat_sat_not_scanned, ("fat saturation where it fails",)),
             ("unsuppressed reference dropped", unsuppressed_reference_dropped, ("null missed by a quarter", "fat saturation where it fails"))]
@@ -120,8 +128,47 @@ def test_scoring_mutants_are_killed(mixed, monkeypatch):
         mixed["cfg"]["task"]["fat_sat_sufficient"] = keep
         if any(got[e]["passed"] != truth[e]["passed"] for e in exposing):
             killed.append(name)
-    assert len(killed) >= 5, killed
-    assert {"method rule dropped", "threshold inverted", "fat saturation not scanned", "best region instead of every"} <= set(killed)
+    assert len(killed) >= 4, killed
+    assert {"threshold inverted", "fat saturation not scanned", "best region instead of every"} <= set(killed)
+    assert "method rule dropped" not in killed            # engine 0.3.0: rule 2 decides nothing at 5 % / 3 % (the next test is its check)
+
+
+def test_the_method_rule_decides_where_fat_saturation_can_be_enough(mixed, monkeypatch):
+    """Rule 2 of the verifier with thresholds at which fat saturation can pass (30 % and 27 %; the task's are 5 % and
+    3 %, which no saturation band reaches on engine 0.3.0): inversion recovery is refused where fat saturation leaves
+    less than the lower threshold, and dropping the rule lets it through."""
+    cfg = copy.deepcopy(mixed["cfg"])
+    cfg["task"].update(fat_max=0.30, fat_sat_sufficient=0.27)
+    tr, a, b = mixed["truth"], mixed["works"], mixed["fails"]
+    base = oracle.answer(cfg, mixed["world"])
+    assert base[a] == dict(method="fat_sat") and base[b]["method"] == "stir"
+    score = lambda answer: task.score(cfg, answer, mixed["world"], mixed["engine"])       # noqa: E731
+    assert score(base)["passed"]
+    given_away = score({**base, a: dict(method="stir", ti_ms=tr[a]["null_ms"])})
+    assert not given_away["passed"] and given_away["checks"][f"method_{a}"] is False and given_away["checks"][f"suppressed_{a}"] is True
+    assert f"{a}: fat saturation is enough" in given_away["diagnostic"]
+    missed = score({**base, b: dict(method="fat_sat")})
+    assert not missed["passed"] and missed["checks"][f"suppressed_{b}"] is False and missed["checks"][f"method_{b}"] is True
+    cfg["task"]["fat_sat_sufficient"] = -1.0                                # the mutant: the rule dropped
+    assert score({**base, a: dict(method="stir", ti_ms=tr[a]["null_ms"])})["passed"]
+
+
+def test_on_this_engine_fat_saturation_passes_in_no_region():
+    """Why the id is registered as not ready (``spec.not_ready``): on 24 instances over the three levels the best fat
+    saturation leaves more than ``FAT_MAX`` of the signal in every marked region (the oracle's closed form, which
+    ``test_oracle_closed_form_agrees_with_the_verifier_scans`` holds against the verifier's scans), so the oracle
+    delivers inversion recovery everywhere and the method rule decides nothing. The status line and the card say so."""
+    least = 1.0
+    for level in (1, 2, 3):
+        for seed in range(8):
+            cfg, world, _ = _instance(level, f"ready:{seed}")
+            tr = oracle.truth(cfg, world)
+            least = min(least, min(r["fat_sat_left"] for r in tr.values()))
+            assert {e["method"] for e in oracle.answer(cfg, world, tr).values()} == {"stir"}
+    assert least > task.FAT_MAX > task.FAT_SAT_SUFFICIENT, least
+    spec, card = mrgym.spec(ENV), mrgym.card(ENV)
+    assert spec.not_ready and spec.kind != "admitted" and "Scanner/FatSuppress-v1" in spec.not_ready
+    assert f"NOT READY on this engine: {spec.not_ready}" in card["status"] or (card["gate"] or {}).get("engine") == mrgym.ENGINE_ID
 
 
 def test_deliverables_the_console_cannot_evaluate_are_refused_and_the_episode_goes_on():
@@ -145,7 +192,7 @@ def test_statement_prints_every_number_and_hides_the_world():
         assert f"{number:g}" in text, number
     assert len(t["regions"]) == task.QA["n_oil"] and all(r["id"] in text for r in t["regions"])
     assert not {"seed", "b0_hz", "oil_t1_jitter", "cls"} & set(str(t).replace("'", " ").split())
-    assert mrgym.spec(ENV).kind == "admitted" and set(mrgym.card(ENV)) >= {"task_kind", "task_kind_why", "controls", "levels", "reward"}
+    assert mrgym.spec(ENV).kind == "candidate" and set(mrgym.card(ENV)) >= {"task_kind", "task_kind_why", "controls", "levels", "reward"}   # no gate on engine 0.3.0 yet
     assert set(task.COMPETENCIES) <= set(coverage.ids()) and mrgym.card(ENV)["competencies"] == list(task.COMPETENCIES)
 
 
@@ -205,22 +252,28 @@ def test_world_key_fatsat_bw_hz_is_additive_and_scales_with_the_field():
 
 
 def test_physics_the_saturated_band_has_the_width_of_the_hidden_pulse():
-    """Physics check of the key: fat in a uniform field, the saturation pulse swept across the fat line with the
-    console's ``fatsat_offset_hz``. The fat is saturated while the pulse covers its line; the width of that range at
-    half depth is the hidden bandwidth of the pulse, and the depth is the hidden efficiency."""
+    """Physics check of the key: one fat line in a uniform field (``fat_model="single"``), the saturation pulse swept
+    across it with the console's ``fatsat_offset_hz``. The line is saturated while the pulse covers it; the width of
+    that range at half depth is the hidden bandwidth of the pulse. The depth is what the hidden efficiency leaves of
+    the longitudinal magnetisation plus what recovers in the 7 ms before the excitation (engine 0.3.0; 0.2.0 served
+    1 - efficiency at every repetition time): with exact pulses (q m Es + 1 - Es) / (m Es + 1 - Es), q = 1 - 0.9."""
     from mrgym.scanner import console
     disc = lambda y, x: np.hypot(y, x) - 60.0                             # noqa: E731
     for band in (90.0, 166.0, 280.0):
         world = W.flat_world(W.shapes_phantom([("subcut_fat", disc)], n=96), fatsat_bw_hz=band, fatsat_eff=0.9)
-        engine = kspace.Engine(world)
+        engine = kspace.Engine(world, fat_model="single")
         c = world["names"].index("subcut_fat")
         centre = np.argmax(world["weights"][c][engine.sup[c]])
-        amp = lambda **kw: abs(engine.amplitudes(console.plan(dict(sequence="se", tr_ms=500.0, matrix=32, **kw), world["console"])["realised"], c)[0][centre])   # noqa: E731
+        plan = lambda **kw: console.plan(dict(sequence="se", tr_ms=500.0, matrix=32, excitation="nonselective", **kw), world["console"])["realised"]   # noqa: E731
+        amp = lambda **kw: abs(engine.amplitudes(plan(**kw), c)[0][centre])   # noqa: E731
         plain = amp()
         offsets = np.arange(-250.0, 250.5, 2.0)
         left = np.array([amp(fat_sat=True, fatsat_offset_hz=float(o)) for o in offsets]) / plain
-        assert left.min() == pytest.approx(1.0 - 0.9, abs=2e-3) and left[[0, -1]].min() > (0.95 if band < 200.0 else 0.6)
-        inside = offsets[left < 1.0 - 0.45]                               # half the depth of the saturation
+        t1, te = world["tissues"]["subcut_fat"]["t1_ms"], plan()["te_ms"]
+        es, m = np.exp(-7.0 / t1), 1 - (2 - np.exp(-te / 2 / t1)) * np.exp(-(500.0 - te / 2 - 7.0) / t1)
+        depth = (0.1 * m * es + 1 - es) / (m * es + 1 - es)               # 0.124
+        assert left.min() == pytest.approx(depth, abs=1e-4) and left[[0, -1]].min() > (0.95 if band < 200.0 else 0.6)
+        inside = offsets[left < 0.5 * (1 + depth)]                        # half the depth of the saturation
         assert inside.max() - inside.min() == pytest.approx(band, abs=4.0), band
         assert abs(inside.max() + inside.min()) <= 4.0                    # centred on the fat line
 

@@ -5,7 +5,10 @@ six scoring / pricing / budget edits, and two edits that are valid physics but o
 fields). M17 to M19 are edits of module-level constants of the family code, where a mutation tool does not reach. M08, M09, M11 and
 M12 were written against the two v0 environments; they are the same defects in the code of their v1 successors. M20 to M30
 are further edits of the two v1 families (pass rules, constants, the oracle).
-M31 to M33 are defects of the slice-selective path of engine 0.2.0.
+M31 to M33 are defects of the slice-selective path of engine 0.2.0. M34 to M38 undo, one at a time, the corrections of
+engine 0.3.0 (homodyne weights, fat saturation line by line, the recovery after the saturation pulse, the calibration
+of the slice gradient) and flip the sign of the centre-frequency adjustment. M39 and M40 put back the sign of the
+``bssfp`` phase cycle of engine 0.2.0, for hard pulses and for a slice.
 
     python tools/audit/hand_mutants.py                 all mutants, 2 at a time; exit 1 unless every one is killed
     python tools/audit/hand_mutants.py --only M07 M11  some of them
@@ -43,10 +46,12 @@ MUTANTS = [
     ("M01", "physics", "EPG recovery term uses E2 instead of E1", S + "epg.py",
      "    b[4] = 1 - e1 ", "    b[4] = 1 - e2 "),
     ("M02", "physics", "spin echo: sin(beta / 2) instead of sin^2(beta / 2)", S + "signal.py",
-     'mz = mz_steady([("rf", np.cos(a)), ("wait", te_ms / 2), ("rf", np.cos(beta)), ("wait", tr_ms - te_ms / 2)], t1_ms)\n'
-     "    return mz * np.sin(a) * np.sin(beta / 2) ** 2",
-     'mz = mz_steady([("rf", np.cos(a)), ("wait", te_ms / 2), ("rf", np.cos(beta)), ("wait", tr_ms - te_ms / 2)], t1_ms)\n'
-     "    return mz * np.sin(a) * np.sin(beta / 2)"),
+     "events = se_events(a, tr_ms, te_ms)\n"
+     "    mz = mz_steady(events, t1_ms) if sat is None else mz_saturated(events, t1_ms, sat[0], sat[1])\n"
+     "    return mz * np.sin(a) * np.sin(a) ** 2",
+     "events = se_events(a, tr_ms, te_ms)\n"
+     "    mz = mz_steady(events, t1_ms) if sat is None else mz_saturated(events, t1_ms, sat[0], sat[1])\n"
+     "    return mz * np.sin(a) * np.sin(a)"),
     ("M03", "physics", "inversion recovery forgets TI in the recovery period", S + "signal.py",
      '("wait", tr_ms - ti_ms - te_ms / 2)', '("wait", tr_ms - te_ms / 2)'),
     ("M04", "physics", "averaging does not reduce the noise", S + "kspace.py",
@@ -111,14 +116,30 @@ MUTANTS = [
      'return {r["id"]: float(truth[cfg["task"]["regions"][0]["id"]]["t1_ms"]) for r in cfg["task"]["regions"]}'),
     # ---- engine 0.2.0: the slice-selective path (M02, M03 and M13 edit the hard-pulse forms, which now serve
     # ``excitation: nonselective`` only; these are the same kind of defect where the default scan is computed)
-    ("M31", "physics", "slice-selective inversion recovery forgets TI in the recovery period", S + "kspace.py",
-     'events += [("wait", rp["tr_ms"] - rp["ti_ms"] - rp["te_ms"] / 2), ("rf", -inv_eff), ("wait", rp["ti_ms"])]',
-     'events += [("wait", rp["tr_ms"] - rp["te_ms"] / 2), ("rf", -inv_eff), ("wait", rp["ti_ms"])]'),
+    # engine 0.3.0: the cycle of the inversion recovery is written once (signal.ir_events, mutant M03) for hard and
+    # selective pulses; the defect of the selective path that is left to plant is the inversion efficiency
+    ("M31", "physics", "slice-selective inversion recovery takes the inversion as complete", S + "kspace.py",
+     'return S.ir_events(theta, rp["tr_ms"], rp["te_ms"], rp["ti_ms"], inv_eff, 1 - 2 * echo), np.sin(theta) * echo',
+     'return S.ir_events(theta, rp["tr_ms"], rp["te_ms"], rp["ti_ms"], 1.0, 1 - 2 * echo), np.sin(theta) * echo'),
     ("M32", "constant", "refocusing slice as thin as the excitation slice (1.0 for 1.5)", S + "rf.py",
      "REFOCUS_WIDTH = 1.5 ", "REFOCUS_WIDTH = 1.0 "),
     ("M33", "physics", "slice-selective spin echo: the refocusing pulse does not touch Mz", S + "kspace.py",
-     'events = [("rf", np.cos(theta)), ("wait", rp["te_ms"] / 2), ("rf", 1 - 2 * prof["echo"])]',
-     'events = [("rf", np.cos(theta)), ("wait", rp["te_ms"] / 2), ("rf", 1 - 0 * prof["echo"])]'),
+     'return S.se_events(theta, rp["tr_ms"], rp["te_ms"], 1 - 2 * echo), np.sin(theta) * echo',
+     'return S.se_events(theta, rp["tr_ms"], rp["te_ms"], 1 - 0 * echo), np.sin(theta) * echo'),
+    ("M34", "physics", "partial Fourier: the lines without a conjugate partner weigh 1 (zero filling under a homodyne reconstruction)", S + "kspace.py",
+     "np.where(order > n, 2.0, np.where(order >= -n, 1.0, 0.0))", "np.where(order > n, 1.0, np.where(order >= -n, 1.0, 0.0))"),
+    ("M35", "physics", "fat saturation: every line of the fat is saturated as the main line is", S + "kspace.py",
+     'sat_band(df + ppm * f0 - centre, sy["fatsat_bw_hz"])', 'sat_band(df + tissue.FAT_PPM * f0 - centre, sy["fatsat_bw_hz"])'),
+    ("M36", "physics", "fat saturation: nothing recovers between the saturation pulse and the excitation", S + "signal.py",
+     "return es * a, 1 - es, es * b", "return es * a, 0 * (1 - es), es * b"),
+    ("M37", "physics", "slice gradient at the nominal bandwidth of the pulse (not calibrated to the width at half maximum)", S + "rf.py",
+     "dphi = 2 * np.pi * tbw * fwhm_factor(tbw, window, n) * zeta / n", "dphi = 2 * np.pi * tbw * 1.0 * zeta / n"),
+    ("M38", "physics", "cf_shift_hz moves the off-resonance the wrong way", S + "kspace.py",
+     "self.df - key[0] + key[1] * self._yx[0]", "self.df + key[0] + key[1] * self._yx[0]"),
+    ("M39", "physics", "bssfp, hard pulses: the RF phase advance counted the wrong way (bands at -phase cycle / 360 / TR)", S + "kspace.py",
+     'S.bssfp(a, free - np.deg2rad(rp["phase_cycle_deg"])', 'S.bssfp(a, free + np.deg2rad(rp["phase_cycle_deg"])'),
+    ("M40", "physics", "bssfp of a slice: the RF phase advance counted the wrong way", S + "kspace.py",
+     'th = free - np.deg2rad(rp["phase_cycle_deg"])', 'th = free + np.deg2rad(rp["phase_cycle_deg"])'),
 ]
 REVIEW = [m[0] for m in MUTANTS[:16]]
 

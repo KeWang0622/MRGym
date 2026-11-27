@@ -148,7 +148,7 @@ def region_keep(ratio: float, tr_ms: float, theta_deg, hard: bool = False, t2_ms
     the phase per TR of each of its pixels at phase cycle 0 (the console reads a region as the complex mean over the
     pixels whose centre lies in its circle; the field, and with it the phase per TR, changes across them)."""
     table = band_table(round(float(ratio), 4), round(float(tr_ms), 4), round(float(t2_ms), 3), hard)
-    pos = (np.arange(360.0)[:, None] + np.asarray(theta_deg, float)[None, :]) % 720.0
+    pos = (np.asarray(theta_deg, float)[None, :] - np.arange(360.0)[:, None]) % 720.0
     lo = np.floor(pos).astype(int)
     a = np.abs((table[lo] * (1 - (pos - lo)) + table[(lo + 1) % 720] * (pos - lo)).mean(1))
     return a / a.max()
@@ -159,7 +159,7 @@ def fit_band(theta_deg, phases_deg, readouts, tr_ms: float, shifts_deg=(0.0,), r
     cycles of one repetition time. ``theta_deg`` [pixel]: the phase per TR of every pixel as the field map has it;
     ``readouts`` [pixel, scan]. Least squares of
 
-        read-out x exp(i phase cycle / 2) = c x band_table(ratio, T2)[theta + shift + phase cycle]
+        read-out x exp(-i phase cycle / 2) = c x band_table(ratio, T2)[theta + shift - phase cycle]
 
     over a grid of ratios T1 / T2 and of T2, the candidate ``shifts_deg`` (the field map is off by a little
     everywhere in a vial) and one complex factor c (receive gain and phase). The field changes across a vial, so the
@@ -169,9 +169,9 @@ def fit_band(theta_deg, phases_deg, readouts, tr_ms: float, shifts_deg=(0.0,), r
     with the wrong T2 fits a wrong ratio (the data then fix T1, and the band comes out too narrow or too wide).
     Returns (ratio, T2 in ms, shift in degrees, relative misfit)."""
     theta, ph = np.asarray(theta_deg, float), np.asarray(phases_deg, float)
-    d = np.asarray(readouts, complex) * np.exp(0.5j * np.deg2rad(ph))[None, :]
+    d = np.asarray(readouts, complex) * np.exp(-0.5j * np.deg2rad(ph))[None, :]
     shifts = np.asarray(shifts_deg, float)
-    pos = (theta[None, :, None] + ph[None, None, :] + shifts[:, None, None]) % 720.0     # [shift, pixel, scan]
+    pos = (theta[None, :, None] - ph[None, None, :] + shifts[:, None, None]) % 720.0     # [shift, pixel, scan]
     lo = np.floor(pos).astype(int)
     frac = pos - lo
     energy = max(float((np.abs(d) ** 2).sum()), 1e-30)
@@ -409,7 +409,7 @@ def scout_phases(vials: list, tr_ms: float, n=4) -> list:
     combos = np.array(list(itertools.combinations(range(len(cand)), n)))
     worst, total = np.full(len(combos), np.inf), np.zeros(len(combos))
     for v in vials:
-        delta = (360.0 * v["coef"][0] * tr_ms * 1e-3 + cand + 180.0) % 360.0 - 180.0     # phase per TR from the middle of the band
+        delta = (360.0 * v["coef"][0] * tr_ms * 1e-3 - cand + 180.0) % 360.0 - 180.0     # phase per TR from the middle of the band
         up, down = (np.exp(-((delta * sign - FLANK_DEG) / FLANK_WIDTH_DEG) ** 2)[combos].max(1) for sign in (1.0, -1.0))
         served = np.maximum(up, down) + 0.5 * np.minimum(up, down)
         worst, total = np.minimum(worst, served), total + served
@@ -553,13 +553,16 @@ def brute_force(sc):
 
 
 # tuned by ``python -m mrgym.envs.band_free.controls --n 150`` on 150 worlds per level of the tune split (seeds constant:<i>),
-# which the gate never plays; engine 0.2.0. ``tuned_pass_rate``: of the recipe on those worlds, under the verifier's rules
-CONSTANTS = {1: {"A": {"bandwidth_hz_per_px": 144.7, "spread_power": 0.5, "phase_cycle_deg": [275.0]},
-                 "B": {"bandwidth_hz_per_px": 139.0, "spread_power": 0.0, "phase_cycle_deg": [265.0]}, "tuned_pass_rate": 0.027},
-             2: {"A": {"bandwidth_hz_per_px": 335.1, "spread_power": 0.0, "phase_cycle_deg": [300.0]},
-                 "B": {"bandwidth_hz_per_px": 150.6, "spread_power": 0.0, "phase_cycle_deg": [130.0]}, "tuned_pass_rate": 0.027},
-             3: {"A": {"bandwidth_hz_per_px": 119.1, "spread_power": 1.0, "phase_cycle_deg": [0.0, 75.0]},
-                 "B": {"bandwidth_hz_per_px": 119.1, "spread_power": 0.0, "phase_cycle_deg": [215.0]}, "tuned_pass_rate": 0.027}}
+# which the gate never plays; engine 0.2.0. ``tuned_pass_rate``: of the recipe on those worlds, under the verifier's rules.
+# Engine 0.3.0 counts the phase cycle the other way (the bands sit at +phase cycle / 360 / TR), which turns the verifier's
+# table of every world into its mirror image: the phase cycles below are 360 degrees minus the tuned ones, nothing else
+# was changed and the recipe was not tuned again on 0.3.0.
+CONSTANTS = {1: {"A": {"bandwidth_hz_per_px": 144.7, "spread_power": 0.5, "phase_cycle_deg": [85.0]},
+                 "B": {"bandwidth_hz_per_px": 139.0, "spread_power": 0.0, "phase_cycle_deg": [95.0]}, "tuned_pass_rate": 0.027},
+             2: {"A": {"bandwidth_hz_per_px": 335.1, "spread_power": 0.0, "phase_cycle_deg": [60.0]},
+                 "B": {"bandwidth_hz_per_px": 150.6, "spread_power": 0.0, "phase_cycle_deg": [230.0]}, "tuned_pass_rate": 0.027},
+             3: {"A": {"bandwidth_hz_per_px": 119.1, "spread_power": 1.0, "phase_cycle_deg": [0.0, 285.0]},
+                 "B": {"bandwidth_hz_per_px": 119.1, "spread_power": 0.0, "phase_cycle_deg": [145.0]}, "tuned_pass_rate": 0.027}}
 # the bandwidth of ``brute_force`` (its pass rate on the same worlds, the sweep played on the echo amplitudes: level 1 3.3 %, level 2 3.3 %, level 3 2.7 %)
 SWEEP_BANDWIDTH = {1: 128.3, 2: 191.4, 3: 134.3}
 SWEEP_SCANS = 5                                      # what the budget holds at those bandwidths (the tuner's assumption)

@@ -24,8 +24,10 @@ Pass rule      on noise-free scans of the delivered protocol and its twins on th
                AND the scan time is not longer than the shortest with which any allowed protocol meets all of this
                (``oracle.least``: an exhaustive search on the hidden world).
 
-Why partial Fourier and fat saturation are fixed (full k-space, no fat saturation). The engine's noise for partial
-Fourier and its fat-saturation pulse are being revised; a task whose answer hinged on either would change with them.
+Why partial Fourier and fat saturation are fixed (full k-space, no fat saturation). The family was built on engine
+0.2.0, whose noise for partial Fourier and whose fat-saturation pulse were wrong and were corrected in engine 0.3.0
+(docs/physics/limits.md, block 0); its instances, its search and its limits were made without either, so that the
+answer did not change with that correction. Opening them is a new task (a new id), not a change of this one.
 The field of view moves along the phase-encode axis only: with a shifted readout the engine takes the phase ramp of the
 gradient delay from the centre of the field of view, a real scanner from the isocentre.
 
@@ -496,7 +498,8 @@ def card() -> dict:
                    agent_side_formulas="stated at level 1 only: displacement = off-resonance x echo spacing x phase field of view; ghost of "
                                        "a source = |tan| (in the image) or |sin| (against the scan without delay) of 2 pi x bandwidth x matrix x "
                                        "delay x readout coordinate / fov; the SNR laws. Not given: the fat spectrum has several lines",
-                   fixed="full k-space and no fat saturation: the engine's partial-Fourier noise and its fat-saturation pulse are under revision"),
+                   fixed="full k-space and no fat saturation: the family was built before engine 0.3.0 corrected the noise of partial Fourier "
+                         "and the fat-saturation pulse, and its instances and search were made without either"),
         hidden=["the off-resonance field and the centre-frequency error", "the gradient delay", "size, orientation and position of the object (up to 22 mm off the isocentre along each axis)",
                 "where the oil lies (level 3)", "T1, T2* and proton density of every material", "receiver noise level",
                 "transmit gain and B1 pattern", "receive profile", "the 128-bit world seed"],

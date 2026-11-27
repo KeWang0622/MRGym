@@ -152,22 +152,23 @@ def flat_plane_against_2d(seed, qa=None, rot_deg=0.0) -> dict:
 
 def timings(kind, seeds=SEEDS[:3], repeats=5) -> dict:
     """Build time of a world (make_world: recipe, regions, reference plane) and the time of one plane on the master
-    grid; the best of ``repeats`` (a shared machine adds, it never subtracts)."""
+    grid; the best of ``repeats``, in CPU seconds of this process (``time.process_time``): waiting for a core on a
+    shared machine is not a cost of the computation and must not fail a check."""
     build, recipe = [], []
     for seed in seeds:
-        t = time.perf_counter()
+        t = time.process_time()
         w = make(kind, seed)
-        build.append(time.perf_counter() - t)
-        t = time.perf_counter()
+        build.append(time.process_time() - t)
+        t = time.process_time()
         volume.make_volume(seed, w["source"]["spec"])
-        recipe.append(time.perf_counter() - t)
+        recipe.append(time.process_time() - t)
     vol, plane = w["volume"], {}
     for name, p in PLANES.items():
         f, ts = volume.Frame.plane(**p), []
         for _ in range(repeats):
-            t = time.perf_counter()
+            t = time.process_time()
             vol.eval_plane(f)
-            ts.append(time.perf_counter() - t)
+            ts.append(time.process_time() - t)
         plane[name] = 1e3 * min(ts)
     return dict(build_s=[round(v, 3) for v in build], recipe_and_regions_s=[round(v, 3) for v in recipe], grid=list(vol.grid),
                 plane_ms={k: round(v, 1) for k, v in plane.items()})
@@ -185,9 +186,9 @@ def memory(kind, seed=SEEDS[0]) -> dict:
     w["volume"].eval_plane(volume.Frame.plane("sagittal"))
     out["plane_peak_mb"] = tracemalloc.get_traced_memory()[1] / 1e6 - out["world_held_mb"]
     tracemalloc.reset_peak()
-    t = time.perf_counter()
+    t = time.process_time()
     lat = w["volume"].lattice(2.0)
-    out["lattice_2mm_s"] = time.perf_counter() - t
+    out["lattice_2mm_s"] = time.process_time() - t
     out["lattice_2mm_peak_mb"] = tracemalloc.get_traced_memory()[1] / 1e6 - out["world_held_mb"]
     tracemalloc.stop()
     out["lattice_2mm_shape"], out["lattice_2mm_held_mb"] = list(lat.weights.shape), lat.weights.nbytes / 1e6

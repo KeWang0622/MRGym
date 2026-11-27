@@ -5,6 +5,8 @@ Files copied 2026-11-26T15:17:44Z. Some runs were still training then; their tab
 
 **Status: exploratory.** These runs came before the plan of [PREREG-27b.md](PREREG-27b.md) could be followed as written; the deviations are listed in section 11. 4 training runs from the base model were read out on the secret split, each with one sampler seed; a cell holds 48 or 32 secret instances. The headline is run `v17`: the recipe of [RECIPE.md](../RECIPE.md) on the published code (commit `18089f2`). Read it as evidence that the model learns on the environment, not as the pre-registered result.
 
+**Engine.** Measured on engine `mrgym-engine-0.2.0`; this package serves engine `mrgym-engine-0.3.0`, on which the runs have not been repeated. Every run on this page was played on that engine (the commits in the table of runs). Results on two engine versions are not comparable: an engine version changes the data of the scans ([CHANGELOG.md](../../CHANGELOG.md)).
+
 The model is trained by reinforcement learning only: LoRA (rank 32) with GRPO in verl on episodes played through the environment's tools, reward 1 when the delivered result passes the verifier and 0 otherwise. No demonstrations, no supervised step, no reference answers. Thinking is off and a reply holds at most 2,048 tokens, because an episode has to fit one accelerator as a single token stream (section 9).
 
 ## 1. Runs

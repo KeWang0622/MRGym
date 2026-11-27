@@ -196,6 +196,9 @@ FORMATION = dict(
     se_swapped_shifted=dict(sequence="se", tr_ms=500.0, matrix=64, pe_dir="x", centre_x_mm=12.0, phase_fov=0.75),
     se_turned=dict(sequence="se", tr_ms=500.0, matrix=64, rotation_deg=30.0, centre_y_mm=-8.0),
     ir_fatsat=dict(sequence="ir", tr_ms=1500.0, ti_ms=400.0, matrix=64, fat_sat=True),
+    # engine 0.3.0 saturates the lines of fat one by one: each line has its own amplitude map and is formed by itself
+    spgr_fatsat=dict(sequence="spgr", tr_ms=30.0, flip_deg=20.0, matrix=64, n_echoes=2, fat_sat=True),
+    se_fatsat_retuned=dict(sequence="se", tr_ms=500.0, matrix=64, fat_sat=True, fatsat_offset_hz=40.0),
     bssfp_oversampled=dict(sequence="bssfp", tr_ms=8.0, flip_deg=30.0, matrix=64, phase_oversampling=0.25),
     afi_partial=dict(sequence="afi", tr_ms=25.0, flip_deg=55.0, matrix=64, partial_fourier=0.75),
 )

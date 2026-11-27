@@ -3,7 +3,9 @@
 The physics check does not use the engine's formulas. ``spin_echo`` below is the 2D spin echo of the datasheet computed
 with 3 x 3 rotation matrices: the windowed-sinc excitation and the refocusing pulse (1.5 times the slice) as cascades
 of small rotations at every height through the slice, the crushers as an average over their phase, and the
-longitudinal steady state by playing the cycle until it repeats. The engine serves Cayley-Klein parameters and a
+longitudinal steady state by playing the cycle until it repeats. One slice thickness is the width at half maximum of
+the small-flip-angle profile, as the datasheet states since engine 0.3.0 (``_half_width`` finds it on the transform
+of the pulse; on 0.2.0 it was one nominal bandwidth of the pulse, 0.6 % less for this pulse). The engine serves Cayley-Klein parameters and a
 closed-form periodic state (``kspace.slice_table``). The two must agree, and the consequences the task rests on must
 follow from the independent one: at one repetition time T2 reads short, and holding ``tr - 0.75 te`` fixed removes it.
 """
@@ -37,12 +39,28 @@ def _rot_z(a):
     return np.stack([np.stack([c, s, z], -1), np.stack([-s, c, z], -1), np.stack([z, z, o], -1)], -2)
 
 
-def _pulse(flip, zeta, rephase):
-    """Rotation matrices [len(zeta), 3, 3] of the Hann-windowed sinc at the heights ``zeta`` (slice thicknesses): small
-    rotations about x between half-steps of precession about z, then a rephasing lobe of ``rephase`` x the selection area."""
+def _shape():
     t = (np.arange(N_SUB) + 0.5) / N_SUB - 0.5
     amp = np.sinc(TBW * t) * 0.5 * (1 + np.cos(2 * np.pi * t))
-    amp /= amp.sum()
+    return t, amp / amp.sum()
+
+
+def _half_width():
+    """Full width at half maximum of the small-flip-angle profile (the Fourier transform of the pulse) in nominal
+    bandwidths of the slice gradient: the console sets the gradient so that this width is the prescribed thickness."""
+    t, amp = _shape()
+    lo, hi = 0.0, 1.0                                                    # the transform is 1 at the centre and past its first zero at 1
+    for _ in range(100):
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if abs(np.sum(amp * np.exp(-2j * np.pi * TBW * mid * t))) > 0.5 else (lo, mid)
+    return lo + hi
+
+
+def _pulse(flip, zeta, rephase):
+    """Rotation matrices [len(zeta), 3, 3] of the Hann-windowed sinc at the heights ``zeta`` (nominal bandwidths of the
+    slice gradient): small rotations about x between half-steps of precession about z, then a rephasing lobe of
+    ``rephase`` x the selection area."""
+    _, amp = _shape()
     step = 2 * np.pi * TBW * zeta / N_SUB
     half, r = _rot_z(step / 2), np.broadcast_to(np.eye(3), (len(zeta), 3, 3))
     for w in amp:
@@ -54,9 +72,9 @@ def spin_echo(tr_ms, te_ms, t1_ms, b1=1.0, cycles=60):
     """Echo amplitude per unit M0 of the 2D spin echo (without the T2 decay): |sum over the slice|."""
     h = 1.0 / (6 * TBW)
     reach = 0.5 + 12.0 / TBW
-    zeta = np.arange(-reach, reach + 1e-9, h)                            # both sides of the slice, explicitly
-    weight = np.full(len(zeta), h)
-    weight[[0, -1]] = h / 2
+    zeta = np.arange(-reach, reach + 1e-9, h)                            # both sides of the slice, explicitly, in nominal bandwidths
+    weight = np.full(len(zeta), h) / _half_width()                       # the integral is per slice thickness
+    weight[[0, -1]] /= 2
     exc, ref = _pulse(b1 * np.pi / 2, zeta, 0.5), _pulse(b1 * np.pi, zeta / 1.5, 0.0)
     after = exc[:, :, 2]                                                 # magnetisation after the excitation from Mz = 1
     transverse = np.stack([after[:, 0], after[:, 1], np.zeros(len(zeta))], -1)[:, :, None]

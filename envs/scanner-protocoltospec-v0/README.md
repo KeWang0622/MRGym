@@ -3,7 +3,7 @@
 
 **A · Signal and contrast** · sequences and steady states · kind 3, trade · isolates A8: Image weighting: proton-density, T1, T2 and T2* contrast. [The map](../../docs/tasks.md)
 
-**Status:** PRACTICE: level(s) 1, 3 admitted; fixed_recipe#2 passes 25 of 300 (upper bound 11.4 % > 10 %)
+**Status:** PRACTICE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
 
 The everyday protocol question: the standard protocol misses the specification on this patient, what has to change? One scan of the standard protocol shows which requirement fails; the budget then pays for one more scan, and which one is worth making (another inversion time or another echo time) depends on the first. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed solver passes this many points below the reference: -1.7 at level 1, 0 at level 2, 20.7 at level 3; 300 instances per level; 25 points or more make a decision task).
 
@@ -70,6 +70,8 @@ Limits: 40 scanner requests and 48 tool calls per episode.
 - Passing: all gates and, for each image, T1 contrast >= 4, T2 contrast >= 1.5, SNR >= 20 ; and the scan times of the two images together <= the stated limit
 
 ## Gate: the control policies on fresh instances
+
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/ProtocolToSpec-v0 --n 300 --write` measures and stores it. The table below is that older result.
 
 Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/ProtocolToSpec-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 

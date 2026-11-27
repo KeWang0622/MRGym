@@ -3,11 +3,11 @@
 
 **D · Image quality and artefacts** · artefacts · kind 2, set · isolates D14: Dark bands of balanced steady-state images. [The map](../../docs/tasks.md)
 
-**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 94 %, no policy that ignores the object passes more than 3 % (95 % bounds)
+**Status:** CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
 
-What a frequency scout is for. The dark bands of balanced SSFP repeat every 1 / TR in frequency; where the marked regions fall in that pattern depends on the field, on the error of the frequency adjustment, on the material (oil sits 3.4 ppm below water) and on the repetition time, and how wide a band is depends on the material and on the excitation. The target is a 2D image: the slice profile of the selective pulse adds spins at smaller flip angles, whose signal peaks next to the band, so the band is narrower than the hard-pulse formula says and a band model has to carry the slice profile (a 3D acquisition with a hard pulse costs a multiple of the scan time and shows another band). A low bandwidth gives the least noise and the longest repetition time. The answer, for each of the two images, is the lowest bandwidth at which one phase cycle keeps every region clear of the bands with a margin for frequency drift, or the recognition that no single acquisition can, and then the pair of phase cycles that does. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: -2.3 at level 1, -1.3 at level 2, -1 at level 3; 300 instances per level; 25 points or more make a decision task).
+What a frequency scout is for. The dark bands of balanced SSFP repeat every 1 / TR in frequency; where the marked regions fall in that pattern depends on the field, on the error of the frequency adjustment, on the material (oil sits 3.4 ppm below water) and on the repetition time, and how wide a band is depends on the material and on the excitation. The target is a 2D image: the slice profile of the selective pulse adds spins at smaller flip angles, whose signal peaks next to the band, so the band is narrower than the hard-pulse formula says and a band model has to carry the slice profile (a 3D acquisition with a hard pulse costs a multiple of the scan time and shows another band). A low bandwidth gives the least noise and the longest repetition time. The answer, for each of the two images, is the lowest bandwidth at which one phase cycle keeps every region clear of the bands with a margin for frequency drift, or the recognition that no single acquisition can, and then the pair of phase cycles that does. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined on this engine, the stored gate result is from mrgym-engine-0.2.0.
 
-Kind of task: **measurement** (reference minus open_loop, points of pass rate: -2.3 at level 1, -1.3 at level 2, -1 at level 3 (n = 300 per level, engine mrgym-engine-0.2.0)).
+Kind of task: **undetermined** (the stored gate result is from mrgym-engine-0.2.0, the engine is mrgym-engine-0.3.0).
 
 ```python
 import mrgym
@@ -24,7 +24,7 @@ obs, reward, terminated, truncated, info = env.step({"name": "scanner_info", "ar
 
 - On the table: QA phantom (a disc of gel with vials; at level 3 one vial of oil), 3 T, field spread drawn per instance
 - Sequences that matter here: bssfp, spgr
-- Formulas the agent is given: phase per TR = 360 x off-resonance x TR + phase cycle; steady-state signal of bssfp as a function of that phase, integrated over the slice profile of the documented pulse (datasheet); off-resonance = phase slope of a multi-echo spgr
+- Formulas the agent is given: phase per TR = 360 x off-resonance x TR - phase cycle; steady-state signal of bssfp as a function of that phase, integrated over the slice profile of the documented pulse (datasheet); off-resonance = phase slope of a multi-echo spgr
 
 | Hidden (measurable only by scanning) | Told |
 |---|---|
@@ -70,6 +70,8 @@ Limits: 60 scanner requests and 64 tool calls per episode.
 - Passing: all gates and, for each image: every region keeps >= 80 % at every drift up to -/+ 20 Hz; two acquisitions only if no single acquisition up to 400 Hz per pixel is band-free; bandwidth <= 1.15 x the lowest band-free bandwidth (comparison protocols: band-free up to 26 Hz of drift)
 
 ## Gate: the control policies on fresh instances
+
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/BandFree-v0 --n 300 --write` measures and stores it. The table below is that older result.
 
 Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/BandFree-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 

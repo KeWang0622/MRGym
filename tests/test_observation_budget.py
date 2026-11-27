@@ -47,7 +47,8 @@ def body(obs):
 # ------------------------------------------------------------------------------------------------ the datasheet, in pieces
 def test_datasheet_every_paragraph_is_behind_a_topic():
     md, parts = scanner_env.datasheet(), scanner_env.datasheet_parts()
-    assert set(parts) == {"cost", "outputs", "hidden", "notation", "encoding", "slice_profile", "gradient_echo", "spin_echo", "fat", "motion"} | set(console.SEQUENCES)
+    assert set(parts) == {"cost", "outputs", "hidden", "notation", "encoding", "slice_profile", "gradient_echo", "spin_echo", "fat", "adjustments",
+                          "motion"} | set(console.SEQUENCES)
     served = "\n\n".join(parts.values())
     for a, b in (("## 4.", "## 5."), ("## 5.", "## 6."), ("## 6.", "## 7."), ("## 7.", None)):          # sections 4 to 7: nothing in no piece
         section = md[md.index(a):md.index(b) if b else len(md)].split("\n", 1)[1]
@@ -57,7 +58,7 @@ def test_datasheet_every_paragraph_is_behind_a_topic():
     texts = {topic: call(env, "scanner_info", topic=topic) for topic in scanner_env.TOPICS}
     assert not [t for t, o in texts.items() if o.is_error or len(body(o)) < 100]
     index = body(texts["physics"])
-    assert len(index) < 700 and all(t in index for t in scanner_env.PHYSICS_TOPICS + scanner_env.SEQUENCE_TOPICS) and parts["notation"] in index
+    assert len(index) < 750 and all(t in index for t in scanner_env.PHYSICS_TOPICS + scanner_env.SEQUENCE_TOPICS) and parts["notation"] in index   # 700 before the topic "adjustments"
     assert all(t in body(texts["overview"]) for t in ("geometry", "cost", "outputs", "physics", "task", "presets", "parameter="))
     for topic in scanner_env.PHYSICS_TOPICS + ("cost", "outputs"):
         assert body(texts[topic]) == parts[topic] and texts[topic].data == {"markdown": parts[topic]}
@@ -100,7 +101,8 @@ def test_plan_and_scan_say_what_the_request_does_not():
     # (ir refuses a tr_ms below 200, whatever the timing would allow): tests/test_interface_clarity.py
     assert lines[0] == f"plan ok · as a scan now: 35.00 s, leaves {env.state()['scan_time_left_s'] - 35:.2f} s" and len(lines) == 2
     assert lines[1].startswith("64x64 px (y, x), FOV 240 x 240 mm, phase-encode y: 39 lines · te_ms 8.37 · minimums: ti_ms 6.04, te_ms 8.37, tr_ms 200 · SAR ")
-    assert " · WFS 0.7 px (readout) · rel. SNR 3.18" in lines[1] and "gradient" not in lines[1]            # a limit is named when it comes close
+    # rel. SNR 1.89 (engine 0.2.0: 3.18): 39 of 64 lines, synthesised by homodyne detection, cost SNR and do not buy it
+    assert " · WFS 0.7 px (readout) · rel. SNR 1.89" in lines[1] and "gradient" not in lines[1]            # a limit is named when it comes close
     assert not [w for w in ("realised:", "timing:", "IR 1.5T", "tr_ms 800", "ti_ms 100") if w in body(plan)]   # nothing the request said
     verbose = call(env, "plan", verbose=True, **IR)
     assert body(verbose).startswith(body(plan)) and plan.data == verbose.data                           # data: everything, always
@@ -254,9 +256,15 @@ def test_ranges_are_stated_in_words_and_checked_for_plan_scan_and_a_delivered_pr
 # ------------------------------------------------------------------------------------------------ sizes
 # Characters of the tool definitions (OpenAI wire format) plus the task text, the largest level of each id. A ceiling
 # is a ratchet: it is lowered when the text gets shorter and raised only with a reason in the changelog.
-CEILING = {"Scanner/ArtefactClinic-v0": 17800, "Scanner/BandFree-v0": 16100, "Scanner/Explore-v0": 12000, "Scanner/FatSuppress-v0": 16100,
-           "Scanner/FrequencyAdjust-v0": 14300, "Scanner/TransmitAdjust-v0": 14800, "Scanner/NoWrap-v1": 15500, "Scanner/NullTissue-v0": 14900, "Scanner/PhantomQA-v0": 16500, "Scanner/ProtocolToSpec-v0": 15900,
-           "Scanner/SNRSpec-v0": 15200, "Scanner/T1Transmit-v1": 13900, "Scanner/T2Decay-v0": 14100, "Scanner/FatFraction-v0": 14900, "Scanner/ShiftFree-v0": 16300, "Scanner/GhostAside-v0": 16300, "Scanner/FoldAway-v0": 17700, "Scanner/Resolve-v0": 17500, "Scanner/NoiseSNR-v0": 14600, "Scanner/GradientCal-v0": 14100, "Scanner/ErnstFlip-v0": 15800, "Scanner/T1Vial-v0": 14600, "Scanner/EPISetup-v0": 17900}
+# Engine 0.3.0 (changelog, "Engine 0.3.0"): every ceiling + 550 for the four adjustment parameters (377 characters in
+# plan, 147 in scan, 15 for the topic "adjustments"); ArtefactClinic + 700, whose deliverable is a protocol. The eleven
+# families that were merged beside the engine (T2Decay to EPISetup) got the same + 550 when the two lines were joined.
+CEILING = {"Scanner/ArtefactClinic-v0": 18500, "Scanner/BandFree-v0": 16650, "Scanner/Explore-v0": 12550, "Scanner/FatSuppress-v0": 16650,
+           "Scanner/FrequencyAdjust-v0": 14850, "Scanner/TransmitAdjust-v0": 15350, "Scanner/NoWrap-v1": 16050, "Scanner/NullTissue-v0": 15450,
+           "Scanner/PhantomQA-v0": 17050, "Scanner/ProtocolToSpec-v0": 16450, "Scanner/SNRSpec-v0": 15750, "Scanner/T1Transmit-v1": 14450,
+           "Scanner/T2Decay-v0": 14650, "Scanner/FatFraction-v0": 15450, "Scanner/ShiftFree-v0": 16850, "Scanner/GhostAside-v0": 16850,
+           "Scanner/FoldAway-v0": 18250, "Scanner/Resolve-v0": 18050, "Scanner/NoiseSNR-v0": 15150, "Scanner/GradientCal-v0": 14650,
+           "Scanner/ErnstFlip-v0": 16350, "Scanner/T1Vial-v0": 15150, "Scanner/EPISetup-v0": 18450}
 
 
 def _budget_tool():

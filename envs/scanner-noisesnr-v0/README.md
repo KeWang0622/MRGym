@@ -71,7 +71,7 @@ Limits: 40 scanner requests and 64 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.2.0`). `mrgym gate Scanner/NoiseSNR-v0 --n 300 --write` measures and stores it.
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/NoiseSNR-v0 --n 300 --write` measures and stores it.
 
 | Policy | Must | What it does |
 |---|---|---|

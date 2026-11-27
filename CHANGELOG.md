@@ -14,6 +14,248 @@ Three versions travel with every number:
 
 ## Unreleased
 
+### Engine 0.3.0 joined with what was built beside it
+
+Engine 0.3.0 (the entry below) was made on a tree that did not yet hold eleven task families, the signal core, the
+spin systems, the RF field model, the receive arrays, the volume worlds, the fields in 3D and the comparison with
+measured data. This entry is what it took to make each of them true on the corrected engine. No environment id, no
+pass rule, no tolerance and no budget was changed; the engine is the one of the entry below, bit for bit
+(`tests/golden/engine_digests.json`: every image, noisy scan and price of that entry is unchanged).
+
+What compared itself with engine 0.2.0 and moved
+
+- **The signal core** (`mrgym.core`; `python -m mrgym.core.validate`, 85 rows). Three things followed the engine, and
+  in all three the side that moved is the core. (1) The slice: `Selective` and `operators.slice_columns` take one
+  slice thickness as the width at half maximum of the small-flip-angle profile (`operators.slice_calibration`, found
+  by bisection on the transform of the design layer's pulse; row C2 holds it equal to the engine's `rf.fwhm_factor`).
+  Before, twelve of its 81 rows failed on engine 0.3.0; of the others only Q14 has another number.
+  (2) `library.served` passes `phase_cycle_deg` of `bssfp` on as the advance of the RF phase; it had followed the sign
+  of engine 0.2.0, which the core's own row Q10b had reported as wrong. Q10 and Q10b now compare at the same
+  off-resonance, Q10b with what `Engine.amplitudes` serves. (3) New: the fat-saturation pulse as an event of a block
+  list (`sat=(q, delay_ms)` of `spgr`, `epi`, `se`, `ir` and of `served`). Rows Q16 to Q16d reproduce the engine's
+  closed forms, its phase graph and the amplitude maps it serves line by line: a second derivation of the saturated
+  steady state by separate code.
+- **The spin systems** (`mrgym.spins`). The typed copy of the engine's fat table (`metabolites.ENGINE_FAT_PEAKS`) has
+  the main line at 0.694 and names the source the engine names; rows M1 and M1b pass again; the digest of the reviewed
+  metabolite table is pinned anew for the six `triglyceride` rows, the only ones that moved.
+- **The receive arrays** (`mrgym.scanner.array`). The fast formation treated fat as one species with one spectrum.
+  Under fat saturation the engine now gives every line of fat its own amplitude map, and the fast formation was 26 %
+  off the per-coil formation for a fat-saturated scan. Each line is now formed, weighted with the coil maps and given
+  its own frequency by itself (`Engine._species`): 0.07 % for that scan, the level of a scan without saturation
+  (`tests/test_array.py`, three fat-saturated cases). Every other row of `array_checks` passes with numbers that
+  differ in the last digits (the slice of the default pulse is 0.6 % thinner).
+- **The RF field model, the fields in 3D, the volume worlds, the design layer**: nothing to change. Their tables pass
+  (`em` 82, `fields3d` 54, `design` 81 rows; the volume page is written again and differs in the engine it names and
+  in its timings only).
+- **The comparison with measured data** (`python tools/measured/run_all.py --write`, with `--fetch` from a local copy
+  of the originals for rung M5): 33 of 33 rows with a tolerance pass, none of the 24 declared differences grew. Row
+  M0.2 (T1 of sphere 5 of the NIST plate) is closed by the engine: it is now a row with tolerance 0 and no longer a
+  declared difference. Row M4.1 shows 69.4 % for the main fat line. Known difference 11 now holds what is left: the
+  model's glycerol peak at 4.31 ppm against the 4.2 ppm of the liver table. The SNR rows move by the 0.6 % of the
+  slice calibration (M6.8: the Siemens scanners up to 3.7 times the engine, 3.8 before). The fat rows use neither a
+  selective pulse nor fat saturation: M4.3, M8.1 and M8.3 print the numbers of before, M8.2 differs in one last
+  digit. The stored
+  fault x test matrix of the ACR tests (26 rows), which the regions that follow the phantom could have moved, was
+  computed again on the joined tree: only its timings differ.
+- **The 2D baseline** (`tests/golden/compat_2d.json`) was recorded again on engine 0.3.0
+  (`python tests/compat_cases.py --write --rebase`). It exists to show that volume and array packages change no 2D
+  exam, and it holds images, so it cannot outlive an engine version: a new engine version is the only legitimate
+  reason for it to move. Before it was moved, the worlds, schemas, scanner cards, plans, headers, images and refusals
+  it covers (314 entries) were computed on the tree of engine 0.3.0 without those packages and on the joined tree:
+  equal bit for bit.
+- **Tests that carried a second calculation**: `tests/test_t2_decay.py` (its own slice integral takes the calibrated
+  thickness, found by its own bisection), `tests/test_fat_fraction.py` (the six peaks typed from the cited model; the
+  echoes are compared on the fully sampled scan, and what homodyne detection does to a nearly cancelled
+  opposed-phase echo of the stated scan is a test of its own), `tests/test_core_evaluators.py`.
+
+The engine's own record
+
+- A sixth corrected error had no line in the entry below: echo-planar partial Fourier with `pe_polarity` -1 acquired
+  one line more than the realised protocol counts. It now has its test
+  (`tests/test_engine_0_3.py::test_epi_partial_fourier_acquires_the_lines_the_protocol_counts`, which fails on 0.2.0).
+- `docs/physics/limits.md`, block 0, lists the seven reported errors of engine 0.2.0: six corrected, each with the
+  test that pins it, and one declared with its measured size (the columns of a `bssfp` slice, row R15).
+
+Task families
+
+- Statements made true. `Scanner/T1Vial-v0` said that partial Fourier lines are zero-filled; it now says what the
+  homodyne image does to a read-out (the error of the stated method with `partial_fourier` 0.55 is 2.3 % on the
+  instance of the test, 13 % on engine 0.2.0; the stated method itself is fully sampled and its numbers are those of
+  before). The practice level of `Scanner/NullTissue-v0` proposes and acquires the fully sampled probe of the
+  reference policy instead of the partial Fourier probe (`task.FIRST_PROBE`). `Scanner/EPISetup-v0` says why partial
+  Fourier and fat saturation are fixed in it, and the module text of `Scanner/Resolve-v0` no longer says that partial
+  Fourier makes the resolution anisotropic.
+- `Scanner/FatSuppress-v0` is registered as not ready on this engine (`EnvSpec.not_ready`, a new field: the status
+  line, the card and the task table of the front page say so and why). Its thresholds are part of the id. A
+  successor `Scanner/FatSuppress-v1` with thresholds from the corrected physics is proposed, not built.
+- Development gates on engine 0.3.0 (`mrgym gate <id> --n 60`, split `gate`, seeds 0 to 59), against the same gate
+  on 0.2.0. Passes of 60 per level, before -> after:
+
+  | Family, levels 1 / 2 / 3 | Reference | Most passes of a policy that must fail | Fixed scan list (open loop) | Verdict of the development gate |
+  |---|---|---|---|---|
+  | `T2Decay` | 60 / 60 / 60 -> 60 / 60 / 59 | 0 / 1 / 0 -> 0 / 1 / 0 | 60 / 60 / 60 -> 60 / 60 / 59 | admitted / admitted / admitted -> admitted / admitted / admitted |
+  | `FatFraction` | 60 / 60 / 60 -> 60 / 60 / 60 | 1 / 0 / 0 -> 1 / 0 / 0 | 60 / 60 / 60 -> 60 / 60 / 60 | admitted / admitted / admitted -> admitted / admitted / admitted |
+  | `ShiftFree` | 60 / 60 / 60 -> 60 / 60 / 60 | 1 / 1 / 0 -> 1 / 1 / 0 | 60 / 60 / 60 -> 60 / 60 / 60 | admitted / admitted / admitted -> admitted / admitted / admitted |
+  | `GhostAside` | 60 / 60 / 60 -> 60 / 60 / 60 | 0 / 1 / 0 -> 0 / 1 / 0 | 60 / 60 / 60 -> 60 / 60 / 60 | admitted / admitted / admitted -> admitted / admitted / admitted |
+  | `Resolve` | 60 / 59 / 59 -> 59 / 58 / 60 | 0 / 0 / 0 -> 0 / 0 / 0 | 60 / 59 / 59 -> 59 / 58 / 60 | admitted / admitted / practice -> admitted / practice / practice |
+  | `FoldAway` | 60 / 59 / 60 -> 60 / 60 / 60 | 1 / 0 / 0 -> 1 / 0 / 0 | 60 / 59 / 60 -> 60 / 60 / 60 | admitted / admitted / admitted -> admitted / admitted / admitted |
+  | `NoiseSNR` | 60 / 60 / 60 -> 60 / 60 / 60 | 1 / 0 / 1 -> 1 / 0 / 1 | 60 / 60 / 60 -> 60 / 60 / 60 | admitted / admitted / admitted -> admitted / admitted / admitted |
+  | `GradientCal` | 60 / 60 / 60 -> 60 / 60 / 60 | 1 / 2 / 0 -> 1 / 2 / 0 | 60 / 60 / 60 -> 60 / 60 / 60 | admitted / practice / admitted -> admitted / practice / admitted |
+  | `ErnstFlip` | 60 / 60 / 59 -> 60 / 60 / 59 | 1 / 1 / 0 -> 1 / 1 / 0 | 60 / 60 / 58 -> 60 / 60 / 59 | admitted / admitted / admitted -> admitted / admitted / admitted |
+  | `T1Vial` | 60 / 59 / 60 -> 60 / 58 / 60 | 0 / 0 / 0 -> 0 / 0 / 0 | 60 / 59 / 60 -> 60 / 58 / 60 | admitted / admitted / admitted -> admitted / practice / admitted |
+  | `EPISetup` | 59 / 60 / 59 -> 59 / 60 / 57 | 1 / 1 / 1 -> 1 / 1 / 1 | 59 / 60 / 56 -> 59 / 59 / 53 | practice / admitted / admitted -> practice / admitted / practice |
+  | `FrequencyAdjust` | 60 / 60 / 60 -> 60 / 60 / 60 | 1 / 0 / 1 -> 1 / 0 / 1 | 60 / 60 / 60 -> 60 / 60 / 60 | admitted / admitted / admitted -> admitted / admitted / admitted |
+  | `TransmitAdjust` | 60 / 60 / 60 -> 60 / 60 / 60 | 1 / 0 / 1 -> 1 / 0 / 1 | 58 / 59 / 57 -> 60 / 60 / 58 | admitted / admitted / admitted -> admitted / admitted / admitted |
+
+  How to read the differences. The noise of a scan in an episode is drawn from a stream keyed on the realised
+  protocol (`session._noise_rng`), and the realised protocol gained fields with engine 0.3.0: every scan of every
+  episode has other noise than on 0.2.0, for the same seed. A reference that passes all but a few instances
+  therefore moves by a few instances, and a development verdict that stood two instances above the bound can fall
+  below it. `Scanner/EPISetup-v0`, level 3: 59 -> 57 on the same 60 worlds; one instance fails on both engines, two
+  more on 0.3.0 on the fat rule (in one the reference misses the oil disc, which it finds from pixels that stand
+  five noise standard deviations high). On the seeds 0 to 179 the reference passes 175 of 180 on engine 0.3.0 and
+  174 of 180 on 0.2.0. `Scanner/T1Vial-v0`, level 2: 59 -> 58, one more instance beyond the tolerance; on the seeds
+  0 to 359 the reference passes 352 of 360 on 0.3.0 and 351 of 360 on 0.2.0. `Scanner/Resolve-v0`: 60 / 59 / 59 ->
+  59 / 58 / 60, one instance up or down at every level. The development verdicts of three levels (EPISetup 3,
+  T1Vial 2, Resolve 2) fall to practice at n = 60, each with a lower bound just under the 90 % the gate asks for
+  (87.6, 89.9 and 89.9 %); where it was measured on more seeds the rate is the one of before, and the gate of 300
+  instances decides.
+  `Scanner/T2Decay-v0` and `Scanner/FatFraction-v0` scan with `partial_fourier` 0.75, as their level 1 states and
+  as their budgets were set. They pass as before, with larger errors, which is the price partial Fourier now has
+  (95th percentile of the error of the reference: T2Decay 0.8 / 4.2 / 4.6 % -> 0.9 / 6.3 / 6.0 % of T2, tolerance
+  10 %; FatFraction 1.7 / 1.8 / 1.8 -> 1.7 / 2.1 / 1.9 points, tolerance 3 points). No reference policy, oracle,
+  tolerance or budget of the eleven families was changed, and none uses fat saturation, another pulse than the
+  default or echo-planar partial Fourier in a scored scan.
+- Interface sizes: the ceilings of the eleven families are raised by 550 characters, as those of the other ids were
+  in the entry below (`tests/test_observation_budget.py`).
+
+What a reader sees
+
+- No task is marked ready: every stored check (n = 300) was made on engine 0.2.0. The paragraph under the task table
+  of the front page says so, and `tests/test_front_page.py` holds the table to it.
+- The training result (README, `docs/RECIPE.md`, `docs/experiments/RESULTS-27b.md`) names the engine it was measured
+  on, 0.2.0, and says that the runs have not been repeated on 0.3.0. The sentence is written by
+  `docs/experiments/27b/report.py` from the commits of the runs.
+- The map (`mrgym map`): shimming is served in part (the two in-plane terms of a scan, row K34; the 3D library
+  computes more), the centre frequency and fat saturation are formed, the transmit factor of a scan is evidence of
+  the transmit item (K35, K36) and priced (C9). Fat saturation, the `bssfp` phase cycle and the slice also cite the
+  rows of the signal core.
+- `mrgym check`: a hidden value is looked for as a number, not as a run of digits. The 150 ms of the
+  `Scanner/NoiseSNR-v0` phantom was "found" in a read-out of 0.0121506732 once the scan data of engine 0.3.0 held
+  those digits (`check.served`, `tests/test_env.py`).
+
+Golden data and fingerprints, against the files of engine 0.2.0
+
+- `tests/golden/engine_digests.json`: against the file of the engine entry below (engine 0.3.0 before the merge) nothing
+  changed: 54 images, 8 noisy scans, 30 prices. Against engine 0.2.0, as that entry says: 41 of the 46 images that
+  existed (every slice-selective scan; the five that stayed are the nonselective, fully sampled scans without fat
+  saturation), all 8 noisy scans, no price, 8 new images. The section of the receive arrays is new on 0.3.0: its 3
+  image entries moved against 0.2.0 (slice-selective scans), its maps, covariance and g map did not.
+- `tests/golden/task_snapshots.json` and `src/mrgym/compat/fingerprints.json`: the eleven families are new on engine
+  0.3.0 (engine id, scoring source, transcript; `Scanner/EPISetup-v0` and `Scanner/ShiftFree-v0` also in their
+  statements, which print a signal-to-noise floor computed on the hidden world; `Scanner/FatFraction-v0` in the table
+  of fat peaks; `Scanner/T1Vial-v0` in the sentence about partial Fourier). Of the ids of the engine entry only
+  `Scanner/NullTissue-v0` moved (the probe of its practice level). The two retired ids are frozen.
+- `tests/golden/volume_digests.json`: unchanged (no scan is in it).
+- `tests/golden/compat_2d.json`, recorded again: of its worlds one entry moved (the tissues of `nist_t1`: T1 of
+  sphere 5); every schema, scanner card, plan and refusal (four new parameters); all 30 images.
+
+### Engine 0.3.0: five behaviours that contradicted textbook practice are corrected; four adjustment parameters
+
+Engine: `mrgym-engine-0.3.0`. An audit of the engine against textbook physics reproduced four wrong behaviours on
+0.2.0; a fifth (the sign of the `bssfp` phase cycle) was found by a review of the design layer the same day. Each is
+now a failing-then-passing test with the textbook number (`tests/test_engine_0_3.py`) and one or more rows of
+`mrgym validate` against a separately written calculation (`docs/physics/validation.md`).
+
+What changed in the physics
+
+- **Partial Fourier costs SNR.** On 0.2.0 the lines that were not acquired were zero-filled: the scan got shorter,
+  the noise of a pixel fell, and the header's relative SNR rose (5.66 / 6.53 / 7.54 for `partial_fourier` 1 / 0.75 /
+  0.55 at 64 lines). The console now synthesises the missing lines by homodyne detection (Noll, Nishimura &
+  Macovski 1991, step weighting; `kspace.Engine.recon`): the lines without a conjugate partner weigh 2, the image is
+  the component in phase with a low-resolution image of the symmetric lines. Resolution is the nominal one where
+  the phase is smooth; the noise of a pixel is that of a full scan times sqrt((3 L - 2 l - 3) / L) for l of L lines
+  (`console.noise_lines`, `Engine.noise_sd`), and the relative SNR falls by that factor (rows K15, K17, K29, K30).
+  The phase of such an image is the low-resolution phase and its background is not Rayleigh distributed. A fully
+  sampled scan is reconstructed as before.
+- **Fat saturation acts on the lines inside its band.** On 0.2.0 a saturation pulse on the fat line removed the
+  whole six-line spectrum. Each line is now saturated by its own place in the band of the pulse (centre
+  `fatsat_offset_hz`, hidden width, edges 8 Hz soft), water as one line: a band of 1.3 ppm leaves 21.9 % of the fat
+  signal, and the two lines next to water go only with water (rows K28, K31).
+- **Fat saturation drives a steady state.** On 0.2.0 the saturated signal was the unsaturated one times a constant
+  at every TR and flip angle. The pulse is now an event in every repetition, `fatsat_delay_ms` (7 ms with the
+  default pulse) before the excitation: the longitudinal magnetisation of a saturated line recovers during that
+  time and its periodic state depends on TR, T1 and the flip angle; closed form under ideal spoiling
+  (`signal.mz_saturated`: `se`, `ir`, `epi`), the longitudinal states of every order in the RF-spoiled steady state
+  of `spgr` (`epg`), through the slice profile for selective scans (rows S16, S17, R14, K32).
+- **The slice gradient is calibrated per pulse.** On 0.2.0 one "slice thickness" was the nominal bandwidth of the
+  pulse, so `rf_pulse: fast` excited 1.20 (1 degree) to 1.40 (90 degrees) times `slice_mm`. The gradient is now
+  `rf.fwhm_factor` (1.197 / 0.994 / 1.000 for `fast` / `normal` / `sharp`) times the nominal one, so that the full
+  width at half maximum of the small-flip-angle profile is `slice_mm` for every pulse (row R13); the pulses still
+  differ in their transition band and in how the profile broadens with the flip angle. The thinnest selective
+  slice is 1.46 mm (`fast` 1.76 mm, `sharp` 1.47 mm; 1.47 mm for all three before). Through-slice dephasing
+  (`rf.dephasing_factor`) follows the calibrated profile.
+- **The RF phase advance of `bssfp` moves the bands up in frequency.** `phase_cycle_deg` is the advance of the RF
+  phase per TR, counted the way a faster spin precesses (`docs/physics/conventions.md`, section 5). The steady state
+  depends on how far a spin runs ahead of the pulse, 2 pi df TR - phase cycle; 0.2.0 computed it with
+  2 pi df TR + phase cycle, so a phase cycle of 90 degrees at TR 5 ms put the dark band at -50 Hz where a
+  pulse-by-pulse Bloch iteration has it at +50 Hz. 0 and 180 degrees are the same in both. Rows S18 and K11 (which
+  now has phase cycles of 90 and 300 degrees; with 180 degrees alone it could not see the sign).
+  `Scanner/BandFree-v0` used the old sign consistently in its verifier, its oracle and the band model of its
+  controls; all three follow the engine now, and the constant protocols of `fixed_recipe` are the mirror images
+  (360 degrees minus the old phase cycle) of the tuned ones. A deliverable written for 0.2.0 scores on 0.3.0 as its
+  mirror image did.
+
+New protocol parameters (every sequence; defaults change nothing; they cost no scan time): `cf_shift_hz` (-500 to 500
+Hz, added to the centre frequency of the scanner: displacement, echo phase, bSSFP bands and the fat-saturation band
+move together), `tx_scale` (0.5 to 2, a factor on the transmit amplitude of the excitation and refocusing pulses; RF
+power x `tx_scale`^2, peak B1 x `tx_scale`), `shim_y_hz_per_mm` and `shim_x_hz_per_mm` (-2 to 2 Hz/mm, linear field
+terms in patient coordinates). Each compensates a hidden state that existed already (`cf_offset_hz`, `tx_gain`, the
+B0 field): rows K33 to K36 and C9. `plan` prints the ones that differ from their defaults, the header carries them
+after `ADJ`, the scanner log stores them with the realised protocol. `scanner_info` has the topic `adjustments`. The
+word `shim` is still refused as NOT_SIMULATED, and the refusal now names the parameters.
+
+Two tables pinned to the sources they cite (found by a comparison with public measured data; in the same engine bump,
+`tests/test_cited_tables.py`)
+
+- `tissue.FAT_PEAKS` is the six-peak fat model that Hernando et al. 2017 list (their shifts, minus the 0.1 ppm they add
+  for a phantom at room temperature), not Table 3 of Hamilton et al. 2011, which engine 0.2.0 named as its source. The
+  citation is corrected and the amplitude of the main peak is the model's 0.694 (0.693 before; the other five were
+  right). The model puts the glycerol peak at 4.31 ppm where Hamilton's table has 4.2 ppm; its amplitudes are within
+  0.8 points of the table's. This is stated, not changed.
+- `anatomy.NIST_T1`: T1 of sphere 5 is 496.7 ms, the value of Table S1 of Stupic et al. 2021 (496.0 before, the
+  number in the analysis code of the ISMRM reproducibility challenge, from which the list had been taken). The list
+  now cites the table.
+
+What is not comparable across the bump
+
+- Every slice-selective scan serves other numbers than on 0.2.0 (the default pulse by 0.6 %, `fast` by 16 %), every
+  partial Fourier scan, every scan with fat saturation, and every `bssfp` scan with a phase cycle other than 0 or
+  180 degrees. Scans with `excitation: nonselective`, full sampling and no fat saturation are bit for bit those of
+  0.2.0 (and of 0.1.0: `tests/test_engine_version.py`), `bssfp` at those two phase cycles included.
+- Logs recorded on 0.2.0 replay only there. Every stored gate result (`src/mrgym/envs/results/*.gate.json`, n = 300)
+  was measured on 0.2.0 and is stale: the seven ids registered as admitted are registered as candidates until their
+  gates are measured again, `mrgym list` and the cards say that the gate has not been run on this engine and no
+  longer repeat the old verdict (`gate.status_line`), and `mrgym check` asks for nothing of a candidate.
+- Model results measured on 0.2.0 are not comparable with results on 0.3.0 for any id: the tool schemas gained four
+  parameters and one topic, and the data of every default scan moved.
+- `Scanner/FatSuppress-v0`: with the thresholds of its task statement (at most 5 % of the fat signal left, fat
+  saturation "enough" below 3 %) spectral fat saturation now passes in no region, because the lines outside the
+  band keep 9 to 31 % of the signal; the best answer is inversion recovery in every region and the second pass rule
+  cannot fail. The reference, the oracle and the scoring table are correct for the corrected physics; the claim of
+  the family (a choice between two methods) is not supported on this engine and needs new thresholds under a new id.
+- `Scanner/ProtocolToSpec-v0`: the reference read the noise from the background of its partial Fourier scouts by the
+  Rayleigh mean, which a homodyne image does not have; it now uses the mean of one Gaussian component.
+- `Scanner/NullTissue-v0`: the control policies probed with matrix 64 and `partial_fourier` 0.6, the cheapest probe of
+  0.2.0 (0.6 of the time and less noise). On 0.3.0 that probe has 1.3 times the noise of the full scan and a biased
+  signed mean where a region is near its null (`docs/physics/limits.md`, block 5a): with it the reference passed
+  57 and 55 of 60 instances of levels 2 and 3 (`mrgym gate Scanner/NullTissue-v0 --n 60`; 60 and 59 on 0.2.0). The
+  probes are now fully sampled at matrix 32 (`controls.PROBE`): 60 and 59 of 60. No rule, tolerance or budget was
+  changed. The practice level still proposes the old probe in its task text (`task.FIRST_PROBE`): not changed here.
+
+Interface sizes (`tests/test_observation_budget.py`, `tests/test_interface.py`): the ceiling of every id is raised by
+550 characters (ArtefactClinic 700) for the four parameters and the topic, `plan` 4000 to 4380, `scan` 2450 to 2600,
+the `physics` index 700 to 750 characters.
 ### The engine is compared with measured data; two defects it exposed outside the engine core are fixed
 
 No scan data, no engine id and no environment id changes (`tools/audit/golden.py --check`: 0 changed;

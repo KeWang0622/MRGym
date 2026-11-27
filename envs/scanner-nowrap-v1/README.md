@@ -3,7 +3,7 @@
 
 **B · Spatial encoding and reconstruction** · Fourier encoding · kind 2, set · isolates B9: Field of view: the sampling step of k-space; a larger object folds over. [The map](../../docs/tasks.md)
 
-**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 6 % (95 % bounds)
+**Status:** CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
 
 The first decision of an examination. A hidden test object lies in the 1.5 T scanner. The agent looks (a localiser costs scan time), then prescribes the geometry of a spin-echo scan whose time grows with the number of phase-encode lines. The field of view can be moved and turned, so the fastest geometry depends on where the object lies, how large it is and which way it points.
 
@@ -69,6 +69,8 @@ Limits: 32 scanner requests and 40 tool calls per episode.
 - Passing: all gates
 
 ## Gate: the control policies on fresh instances
+
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/NoWrap-v1 --n 300 --write` measures and stores it. The table below is that older result.
 
 Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/NoWrap-v1 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 

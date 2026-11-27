@@ -73,7 +73,7 @@ FINGERPRINT_BLOCKS = 8
 # console arithmetic and noise streams. It is bumped by hand whenever the same (seed, protocol) can give other data,
 # and only then; tests/test_engine_version.py pins it together with reference numbers. Recorded logs replay only on
 # the engine version that wrote them.
-ENGINE_VERSION = "0.2.0"
+ENGINE_VERSION = "0.3.0"
 ENGINE_ID = "mrgym-engine-" + ENGINE_VERSION
 
 

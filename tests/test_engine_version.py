@@ -7,7 +7,9 @@ bump. The reference numbers below must change only together with ``ENGINE_VERSIO
 revert the change, or bump the version, record the new numbers, and add an "Engine" line to CHANGELOG.md.
 
 Reference case: seed ``000102030405060708090a0b0c0d0e0f``, world spec ``{"kind": "qa"}``, the noise-free image of
-the protocol ``{"sequence": "se", "tr_ms": 500, "matrix": 64}`` (slice-selective, the default since 0.2.0).
+the protocol ``{"sequence": "se", "tr_ms": 500, "matrix": 64}`` (slice-selective, the default since 0.2.0). On 0.3.0
+the three numbers are those of 0.2.0 divided by 0.99443, the calibration of the slice gradient of the default pulse
+(mean 0.5995635694482917, maximum 2.286886738607616, pixel 1.8942632136377284 on 0.2.0).
 
 The same protocol with ``excitation: nonselective`` is the hard-pulse model of engine 0.1.0; its three numbers are
 kept below as recorded on 0.1.0 and must not move at all (``mrgym validate`` row R6 asserts the same).
@@ -19,14 +21,14 @@ import mrgym
 from mrgym.scanner import kspace
 from mrgym.scanner import world as W
 
-ENGINE_VERSION = "0.2.0"
+ENGINE_VERSION = "0.3.0"
 SEED = "000102030405060708090a0b0c0d0e0f"
 WORLD_SPEC = dict(kind="qa")
 PROTOCOL = dict(sequence="se", tr_ms=500, matrix=64)
 # recorded with ENGINE_VERSION above (numpy 2.2.6, scipy 1.15.3, one thread)
-MEAN_MAGNITUDE = 0.5995635694482917
-MAX_MAGNITUDE = 2.286886738607616
-MAGNITUDE_AT_0_32_32 = 1.8942632136377284
+MEAN_MAGNITUDE = 0.6029202321250108
+MAX_MAGNITUDE = 2.299689897025717
+MAGNITUDE_AT_0_32_32 = 1.9048682653004751
 RTOL = 1e-6
 # recorded with engine 0.1.0: the hard-pulse image, served since 0.2.0 by excitation = nonselective
 HARD_PULSE_0_1_0 = dict(mean=0.7259219837862718, max=2.778571927919207, pixel=2.3098207026200184)
@@ -40,7 +42,7 @@ def magnitude():
 
 def test_engine_id_is_the_recorded_one():
     assert mrgym.ENGINE_VERSION == ENGINE_VERSION
-    assert mrgym.ENGINE_ID == "mrgym-engine-" + ENGINE_VERSION == "mrgym-engine-0.2.0"
+    assert mrgym.ENGINE_ID == "mrgym-engine-" + ENGINE_VERSION == "mrgym-engine-0.3.0"
 
 
 def test_reference_image_has_the_recorded_shape(magnitude):
@@ -54,6 +56,17 @@ def test_reference_numbers_of_the_engine(magnitude):
         assert got[key] == pytest.approx(want[key], rel=RTOL), (
             f"{key} magnitude changed: {want[key]!r} -> {got[key]!r}. Scan data moved, so ENGINE_VERSION must be "
             f"bumped together with these numbers (see the docstring of this file).")
+
+
+def test_the_step_from_0_2_0_is_the_calibration_of_the_default_pulse(magnitude):
+    """The reference image has no fat saturation and full sampling: of the four corrections of 0.3.0 only the slice
+    calibration touches it, as one factor on the whole image (the profile is the same, the slice 0.56 % thinner in
+    units of the nominal bandwidth, so every column through the slice counts 1 / 0.99443 times as much)."""
+    from mrgym.scanner import rf
+    old = dict(mean=0.5995635694482917, max=2.286886738607616, pixel=1.8942632136377284)
+    got = dict(mean=float(magnitude.mean()), max=float(magnitude.max()), pixel=float(magnitude[0, 32, 32]))
+    for key in old:
+        assert got[key] * rf.fwhm_factor(4.0) == pytest.approx(old[key], rel=2e-6), key
 
 
 def test_the_noise_free_scan_is_deterministic(magnitude):

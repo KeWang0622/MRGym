@@ -92,7 +92,7 @@ def test_selective_excitation_is_the_default_and_carries_its_price():
 
 def test_a_slice_too_thin_for_the_pulse_is_refused_and_3d_is_the_way_out():
     thin = console.plan(dict(SPGR, slice_mm=1.2), EXAM)
-    assert not thin["accept"] and [v["code"] for v in thin["violations"]] == ["SLICE_TOO_THIN"] and thin["violations"][0]["minimum_mm"] == pytest.approx(1.468, abs=2e-3)
+    assert not thin["accept"] and [v["code"] for v in thin["violations"]] == ["SLICE_TOO_THIN"] and thin["violations"][0]["minimum_mm"] == pytest.approx(1.460, abs=2e-3)   # engine 0.3.0: x 0.994, the calibration of the normal pulse
     assert console.plan(dict(SPGR, slice_mm=1.5), EXAM)["accept"]
     assert console.plan(dict(SPGR, slice_mm=1.2, excitation="nonselective"), EXAM)["accept"]
 
@@ -178,7 +178,9 @@ def test_the_fat_saturation_pulse_can_miss_and_be_moved_back():
         rp = [console.plan(dict(prot, **k), world["console"])["realised"] for k in ({}, dict(fat_sat=True, **kw))]
         m = [session.roi_readouts(eng.acquire(r), roi, session.fov_yx(r))[0]["mean_magnitude"][0] for r in rp]
         return m[1] / m[0]
-    assert left(0.0) < 0.15 and left(250.0) > 0.9 and left(250.0, fatsat_offset_hz=-250.0) == pytest.approx(left(0.0), rel=1e-9)
+    # engine 0.3.0: a pulse on the fat line leaves the lines outside its band (21.9 % of the spectrum) and what the two
+    # lines inside it keep and recover at this repetition time; a pulse 250 Hz off holds one line of 0.4 %
+    assert 0.219 < left(0.0) < 0.40 and left(250.0) > 0.9 and left(250.0, fatsat_offset_hz=-250.0) == pytest.approx(left(0.0), rel=1e-9)
 
 
 @pytest.mark.parametrize("direction, rotation, pe_dir", [("y", 0.0, "y"), ("x", 0.0, "y"), ("y", 0.0, "x"), ("y", 90.0, "y"), ("x", 30.0, "y")])

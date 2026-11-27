@@ -21,6 +21,7 @@ from __future__ import annotations
 import importlib
 import json
 import math
+import re
 
 from . import cards as card_mod
 from . import gate, policies
@@ -41,6 +42,16 @@ def open_loop_gap(stored: dict, levels) -> float | None:
             return None
         gaps.append(level["reference"]["rate"] - row["rate"])
     return max(gaps) if gaps else None
+
+
+def served(secret: str, text: str) -> bool:
+    """Whether a hidden value stands in ``text`` as a number of its own. Its digits inside another number are not the
+    value: a hidden T1 of 150 ms is not served by a read-out of 0.0121506732 or a phase of 2.251500048 (which a plain
+    substring search reports, and did when the scan data of an engine version happened to hold those digits). A value
+    written without a decimal point must not be preceded by a digit or a point nor followed by a digit ("150", "150.0"
+    and "150 ms" count); a value with a decimal point, and the seed, must not be preceded by a digit or a point."""
+    after = r"(?![0-9])" if re.fullmatch(r"-?[0-9]+", secret) else ""
+    return re.search(r"(?<![0-9.])" + re.escape(secret) + after, text) is not None
 
 
 def claim_evidence(spec, stored: dict | None, engine_id: str) -> tuple[bool, str]:
@@ -155,7 +166,7 @@ def check_env(id: str, level: int | None = None, seed: int = 7, verbose: bool = 
     secret = [cfg["seed"]] + [f"{c['t1_ms']:.6g}" for c in world["tissues"].values()] \
         + [f"{world['system'][k]:.6g}" for k in ("tx_gain", "sigma0", "cf_offset_hz") if not (k == "tx_gain" and world["system"][k] == 1.0)]
     blob = json.dumps([e["text"] for e in env.transcript()]) + json.dumps([e["observation"].data for e in env._log], default=str) + json.dumps(env.state())
-    leaks = [s for s in secret if s in blob]
+    leaks = [s for s in secret if served(s, blob)]
     add("no seed, true T1, transmit gain, noise level or frequency offset in any observation or in state()", not leaks, str(leaks))
     # ---- end of episode
     answer = policies.controls_of(spec).prior(policies.ToolScanner(env)) if scored else {}

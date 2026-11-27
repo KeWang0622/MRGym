@@ -42,7 +42,13 @@ DESCRIPTIONS = dict(
     wrong_units="the reference's inversion time in seconds",
     textbook="measures T1, then TI = ln 2 x T1 (ignores the repetition time and the inversion efficiency)",
 )
-PROBE = dict(sequence="ir", matrix=64, partial_fourier=0.6, bandwidth_hz_per_px=300.0)
+# The probes are fully sampled, and short because the matrix is small (32 lines; the regions still hold enough
+# pixels). Until engine 0.2.0 they were matrix 64 with partial_fourier 0.6, which that engine served zero-filled: 0.6
+# of the time and less noise than the full scan. Engine 0.3.0 synthesises the missing lines by homodyne detection:
+# the noise of a pixel is 1.3 times that of the full scan, and the phase of the image is the phase of a low-resolution
+# image, which in a region near its null is set by the noise and by the surroundings, so the signed mean that the
+# fit and the check scan use is biased there. Fully sampled probes have neither cost.
+PROBE = dict(sequence="ir", matrix=32, bandwidth_hz_per_px=300.0)
 T1_MID_MS = 630.0
 
 
@@ -206,7 +212,7 @@ def textbook(sc):
 # ------------------------------------------------------------------------------------------------ learnability
 def parametric(params: dict):
     """The policy of ``policy_space`` with the given parameter values. ``n_probes=4, probe_tr_fraction=1,
-    probe_matrix=64, finite_tr_model=True, check_scan=True`` plays exactly like ``reference``; ``finite_tr_model=False``
+    probe_matrix=32, finite_tr_model=True, check_scan=True`` plays exactly like ``reference``; ``finite_tr_model=False``
     without a check scan is ``textbook``; ``n_probes=0`` is ``prior``."""
     n, frac, matrix = int(params["n_probes"]), float(params["probe_tr_fraction"]), int(params["probe_matrix"])
 
@@ -252,7 +258,7 @@ def policy_space() -> dict:
             dict(name="probe_matrix", kind="choice", values=(32, 64), what="matrix of the probes"),
         ],
         build=parametric,
-        reference=dict(n_probes=4, probe_tr_fraction=1.0, finite_tr_model=True, check_scan=True, probe_matrix=64),
+        reference=dict(n_probes=4, probe_tr_fraction=1.0, finite_tr_model=True, check_scan=True, probe_matrix=32),
         starts=dict(
             weak=dict(n_probes=[0.45, 0.40, 0.10, 0.05], probe_tr_fraction=(0.6, 0.2), finite_tr_model=0.05, check_scan=0.5,
                       probe_matrix=[0.5, 0.5]),

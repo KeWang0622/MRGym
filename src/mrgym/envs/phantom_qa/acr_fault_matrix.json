@@ -1,6 +1,6 @@
 {
  "schema": "mrgym-qa-acr/1",
- "engine": "mrgym-engine-0.2.0",
+ "engine": "mrgym-engine-0.3.0",
  "seed": "0",
  "command": "mrgym qa acr --matrix --write",
  "rows": [
@@ -47,8 +47,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 349.7,
-   "seconds": 5.2
+   "snr_t1_slice7": 351.7,
+   "seconds": 6.1
   },
   {
    "field_t": 1.5,
@@ -67,7 +67,7 @@
     "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
     "intensity_uniformity": "T1 PIU 97.7 %; T2 PIU 97.6 %",
     "ghosting": "ratio 0.0002",
-    "low_contrast": "T1 39 spokes (9 + 10 + 10 + 10); T2 36 spokes (6 + 10 + 10 + 10)",
+    "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 36 spokes (6 + 10 + 10 + 10)",
     "artifacts": "T1 line z 4.2; T2 line z 2.7"
    },
    "limits": {
@@ -97,8 +97,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 349.6,
-   "seconds": 5.2
+   "snr_t1_slice7": 351.5,
+   "seconds": 6.1
   },
   {
    "field_t": 1.5,
@@ -147,8 +147,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 349.9,
-   "seconds": 5.1
+   "snr_t1_slice7": 351.8,
+   "seconds": 6.2
   },
   {
    "field_t": 1.5,
@@ -197,8 +197,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 349.7,
-   "seconds": 5.2
+   "snr_t1_slice7": 351.7,
+   "seconds": 6.1
   },
   {
    "field_t": 1.5,
@@ -247,8 +247,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 358.5,
-   "seconds": 5.0
+   "snr_t1_slice7": 360.5,
+   "seconds": 6.4
   },
   {
    "field_t": 1.5,
@@ -293,8 +293,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 349.7,
-   "seconds": 5.0
+   "snr_t1_slice7": 351.6,
+   "seconds": 5.9
   },
   {
    "field_t": 1.5,
@@ -345,8 +345,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 62.3,
-   "seconds": 5.0
+   "snr_t1_slice7": 62.6,
+   "seconds": 5.8
   },
   {
    "field_t": 1.5,
@@ -397,8 +397,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 302.9,
-   "seconds": 5.3
+   "snr_t1_slice7": 304.6,
+   "seconds": 6.7
   },
   {
    "field_t": 1.5,
@@ -447,8 +447,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 260.1,
-   "seconds": 4.9
+   "snr_t1_slice7": 261.6,
+   "seconds": 6.1
   },
   {
    "field_t": 1.5,
@@ -466,7 +466,7 @@
     "geometric_accuracy": "largest error +0.31 mm (slice 5 left-right)",
     "spatial_resolution": "T1 0.9 / 0.9; T2 1.0 / 1.0 mm (left-right / top-bottom)",
     "intensity_uniformity": "T1 PIU 94.9 %; T2 PIU 93.3 %",
-    "ghosting": "ratio 0.0774",
+    "ghosting": "ratio 0.0775",
     "low_contrast": "T1 39 spokes (9 + 10 + 10 + 10); T2 32 spokes (2 + 10 + 10 + 10)",
     "artifacts": "T1 line z 2.7; T2 line z 2.4"
    },
@@ -497,8 +497,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 321.3,
-   "seconds": 4.9
+   "snr_t1_slice7": 323.1,
+   "seconds": 6.0
   },
   {
    "field_t": 1.5,
@@ -549,8 +549,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 347.6,
-   "seconds": 4.9
+   "snr_t1_slice7": 349.6,
+   "seconds": 5.7
   },
   {
    "field_t": 1.5,
@@ -570,7 +570,7 @@
     "intensity_uniformity": "T1 PIU 97.6 %; T2 PIU 97.1 %",
     "ghosting": "ratio 0.0031",
     "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 37 spokes (7 + 10 + 10 + 10)",
-    "artifacts": "T1 line z 130.8; T2 line z 104.8"
+    "artifacts": "T1 line z 129.7; T2 line z 104.7"
    },
    "limits": {
     "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
@@ -599,8 +599,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 350.7,
-   "seconds": 4.9
+   "snr_t1_slice7": 352.7,
+   "seconds": 5.7
   },
   {
    "field_t": 1.5,
@@ -619,7 +619,7 @@
     "spatial_resolution": "T1 1.0 / 1.0; T2 1.0 / 1.0 mm (left-right / top-bottom)",
     "intensity_uniformity": "T1 PIU 97.5 %; T2 PIU 97.4 %",
     "ghosting": "ratio 0.0001",
-    "low_contrast": "T1 17 spokes (0 + 3 + 6 + 8); T2 10 spokes (0 + 0 + 4 + 6)",
+    "low_contrast": "T1 17 spokes (0 + 3 + 6 + 8); T2 11 spokes (0 + 0 + 5 + 6)",
     "artifacts": "T1 line z 3.0; T2 line z 2.5"
    },
    "limits": {
@@ -649,8 +649,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 69.9,
-   "seconds": 4.9
+   "snr_t1_slice7": 70.3,
+   "seconds": 5.9
   },
   {
    "field_t": 3.0,
@@ -695,8 +695,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 721.2,
-   "seconds": 5.1
+   "snr_t1_slice7": 725.2,
+   "seconds": 6.4
   },
   {
    "field_t": 3.0,
@@ -716,7 +716,7 @@
     "intensity_uniformity": "T1 PIU 94.8 %; T2 PIU 95.0 %",
     "ghosting": "ratio 0.0002",
     "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 40 spokes (10 + 10 + 10 + 10)",
-    "artifacts": "T1 line z 4.9; T2 line z 3.2"
+    "artifacts": "T1 line z 4.9; T2 line z 3.3"
    },
    "limits": {
     "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
@@ -745,8 +745,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 722.4,
-   "seconds": 5.2
+   "snr_t1_slice7": 726.4,
+   "seconds": 6.0
   },
   {
    "field_t": 3.0,
@@ -795,8 +795,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 719.8,
-   "seconds": 4.9
+   "snr_t1_slice7": 723.8,
+   "seconds": 6.2
   },
   {
    "field_t": 3.0,
@@ -845,8 +845,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 721.2,
-   "seconds": 5.0
+   "snr_t1_slice7": 725.2,
+   "seconds": 6.1
   },
   {
    "field_t": 3.0,
@@ -866,7 +866,7 @@
     "intensity_uniformity": "T1 PIU 94.8 %; T2 PIU 95.0 %",
     "ghosting": "ratio 0.0005",
     "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 40 spokes (10 + 10 + 10 + 10)",
-    "artifacts": "T1 line z 4.9; T2 line z 4.4"
+    "artifacts": "T1 line z 5.0; T2 line z 4.4"
    },
    "limits": {
     "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
@@ -895,8 +895,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 737.5,
-   "seconds": 5.0
+   "snr_t1_slice7": 741.6,
+   "seconds": 6.1
   },
   {
    "field_t": 3.0,
@@ -912,7 +912,7 @@
     "intensity_uniformity": "T1 PIU 94.8 %; T2 PIU 95.0 %",
     "ghosting": "ratio 0.0004",
     "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 40 spokes (10 + 10 + 10 + 10)",
-    "artifacts": "T1 line z 4.4; T2 line z 2.8"
+    "artifacts": "T1 line z 4.5; T2 line z 2.8"
    },
    "limits": {
     "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
@@ -941,8 +941,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 721.0,
-   "seconds": 5.0
+   "snr_t1_slice7": 725.1,
+   "seconds": 6.2
   },
   {
    "field_t": 3.0,
@@ -993,8 +993,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 104.1,
-   "seconds": 5.0
+   "snr_t1_slice7": 104.7,
+   "seconds": 6.1
   },
   {
    "field_t": 3.0,
@@ -1045,8 +1045,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 598.4,
-   "seconds": 5.4
+   "snr_t1_slice7": 601.7,
+   "seconds": 7.1
   },
   {
    "field_t": 3.0,
@@ -1095,8 +1095,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 536.4,
-   "seconds": 5.0
+   "snr_t1_slice7": 539.4,
+   "seconds": 6.4
   },
   {
    "field_t": 3.0,
@@ -1145,8 +1145,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 663.3,
-   "seconds": 4.9
+   "snr_t1_slice7": 667.0,
+   "seconds": 6.5
   },
   {
    "field_t": 3.0,
@@ -1197,8 +1197,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 710.1,
-   "seconds": 4.9
+   "snr_t1_slice7": 713.9,
+   "seconds": 6.5
   },
   {
    "field_t": 3.0,
@@ -1218,7 +1218,7 @@
     "intensity_uniformity": "T1 PIU 94.8 %; T2 PIU 95.0 %",
     "ghosting": "ratio 0.0016",
     "low_contrast": "T1 40 spokes (10 + 10 + 10 + 10); T2 40 spokes (10 + 10 + 10 + 10)",
-    "artifacts": "T1 line z 111.0; T2 line z 98.8"
+    "artifacts": "T1 line z 111.1; T2 line z 97.7"
    },
    "limits": {
     "geometric_accuracy": "within +-3.0 mm of 148 / 190 mm",
@@ -1247,8 +1247,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 723.3,
-   "seconds": 5.0
+   "snr_t1_slice7": 727.4,
+   "seconds": 6.1
   },
   {
    "field_t": 3.0,
@@ -1297,8 +1297,8 @@
      "ratio": 0.9714
     }
    },
-   "snr_t1_slice7": 144.2,
-   "seconds": 5.0
+   "snr_t1_slice7": 145.0,
+   "seconds": 5.9
   }
  ],
  "all_as_expected": true

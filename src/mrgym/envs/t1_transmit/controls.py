@@ -81,6 +81,29 @@ PULSE_TBW = dict(fast=2.0, normal=4.0, sharp=8.0)           # datasheet section 
 ALPHA_GRID = np.linspace(0.0, 170.0 * D2R, 341)             # flip angle at the slice centre on which a profile is tabulated
 
 
+def _pulse(tbw: float):
+    t = (np.arange(PULSE_SAMPLES) + 0.5) / PULSE_SAMPLES - 0.5
+    amp = np.sinc(tbw * t) * 0.5 * (1 + np.cos(2 * np.pi * t))
+    return t, amp / amp.sum()
+
+
+@functools.lru_cache(maxsize=4)
+def slice_calibration(tbw: float) -> float:
+    """The k of the datasheet (sections 1 and 4): the slice gradient is set so that the profile of a small flip angle
+    is ``slice_mm`` wide at half its maximum. That profile is the Fourier transform of the pulse; its half-maximum
+    point, in units of time-bandwidth product / (duration x gamma x gradient), is found by bisection. 1.197, 0.994
+    and 1.000 for the three pulses."""
+    t, amp = _pulse(tbw)
+    profile = lambda u: abs(np.sum(amp * np.exp(-2j * np.pi * tbw * u * t)))     # noqa: E731
+    lo, hi = 0.0, 0.05
+    while profile(hi) > 0.5:
+        lo, hi = hi, hi + 0.05
+    for _ in range(60):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (mid, hi) if profile(mid) > 0.5 else (lo, mid)
+    return lo + hi
+
+
 @functools.lru_cache(maxsize=4)
 def slice_profile(tbw: float):
     """The profile of the selective pulse with time-bandwidth product ``tbw``, from the datasheet's description:
@@ -89,16 +112,15 @@ def slice_profile(tbw: float):
     after the rephasing lobe (the two halves of the slice added), per slice thickness.
 
     The pulse is ``PULSE_SAMPLES`` hard sub-pulses about x with the amplitudes of a Hann-windowed sinc; between them
-    the spin at height z precesses about z in proportion to z. Each step is a 2 x 2 unitary matrix; the product is
-    accumulated for every (alpha, z) at once."""
-    t = (np.arange(PULSE_SAMPLES) + 0.5) / PULSE_SAMPLES - 0.5
-    amp = np.sinc(tbw * t) * 0.5 * (1 + np.cos(2 * np.pi * t))
-    amp /= amp.sum()
-    z = np.linspace(0.0, 0.5 + 12.0 / tbw, int(round(6 * tbw * (0.5 + 12.0 / tbw))) + 1)          # in slice thicknesses, z >= 0
+    the spin at height z precesses about z in proportion to z, by 2 pi k tbw (z / thickness) / 128 with the k of
+    ``slice_calibration``. Each step is a 2 x 2 unitary matrix; the product is accumulated for every (alpha, z) at once."""
+    _, amp = _pulse(tbw)
+    k = slice_calibration(tbw)
+    z = np.linspace(0.0, 0.5 + 12.0 / tbw, int(round(6 * tbw * (0.5 + 12.0 / tbw))) + 1) / k      # in slice thicknesses, z >= 0
     wz = np.full(len(z), 2 * (z[1] - z[0]))
     wz[[0, -1]] /= 2
     alpha = ALPHA_GRID[:, None]
-    step = 2 * np.pi * tbw * z[None, :] / PULSE_SAMPLES                                         # precession between two sub-pulses
+    step = 2 * np.pi * tbw * k * z[None, :] / PULSE_SAMPLES                                     # precession between two sub-pulses
     half = np.exp(-0.25j * step)
     a, b = np.ones((len(ALPHA_GRID), len(z)), complex), np.zeros((len(ALPHA_GRID), len(z)), complex)
     for w in amp:

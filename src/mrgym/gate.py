@@ -71,10 +71,18 @@ def level_status(env_id: str, level: int) -> dict | None:
 
 
 def status_line(spec, g: dict | None) -> str:
+    """One line on the claim of an id and its evidence. A stored result counts only on the engine it was measured on:
+    a result from another engine is named as that and its verdict is not repeated. Where no result is stored on this
+    engine and the id is known not to work as stated on it (``spec.not_ready``), the line says so and why."""
+    import mrgym
     if spec.kind == "sandbox":
         return "SANDBOX: no reward"
+    known = f". NOT READY on this engine: {spec.not_ready}" if getattr(spec, "not_ready", "") else ""
     if not g:
-        return f"{spec.kind.upper()}: the gate has not been run (no stored result)"
+        return f"{spec.kind.upper()}: the gate has not been run (no stored result)" + known
+    if g.get("engine") != mrgym.ENGINE_ID:
+        return (f"{spec.kind.upper()}: the gate has not been run on this engine ({mrgym.ENGINE_ID}); the stored result is from "
+                f"another engine ({g.get('engine')}) and says nothing about this one") + known
     lv = g["levels"]
     adm = [k for k, v in lv.items() if v["verdict"] == "admitted"]
     if len(adm) == len(lv):

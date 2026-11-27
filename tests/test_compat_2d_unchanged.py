@@ -14,6 +14,15 @@ A failure means one of three things, and the message says which:
   * a 3D package changed a 2D exam: undo that (the new behaviour belongs to volume or array exams only)
   * ``ENGINE_VERSION`` was bumped on purpose: ``python tests/compat_cases.py --write --rebase``
   * an id was re-fingerprinted on purpose (it was never released): the same command
+
+The baseline has moved once: it was recorded on engine 0.2.0 and was recorded again on engine 0.3.0 when that engine
+was joined with the volume and array packages (CHANGELOG.md, "Engine 0.3.0 joined with what was built beside it").
+Engine 0.3.0 changes the data of every slice-selective, partial Fourier and fat-saturated scan on purpose, so the
+stored images of 0.2.0 could not stay. A new engine version is the only reason for which the scans of this baseline
+may move: a package that adds exams next to the 2D scanner never is one. That the volume and array packages still
+change no 2D exam on the new engine was shown before the baseline was moved: the worlds, schemas, scanner cards,
+plans, headers, images and refusals of this file (314 entries) were computed on the tree of engine 0.3.0 without those
+packages and on the joined tree, and are equal bit for bit.
 """
 import json
 import os

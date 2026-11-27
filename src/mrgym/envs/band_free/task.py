@@ -1,7 +1,7 @@
 """``Scanner/BandFree``: instances and the verifier.
 
-The job: two balanced SSFP images, each with no dark band across its marked regions. The bands sit where the phase a
-spin accumulates per repetition, 2 pi x off-resonance x TR + phase cycle, is a multiple of 2 pi; they repeat every
+The job: two balanced SSFP images, each with no dark band across its marked regions. The bands sit where the phase by
+which a spin runs ahead of the RF pulse per repetition, 2 pi x off-resonance x TR - phase cycle, is a multiple of 2 pi; they repeat every
 1 / TR in frequency and are as wide as the material and the excitation make them. Where the regions lie in that
 pattern depends on the hidden field, on the hidden error of the frequency adjustment, on the material (oil sits
 3.4 ppm below water) and on the repetition time, which follows from the receiver bandwidth. A low bandwidth gives
@@ -41,8 +41,8 @@ console at a multiple of the scan time; a scout made with it shows the hard-puls
 
 How it is evaluated. The delivered protocol is scanned noise-free on the hidden object at the adjusted centre
 frequency (and so is the best phase cycle of each region); rule 1 at the present frequency is read from those scans.
-A drift of the centre frequency by d Hz is the same thing as a change of the phase cycle by 360 x d x TR degrees for
-this sequence; the drift part of rule 1 and the set of all band-free protocols of rules 2 and 3 are computed from the
+A drift of the centre frequency by d Hz is the same thing as a change of the phase cycle by 360 x d x TR degrees
+(the other way) for this sequence; the drift part of rule 1 and the set of all band-free protocols of rules 2 and 3 are computed from the
 echo amplitudes on each region's support (``Evaluator``: no k-space, every whole degree of the phase cycle, a grid
 over the bandwidth), with the readout displacement of off-resonant spins included.
 """
@@ -295,7 +295,7 @@ class Evaluator:
                 x = p["x"] + (self._at(self.df, p["y"], x) + p["shift_hz"]) / bandwidth * px
             theta = 360.0 * self._at(self.df, p["y"], x) * tr * 1e-3     # phase per TR of every point from the field, degrees
             table = self.steady_state(p, realised)
-            pos = (theta[:, None] + phi[None, :]) % 360.0
+            pos = (theta[:, None] - phi[None, :]) % 360.0              # the spin runs ahead of the pulse by its phase per TR minus the phase cycle
             lo = np.floor(pos).astype(int) % 360
             s = table[lo] * (1 - (pos - lo)) + table[(lo + 1) % 360] * (pos - lo)
             out.append(np.abs((s * (np.exp(0.5j * np.deg2rad(theta)) * self._at(self.rx, p["y"], x))[:, None]).mean(0)))
@@ -492,7 +492,7 @@ def card() -> dict:
         task_kind=kind["kind"], task_kind_why=kind["evidence"], task_kind_levels=kind["levels"], competencies=list(COMPETENCIES),
         world=dict(phantom="QA phantom (a disc of gel with vials; at level 3 one vial of oil), 3 T, field spread drawn per instance",
                    sequences_useful=["bssfp", "spgr"],
-                   agent_side_formulas="phase per TR = 360 x off-resonance x TR + phase cycle; steady-state signal of bssfp as "
+                   agent_side_formulas="phase per TR = 360 x off-resonance x TR - phase cycle; steady-state signal of bssfp as "
                                        "a function of that phase, integrated over the slice profile of the documented pulse "
                                        "(datasheet); off-resonance = phase slope of a multi-echo spgr"),
         hidden=["the off-resonance field and its spread", "the error of the frequency adjustment (up to 150 Hz)",

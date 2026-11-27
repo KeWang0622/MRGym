@@ -598,18 +598,20 @@ def acr(rng, b0_t=1.5, n=640, extent_mm=256.0, spec=None, tissue_rng=None, rot_d
 # ------------------------------------------------------------------------------------------------ NIST T1 plate
 # The NiCl2 (T1) array of the ISMRM / NIST system phantom. Source tags:
 #   [S]  Stupic et al. 2021, Magn Reson Med 86:1194 (PMC8252537), article body, read for this module
-#   [R]  reference T1 of the 14 spheres at 20 degrees C as listed in the analysis code of the ISMRM reproducibility
-#        challenge (rrsg2020/analysis, src/nist.py, the list for serial numbers below 0043); the twelfth value equals
-#        the T1 that [S] gives for the Ni-12 solution at 3 T and 20.0 degrees C (44.53 ms)
-#   [D]  declared: not in what was opened. Tables S1 to S3 of [S] (positions, 1.5 T values, T2 of every sphere) were
-#        NOT opened, so this world exists at 3 T only, the order of the spheres on the plate is a choice, and every
-#        T2 except that of sphere 12 follows a declared rule
+#   [S1] Table S1 of the supporting information of [S] (NiCl2 array), column "NMR measured T1 @ 3.0 T", 20 degrees C:
+#        read on 2026-11-27 in a text copy of the supporting PDF. The list of the analysis code of the ISMRM
+#        reproducibility challenge (rrsg2020/analysis, src/nist.py, serial numbers below 0043), from which engine
+#        0.2.0 took these numbers, is the same except for sphere 5, which it writes as 496 (the table: 496.7)
+#   [D]  declared. Of the published tables this world uses only that column: the positions, the 1.5 T values and the
+#        T2 of every sphere are in the package (``NIST_S1`` below) and are not taken over by this world yet, so it
+#        exists at 3 T only, the order of the spheres on the plate was a choice (it turned out to be the published
+#        one: docs/physics/measured.md, row M0.1), and every T2 except that of sphere 12 follows a declared rule
 NIST_T1 = dict(
     shell_mm=200.0,                           # [S] 2.1: inner diameter of the spherical shell
     sphere_mm=15.0, sphere_outer_mm=20.0,     # [S] 2.3: inner and outer diameter of an array sphere (polypropylene)
     ring_mm=50.0, ring_n=10, grid_mm=40.0,    # [S] 2.3: 10 spheres on a 50 mm radius, 4 inside on a 40 mm grid
-    t1_ms=(1989.0, 1454.0, 984.1, 706.0, 496.0, 351.5, 247.13, 175.3, 125.9, 89.0, 62.7, 44.53, 30.84, 21.719),   # [R]
-    field_t=3.0,                              # [S] the field of the Ni-12 value that anchors [R]
+    t1_ms=(1989.0, 1454.0, 984.1, 706.0, 496.7, 351.5, 247.13, 175.3, 125.9, 89.0, 62.7, 44.53, 30.84, 21.719),   # [S1]
+    field_t=3.0,                              # [S1] the field of that column
     t2_ms_sphere_12=31.86,                    # [S] 2.3: Ni-12 at 3 T, 20.0 degrees C
     fill=dict(pd=1.0, t1_ms=2800.0, t2_ms=2000.0, t2p_ms=1000.0, adc_um2_ms=2.0, fat=False),   # [D] "long-T1 deionized water" ([S] 2.2); no value given
     roi_mm=5.0,                               # [S] text at Figure 5: "recommended 10.0 mm circular ROIs centered on the NiCl2 array spheres"
@@ -659,8 +661,8 @@ def nist_t1(rng, b0_t=3.0, n=640, extent_mm=256.0, spec=None, tissue_rng=None, r
 # (doi:10.1002/mrm.28779, PMC8252537, CC BY; file MRM-86-1194-s001.pdf), read for this block: NMR reference
 # measurements at 20 degrees C. One line per row of a table: T1 at 1.5 T, T2 at 1.5 T, T1 at 3 T, T2 at 3 T (ms).
 # The same numbers are cached with licence and checksum in docs/physics/measured/nist_tables.json;
-# tests/test_measured.py pins these tuples to that file. ``NIST_T1`` above is older and is not changed here: its T1
-# list is the 3 T column of Table S1 except sphere 5 (496.0 there, 496.7 in the table).
+# tests/test_measured.py pins these tuples to that file. ``NIST_T1`` above is older: since engine 0.3.0 its T1 list is
+# the 3 T column of Table S1 (engine 0.2.0 had 496.0 for sphere 5 where the table has 496.7).
 NIST_S1 = (                                  # TABLE S1: NiCl2 Array (the T1 array)
     (2033.0, 1669.0, 1989.0, 1465.0),        # Ni-1
     (1489.0, 1244.0, 1454.0, 1077.0),        # Ni-2

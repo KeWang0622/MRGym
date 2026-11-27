@@ -61,8 +61,9 @@ LINEAR = (0.5, 1.0 / 3.0)            # shape moments of a constant gradient: k g
 @dataclasses.dataclass(frozen=True)
 class Selective:
     """The console's slice-selective pulse: a windowed sinc of ``samples`` hard sub-pulses with time-bandwidth product
-    ``tbw``, played on a slice ``width`` times the reference slice (positions of the spins are in reference slices),
-    followed by a rephasing lobe of ``rephase`` times the selection area and preceded by a lobe of ``prephase`` times
+    ``tbw``, played on a slice ``width`` times the reference slice (positions of the spins are in reference slices;
+    one slice is the full width at half maximum of the small-flip-angle profile, as the console calibrates its slice
+    gradient: ``operators.slice_calibration``), followed by a rephasing lobe of ``rephase`` times the selection area and preceded by a lobe of ``prephase`` times
     it (a balanced sequence plays half before and half after). ``model``: "rotation" keeps the rotation of every
     column; "flip" replaces it by a hard pulse of the column's flip angle about the pulse axis (the engine's model:
     the transverse phase of the column is then a weight of its signal, ``operators.column_phase``)."""

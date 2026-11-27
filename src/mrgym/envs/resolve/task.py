@@ -42,9 +42,11 @@ three pixels cover a large share of the range of spacings: a sweep without any m
 too often to be called a shortcut. ``BUDGET_S`` pays the localiser of the method and no second scan of that kind.
 
 Not delivered, on purpose. ``bandwidth_hz_per_px``: at a fixed repetition time it does not change the scan time, so
-it is part of the stated scan. ``partial_fourier`` (the one setting of this console that makes the resolution
-anisotropic): the target scan samples all of k-space. The pixel of this console is square, so the phase-encode axis
-acts through the phase field of view only: at level 3 the object (and its inserts with it) lies along x or along y.
+it is part of the stated scan. ``partial_fourier``: the target scan samples all of k-space. (When the family was
+built, on engine 0.2.0, partial Fourier was the one setting that made the resolution anisotropic: the missing lines
+were zero-filled. Since engine 0.3.0 they are synthesised, the resolution stays where the phase is smooth and the
+price is noise. Either way it is not a choice of this task.) The pixel of this console is square, so the phase-encode
+axis acts through the phase field of view only: at level 3 the object (and its inserts with it) lies along x or along y.
 
 Levels. 1: the long axis of the object lies along x and the method is stated. 2: the method is withheld. 3: the
 orientation of the object and of its pairs (along x or along y) is hidden as well, so the phase-encode axis has to be

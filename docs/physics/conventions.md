@@ -123,6 +123,13 @@ Three notes for a reader who compares with a scanner.
 - `ir` is signed. Negative magnetisation shows as a phase jump of pi relative to a long TI. Example 02 uses it.
 - `bssfp` carries `exp(+i θ_free / 2)` at TE = TR / 2, with θ_free = 2 pi Δf TR, on top of the phase of the steady
   state (`signal.bssfp`).
+- `phase_cycle_deg` of `bssfp` is the advance of the RF phase from one pulse to the next, counted in the same sense
+  as the phase of a faster spin: pulse `j` turns the magnetisation about the axis at the angle `j x phase_cycle_deg`
+  from x. The steady state depends on how far the spin runs ahead of the pulse per TR,
+  `2 pi Δf TR - phase_cycle_deg`, and is lowest where that is a whole number of turns: the dark bands sit at
+  Δf = (m + `phase_cycle_deg` / 360) / TR, so a phase cycle of 90 degrees puts one at +1 / (4 TR). Engine 0.2.0 had
+  the opposite sign (bands at (m - `phase_cycle_deg` / 360) / TR); 0 and 180 degrees are the same in both. Checked
+  by S18 and K11 against a pulse-by-pulse simulation.
 - RF spoiling: pulse `j` has the phase `Φ j (j + 1) / 2`, Φ = `rf_phase_increment_deg`. `afi` counts raster
   positions of length TR1, also those without a pulse (`epg.py`).
 - Every image is multiplied by the receive profile, a smooth complex function of position.
@@ -251,7 +258,7 @@ repository checks them against the standards, and the package ships no exporter.
 | `fov_mm` / `matrix` | PixelSpacing (0028,0030), mm | | square pixels |
 | `slice_mm` | SliceThickness (0018,0050), mm | SliceThickness, mm | |
 | `pe_dir` | InPlanePhaseEncodingDirection (0018,1312): COL for `y`, ROW for `x` | PhaseEncodingDirection | the BIDS sign depends on the orientation you export |
-| `partial_fourier` | PercentSampling (0018,0093) = 100 x `partial_fourier` | PartialFourier | zero-filled |
+| `partial_fourier` | PercentSampling (0018,0093) = 100 x `partial_fourier` | PartialFourier | the missing lines are synthesised by homodyne detection |
 | `echo_spacing_ms`, `epi` | | EffectiveEchoSpacing, s | equal to the echo spacing: no parallel imaging |
 | `spoiler_mt_ms_per_m` | | SpoilingGradientMoment, mT·s/m | divide by 1,000 |
 | `rf_phase_increment_deg` | | SpoilingRFPhaseIncrement, degrees | |

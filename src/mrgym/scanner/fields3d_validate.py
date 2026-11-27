@@ -516,7 +516,7 @@ def tkd_sphere(threshold, lattice="specification"):
 
 
 def timing():
-    """Seconds (best of 3) to build the field of a world on the lattice the specification chose (136 x 128 x 128 cells
+    """CPU seconds of this process (best of 3; ``time.process_time``, so that a busy machine does not fail the row) to build the field of a world on the lattice the specification chose (136 x 128 x 128 cells
     of 2 mm), and to sample one plane on the 0.4 mm grid."""
     lat = F.Lattice.centred((136, 128, 128), 2.0, (-24.0, 0.0, 0.0))
     y, x, z = lat.mesh()
@@ -524,12 +524,12 @@ def timing():
     chi = F.DCHI_AIR_PPM * (1 - tissue)
     build, plane = [], []
     for _ in range(3):
-        t0 = time.perf_counter()
+        t0 = time.process_time()
         fld = F.Field3D(chi, lat, 3.0, tissue=tissue)
-        build.append(time.perf_counter() - t0)
-        t0 = time.perf_counter()
+        build.append(time.process_time() - t0)
+        t0 = time.process_time()
         F.sample(fld, F.plane("axial", 10.0), 640, 256.0, 5.0)
-        plane.append(time.perf_counter() - t0)
+        plane.append(time.process_time() - t0)
     return min(build), min(plane)
 
 
@@ -745,11 +745,11 @@ CHECKS = dict(kernel=check_kernel, lattice=check_lattice, surface=check_surface,
 
 def run(groups=None):
     """Run every check, or those of the named groups. Returns (rows, seconds)."""
-    t0 = time.perf_counter()
+    t0 = time.process_time()
     rows = []
     for name in (groups or CHECKS):
         rows += CHECKS[name]()
-    return rows, time.perf_counter() - t0
+    return rows, time.process_time() - t0
 
 
 def _number(x):

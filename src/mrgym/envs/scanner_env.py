@@ -54,7 +54,7 @@ _IMAGE_INDEX = {"type": "integer", "description": "image of the scan (afi: 2, sp
 _KIND = {"type": "string", "enum": ["magnitude", "phase"], "description": "default magnitude"}
 _STORED = {"scan": "scan_index", "image": "image_index"}                  # spellings accepted for the two indices
 SEQUENCE_TOPICS = tuple(console.SEQUENCES)
-PHYSICS_TOPICS = ("encoding", "slice_profile", "fat", "motion", "hidden")
+PHYSICS_TOPICS = ("encoding", "slice_profile", "fat", "adjustments", "motion", "hidden")
 TOPICS = ("overview", "task", "presets", "sequences") + SEQUENCE_TOPICS + ("geometry", "cost", "outputs", "physics") + PHYSICS_TOPICS
 MAX_TABLE_ROWS = 48                                                       # read-out rows printed; the rest is in ``data``
 VIEW_MAX = 48                                                             # the finest digit map: 48 x 48 digits are about 2,400 tokens
@@ -81,7 +81,9 @@ WHAT = dict(
     centre_x_mm="FOV centre from the isocentre", rotation_deg="in-plane rotation of the FOV, rows from +y towards +x", rf_pulse="excitation pulse",
     excitation="nonselective = 3D", fat_sat="fat saturation", fatsat_offset_hz="frequency offset of the fat saturation",
     spoiler_mt_ms_per_m="spoiler moment per TR", rf_phase_increment_deg="RF spoiling increment", n_echoes="", echo_spacing_ms="",
-    tr_ratio="TR2 / TR1", phase_cycle_deg="RF phase advance per TR", pe_polarity="sign of the phase blips")
+    tr_ratio="TR2 / TR1", phase_cycle_deg="RF phase advance per TR", pe_polarity="sign of the phase blips",
+    cf_shift_hz="centre-frequency shift", tx_scale="factor on every flip angle",
+    shim_y_hz_per_mm="linear shim along y", shim_x_hz_per_mm="linear shim along x")
 SEQUENCE_WORDS = dict(spgr="spoiled gradient echo", afi="flip-angle map (dual TR)", se="spin echo", ir="inversion recovery", bssfp="balanced SSFP",
                       epi="gradient-echo EPI")
 
@@ -93,14 +95,14 @@ def datasheet() -> str:
 
 # Paragraphs of section 5 of the datasheet by the words they start with -> the topic that serves them.
 _LEADS = {"Encoding": "encoding", "Slice selection": "slice_profile", "Gradient echoes": "gradient_echo", "Spin echoes": "spin_echo",
-          "Fat saturation": "fat", "Motion": "motion"}
+          "Fat saturation": "fat", "Adjustments": "adjustments", "Motion": "motion"}
 _ECHO = dict(spgr="gradient_echo", afi="gradient_echo", epi="gradient_echo", se="spin_echo", ir="spin_echo")
 
 
 def datasheet_parts() -> dict:
     """The datasheet cut into the pieces ``scanner_info`` serves: ``cost`` (section 4), ``outputs`` (6), ``hidden`` (7),
     ``notation`` and one piece per paragraph of section 5 (``encoding``, ``slice_profile``, ``gradient_echo``,
-    ``spin_echo``, ``fat``, ``motion`` and one per sequence). Nothing of sections 4 to 7 is in no piece."""
+    ``spin_echo``, ``fat``, ``adjustments``, ``motion`` and one per sequence). Nothing of sections 4 to 7 is in no piece."""
     md = datasheet()
     cut = lambda a, b: md[md.index(a):md.index(b) if b else len(md)].split("\n", 1)[1].strip()       # noqa: E731
     parts = {k: v.replace("**", "") for k, v in dict(cost=cut("## 4.", "## 5."), outputs=cut("## 6.", "## 7."), hidden=cut("## 7.", None)).items()}
@@ -529,7 +531,8 @@ class ScannerEnv(Env):
                 f"  {' | '.join(SEQUENCE_TOPICS)}   the signal model of that sequence, with its parameters",
                 "  encoding        wrap-around, ringing, displacement of off-resonant spins and of fat along the readout",
                 "  slice_profile   what a selective pulse does to the flip angle through the slice (it biases flip-angle and T1 methods)",
-                "  fat             fat saturation and its frequency offset",
+                "  fat             fat saturation: band, lines, steady state",
+                "  adjustments     centre frequency, transmit amplitude, linear shim",
                 "  motion          periodic motion and its ghosts",
                 "  hidden          what is hidden and what is not simulated",
                 parts["notation"]])
@@ -551,7 +554,7 @@ class ScannerEnv(Env):
             "  geometry   the parameters every sequence takes: range, default, meaning",
             "  cost       scan time, minimum TE and TR, RF power and gradient limits, noise",
             "  outputs    images, read-outs, view, profile; positions on a turned field of view",
-            "  physics    index of the signal mechanisms (encoding, slice_profile, fat, motion, hidden)",
+            "  physics    index of the signal mechanisms (encoding, slice_profile, fat, adjustments, motion, hidden)",
             "  task       the task card        presets   named starting protocols",
             "scanner_info(parameter=<name>): range, default and meaning of one protocol parameter"])
         return Observation(text=text, data=card)
@@ -677,6 +680,7 @@ class ScannerEnv(Env):
         lines += [f"{ny}x{nx} px (y, x), FOV {fy:g} x {fx:g} mm, phase-encode {pe}: {real['lines']} lines · {self._echo(real)}"
                   f" · minimums: {mins} · SAR {p['limits']['rf_power_percent']:.0f} % · WFS {d['water_fat_shift_px']:.1f} px ({d['water_fat_shift_axis']})"
                   f" · rel. SNR {d['relative_snr']:.2f}"
+                  + "".join(f" · {k} {real[k]:g}" for k, v in console.ADJUSTMENTS.items() if real.get(k, v) != v)
                   + (f" · gradient at {p['limits']['gradient_percent']:g} % of its limit" if p["limits"]["gradient_percent"] >= LIMIT_SHOWN else "")]
         none, cut = self._regions_missed(real, (ny, nx))
         if none or cut:

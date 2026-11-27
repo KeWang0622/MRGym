@@ -26,9 +26,13 @@ measurement is made:
                     coarse matrix), and the gel around a vial recovers with another T1. The fit turns that leak into an
                     error of T1 of a few percent, more when two inversion times sit on the plateau of the vial and
                     most for the shortest T1; a finer matrix halves it (the reference of level 3 uses matrix 48). With
-                    partial Fourier the zero-filled lines give the leak a complex weight and the error grows (more
-                    than twice on the instance ``tests/test_t1_vial.py`` compares): the statement says so at every
-                    level, and the scans of the stated method and of the reference are full Fourier.
+                    partial Fourier the console synthesises the missing lines (homodyne detection, engine 0.3.0): the
+                    image takes its phase from a low-resolution image, in which the gel reaches into a vial, so the
+                    signed read-out of a vial near its null is biased and the error grows (more than twice on the
+                    instance ``tests/test_t1_vial.py`` compares, at ``partial_fourier`` 0.55; on engine 0.2.0, which
+                    filled the missing lines with zeros, it was larger), and the noise of a pixel is higher. The
+                    statement says so at every level, and the scans of the stated method and of the reference are
+                    full Fourier.
 
 Deliverable    {"t1_ms": {"R1": 812.0, "R2": 1530.0, "R3": 96.0}}      T1 of every marked region, milliseconds
 Pass rule      for every marked region the delivered T1 lies within a factor 1.10 of the true T1 of its material
@@ -137,8 +141,8 @@ Regions (circles; centre and radius in mm from the isocentre; each lies inside o
 T1 values lie between {lo:.0f} and {hi:.0f} ms.{spread} Nothing else about the object is known, and the noise level is not given.
 The transmit calibration is correct: at the slice centre the flip angle is the nominal one, everywhere in the object.
 {F.OWN_SCANS.split(';')[0]}; they are charged to the scan-time budget.
-A region read-out is a mean over the image as reconstructed: with partial Fourier the zero-filled lines mix the
-material around a vial into it.
+A region read-out is a mean over the image as reconstructed: with partial Fourier the image takes its phase from a
+low-resolution image, which mixes the material around a vial into the read-out, and its noise is higher.
 
 Passing: for every region the delivered T1 lies within a factor {f:g} of the true T1 (between T1 / {f:g} and {f:g} x T1).
 The scanner's log must show that you measured. An answer in the wrong unit is wrong.""" + ("\n\n" + method if method else "")

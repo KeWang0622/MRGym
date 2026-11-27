@@ -56,7 +56,7 @@ def test_lactate_and_lipid_overlap_at_1_3_ppm_and_differ_in_their_echo_time_beha
     lac = [sequences.simulate(metabolites.get("lactate"), sequences.press(t)).window(*band).total().real for t in (30.0, te, 2 * te)]
     fat = [sequences.simulate(metabolites.get("triglyceride"), sequences.press(t)).window(*band).total().real for t in (30.0, te, 2 * te)]
     assert lac[1] == pytest.approx(-3.0, abs=0.02) and lac[2] == pytest.approx(3.0, abs=0.05) and lac[0] > 2.0
-    assert fat == pytest.approx([0.693 / 0.999] * 3, abs=1e-9)                 # the six amplitudes of the engine sum to 0.999
+    assert fat == pytest.approx([0.694] * 3, abs=1e-9)                         # the six amplitudes of the engine sum to 1 (0.999 on engine 0.2.0)
 
 
 def test_table_lists_every_network():
@@ -67,8 +67,10 @@ def test_table_lists_every_network():
 
 def test_the_reviewed_table_is_pinned():
     """Every shift, coupling and pair of the basis was compared with the fetched copies by a second reader; a change
-    of any number or text of the table changes this digest and must be made on purpose."""
+    of any number or text of the table changes this digest and must be made on purpose. Changed once since the review,
+    with engine 0.3.0: the six rows of `triglyceride` follow the engine's fat table (main line 0.694, 0.693 before) and
+    name its source as the engine now does (Hernando 2017); no other row moved."""
     import hashlib
-    assert hashlib.sha256(metabolites.table_markdown().encode()).hexdigest() == "690a06f6fcc788a34ffa50b27bb3dc8493a01f931918d535cb62edd9e79df41e"
+    assert hashlib.sha256(metabolites.table_markdown().encode()).hexdigest() == "248b5a7805c3ea0130e526bce968588f2191cfbcbd8b386cb8f5e218fa9a19c2"
     assert metabolites.WATER_3T == dict(gm=dict(water=0.78, t1_ms=1331.0, t2_ms=110.0), wm=dict(water=0.65, t1_ms=832.0, t2_ms=79.2),
                                         csf=dict(water=0.97, t1_ms=3817.0, t2_ms=503.0))

@@ -112,6 +112,7 @@ REGION_WORDS = frozenset({"task", "all"})
 # suffix of a parameter name: (spellings of its own unit, {another unit: (factor to the own unit, name of the own unit)})
 UNITS = {
     "_ms": (("ms", "msec", "millisecond", "milliseconds"), {"s": 1e3, "sec": 1e3, "seconds": 1e3, "us": 1e-3, "µs": 1e-3}, "milliseconds"),
+    "_hz_per_mm": (("hz/mm", "hz per mm"), {}, "Hz per mm"),             # before "_mm": the shim terms are not lengths
     "_mm": (("mm", "millimetre", "millimetres", "millimeter", "millimeters"), {"cm": 10.0, "m": 1e3}, "millimetres"),
     "_deg": (("deg", "degree", "degrees", "°"), {"rad": 180.0 / math.pi, "radians": 180.0 / math.pi}, "degrees"),
     "_hz_per_px": (("hz/px", "hz per px", "hz/pixel", "hz per pixel", "hz"), {"khz": 1e3, "khz/px": 1e3}, "Hz per pixel"),
@@ -242,7 +243,7 @@ def unit_slip(name: str, value, lo=None, hi=None):
         return None
     if is_fraction(name) and 1 < value <= 100 and ok(value / 100):
         return f"{name} is a fraction; {value:g} % = {value / 100:g}", round(value / 100, 6)
-    if name.endswith("_mm") and ok(value * 10):
+    if name.endswith("_mm") and not name.endswith("_per_mm") and ok(value * 10):
         return f"{name} expects millimetres; {value:g} cm = {value * 10:g} mm", round(value * 10, 6)
     return None
 

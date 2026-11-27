@@ -6,6 +6,10 @@ acquisition), RF power and gradient use as percent of limit, and accept / reject
 returns depends on the object: no signal, no noise level. The relative-SNR figure in the header is voxel volume times
 the square root of the sampling time, a function of the protocol alone.
 
+Partial Fourier. The lines that are not acquired are synthesised by homodyne detection (``kspace.Engine.recon``): the
+resolution stays, the noise of a pixel rises. ``noise_lines`` is the number of lines a fully sampled scan would need
+for the same noise; the relative SNR is computed with it, so it falls when lines are left out.
+
 Timing model
   readout       duration 1 / bandwidth_hz_per_px; amplitude G = bandwidth * matrix / (gamma * FOV)
   lobes         prephaser (half the readout area) and spoiler: time-optimal trapezoids at ``derate`` of the gradient
@@ -18,18 +22,29 @@ Timing model
   scan time     overhead + dummy cycles * cycle + cycle * phase-encode lines * averages   (one line per cycle);
                 EPI: overhead + TR * (averages + 2)
   RF power      B1rms^2 = sum over pulses of B1^2 * duration / cycle, as percent of (B1rms limit)^2. Computed from
-                the NOMINAL flip angle, as a scanner does before it knows the transmit error.
+                the NOMINAL flip angle, as a scanner does before it knows the transmit error, times ``tx_scale``
+                squared (the amplitude the console itself was told to play).
 
 Slice selection (``excitation: selective``, the default). The excitation is a windowed sinc of ``rf_pulse``: fast
 (1 ms, time-bandwidth product 2), normal (2 ms, 4) or sharp (4 ms, 8); ``se`` and ``ir`` play the 90 degree pulse
 with that duration and the 180 degree pulse 1.5 times as long, on a slice 1.5 times as thick.
-  slice gradient  G_ss = tbw / (duration * gamma * slice thickness); refused (SLICE_TOO_THIN) above ``derate`` of the
-                  gradient limit. Its rephasing lobe, of area G_ss * (duration + ramp) / 2, overlaps the prephaser:
-                  the longer of the two counts in the minimum TE; the minimum TR carries the pulse and its ramp
+  slice gradient  G_ss = k * tbw / (duration * gamma * slice thickness), k = ``rf.fwhm_factor`` (1.197 / 0.994 / 1.000):
+                  calibrated per pulse so that the full width at half maximum of the small-flip-angle profile is
+                  the prescribed thickness. Refused (SLICE_TOO_THIN) above ``derate`` of the gradient limit. Its
+                  rephasing lobe, of area G_ss * (duration + ramp) / 2, overlaps the prephaser: the longer of the two
+                  counts in the minimum TE; the minimum TR carries the pulse and its ramp
   peak B1         peak factor of the shape * alpha / (2 pi gamma duration); the pulse is lengthened (to the raster)
                   until this is at most ``b1_peak_ut``
   RF power        B1^2 * duration of the hard pulse of the same duration and angle, times the energy factor of the
                   shape (1.80 / 3.11 / 7.16 for time-bandwidth 2 / 4 / 8)
+Fat saturation: an 8 ms pulse that ends ``fatsat_gap_ms`` before the excitation pulse starts; the saturation acts at
+its centre, ``fatsat_delay_ms`` = fatsat_ms / 2 + fatsat_gap_ms + rf / 2 before the centre of the excitation.
+
+Adjustments (every sequence; they cost no time). ``cf_shift_hz`` raises the centre frequency of the scanner,
+``shim_y_hz_per_mm`` / ``shim_x_hz_per_mm`` add linear field terms, ``tx_scale`` multiplies the transmit amplitude of
+the excitation and refocusing pulses (their peak B1 and RF power follow; the adiabatic inversion and the
+fat-saturation pulse are not scaled). Their defaults change nothing.
+
 ``excitation: nonselective`` is a 3D acquisition with hard pulses: every voxel sees one flip angle, the acquisition
 time is multiplied by ``partitions = ceil(slab / slice_mm)`` (``slab_mm``, the depth of the object, a constant) and
 the noise falls with the square root of it. The returned image is the central partition; slab wrap is not modelled.
@@ -61,7 +76,10 @@ _GEOM = dict(
     averages=(1, 64, "i", 1), centre_y_mm=(-150.0, 150.0, "f", 0.0), centre_x_mm=(-150.0, 150.0, "f", 0.0),
     rotation_deg=(-90.0, 90.0, "f", 0.0), rf_pulse=(tuple(RF.PULSES), None, "c", "normal"),
     excitation=(("selective", "nonselective"), None, "c", "selective"),
+    cf_shift_hz=(-500.0, 500.0, "f", 0.0), tx_scale=(0.5, 2.0, "f", 1.0),
+    shim_y_hz_per_mm=(-2.0, 2.0, "f", 0.0), shim_x_hz_per_mm=(-2.0, 2.0, "f", 0.0),
 )
+ADJUSTMENTS = dict(cf_shift_hz=0.0, tx_scale=1.0, shim_y_hz_per_mm=0.0, shim_x_hz_per_mm=0.0)      # name: the value that changes nothing
 _TE = dict(te_ms=(0.5, 300.0, "f", "min"))
 _FS = dict(fat_sat=(None, None, "b", False), fatsat_offset_hz=(-300.0, 300.0, "f", 0.0))
 _GRE = dict(flip_deg=(1.0, 90.0, "f", None), spoiler_mt_ms_per_m=(10.0, 600.0, "f", 100.0),
@@ -85,7 +103,8 @@ PARAMETER_UNITS = dict(
     fov_mm="mm, along the readout direction", phase_fov="fraction of fov_mm along the phase-encode direction",
     matrix="pixels along the readout (even); phase-encode lines follow from phase_fov", slice_mm="mm",
     bandwidth_hz_per_px="Hz per pixel", pe_dir="phase-encode axis: y (rows) or x (columns)",
-    ro_polarity="direction of the readout: with 1 a spin off resonance by df appears -df / bandwidth pixels along the readout", partial_fourier="fraction of phase-encode lines acquired",
+    ro_polarity="direction of the readout: with 1 a spin off resonance by df appears -df / bandwidth pixels along the readout",
+    partial_fourier="fraction of phase-encode lines acquired; the others are synthesised (homodyne detection)",
     phase_oversampling="fraction of extra phase field of view, acquired and discarded", averages="count",
     centre_y_mm="mm, position of the centre of the field of view along y (off-centre shift; 0 = isocentre)",
     centre_x_mm="mm, position of the centre of the field of view along x (off-centre shift; 0 = isocentre)",
@@ -99,6 +118,10 @@ PARAMETER_UNITS = dict(
     spoiler_mt_ms_per_m="mT*ms/m per repetition", rf_phase_increment_deg="degrees", tr_ms="ms", n_echoes="count",
     echo_spacing_ms="ms", tr_ratio="integer TR2 / TR1", ti_ms="ms, centre of the inversion to centre of the excitation",
     phase_cycle_deg="degrees of RF phase advance per TR", pe_polarity="sign of the phase-encode blips",
+    cf_shift_hz="Hz added to the scanner's centre frequency for this scan: a spin measured df off resonance is df - cf_shift_hz off",
+    tx_scale="factor on the transmit amplitude of this scan: every excitation and refocusing angle is tx_scale x nominal x local transmit factor",
+    shim_y_hz_per_mm="Hz per mm along y, a linear field added for this scan: the off-resonance at (y, x) changes by shim_y_hz_per_mm x y",
+    shim_x_hz_per_mm="Hz per mm along x, a linear field added for this scan: the off-resonance at (y, x) changes by shim_x_hz_per_mm x x",
 )
 DESCRIPTIONS = dict(
     spgr="RF-spoiled gradient echo, 1 to 8 echoes: steady state with quadratic RF phase cycling and a gradient "
@@ -131,6 +154,10 @@ PARAMETER_MEANING = dict(
     rf_pulse="excitation pulse: fast (1 ms), normal (2 ms), sharp (4 ms): squarer slice profile, longer pulse, more RF energy",
     excitation="selective: one 2D slice; nonselective: hard pulses, 3D encoding, scan time x partitions",
     fatsat_offset_hz="frequency shift of the fat-saturation pulse",
+    cf_shift_hz="centre-frequency adjustment: off-resonance everywhere falls by it",
+    tx_scale="transmit adjustment: factor on every excitation and refocusing angle",
+    shim_y_hz_per_mm="linear shim along y: adds shim_y_hz_per_mm x y to the off-resonance",
+    shim_x_hz_per_mm="linear shim along x: adds shim_x_hz_per_mm x x to the off-resonance",
 )
 # One name per sequence for the schema (the full descriptions are in DESCRIPTIONS and behind scanner_info).
 SEQUENCE_NAMES = dict(spgr="RF-spoiled gradient echo", afi="actual flip-angle imaging (dual TR)", se="spin echo",
@@ -139,19 +166,22 @@ SEQUENCE_NAMES = dict(spgr="RF-spoiled gradient echo", afi="actual flip-angle im
 PARAMETER_UNIT = dict(
     tr_ms="ms", te_ms="ms", flip_deg="degrees", ti_ms="ms", fov_mm="mm", slice_mm="mm", bandwidth_hz_per_px="Hz per pixel",
     echo_spacing_ms="ms", spoiler_mt_ms_per_m="mT*ms/m", rf_phase_increment_deg="degrees", phase_cycle_deg="degrees",
-    centre_y_mm="mm", centre_x_mm="mm", rotation_deg="degrees", fatsat_offset_hz="Hz")
+    centre_y_mm="mm", centre_x_mm="mm", rotation_deg="degrees", fatsat_offset_hz="Hz", cf_shift_hz="Hz",
+    shim_y_hz_per_mm="Hz per mm", shim_x_hz_per_mm="Hz per mm")
 # Key order of the schema: what a protocol is usually written in. Parameters not listed here follow in sorted order.
 PARAMETER_ORDER = ("tr_ms", "te_ms", "flip_deg", "ti_ms", "fov_mm", "phase_fov", "matrix", "slice_mm", "bandwidth_hz_per_px",
                    "pe_dir", "averages", "phase_oversampling", "partial_fourier", "fat_sat", "fatsat_offset_hz", "n_echoes",
                    "echo_spacing_ms", "spoiler_mt_ms_per_m", "rf_phase_increment_deg", "tr_ratio", "phase_cycle_deg", "ro_polarity",
-                   "pe_polarity", "centre_y_mm", "centre_x_mm", "rotation_deg", "rf_pulse", "excitation")
+                   "pe_polarity", "centre_y_mm", "centre_x_mm", "rotation_deg", "rf_pulse", "excitation",
+                   "cf_shift_hz", "tx_scale", "shim_y_hz_per_mm", "shim_x_hz_per_mm")
 # Times whose lower bound depends on the rest of the protocol: the schema states no minimum for them (a model copies
 # a schema minimum into the call), ``plan`` prints the one that applies.
 PROTOCOL_DEPENDENT = ("tr_ms", "te_ms", "ti_ms", "echo_spacing_ms")
 MIN = "min"                                 # the literal for "the shortest the console can realise"
 # What the adjustments before a scan depend on (centre frequency, transmit gain, shim): the sequence family and where
 # the field of view lies. A console that states ``repeat_overhead_s`` (``exam["system"]``) charges its full
-# ``overhead_s`` only when one of these differs from the previous scan; timing, matrix and averages are not among them.
+# ``overhead_s`` only when one of these differs from the previous scan; timing, matrix and averages are not among them,
+# and neither are the adjustment values a protocol sets by hand (``ADJUSTMENTS``: they cost nothing).
 ADJUSTMENT_FIELDS = ("sequence", "fov_mm", "phase_fov", "slice_mm", "pe_dir", "centre_y_mm", "centre_x_mm", "rotation_deg", "excitation")
 
 
@@ -204,7 +234,8 @@ NOT_SIMULATED = dict(
     gating=("physiologic gating", _NO_FLOW), trigger=("physiologic triggering", _NO_FLOW),
     sat_band=("spatial saturation band", "there is no spatial saturation pulse (limits.md, section 4)"),
     saturation_band=("spatial saturation band", "there is no spatial saturation pulse (limits.md, section 4)"),
-    shim=("shim", "the shim of a session is part of its hidden state and cannot be changed (limits.md, section 10)"),
+    shim=("shim", "there is no automatic shim and no term above first order: the linear terms are the protocol parameters "
+                  "shim_y_hz_per_mm and shim_x_hz_per_mm, the centre frequency is cf_shift_hz (limits.md, section 10)"),
     filter=("image filter", "the reconstruction is an unfiltered inverse FFT of one channel (limits.md, section 5)"),
     intensity_correction=("intensity (uniformity) correction", "the reconstruction is an unfiltered inverse FFT of one channel (limits.md, section 5)"),
     distortion_correction=("gradient distortion correction", "the reconstruction applies no correction (limits.md, section 10)"),
@@ -270,6 +301,16 @@ def _up(x, raster):
 def _b1_ut(flip_deg, dur_ms):
     """Amplitude of a hard pulse: alpha / (2 pi gamma tau), in microtesla."""
     return math.radians(flip_deg) / (2 * math.pi * GAMMA_HZ_PER_T * dur_ms * 1e-3) * 1e6
+
+
+def noise_lines(lines_full, lines):
+    """Number of fully sampled lines that give the pixel noise of this acquisition: the sum of the squared weights of
+    the reconstruction (``kspace.Engine.line_weights``). Fully sampled: the number of lines. Partial Fourier with
+    n = lines - lines_full / 2: 2 n + 1 lines of weight 1 and lines_full / 2 - 1 - n lines of weight 2."""
+    if lines >= lines_full:
+        return lines_full
+    n = lines - lines_full // 2
+    return (2 * n + 1) + 4 * (lines_full // 2 - 1 - n)
 
 
 def _violation(code, parameter, message, **extra):
@@ -376,16 +417,18 @@ def plan(protocol, exam=None, system=None):
     # ---- excitation: duration, slice gradient and its rephasing lobe, energy relative to a hard pulse
     selective = p["excitation"] == "selective"
     spin_echo = seq in ("se", "ir")
-    flip = 90.0 if spin_echo else p["flip_deg"]
+    tx = p["tx_scale"]                                                   # the amplitude the console plays: nominal x tx_scale
+    flip = (90.0 if spin_echo else p["flip_deg"]) * tx
     g_lim, slew = s["g_max_mt_m"] * 1e-3 * s["derate"], s["slew_t_m_s"] * s["derate"]
     if selective:
         rf_ms, tbw = RF.PULSES[p["rf_pulse"]]
         rf_ms = max(rf_ms, _up(RF.peak_factor(tbw) * _b1_ut(flip, 1.0) / s["b1_peak_ut"], ras))
-        rf180_ms = max(s["rf_180_scale"] * rf_ms, _up(RF.peak_factor(tbw) * _b1_ut(180.0, 1.0) / s["b1_peak_ut"], ras))
+        rf180_ms = max(s["rf_180_scale"] * rf_ms, _up(RF.peak_factor(tbw) * _b1_ut(180.0 * tx, 1.0) / s["b1_peak_ut"], ras))
         energy = RF.energy_factor(tbw)
-        g_ss = tbw / (rf_ms * 1e-3 * GAMMA_HZ_PER_T * p["slice_mm"] * 1e-3)              # T/m
+        cal = RF.fwhm_factor(tbw)                                        # the gradient that makes the profile's FWHM the prescribed thickness
+        g_ss = cal * tbw / (rf_ms * 1e-3 * GAMMA_HZ_PER_T * p["slice_mm"] * 1e-3)        # T/m
         if g_ss > g_lim * (1 + 1e-9):
-            thin = tbw / (rf_ms * 1e-3 * GAMMA_HZ_PER_T * g_lim) * 1e3
+            thin = cal * tbw / (rf_ms * 1e-3 * GAMMA_HZ_PER_T * g_lim) * 1e3
             bad.append(_violation("SLICE_TOO_THIN", "slice_mm", f"the slice gradient of this pulse would be {g_ss * 1e3:.1f} mT/m; "
                                   f"the thinnest slice is {thin:.2f} mm (or use excitation=nonselective)", minimum_mm=round(thin, 3)))
         ramp_ss = 1e3 * g_ss / slew
@@ -400,7 +443,10 @@ def plan(protocol, exam=None, system=None):
              partial_fourier=p["partial_fourier"], phase_oversampling=p["phase_oversampling"], averages=p["averages"],
              fat_sat=fat_sat, fatsat_offset_hz=p.get("fatsat_offset_hz", 0.0), centre_y_mm=p["centre_y_mm"], centre_x_mm=p["centre_x_mm"],
              rotation_deg=p["rotation_deg"], rf_pulse=p["rf_pulse"], excitation=p["excitation"], rf_ms=round(rf_ms, 6), rf_tbw=tbw,
-             partitions=partitions)
+             partitions=partitions, cf_shift_hz=p["cf_shift_hz"], tx_scale=tx, shim_y_hz_per_mm=p["shim_y_hz_per_mm"],
+             shim_x_hz_per_mm=p["shim_x_hz_per_mm"])
+    if fat_sat:                                                          # centre of the saturation pulse to centre of the excitation
+        r["fatsat_delay_ms"] = round(s["fatsat_ms"] / 2 + s["fatsat_gap_ms"] + rf_ms / 2, 6)
     timing = dict(readout_ms=round(t_ro, 4), rf_ms=round(rf_ms, 6), slice_gradient_mt_m=round(g_ss * 1e3, 3))
     esp = None
     n_echo = 1
@@ -428,7 +474,7 @@ def plan(protocol, exam=None, system=None):
         r.update(tr_ms=tr, te_ms=te, flip_deg=p["flip_deg"], spoiler_mt_ms_per_m=p["spoiler_mt_ms_per_m"],
                  rf_phase_increment_deg=phi)
         timing.update(spoiler_ms=round(spoil, 3), spoiler_cycles_per_px=round(cyc_px, 2))
-        pulses = [(_b1_ut(p["flip_deg"], rf_ms), rf_ms * energy)]
+        pulses = [(_b1_ut(flip, rf_ms), rf_ms * energy)]
         if seq == "spgr":
             r.update(n_echoes=n_echo, echo_spacing_ms=esp if n_echo > 1 else None)
             timing.update(echo_spacing_min_ms=esp_min)
@@ -443,7 +489,7 @@ def plan(protocol, exam=None, system=None):
         te = te_min if p["te_ms"] == "min" else _up(p["te_ms"], ras)
         tail = t_ro / 2 + ramp + s["se_spoil_ms"]
         tr = _up(p["tr_ms"], ras)
-        pulses = [(_b1_ut(90, rf_ms), rf_ms * energy), (_b1_ut(180, rf180_ms), rf180_ms * energy)]
+        pulses = [(_b1_ut(flip, rf_ms), rf_ms * energy), (_b1_ut(180 * tx, rf180_ms), rf180_ms * energy)]
         timing.update(rf_180_ms=round(rf180_ms, 6))
         r.update(tr_ms=tr, te_ms=te, flip_deg=90.0)
         if seq == "ir":
@@ -464,7 +510,7 @@ def plan(protocol, exam=None, system=None):
         tr = _up(p["tr_ms"], ras)
         te_min = te = round(tr / 2, 6)
         r.update(tr_ms=tr, te_ms=te, flip_deg=p["flip_deg"], phase_cycle_deg=p["phase_cycle_deg"])
-        pulses = [(_b1_ut(p["flip_deg"], rf_ms), rf_ms * energy)]
+        pulses = [(_b1_ut(flip, rf_ms), rf_ms * energy)]
         cycle, dummies = tr, math.ceil(s["dummy_ms"] / tr)
     else:                                                                # epi
         esp_min = _up(t_ro + 2 * ramp, ras)
@@ -478,7 +524,7 @@ def plan(protocol, exam=None, system=None):
         tr_min = _up(rf_tr / 2 + te + (lines_full // 2) * esp + 1.0 + fs_ms, ras)
         tr = _up(p["tr_ms"], ras)
         r.update(tr_ms=tr, te_ms=te, flip_deg=p["flip_deg"], echo_spacing_ms=esp, pe_polarity=p["pe_polarity"])
-        pulses = [(_b1_ut(p["flip_deg"], rf_ms), rf_ms * energy)]
+        pulses = [(_b1_ut(flip, rf_ms), rf_ms * energy)]
         cycle, dummies = tr, s["epi_dummy_shots"]
 
     if te < te_min - 1e-9:
@@ -507,7 +553,7 @@ def plan(protocol, exam=None, system=None):
     wfs = f_fat * esp * 1e-3 * lines_full if seq == "epi" else f_fat / bw
     ref = s["snr_ref"]
     vox = (px, fov_pe / n_pe, p["slice_mm"])
-    rel_snr = ((vox[0] * vox[1] * vox[2] / ref["voxel_mm3"]) * lines_full / math.sqrt(lines * ref["lines"])
+    rel_snr = ((vox[0] * vox[1] * vox[2] / ref["voxel_mm3"]) * lines_full / math.sqrt(noise_lines(lines_full, lines) * ref["lines"])
                * math.sqrt(p["averages"] * partitions * ref["bandwidth_hz_per_px"] / bw) * b0_t / 3.0)
     out.update(
         accept=not bad, realised=r,
@@ -538,11 +584,19 @@ def header(pl):
     off = f" @ y {r['centre_y_mm']:+.0f} x {r['centre_x_mm']:+.0f}" if r.get("centre_y_mm") or r.get("centre_x_mm") else ""
     off += f" rot {r['rotation_deg']:+.0f}" if r.get("rotation_deg") else ""
     sl = f"SL {r['slice_mm']:.1f}" + (f" 3Dx{r['partitions']}" if r.get("partitions", 1) > 1 else "")
+    adj = []
+    if r.get("cf_shift_hz"):
+        adj.append(f"cf {r['cf_shift_hz']:+g} Hz")
+    if r.get("tx_scale", 1.0) != 1.0:
+        adj.append(f"tx x{r['tx_scale']:g}")
+    if r.get("shim_y_hz_per_mm") or r.get("shim_x_hz_per_mm"):
+        adj.append(f"shim y {r.get('shim_y_hz_per_mm', 0.0):+.2f} x {r.get('shim_x_hz_per_mm', 0.0):+.2f} Hz/mm")
+    adj = f" | ADJ {' '.join(adj)}" if adj else ""
     return (f"{r['sequence'].upper()} {d['field_t']:.1f}T | TR {r['tr_ms']:.1f} TE {r['te_ms']:.1f}{extra} FA {r['flip_deg']:.0f} | "
             f"FOV {r['fov_mm']:.0f}x{r['fov_pe_mm']:.0f} mm{off}  {r['matrix']}x{r['matrix_pe']}  {sl} | "
             f"BW {r['bandwidth_hz_per_px']:.0f} Hz/px  PE {pe}{'  FS' if r['fat_sat'] else ''} | NEX {r['averages']} | "
             f"TA {int(ta // 60)}:{ta % 60:04.1f} | SAR {pl['limits']['rf_power_percent']:.0f} % | "
-            f"WFS {d['water_fat_shift_px']:.1f} px ({d['water_fat_shift_axis']}) | rel. SNR {d['relative_snr']:.2f}")
+            f"WFS {d['water_fat_shift_px']:.1f} px ({d['water_fat_shift_axis']}) | rel. SNR {d['relative_snr']:.2f}{adj}")
 
 
 def request_of(realised):

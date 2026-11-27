@@ -18,6 +18,11 @@ Every id carries a ``kind``:
     candidate  scored; the gate has not been run and stored on the current engine yet (development state)
 ``kind`` is a claim; the stored gate result (``mrgym gate <id> --n 300 --write``) is the evidence, and ``mrgym check
 <id>`` fails when an id is listed as admitted without it.
+
+An id may also carry ``not_ready``: one sentence that says why it is known not to do on the current engine what its
+statement asks, before a gate stored on that engine can say so (an engine correction that takes away what the task
+examines). It stands on the status line (``gate.status_line``), on the card and in the task table of the front page;
+the id stays registered and runnable, because an id is never changed or reused.
 """
 from __future__ import annotations
 
@@ -53,6 +58,7 @@ class EnvSpec:
     reward_range: tuple = (0.0, 1.0)
     reward_threshold: float = 1.0       # reward of a passing episode
     nondeterministic: bool = False      # same (seed, level, tool calls) -> same observations and reward
+    not_ready: str = ""                 # why the id is known not to work as stated on the current engine ("" = nothing known)
     kwargs: dict = dataclasses.field(default_factory=dict)
 
     @property

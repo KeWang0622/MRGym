@@ -506,10 +506,14 @@ def test_27b_plan_agrees_with_the_settings_and_the_code():
         assert key in stoprules.DEFAULTS
     assert (float(env["GAIN"]), float(env["LOWER"]), float(env["HARM"]), int(env["MIN_ENVS"])) == (r["gain"], r["lower"], r["harm"], r["min_envs"])
     # the candidate cells exist, are admitted and are not practice levels; the calibration rule is the package's
-    from mrgym import learn
+    from mrgym import gate, learn
     for cell in plan["environments"]["candidates_for_training"]:
         for env_id, level in instances.parse_arms(cell):
-            assert mrgym.spec(env_id).kind == "admitted" and level in mrgym.spec(env_id).levels
+            spec, stored = mrgym.spec(env_id), gate.load(env_id)
+            assert level in spec.levels and stored["levels"][str(level)]["verdict"] == "admitted"
+            # registered as admitted; or as a candidate only because the stored gate is from the engine before the installed
+            # one (engine 0.3.0: the n = 300 gates are to be measured again, then the ids are registered as admitted again)
+            assert spec.kind == "admitted" or (spec.kind == "candidate" and stored["engine"] != mrgym.ENGINE_ID)
     assert learn.ENTRY_BAND == (0.20, 0.60) and learn.MIXED_MIN == 0.80 and learn.GROUP_SIZE == a["group_size"]
     assert plan["curriculum"]["first_seed"] == 10_000 > 9000 + plan["evaluation"]["calibration"]["instances"]
     assert "8357f1e" in plan["algorithm"]["name"]

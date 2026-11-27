@@ -66,31 +66,32 @@ The agent sees the task text and the results of its own tool calls, nothing else
 | [`Scanner/FatFraction-v0`](envs/scanner-fatfraction-v0/) | measure the fat fraction of each mixture | measure | experimental |
 | [`Scanner/T1Vial-v0`](envs/scanner-t1vial-v0/) | measure the T1 of each vial | measure | experimental |
 | [`Scanner/T1Transmit-v1`](envs/scanner-t1transmit-v1/) | measure T1 when the transmit field is miscalibrated | measure | experimental |
-| [`Scanner/NullTissue-v0`](envs/scanner-nulltissue-v0/) | find the inversion time that makes each vial dark | set | ready |
-| [`Scanner/FatSuppress-v0`](envs/scanner-fatsuppress-v0/) | choose the fat suppression that works in each region | set | ready |
+| [`Scanner/NullTissue-v0`](envs/scanner-nulltissue-v0/) | find the inversion time that makes each vial dark | set | experimental |
 | [`Scanner/ErnstFlip-v0`](envs/scanner-ernstflip-v0/) | find the flip angle that gives each vial most signal | set | experimental |
+| [`Scanner/FatSuppress-v0`](envs/scanner-fatsuppress-v0/) | choose the fat suppression that works in each region | set | not ready |
 | [`Scanner/ProtocolToSpec-v0`](envs/scanner-protocoltospec-v0/) | turn written requirements into a protocol that meets them | trade | experimental |
 | **B · Spatial encoding and reconstruction**: where the signal lands in the image | | | |
-| [`Scanner/NoWrap-v1`](envs/scanner-nowrap-v1/) | find the smallest, fastest field of view around the object | set | ready |
+| [`Scanner/NoWrap-v1`](envs/scanner-nowrap-v1/) | find the smallest, fastest field of view around the object | set | experimental |
 | [`Scanner/Resolve-v0`](envs/scanner-resolve-v0/) | find the fastest scan that still separates two fine features | set | experimental |
 | [`Scanner/FoldAway-v0`](envs/scanner-foldaway-v0/) | let the object wrap, but not onto your region | set | experimental |
 | [`Scanner/ShiftFree-v0`](envs/scanner-shiftfree-v0/) | choose the bandwidth that keeps shifted fat off the structure | trade | experimental |
 | **C · The system**: what the machine adds: field, RF, gradients, noise, limits | | | |
-| [`Scanner/PhantomQA-v0`](envs/scanner-phantomqa-v0/) | run the phantom quality tests and name what is broken | measure | ready |
+| [`Scanner/PhantomQA-v0`](envs/scanner-phantomqa-v0/) | run the phantom quality tests and name what is broken | measure | experimental |
 | [`Scanner/FrequencyAdjust-v0`](envs/scanner-frequencyadjust-v0/) | find how far off resonance the water is | measure | experimental |
 | [`Scanner/TransmitAdjust-v0`](envs/scanner-transmitadjust-v0/) | measure the real flip angle against the nominal one | measure | experimental |
 | [`Scanner/NoiseSNR-v0`](envs/scanner-noisesnr-v0/) | measure the signal-to-noise ratio the way the standards do | measure | experimental |
 | [`Scanner/GradientCal-v0`](envs/scanner-gradientcal-v0/) | measure the gradient scale error with a known phantom | measure | experimental |
 | **D · Image quality and artefacts**: how good the image is, and what went wrong | | | |
-| [`Scanner/SNRSpec-v0`](envs/scanner-snrspec-v0/) | reach a required signal-to-noise ratio in the least scan time | set | ready |
-| [`Scanner/BandFree-v0`](envs/scanner-bandfree-v0/) | keep the dark bands of balanced SSFP off the object | set | ready |
+| [`Scanner/SNRSpec-v0`](envs/scanner-snrspec-v0/) | reach a required signal-to-noise ratio in the least scan time | set | experimental |
+| [`Scanner/BandFree-v0`](envs/scanner-bandfree-v0/) | keep the dark bands of balanced SSFP off the object | set | experimental |
 | [`Scanner/GhostAside-v0`](envs/scanner-ghostaside-v0/) | steer motion ghosts away from the region you need | set | experimental |
-| [`Scanner/ArtefactClinic-v0`](envs/scanner-artefactclinic-v0/) | say what causes each artefact and fix the protocol | trade | ready |
+| [`Scanner/ArtefactClinic-v0`](envs/scanner-artefactclinic-v0/) | say what causes each artefact and fix the protocol | trade | experimental |
 | [`Scanner/EPISetup-v0`](envs/scanner-episetup-v0/) | set up echo-planar imaging within distortion and ghost limits | trade | experimental |
 
-A task is ready when it has been checked on 300 fresh objects: a scripted solution passes, and shortcuts that ignore the
-object fail. Each task has levels of difficulty (`mrgym list`); [envs/](envs/README.md) has the full table.
-[The map](docs/tasks.md) lists 115 pieces of MR physics: the scanner forms 61, and 22 have a task of their own.
+No task is marked ready: the stored checks (300 fresh objects each) were made on engine 0.2.0, not on engine 0.3.0. A
+task marked not ready does not examine on this engine what it was built for; its card says why. Each task has levels of
+difficulty (`mrgym list`); [envs/](envs/README.md) has the full table. [The map](docs/tasks.md) lists 115 pieces of MR
+physics: the scanner forms 64, and 22 have a task of their own.
 <!-- TASKS:END -->
 
 ## Add a task
@@ -109,8 +110,9 @@ small example that runs: [examples/new_family/](examples/new_family/).
 
 Qwen3.8-27B was trained for 60 steps by reinforcement learning, on the reward alone. On 96 test episodes with objects it
 had never seen, the level it trained on went from 47 passes to 79, and an easy level of a task it never trained on from
-32 to 74. These are first runs on one task, and training on a second task did not work: [the recipe](docs/RECIPE.md) and
-[the full report](docs/experiments/RESULTS-27b.md) have the details.
+32 to 74. Measured on engine 0.2.0; this package serves engine 0.3.0, on which the runs have not been repeated. These
+are first runs on one task, and training on a second task did not work: [the recipe](docs/RECIPE.md) and [the full
+report](docs/experiments/RESULTS-27b.md) have the details.
 <!-- TRAINING:END -->
 
 ## Docs

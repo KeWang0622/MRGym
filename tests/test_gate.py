@@ -475,14 +475,19 @@ def test_write_load_and_the_file_name(tmp_path, monkeypatch):
 
 def test_status_line(stub_env):
     spec = mrgym.spec(stub_env)
-    assert gate.status_line(mrgym.spec("Scanner/Explore-v0"), _stored()) == "SANDBOX: no reward"
+    here = lambda *a: dict(_stored(*a), engine=mrgym.ENGINE_ID)             # noqa: E731  a result measured on the engine that is installed
+    assert gate.status_line(mrgym.spec("Scanner/Explore-v0"), here()) == "SANDBOX: no reward"
     assert gate.status_line(spec, None) == "CANDIDATE: the gate has not been run (no stored result)"
     assert gate.status_line(spec, {}) == "CANDIDATE: the gate has not been run (no stored result)"
-    assert gate.status_line(spec, _stored()) == ("ADMITTED: on 298 fresh instances per level the reference passes >= 95 %, "
-                                                 "no policy that ignores the object passes more than 7 % (95 % bounds)")
-    assert gate.status_line(spec, _stored(("admitted", "practice"))) == "PRACTICE: level(s) 1 admitted; reason 2a"
-    assert gate.status_line(spec, _stored(("practice", "admitted", "admitted"))) == "PRACTICE: level(s) 2, 3 admitted; reason 1a"
-    assert gate.status_line(spec, _stored(("practice", "practice"))) == "PRACTICE: level(s) none admitted; reason 1a"
+    assert gate.status_line(spec, here()) == ("ADMITTED: on 298 fresh instances per level the reference passes >= 95 %, "
+                                              "no policy that ignores the object passes more than 7 % (95 % bounds)")
+    assert gate.status_line(spec, here(("admitted", "practice"))) == "PRACTICE: level(s) 1 admitted; reason 2a"
+    assert gate.status_line(spec, here(("practice", "admitted", "admitted"))) == "PRACTICE: level(s) 2, 3 admitted; reason 1a"
+    assert gate.status_line(spec, here(("practice", "practice"))) == "PRACTICE: level(s) none admitted; reason 1a"
+    # a result from another engine is not repeated as a verdict: it says nothing about the engine that is installed
+    stale = gate.status_line(spec, _stored())
+    assert stale == (f"CANDIDATE: the gate has not been run on this engine ({mrgym.ENGINE_ID}); the stored result is from another engine "
+                     "(mrgym-engine-9.9.9) and says nothing about this one") and "ADMITTED" not in stale
 
 
 def test_text_table():

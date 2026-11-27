@@ -222,7 +222,8 @@ _BLOCKS = (
         _formed("A9", "Inversion recovery: the signed signal and its null point (STIR, FLAIR)", "A4 A7", "S11 S13", _X + "02_inversion_recovery.py", n=8),
         _formed("A10", "Spoiled gradient echo: the steady state and the Ernst angle", "A3 A4 A6", "S1 S4", _X + "01_ernst_angle.py", n=9),
         _formed("A11", "Imperfect spoiling: RF phase cycling and the echoes that survive", "A10", "S5 S9"),
-        _formed("A12", "Balanced steady-state free precession: signal against T2 / T1 and against frequency", "A6 A10", "S14", n=6),
+        _formed("A12", "Balanced steady-state free precession: signal against T2 / T1 and against frequency", "A6 A10", "S14 S18",
+                "core:Q10 core:Q10b", n=6),
         _computed("A13", "Approach to the steady state: dummy cycles and the first lines of a scan", "A10",
                   "the transient is computed by a separate chain of rotations and, in the signal core, by stepping a list of blocks "
                   "from equilibrium or along a prepared train; the scanner serves every line at the steady state",
@@ -240,10 +241,9 @@ _BLOCKS = (
     ("A", "selective signal", (
         _formed("A16", "Chemical shift: fat and water resonate 3.4 ppm apart", "A2", "K3", _X + "05_chemical_shift.py", n=8),
         _formed("A17", "In-phase and opposed-phase echo times", "A6 A16", "K18", _X + "11_in_opposed_phase.py", n=8),
-        _partial("A18", "Fat suppression by a frequency-selective saturation pulse", "A16 C3",
-                 "the pulse has a band, a centre and an efficiency, but it treats all fat as one line and its effect does "
-                 "not depend on repetition time or flip angle",
-                 "K28", "tests/test_fat_suppress.py::test_physics_the_saturated_band_has_the_width_of_the_hidden_pulse", n=7),
+        _formed("A18", "Fat suppression by a frequency-selective saturation pulse", "A16 C3",
+                "K28 K31 K32 S16 S17", "tests/test_fat_suppress.py::test_physics_the_saturated_band_has_the_width_of_the_hidden_pulse",
+                "core:Q16 core:Q16b core:Q16c core:Q16d", n=7),
         _absent("A19", "Spatial saturation bands", "A3 B2", "there is no spatial saturation pulse", n=7, needs="core in the console"),
         _computed("A20", "Magnetisation transfer and chemical exchange", "A4",
                   "the signal core computes two exchanging pools: magnetisation transfer with a saturation pulse on the bound pool, in "
@@ -303,7 +303,7 @@ _BLOCKS = (
     )),
     ("B", "slice selection", (
         _formed("B1", "A gradient makes the frequency depend on position", "A2", "K5 K19"),
-        _formed("B2", "Slice selection: thickness = bandwidth of the pulse / gradient", "A3 B1", "C5 C6", n=7),
+        _formed("B2", "Slice selection: thickness = bandwidth of the pulse / gradient", "A3 B1", "C5 C6 R13", "core:C2", n=7),
         _formed("B3", "Slice profile: what a real pulse excites across the slice", "B2", "R2 R4", n=7),
         _absent("B4", "Several slices: slices per repetition, gap, order", "B2 B3",
                 "a scan is one slice; the pulses of neighbouring slices are not played. A seeded 3D world that gives a plane at any "
@@ -331,9 +331,7 @@ _BLOCKS = (
         _formed("B15", "Rectangular field of view and phase oversampling", "B9",
                 "K7", _M + "test_r7_phase_oversampling_changes_the_price_not_the_image"),
         _formed("B16", "Placing the field of view: centre and in-plane rotation", "B9", "K21 K23"),
-        _partial("B17", "Partial Fourier: acquiring part of k-space", "B8 B11",
-                 "the lines left out are filled with zeros: the time saved and the blur are formed, the loss of SNR on a "
-                 "console is not", "K15", n=7),
+        _formed("B17", "Partial Fourier: acquiring part of k-space", "B8 B11", "K15 K29 K30 K37", n=7),
         _formed("B18", "Echo-planar readout: echo spacing, bandwidth along phase, distortion", "B8 B13 B14",
                 "K12", _X + "10_epi_distortion.py", n=9),
         _absent("B19", "Segmented acquisition and the order of the lines", "B8",
@@ -354,7 +352,8 @@ _BLOCKS = (
     ("B", "reconstruction", (
         _formed("B23", "Reconstruction by the inverse Fourier transform: magnitude and phase images", "B8", "K1 K20"),
         _absent("B24", "Options of the reconstruction: zero filling, filters, intensity and distortion correction", "B11 B23",
-                "the image is the unfiltered transform of the acquired matrix"),
+                "the reconstruction is fixed, with nothing to choose: the unfiltered transform of the acquired matrix, and homodyne "
+                "detection where part of k-space was left out"),
         _absent("B25", "Raw data: looking at k-space, spikes", "B8", "only images leave the scanner"),
         _absent("B26", "Reconstruction from incomplete data: compressed sensing and learned methods", "B8 B23",
                 "the reconstruction is fixed, and objects made of classes of one value have no texture to judge such a method on",
@@ -365,16 +364,13 @@ _BLOCKS = (
                  "two field strengths, one per session; nothing below 1.5 T or above 3 T",
                  "tests/test_scanner.py::test_field_strength_changes_tissue_and_limits", n=3),
         _formed("C2", "Field inhomogeneity and the field map from two echo times", "A6 B23", "K20", _X + "04_t2star_field_map.py", n=8),
-        _partial("C3", "Centre frequency and its adjustment", "A16 C2",
-                 "the error of the adjustment can be measured; the console has no frequency setting (only the "
-                 "fat-saturation pulse can be retuned)", "K5", n=8),
-        _computed("C4", "Shimming", "C2",
-                  "the 3D field library fits a shim of first or second order (nine solid harmonics) over a volume, with a declared "
-                  "limit on each channel, and returns the fixed first-order shim of the engine on the engine's own field; in the "
-                  "scanner the shim is fixed for the session and the console has no shim setting: the field can be mapped, not "
-                  "corrected. A first-order setting is ordinary work on the present engine; a second-order one waits for the slice "
-                  "engine on the 3D world",
-                  "fields3d:F33 fields3d:F34 fields3d:F35 fields3d:F36 fields3d:F37 fields3d:F38", n=8),
+        _formed("C3", "Centre frequency and its adjustment", "A16 C2", "K5 K33", n=8),
+        _partial("C4", "Shimming", "C2",
+                 "the two in-plane linear terms can be set for a scan; there is no term through the slice, none above first "
+                 "order and no automatic shim. The 3D field library fits a shim of first or second order (nine solid harmonics) "
+                 "over a volume, with a declared limit on each channel, and returns the fixed first-order shim of the engine on "
+                 "the engine's own field; a second-order setting at the console waits for the slice engine on the 3D world",
+                 "K34", "fields3d:F33 fields3d:F34 fields3d:F35 fields3d:F36 fields3d:F37 fields3d:F38", n=8, needs="3D world"),
         _partial("C5", "Magnetic susceptibility: the field around air and tissue boundaries", "C2",
                  "the scanner adds the field of a few air spheres in closed form; it does not compute the field from the "
                  "susceptibility of the object. The 3D field library does, with the dipole kernel, for any distribution of "
@@ -386,7 +382,8 @@ _BLOCKS = (
     )),
     ("C", "RF chain", (
         _formed("C6", "Transmit field: the flip angle actually reached, its pattern, flip-angle mapping", "A3 A10",
-                "S2", "mrgym qa acr --fault b1_nonuniformity", n=7),
+                "S2 K35 K36", "mrgym qa acr --fault b1_nonuniformity",
+                "tests/test_engine_0_3.py::test_tx_scale_brings_a_nominal_90_degree_pulse_to_90_degrees", n=7),
         _formed("C7", "RF pulses: duration, bandwidth, peak amplitude and energy", "A3 B2", "C4 C5"),
         _partial("C8", "Adiabatic pulses: an inversion that tolerates the transmit field", "A9 C6",
                  "the console's inversion is one efficiency number; the hyperbolic-secant pulse and its threshold are computed in "
@@ -446,9 +443,10 @@ _BLOCKS = (
     )),
     ("C", "operating limits", (
         _partial("C22", "RF power: what raises B1+rms, and its limit", "A3 C7",
-                 "the console prices RF as B1+rms against a limit, from the nominal flip angle; it has no figure in W/kg. The field "
+                 "the console prices RF as B1+rms against a limit, from the nominal flip angle times the transmit factor of the "
+                 "scan (`tx_scale`); it has no figure in W/kg. The field "
                  "model computes the power a body absorbs for a given B1+ and how it grows with the square of the frequency; the "
-                 "console does not use it", "C1 C5", "em:A10 em:S12", n=9, needs="field model"),
+                 "console does not use it", "C1 C5 C9", "em:A10 em:S12", n=9, needs="field model"),
         _computed("C23", "SAR in the body: whole-body and local heating", "C22",
                   "the field model computes the power a body absorbs on the slice from the electric field of the coil: SAR at a "
                   "point, averaged over a square of 21.5 mm (its stand-in for the 10 g average: a definition of the package, not "
@@ -1100,13 +1098,15 @@ def groups() -> list:
     return out + [("-", "Sandbox", sandbox)] * bool(sandbox) + [("?", "Not on the map (no row in mrgym.physics_map)", rest)] * bool(rest)
 
 
-def readme_table(what=None, status=None, cards: str = "envs/") -> str:
+def readme_table(what=None, status=None, cards: str = "envs/", not_ready: str = "not ready") -> str:
     """The task table of the front page: one table with a bold row per subject (its letter, title and plain line) and
     under it the tasks of the subject, by kind and, inside a kind, in the order of ``status``. Columns: Task, What you
     do, Kind, Status. The sandbox stands first, outside the subjects; an id whose family has no row comes last.
 
-    ``what``    {environment id: a plain phrase}; an id that is not in it shows the title of its card
-    ``status``  {kind of the registry: the word shown}, in the order in which they are listed; default: the kind itself"""
+    ``what``       {environment id: a plain phrase}; an id that is not in it shows the title of its card
+    ``status``     {kind of the registry: the word shown}, in the order in which they are listed; default: the kind itself
+    ``not_ready``  the word shown, whatever the kind, for an id that is registered as known not to work as stated on
+                   the current engine (``EnvSpec.not_ready``; its card says why); such ids stand last inside a kind"""
     import mrgym
     what, status = what or {}, status or {}
     rank = {k: n for n, k in enumerate(status)}
@@ -1114,7 +1114,7 @@ def readme_table(what=None, status=None, cards: str = "envs/") -> str:
     def row(env_id, number):
         s = mrgym.spec(env_id)
         return (f"| [`{env_id}`]({cards}{_slug(env_id)}/) | {what.get(env_id) or mrgym.card(env_id)['title']} | "
-                f"{kind(number).name if number else '-'} | {status.get(s.kind, s.kind)} |")
+                f"{kind(number).name if number else '-'} | {not_ready if s.not_ready else status.get(s.kind, s.kind)} |")
     found = groups()
     out = ["| Task | What you do | Kind | Status |", "|---|---|---|---|"]
     out += [row(env_id, None) for letter, _, rows in found if letter == "-" for env_id, _ in rows]
@@ -1122,7 +1122,8 @@ def readme_table(what=None, status=None, cards: str = "envs/") -> str:
         if letter in "-?":
             continue
         out.append(f"| **{letter} · {title}**: {subject(letter).line} | | | |")
-        ordered = sorted(rows, key=lambda r: (r[1], rank.get(mrgym.spec(r[0]).kind, len(rank))))       # stable: then the order of FAMILIES
+        ordered = sorted(rows, key=lambda r: (r[1], len(rank) + 1 if mrgym.spec(r[0]).not_ready       # stable: then the order of FAMILIES
+                                              else rank.get(mrgym.spec(r[0]).kind, len(rank))))
         out += [row(env_id, number) for env_id, number in ordered]
     out += [row(env_id, None) for letter, _, rows in found if letter == "?" for env_id, _ in rows]
     return "\n".join(out)

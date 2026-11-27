@@ -68,7 +68,8 @@ def rrsg(cache) -> dict:
     from scipy import interpolate
     d = SRC.fetch("rrsg", cache)
     v1, v2, temps, v2_t = _nist_reference(os.path.join(d, "nist.py"))
-    if not np.allclose(v1, anatomy.NIST_T1["t1_ms"]):
+    # the challenge writes sphere 5 as 496; the package has the 496.7 of Table S1 of Stupic 2021 since engine 0.3.0 (tests/test_cited_tables.py)
+    if not np.allclose(np.delete(v1, 4), np.delete(anatomy.NIST_T1["t1_ms"], 4)) or abs(v1[4] - anatomy.NIST_T1["t1_ms"][4]) > 0.7 + 1e-9:
         raise RuntimeError("the first reference list of the challenge is not the list in mrgym.scanner.anatomy.NIST_T1")
 
     def reference(temp_c, serial):                    # the challenge's own correction: quadratic in log T1 against log temperature

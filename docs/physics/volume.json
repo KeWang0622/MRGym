@@ -1,5 +1,5 @@
 {
- "engine": "0.2.0",
+ "engine": "0.3.0",
  "flat_2d": {
   "all_else": true,
   "bitwise": true,
@@ -48,7 +48,7 @@
     "build_peak_mb": 151.76,
     "lattice_2mm_held_mb": 48.25,
     "lattice_2mm_peak_mb": 51.89,
-    "lattice_2mm_s": 0.54,
+    "lattice_2mm_s": 1.23,
     "lattice_2mm_shape": [
      11,
      122,
@@ -206,24 +206,24 @@
    },
    "timings": {
     "build_s": [
-     0.194,
-     0.206,
-     0.203
+     0.221,
+     0.258,
+     0.228
     ],
     "grid": [
      640,
      256.0
     ],
     "plane_ms": {
-     "axial": 48.5,
-     "coronal": 47.7,
-     "oblique": 54.8,
-     "sagittal": 53.8
+     "axial": 58.2,
+     "coronal": 45.0,
+     "oblique": 81.1,
+     "sagittal": 89.1
     },
     "recipe_and_regions_s": [
-     0.082,
-     0.086,
-     0.078
+     0.124,
+     0.098,
+     0.076
     ]
    }
   },
@@ -246,7 +246,7 @@
     "build_peak_mb": 71.12,
     "lattice_2mm_held_mb": 39.1,
     "lattice_2mm_peak_mb": 41.87,
-    "lattice_2mm_s": 0.13,
+    "lattice_2mm_s": 0.43,
     "lattice_2mm_shape": [
      10,
      87,
@@ -374,19 +374,19 @@
    },
    "timings": {
     "build_s": [
-     0.04,
-     0.043,
-     0.04
+     0.05,
+     0.072,
+     0.033
     ],
     "grid": [
      640,
      256.0
     ],
     "plane_ms": {
-     "axial": 35.4,
-     "coronal": 22.7,
-     "oblique": 51.3,
-     "sagittal": 22.4
+     "axial": 23.0,
+     "coronal": 21.5,
+     "oblique": 41.3,
+     "sagittal": 21.7
     },
     "recipe_and_regions_s": [
      0.004,
@@ -489,7 +489,7 @@
  },
  "machine": "x86_64",
  "numpy": "2.2.6",
- "peak_rss_mb": 343.1,
+ "peak_rss_mb": 344.6,
  "python": "3.10.12",
  "seeds": [
   "00000000000000000000000000000011",

@@ -50,7 +50,7 @@ def test_every_formed_item_names_checks_that_exist():
     # of the tables in docs/physics/, which tests/test_core_validate.py, tests/test_spins_validate.py and tests/test_em_validate.py
     # hold equal to what the commands print; the receive arrays and the fields in 3D do not write every id out in their source
     # (a counter, a loop variable), so theirs are read from those tables (tests/test_array.py, tests/test_fields3d.py)
-    for prefix, rows in (("core", 81), ("spins", 69), ("em", 82), ("array", 76), ("fields3d", 54)):
+    for prefix, rows in (("core", 85), ("spins", 69), ("em", 82), ("array", 76), ("fields3d", 54)):      # core: + Q16 to Q16d (fat saturation, engine 0.3.0)
         table = (ROOT / "docs" / M.EVIDENCE_PACKAGES[prefix][2]).read_text(encoding="utf-8").split(M._TABLE_MARKS[0])[1].split(M._TABLE_MARKS[1])[0]
         assert M.package_ids(prefix) == set(re.findall(r"^\| ([A-Z]+\d+[a-z]?\d?) \|", table, re.M)) and len(M.package_ids(prefix)) == rows, prefix
     assert [p for p, line in M.EVIDENCE_PACKAGES.items() if line[1] is M._ON_THE_PAGE] == ["array", "fields3d"]
@@ -372,7 +372,8 @@ def test_what_the_field_model_computes_is_computed_and_not_served():
     assert "spatially selective parallel transmission) are not built" in by_id["C35"].reason and "one transmit channel" in by_id["C35"].reason
     assert {"em:E1", "em:E1b", "em:E3a"} <= set(by_id["C36"].evidence) and "without noise" in by_id["C36"].reason
     # what the console serves in part stays "in part", with the rows of the field model beside it
-    assert by_id["C22"].status == "partial" and {"C1", "C5", "em:A10", "em:S12"} == set(by_id["C22"].evidence) and "it has no figure in W/kg" in by_id["C22"].reason
+    assert by_id["C22"].status == "partial" and {"C1", "C5", "C9", "em:A10", "em:S12"} == set(by_id["C22"].evidence) and "it has no figure in W/kg" in by_id["C22"].reason
+    assert "`tx_scale`" in by_id["C22"].reason                            # engine 0.3.0: the transmit factor of a scan is priced (row C9)
     assert by_id["C6"].status == by_id["C10"].status == "formed"        # the declared patterns are served
     # what the field model does not reach keeps its status: a device (still this piece: three dimensions, conductors), and the
     # field of the magnet outside the bore, which is not an RF field and waits for no piece of the list
@@ -428,11 +429,14 @@ def test_the_volume_world_and_the_fields_in_3d_exist_and_nothing_is_scanned_in_3
         assert "slice engine" in by_id[i].reason, i
     assert "no scan is formed of them" in by_id["B5"].reason and "ramps and crossed wedges" in by_id["C30"].reason
     assert not any(i.reason in ("a scan is one slice", "no test object has structure through the slice") for i in M.ITEMS)
-    # shimming: computed to second order, with the engine's own first-order shim as one of its rows
+    # shimming: since engine 0.3.0 the console sets the two in-plane linear terms of a scan (row K34), so the item is served
+    # in part; the library still computes more of it (to second order, with the engine's own first-order shim as one of its rows)
     c4 = by_id["C4"]
-    assert (c4.status, c4.needs) == ("computed", "") and c4.evidence == tuple(f"fields3d:F{n}" for n in range(33, 39))
-    assert "first or second order" in c4.reason and "the console has no shim setting" in c4.reason
-    assert "A first-order setting is ordinary work on the present engine; a second-order one waits for the slice engine on the 3D world" in c4.reason
+    assert (c4.status, c4.needs) == ("partial", "3D world") and c4.evidence == ("K34",) + tuple(f"fields3d:F{n}" for n in range(33, 39))
+    assert "the two in-plane linear terms can be set for a scan" in c4.reason and "no automatic shim" in c4.reason
+    assert "first or second order" in c4.reason and "a second-order setting at the console waits for the slice engine on the 3D world" in c4.reason
+    c3 = by_id["C3"]                                                    # the centre frequency: measured (K5) and set (K33, `cf_shift_hz`)
+    assert c3.status == "formed" and c3.evidence == ("K5", "K33") and by_id["A18"].status == by_id["B17"].status == "formed"
     # the field of an object from its susceptibility: served for a few air spheres, computed for any distribution
     c5 = by_id["C5"]
     assert c5.status == "partial" and "R11" in c5.evidence and {"fields3d:F1", "fields3d:F6", "fields3d:F12", "fields3d:F15"} <= set(c5.evidence)
@@ -444,7 +448,8 @@ def test_the_volume_world_and_the_fields_in_3d_exist_and_nothing_is_scanned_in_3
     for missing in ("removal of the background field", "masks", "unwrapping of the phase", "any regularised inversion", "a scan that gives the phase of a volume"):
         assert missing in a26.reason.split("What does not: ")[1], missing
     assert by_id["A25"].status == "partial" and "no scan is formed of it" in by_id["A25"].reason
-    assert M.waiting()["3D world"] == ["A24", "A26", "B4", "B5", "C30", "D19", "D20"] and "C4" in M.waiting()[""]
+    assert M.waiting()["3D world"] == ["A24", "A26", "B4", "B5", "C30", "D19", "D20"]
+    assert "C4" not in M.waiting()[""] + M.waiting()["3D world"]         # shimming is served in part since engine 0.3.0: no longer in a list of what is not formed
     cited = {e[9:] for i in M.ITEMS for e in i.evidence if e.startswith("fields3d:")}
     assert not cited & {"F45", "F16c", "F23", "F24b", "F25b", "F32b", "F3", "F42"}       # a time, the rows that show a plainer method fail, a figure of the specification
     rows = _page_rows("fields3d")
@@ -577,10 +582,13 @@ def test_the_task_table_for_the_front_page():
     for env_id, row in rows.items():
         spec, (_, family) = mrgym.spec(env_id), M.family_of(env_id)
         assert row[0] == f"[`{env_id}`](envs/{cards.slug(env_id)}/)" and row[1] == what.get(env_id, mrgym.card(env_id)["title"])
-        assert row[2] == M.kind(family.kind).name and row[3] == words[spec.kind] and placed[env_id] == M.cell(family)[0]
+        # an id registered as known not to work as stated on this engine says so, whatever its kind, and stands last in its kind
+        assert row[2] == M.kind(family.kind).name and row[3] == ("not ready" if spec.not_ready else words[spec.kind]) and placed[env_id] == M.cell(family)[0]
     for s in M.SUBJECTS:                                                # inside a subject: by kind of task, then in the order of the words
-        mine = [(M.family_of(i)[1].kind, list(words).index(mrgym.spec(i).kind)) for i in rows if placed[i] == s.letter]
+        mine = [(M.family_of(i)[1].kind, len(words) + 1 if mrgym.spec(i).not_ready else list(words).index(mrgym.spec(i).kind)) for i in rows
+                if placed[i] == s.letter]
         assert mine == sorted(mine)
+    assert M.readme_table(what, words, not_ready="x").count("| x |") == sum(bool(mrgym.spec(i).not_ready) for i in SCORED)
     plain = M.readme_table().splitlines()                               # without phrases and words: the card title and the registry's kind
     assert [_cells(ln)[1:] for ln in plain if ID["SNRSpec"] in ln] == [[mrgym.card(ID["SNRSpec"])["title"], M.kind(M.FAMILIES["SNRSpec"].kind).name,
                                                                         mrgym.spec(ID["SNRSpec"]).kind]]

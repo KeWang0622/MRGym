@@ -4,9 +4,10 @@ and by ``tools/audit/golden.py``, which writes the files (nothing under ``tests/
 ``engine_digests.json``   a function of the engine and the numerical stack only
     engine    ``mrgym.ENGINE_VERSION`` the numbers were recorded on
     stack     numpy, scipy, machine, the SIMD extensions numpy found: the reference stack (bit-exact there)
-    images    6 sequences x 3 phantoms x 2 field strengths, and on one phantom the variants of engine 0.2.0 (hard pulses,
-              other pulse shapes, a turned field of view): the noise-free image (sha256 of the float32 magnitude and
-              phase, the 8 x 8 block fingerprint of the magnitude, the shape)
+    images    6 sequences x 3 phantoms x 2 field strengths, on one phantom the variants of engine 0.2.0 (hard pulses,
+              other pulse shapes, a turned field of view), and on a phantom with oil vials the variants of engine 0.3.0
+              (fat saturation of the six-line fat, partial Fourier, the adjustments): the noise-free image (sha256 of
+              the float32 magnitude and phase, the 8 x 8 block fingerprint of the magnitude, the shape)
     noisy     one session: every sequence once with noise, one protocol twice (sha256, fingerprint), the chain head
     prices    lines and scan seconds of a grid of protocols (console arithmetic: equal on every stack)
     array     additive: a world with a receive array: its maps and noise covariance, coil images of both formations, a
@@ -61,6 +62,21 @@ VARIANTS = dict(
     **{f"{k}+nonselective": dict(v, excitation="nonselective") for k, v in PROTOCOLS.items()},
     **{"spgr+sharp": dict(PROTOCOLS["spgr"], rf_pulse="sharp"), "se+fast": dict(PROTOCOLS["se"], rf_pulse="fast"),
        "se+rotated": dict(PROTOCOLS["se"], rotation_deg=30.0), "ir+fatsat_offset": dict(PROTOCOLS["ir"], fatsat_offset_hz=40.0)})
+# What engine 0.3.0 changed or added, on a QA phantom with three oil vials at 3 T (``qa_oil``): fat saturation of a fat
+# with six lines (with hard pulses: nothing but the saturation differs from the unsaturated scan), partial Fourier
+# reconstructed by homodyne detection, the four adjustment parameters, and a `bssfp` phase cycle that is neither 0 nor 180 degrees.
+WORLD_SPECS = dict(qa_oil=dict(kind="qa", qa=dict(n_oil=3)))
+VARIANTS_0_3 = {
+    "se+fat_sat+nonselective": dict(sequence="se", tr_ms=500.0, matrix=64, fat_sat=True, excitation="nonselective"),
+    "spgr+fat_sat": dict(sequence="spgr", tr_ms=30.0, flip_deg=20.0, matrix=64, fat_sat=True),
+    "epi+fat_sat": dict(sequence="epi", tr_ms=200.0, matrix=64),
+    "se+partial_fourier+nonselective": dict(sequence="se", tr_ms=500.0, matrix=64, partial_fourier=0.6, excitation="nonselective"),
+    "spgr+adjusted": dict(sequence="spgr", tr_ms=30.0, flip_deg=20.0, matrix=64, cf_shift_hz=40.0, tx_scale=1.15, shim_y_hz_per_mm=0.2,
+                          shim_x_hz_per_mm=-0.1),
+    "bssfp+adjusted": dict(sequence="bssfp", tr_ms=8.0, flip_deg=30.0, matrix=64, cf_shift_hz=-25.0, shim_x_hz_per_mm=0.3),
+    "bssfp+phase_cycle": dict(sequence="bssfp", tr_ms=8.0, flip_deg=30.0, matrix=64, phase_cycle_deg=90.0),
+    "bssfp+phase_cycle+nonselective": dict(sequence="bssfp", tr_ms=8.0, flip_deg=30.0, matrix=64, phase_cycle_deg=90.0, excitation="nonselective"),
+}
 PRICE_GRID = [dict(sequence=s, **geo) for s in ("se", "spgr", "epi")
               for geo in (dict(), dict(partial_fourier=0.55), dict(partial_fourier=0.75), dict(phase_oversampling=0.5),
                           dict(averages=4), dict(phase_fov=0.5, partial_fourier=0.75, phase_oversampling=0.5, averages=4),
@@ -112,7 +128,8 @@ def _digest(images) -> dict:
 
 
 def image_keys() -> list[str]:
-    return [f"{p}/{b}T/{s}" for p in PHANTOMS for b in FIELDS for s in PROTOCOLS] + [f"qa/3.0T/{v}" for v in VARIANTS]
+    return ([f"{p}/{b}T/{s}" for p in PHANTOMS for b in FIELDS for s in PROTOCOLS] + [f"qa/3.0T/{v}" for v in VARIANTS]
+            + [f"qa_oil/3.0T/{v}" for v in VARIANTS_0_3])
 
 
 _ENGINES: dict = {}
@@ -123,8 +140,9 @@ def image_case(key: str) -> dict:
     k = (phantom, field)
     if k not in _ENGINES:
         _ENGINES.clear()                                                # one world at a time: the keys come grouped
-        _ENGINES[k] = kspace.Engine(W.make_world(SEED, dict(kind=phantom, b0_t=float(field[:-1]), n=GRID)))
-    return _digest(_ENGINES[k].scan(PROTOCOLS[seq] if seq in PROTOCOLS else VARIANTS[seq])["images"])
+        _ENGINES[k] = kspace.Engine(W.make_world(SEED, dict(WORLD_SPECS.get(phantom, dict(kind=phantom)), b0_t=float(field[:-1]), n=GRID)))
+    protocol = VARIANTS_0_3[seq] if phantom in WORLD_SPECS else PROTOCOLS[seq] if seq in PROTOCOLS else VARIANTS[seq]
+    return _digest(_ENGINES[k].scan(protocol)["images"])
 
 
 def noisy_session() -> dict:

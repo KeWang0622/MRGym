@@ -840,8 +840,9 @@ def test_total_sizes_of_the_tool_schemas(env_id):
     obs, _ = env.reset()
     size = {t["function"]["name"]: len(json.dumps(t)) for t in env.tools("openai")}
     terminal = next(t.name for t in env._tool_specs() if t.terminal)
-    assert sum(v for k, v in size.items() if k != terminal) < 11400, size             # the scanner tools; the terminal tool is the family's
-    assert size["plan"] < 4000 and size["scan"] < 2450 and size["profile"] < 1500
+    # engine 0.3.0: + 550 in all, + 380 in plan, + 150 in scan for the four adjustment parameters (cf_shift_hz, tx_scale, shim_y / shim_x_hz_per_mm)
+    assert sum(v for k, v in size.items() if k != terminal) < 11950, size             # the scanner tools; the terminal tool is the family's
+    assert size["plan"] < 4380 and size["scan"] < 2600 and size["profile"] < 1500
     assert len(obs.text[obs.text.index("Limits. "):].splitlines()[0]) < 360 and "Tools:" not in obs.text
     specs = {t.name: t for t in env._tool_specs()}
     props = {name: t.parameters["properties"] for name, t in specs.items()}
@@ -865,7 +866,8 @@ def test_total_sizes_of_what_the_agent_reads():
                  status=call(env, "status"), error=call(env, "plan", sequence="se", tr_ms=5), se=call(env, "scanner_info", topic="se"),
                  overview=call(env, "scanner_info"), physics=call(env, "scanner_info", topic="physics"), verbose=call(env, "plan", verbose=True, **LOCALISER))
     # view 700 and view32 1550 (600 and 1400 before): the y of every row and an x ruler, 150 and 225 characters (test_interface_clarity.py)
-    limit = dict(plan=450, scan=400, view=700, view32=1550, profile=700, status=800, error=200, se=1150, overview=1800, physics=700, verbose=1500)
+    # physics 760 (700 before engine 0.3.0): one more line, the topic "adjustments"; verbose 1600 (1500): four more realised parameters
+    limit = dict(plan=450, scan=400, view=700, view32=1550, profile=700, status=800, error=200, se=1150, overview=1800, physics=760, verbose=1600)
     assert {k: len(v.observation.text) for k, v in sizes.items() if len(v.observation.text) > limit[k]} == {}
     # what the short forms leave out is one call away: every realised parameter and the timing of a plan, the image at a finer grid
     assert "realised: " in sizes["verbose"].observation.text and "timing: " in sizes["verbose"].observation.text and "realised: " not in sizes["plan"].observation.text

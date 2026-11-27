@@ -2,9 +2,14 @@
 
 Must pass
   reference          tries fat saturation: a fast spin-echo pair with and without it gives what it leaves in every
-                     region; where that is not enough, four signed inversion-recovery probes at a repetition time the
-                     budget allows, a fit of a - b exp(-TI / T1) per region, and the null carried over to the target
-                     repetition time with the recovery model (the fit gives the inversion efficiency too)
+                     region at the pair's short repetition time. The saturation is played before every excitation, so
+                     the fat it hits is driven into another steady state: at a short repetition time the little that
+                     recovers between the saturation and the excitation is a larger share of the (small) unsaturated
+                     signal than at the target's. Where the pair already shows enough suppression, fat saturation is
+                     taken. Otherwise four signed inversion-recovery probes at a repetition time the budget allows, a
+                     fit of a - b exp(-TI / T1) per region, the pair's ratio carried over to the target repetition time
+                     with that T1 (``_at_target``), and where fat saturation is still not enough the null carried over
+                     with the recovery model (the fit gives the inversion efficiency too)
 Must fail
   prior              no scan; fat saturation everywhere
   wrong_units        the reference's inversion times in seconds (regions it gives to fat saturation stay as they are)
@@ -65,6 +70,8 @@ PROBE = dict(sequence="ir", matrix=48, partial_fourier=0.6, bandwidth_hz_per_px=
 FIELD_MAP = dict(sequence="spgr", flip_deg=10.0, tr_ms=12.0, matrix=96, bandwidth_hz_per_px=3000.0, n_echoes=3, averages=3)
 SWITCH = 0.5 * (task.FAT_MAX + task.FAT_SAT_SUFFICIENT)      # fat saturation is taken where it leaves less than this
 ASSUMED_INVERSION = 0.95
+# centre of the 8 ms saturation pulse to centre of the 2 ms excitation, with the 2 ms between them (datasheet, fat saturation)
+SAT_DELAY_MS = 8.0 / 2 + 2.0 + 2.0 / 2
 # field_map: three numbers of a fixed estimator, set on other worlds of level 1
 FAT_APPARENT_HZ = 309.2                                      # phase of fat between the first two echoes of FIELD_MAP, as a frequency
 BAND_HALF_WIDTH_HZ = 76.0                                    # fat saturation is predicted while the off-resonance stays inside
@@ -85,12 +92,32 @@ def _complex(scan):
 
 # ------------------------------------------------------------------------------------------------ fat saturation
 def _tried(sc, t):
-    """What fat saturation leaves in every region: a fast spin echo with it over the same without. The saturation acts
-    before the excitation, so the ratio is the one of the target scan. The saturated scan is the weak one and is
-    averaged twice; its value is taken along the phase of the plain scan, which has no noise floor."""
-    plain = _complex(sc.scan(dict(PAIR), rois=t["regions"]))
+    """What fat saturation leaves in every region at the repetition time of the pair: a fast spin echo with it over the
+    same without. The saturated scan is the weak one and is averaged twice; its value is taken along the phase of the
+    plain scan, which has no noise floor. Returns ({region id: ratio}, echo time of the pair)."""
+    first = sc.scan(dict(PAIR), rois=t["regions"])
+    plain = _complex(first)
     sat = _complex(sc.scan(dict(PAIR, fat_sat=True, averages=2), rois=t["regions"]))
-    return {i: float((sat[i] * np.conj(plain[i])).real) / max(abs(plain[i]) ** 2, 1e-30) for i in _ids(t)}
+    return {i: float((sat[i] * np.conj(plain[i])).real) / max(abs(plain[i]) ** 2, 1e-30) for i in _ids(t)}, first["realised"]["te_ms"]
+
+
+def _recovered(tr, te, t1, delay=SAT_DELAY_MS):
+    """Mz just before the saturation pulse of a spin echo with exact 90 and 180 degree pulses: the 90 degree pulse
+    leaves none, the 180 degree pulse inverts what has grown in TE / 2, and the rest of the repetition recovers."""
+    return 1.0 - (2.0 - math.exp(-te / 2 / t1)) * math.exp(-(tr - te / 2 - delay) / t1)
+
+
+def _at_target(ratio, t1, te_pair, tr_target, te_target, delay=SAT_DELAY_MS):
+    """What fat saturation leaves at the target repetition time, from the ratio measured with the pair.
+
+    With m the recovered Mz before the saturation pulse and Es = exp(-delay / T1), the saturated signal over the plain
+    one is (q m Es + 1 - Es) / (m Es + 1 - Es): the saturation leaves q of Mz, and 1 - Es grows back before the
+    excitation whatever q is. Solve the pair's ratio for q (the mean over the lines of the fat: the ratio is linear in
+    it), then evaluate at the target's m."""
+    es = math.exp(-delay / t1)
+    m_pair, m_target = _recovered(PAIR["tr_ms"], te_pair, t1, delay), _recovered(tr_target, te_target, t1, delay)
+    q = (ratio * (m_pair * es + 1 - es) - (1 - es)) / max(m_pair * es, 1e-12)
+    return (q * m_target * es + 1 - es) / (m_target * es + 1 - es)
 
 
 def _field(sc, t):
@@ -170,10 +197,11 @@ def _null_at(a, b, t1, tr_probe, tr_target, te):
     return t1 * math.log((1.0 + k) / (1.0 + k * e_t))
 
 
-def _nulls(sc, t, tr=None, n_probes=4, kind="fit"):
+def _nulls(sc, t, tr=None, n_probes=4, kind="fit", fitted=None):
     """Inversion time that nulls every region at the target repetition time, from signed probes and a fit per region.
     kind 'fit': the model above; 'assumed': the same with the inversion efficiency assumed instead of taken from
-    the fit; 'textbook': ln 2 x the fitted T1."""
+    the fit; 'textbook': ln 2 x the fitted T1. ``fitted``: a dict that receives the fitted T1 of every region and
+    ``te_ms``, the echo time of the probes."""
     tr_t = t["target_scan"]["tr_ms"]
     tr = tr or _probe_tr(sc, t, n_probes)
     te = sc.plan(dict(PROBE, tr_ms=tr, ti_ms=50.0))["realised"]["te_ms"]
@@ -183,6 +211,8 @@ def _nulls(sc, t, tr=None, n_probes=4, kind="fit"):
     out = {}
     for i in _ids(t):
         a, b, t1 = _fit(tis, vals[i])
+        if fitted is not None:
+            fitted.update({i: t1, "te_ms": te})
         if kind == "textbook":
             out[i] = math.log(2.0) * t1
         elif kind == "assumed":
@@ -201,17 +231,18 @@ def _deliver(t, fat_sat_ok, ti):
 
 def reference(sc, probe_tr=None, kind="fit"):
     t = _task(sc)
-    left = _tried(sc, t)
-    ok = {i: left[i] < SWITCH for i in _ids(t)}
-    ti = {} if all(ok.values()) else _nulls(sc, t, tr=probe_tr, kind=kind)
-    return _deliver(t, ok, ti)
+    pair, te_pair = _tried(sc, t)
+    if all(pair[i] < SWITCH for i in _ids(t)):                          # the pair overstates what is left at the longer target TR
+        return _deliver(t, {i: True for i in _ids(t)}, {})
+    fitted = {}
+    ti = _nulls(sc, t, tr=probe_tr, kind=kind, fitted=fitted)
+    tr_t = t["target_scan"]["tr_ms"]
+    left = {i: _at_target(pair[i], fitted[i], te_pair, tr_t, fitted["te_ms"]) for i in _ids(t)}
+    return _deliver(t, {i: left[i] < SWITCH for i in _ids(t)}, ti)
 
 
 def open_loop(sc):
-    t = _task(sc)
-    left = _tried(sc, t)
-    ti = _nulls(sc, t, tr=600.0)
-    return _deliver(t, {i: left[i] < SWITCH for i in _ids(t)}, ti)
+    return reference(sc, probe_tr=600.0)
 
 
 def assumed_inversion(sc):
@@ -250,7 +281,7 @@ def wrong_units(sc):
 
 def brute_force(sc):
     t = _task(sc)
-    left = _tried(sc, t)
+    left, _ = _tried(sc, t)                                             # no model: the pair's ratio as it is
     tr = _probe_tr(sc, t, 5)
     cost = sc.plan(dict(PROBE, tr_ms=tr, ti_ms=50.0))["scan_s"]
     n = max(2, int(sc.budget()["remaining_s"] // cost))
@@ -278,10 +309,11 @@ def fixed_recipe(recipe):
 
 
 # tuned by ``python -m mrgym.envs.fat_suppress.controls`` on 300 worlds per level of the tune split (seeds constant:<i>),
-# which the gate never plays; engine 0.2.0
-CONSTANTS = {1: {"fat_sat_within_mm": 54.0, "ti_ms": 283.0, "tuned_pass_rate": 0.01},
-             2: {"fat_sat_within_mm": 1000.0, "ti_ms": 100.0, "tuned_pass_rate": 0.02},
-             3: {"fat_sat_within_mm": 1000.0, "ti_ms": 100.0, "tuned_pass_rate": 0.02}}
+# which the gate never plays; engine 0.3.0 (fat saturation passes nowhere: the best constant answer is inversion
+# recovery in every region)
+CONSTANTS = {1: {"fat_sat_within_mm": 0.0, "ti_ms": 187.0, "tuned_pass_rate": 0.007},
+             2: {"fat_sat_within_mm": 0.0, "ti_ms": 304.0, "tuned_pass_rate": 0.01},
+             3: {"fat_sat_within_mm": 0.0, "ti_over_tr": 0.104, "tuned_pass_rate": 0.01}}
 
 
 def constant(sc):

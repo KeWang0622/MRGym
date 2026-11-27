@@ -99,12 +99,14 @@ def rung_l1():
     # balanced SSFP against off-resonance
     worst, n = 0.0, 0
     th = np.linspace(-np.pi, np.pi, 41)
-    for flip, tr, t1, t2 in ((40, 6.0, 800.0, 80.0), (20, 4.0, 1500.0, 200.0), (70, 8.0, 300.0, 40.0)):
-        ref = IB.bssfp(D(flip), tr, t1, t2, th)
-        worst = max(worst, np.abs(S.bssfp(D(flip), th + np.pi, tr, t1, t2) - ref).max())
+    for flip, tr, t1, t2, cycle in ((40, 6.0, 800.0, 80.0, 180.0), (20, 4.0, 1500.0, 200.0, 180.0), (70, 8.0, 300.0, 40.0, 180.0),
+                                    (40, 6.0, 800.0, 80.0, 90.0), (70, 8.0, 300.0, 40.0, 300.0)):
+        ref = IB.bssfp(D(flip), tr, t1, t2, th, phase_cycle_deg=cycle)
+        worst = max(worst, np.abs(S.bssfp(D(flip), th - D(cycle), tr, t1, t2) - ref).max())
         n += th.size
-    rows.append(row("L1.5", "balanced SSFP against off-resonance (hard pulses, 41 precession angles per TR)",
-                    "independent_bloch.bssfp: time stepping to the steady state", AUTHORS, n, worst, 1e-6, "M0"))
+    rows.append(row("L1.5", "balanced SSFP against off-resonance (hard pulses, 41 precession angles per TR; RF phase advance 180, 90 and "
+                    "300 degrees per TR)", "independent_bloch.bssfp: time stepping to the steady state, the phase turning the axis of every pulse",
+                    AUTHORS, n, worst, 1e-6, "M0"))
     # inversion-recovery null
     worst, n = 0.0, 0
     for tr, t1, kap in ((6000.0, 800.0, 1.0), (2000.0, 800.0, 0.95), (1500.0, 1500.0, 0.85), (3000.0, 300.0, 0.9)):
@@ -116,6 +118,20 @@ def rung_l1():
         n += 1
     rows.append(row("L1.6", "inversion time that nulls an inversion-recovery spin echo at finite TR and inversion efficiency 0.85 to 1",
                     "independent_bloch.ir_null: the longitudinal chain stepped through 40 repetitions, bisection", AUTHORS, n, worst, 1e-6, "relative"))
+    # engine 0.3.0: the calibration of the slice gradient and the saturation pulse before every excitation
+    worst = max(abs(rf.fwhm_factor(tbw) / IB.slice_calibration(tbw) - 1) for tbw in (2.0, 4.0, 8.0))
+    rows.append(row("L1.7", "slice gradient of the three selective pulses, in nominal bandwidths across the prescribed thickness (1.197 / 0.994 / 1.000)",
+                    "independent_bloch.slice_calibration: the width at half maximum of the transverse magnetisation that a 0.0001 degree pulse leaves "
+                    "on single isochromats, by bisection", AUTHORS, 3, worst, 1e-6, "relative"))
+    cases = [(10, 30.0, 382.0, 68.0, 0.1, 6.5), (60, 30.0, 382.0, 68.0, 0.1, 6.5), (25, 15.0, 343.0, 58.0, 0.0, 7.0), (40, 13.0, 300.0, 40.0, 0.5, 8.0),
+             (60, 500.0, 382.0, 68.0, 0.25, 7.0)]
+    worst = max(abs(epg.steady_state(D(f), tr, t1, t2, sat=(q, delay))[0] - IB.spoiled_gre(D(f), tr, t1, t2, n_iso=1024, sat=(q, delay))[0])
+                / abs(epg.steady_state(D(f), tr, t1, t2)[0]) for f, tr, t1, t2, q, delay in cases)
+    rows.append(row("L1.8", "RF-spoiled steady state with a saturation pulse (Mz x q, 6.5 to 8 ms before every excitation; 50 to 100 % saturated)",
+                    "independent_bloch.spoiled_gre with the saturation as a step of the time stepping: 1,024 isochromats", AUTHORS, len(cases), worst, 1e-6,
+                    "of the unsaturated signal",
+                    note="The saturation acts on the longitudinal magnetisation only, in the scanner and in the integrator: what a real pulse does "
+                         "to the transverse magnetisation of earlier repetitions is left out of both (limits.md, block 9a)."))
     return dict(rung="L1", title="The scanner's equations, solved by other code", rows=rows,
                 not_run=["per-pulse transient of the first 300 pulses: the scanner serves the periodic state only"])
 

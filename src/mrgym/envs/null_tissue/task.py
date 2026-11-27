@@ -37,7 +37,11 @@ FAMILY = "null_tissue"
 SUBMIT_DOC = "Deliver, for each marked region, the inversion time (milliseconds) of the target scan that nulls it."
 GEOMETRY = dict(matrix=128, bandwidth_hz_per_px=300.0)
 BASE = dict(kind="qa", b0_t=1.5)
-FIRST_PROBE = dict(sequence="ir", matrix=64, partial_fourier=0.6, bandwidth_hz_per_px=300.0, tr_ms=800.0, ti_ms=740.0)
+# The probe the practice level proposes and acquires: fully sampled at matrix 32, the probe of the reference policy
+# (``controls.PROBE``). Until engine 0.2.0 it was matrix 64 with partial_fourier 0.6, the cheapest probe of that engine;
+# on engine 0.3.0 a partial Fourier image has more noise and a biased signed mean where a region is near its null
+# (docs/physics/limits.md, block 5a), so the level no longer proposes it.
+FIRST_PROBE = dict(sequence="ir", matrix=32, bandwidth_hz_per_px=300.0, tr_ms=800.0, ti_ms=740.0)
 FAR_RATIO = 0.5                         # a region that keeps this share of its signal, or more, has closeness 0
 OUTCOMES = ("none_nulled", "some_nulled")       # outcome labels of a delivered, measured answer that fails (worst first)
 # Examined competencies this family exercises (rows of ``mrgym.coverage``): choosing TI for a given TR to null a material.
@@ -94,7 +98,7 @@ def hint_text(cfg: dict, given: list | None = None) -> str:
         p = FIRST_PROBE
         out.append(f"""How to do it (this level states the procedure).
   1. Probe with `ir` at a repetition time short enough for several scans (for example tr_ms {p['tr_ms']:g}, matrix {p['matrix']},
-     partial_fourier {p['partial_fourier']:g}, bandwidth_hz_per_px {p['bandwidth_hz_per_px']:g}): three or more inversion times spread from 60 ms to
+     bandwidth_hz_per_px {p['bandwidth_hz_per_px']:g}, fully sampled): three or more inversion times spread from 60 ms to
      tr_ms - 50 ms, read out on the marked regions.
   2. Sign the signal. At the longest inversion time every material is past its null, so its signal is positive. A
      read-out whose phase differs from the region's phase in that scan by more than pi / 2 is negative.

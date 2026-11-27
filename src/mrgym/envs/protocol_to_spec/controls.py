@@ -73,6 +73,12 @@ DESCRIPTIONS = dict(
 )
 
 RAYLEIGH_MEAN = math.sqrt(math.pi / 2.0)                                # mean of the magnitude of unit complex noise
+# The scouts use partial Fourier, which the console reconstructs by homodyne detection (engine 0.3.0): the image is the
+# component in phase with a low-resolution image, so its signal-free background is close to the magnitude of ONE
+# Gaussian component, not of two (datasheet, section 5: a mean of 0.80 to 0.83 times the noise SD of a pixel for
+# fractions up to 0.75; the Rayleigh mean of a fully sampled image is 1.25). Measured on other worlds for the two
+# scout geometries below: 0.83 at a fraction of 0.75, 0.815 at 0.65.
+PARTIAL_FOURIER_MEAN = {0.75: 0.83, 0.65: 0.815}
 SCOUT = dict(fov_mm=400.0, matrix=96, phase_fov=0.5, partial_fourier=0.75)   # the image's sequence, TR, slice and bandwidth at 4.2 mm
 COARSE = dict(fov_mm=400.0, matrix=64, phase_fov=0.5, partial_fourier=0.65)  # 6.3 mm, 21 lines: three of them fit the budget
 SHORT_TR_MS = 200.0                                                     # the shortest repetition time of the sequence: three such scans fit
@@ -93,8 +99,10 @@ def _task(sc):
 
 
 def noise_factor(rp) -> float:
-    """SD of the noise in one pixel per unit receiver noise density, from the realised protocol (the SNR laws)."""
-    return rp["matrix"] * math.sqrt(rp["lines"] * rp["bandwidth_hz_per_px"] / (rp["averages"] * rp.get("partitions", 1))) \
+    """SD of the noise in one pixel per unit receiver noise density, from the realised protocol (the SNR laws). With
+    partial Fourier the lines without a partner count twice (datasheet, section 4): 3 L - 2 l - 3 lines instead of l."""
+    lines = rp["lines"] if rp["lines"] >= rp["lines_full"] else 3 * rp["lines_full"] - 2 * rp["lines"] - 3
+    return rp["matrix"] * math.sqrt(lines * rp["bandwidth_hz_per_px"] / (rp["averages"] * rp.get("partitions", 1))) \
         / (rp["fov_mm"] * rp["fov_pe_mm"] * rp["lines_full"] / rp["matrix_pe"])
 
 
@@ -110,7 +118,8 @@ def _scan(sc, t, geometry=None, **fields):
     rows = {row["id"]: row for row in r["roi_readouts"]}
     z = {q["id"]: rows[q["id"]]["complex_mean_magnitude"][0] * np.exp(1j * rows[q["id"]]["complex_mean_phase_rad"][0]) for q in t["regions"]}
     n = np.array([rows[b["id"]]["n_pixels"] for b in BACKGROUND], float)
-    sd = float(np.sum(n * [rows[b["id"]]["mean_magnitude"][0] for b in BACKGROUND]) / n.sum()) / RAYLEIGH_MEAN
+    mean_of_unit_noise = RAYLEIGH_MEAN if r["realised"]["lines"] >= r["realised"]["lines_full"] else PARTIAL_FOURIER_MEAN[r["realised"]["partial_fourier"]]
+    sd = float(np.sum(n * [rows[b["id"]]["mean_magnitude"][0] for b in BACKGROUND]) / n.sum()) / mean_of_unit_noise
     return dict(ti=r["realised"]["ti_ms"], te=r["realised"]["te_ms"], z=z, sigma0=sd / noise_factor(r["realised"]),
                 tbw=r["realised"]["rf_tbw"], tr=r["realised"]["tr_ms"])
 

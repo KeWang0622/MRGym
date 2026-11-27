@@ -258,9 +258,8 @@ def test_the_nist_arrays_are_the_cached_table(R):
         assert np.array_equal(table["t1_ms"][1.5], ref[:, 0]) and np.array_equal(table["t2_ms"][1.5], ref[:, 1])
         assert np.array_equal(table["t1_ms"][3.0], ref[:, 2]) and np.array_equal(table["t2_ms"][3.0], ref[:, 3])
     assert np.all(s1[:, 1] < s1[:, 0]) and np.all(s2[:, 3] < s2[:, 2])                    # T2 below T1 in every sphere
-    # the older world is not changed here: its list still has 496.0 where the table has 496.7 (row M0.2), the other 13 are the table
-    assert anatomy.NIST_T1["t1_ms"] == (1989.0, 1454.0, 984.1, 706.0, 496.0, 351.5, 247.13, 175.3, 125.9, 89.0, 62.7, 44.53, 30.84, 21.719)
-    assert [k for k in range(14) if anatomy.NIST_T1["t1_ms"][k] != s1[k, 2]] == [4] and s1[4, 2] == 496.7
+    # the older world: since engine 0.3.0 its list is the 3 T column of Table S1 (row M0.2; engine 0.2.0 had 496.0 where the table has 496.7)
+    assert anatomy.NIST_T1["t1_ms"] == tuple(s1[:, 2]) and s1[4, 2] == 496.7
     assert anatomy.NIST_T1["t2_ms_sphere_12"] == s1[11, 3] and anatomy.NIST_T1["fill"]["t1_ms"] == 2800.0
 
 

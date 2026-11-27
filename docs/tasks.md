@@ -3,7 +3,7 @@
 
 Which MRI physics this scanner covers, and which task asks for which piece of it.
 
-The list holds 115 pieces of MRI physics and applied MR physics, as textbooks and curricula name them. The scanner forms 61 of them and 13 more in part. The other 41 are not formed yet: 19 of them the package already computes and checks without serving them, and [the last list](#not-formed-yet) says which piece of engine work each one waits for. Statistics of its images and signals have been compared with public phantom measurements on real scanners ([measured](physics/measured.md)); no image of its sequences has been compared pixel by pixel with a scan of the same object.
+The list holds 115 pieces of MRI physics and applied MR physics, as textbooks and curricula name them. The scanner forms 64 of them and 11 more in part. The other 40 are not formed yet: 18 of them the package already computes and checks without serving them, and [the last list](#not-formed-yet) says which piece of engine work each one waits for. Statistics of its images and signals have been compared with public phantom measurements on real scanners ([measured](physics/measured.md)); no image of its sequences has been compared pixel by pixel with a scan of the same object.
 
 ## On one screen
 
@@ -18,11 +18,11 @@ Rows: what you need to know. Columns: what you do with it. A cell holds the task
 
 | Subject | Listed | Formed | Isolated by a task | Used by a task |
 |---|---:|---:|---:|---:|
-| **A** Signal and contrast: what signal a tissue gives | 32 | 16 (+2 in part) | 8 | 14 |
-| **B** Spatial encoding and reconstruction: where the signal lands in the image | 26 | 16 (+2 in part) | 4 | 13 |
-| **C** The system: what the machine adds: field, RF, gradients, noise, limits | 36 | 12 (+8 in part) | 5 | 12 |
+| **A** Signal and contrast: what signal a tissue gives | 32 | 17 (+1 in part) | 8 | 14 |
+| **B** Spatial encoding and reconstruction: where the signal lands in the image | 26 | 17 (+1 in part) | 4 | 13 |
+| **C** The system: what the machine adds: field, RF, gradients, noise, limits | 36 | 13 (+8 in part) | 5 | 12 |
 | **D** Image quality and artefacts: how good the image is, and what went wrong | 21 | 17 (+1 in part) | 5 | 15 |
-| All | 115 | 61 (+13 in part) | 22 | 54 |
+| All | 115 | 64 (+11 in part) | 22 | 54 |
 
 Listed: items on the map. Formed: an agent meets it at the console, and a check that exists shows it. Isolated by a task: one task is about this item. Used by a task: a task takes it, as its own item or beside it. Tasks in construction are not counted, and neither is what the package computes without serving it.
 
@@ -47,7 +47,7 @@ Kinds 1 to 3 are the knowledge, one piece at a time and then several together. K
 
 ## A · Signal and contrast
 
-What signal a tissue gives. 32 items, 16 (+2 in part) formed, 8 isolated by a task, 14 used by a task.
+What signal a tissue gives. 32 items, 17 (+1 in part) formed, 8 isolated by a task, 14 used by a task.
 
 | | Item | Rests on | Scanner | Task that isolates it | Tasks that use it |
 |---|---|---|---|---|---|
@@ -71,7 +71,7 @@ What signal a tissue gives. 32 items, 16 (+2 in part) formed, 8 isolated by a ta
 | | **selective signal** | | | | |
 | A16 | Chemical shift: fat and water resonate 3.4 ppm apart | A2 | formed | - | [FatFraction](../envs/scanner-fatfraction-v0/) · [FatSuppress](../envs/scanner-fatsuppress-v0/) · [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · [ShiftFree](../envs/scanner-shiftfree-v0/) |
 | A17 | In-phase and opposed-phase echo times | A6 A16 | formed | - | [FatFraction](../envs/scanner-fatfraction-v0/) |
-| A18 | Fat suppression by a frequency-selective saturation pulse | A16 C3 | in part | [FatSuppress](../envs/scanner-fatsuppress-v0/) | - |
+| A18 | Fat suppression by a frequency-selective saturation pulse | A16 C3 | formed | [FatSuppress](../envs/scanner-fatsuppress-v0/) | - |
 | A19 | Spatial saturation bands | A3 B2 | not yet | - | - |
 | A20 | Magnetisation transfer and chemical exchange | A4 | computed, not served | - | - |
 | | **contrast beyond relaxation** | | | | |
@@ -91,7 +91,7 @@ What signal a tissue gives. 32 items, 16 (+2 in part) formed, 8 isolated by a ta
 
 ## B · Spatial encoding and reconstruction
 
-Where the signal lands in the image. 26 items, 16 (+2 in part) formed, 4 isolated by a task, 13 used by a task.
+Where the signal lands in the image. 26 items, 17 (+1 in part) formed, 4 isolated by a task, 13 used by a task.
 
 | | Item | Rests on | Scanner | Task that isolates it | Tasks that use it |
 |---|---|---|---|---|---|
@@ -114,7 +114,7 @@ Where the signal lands in the image. 26 items, 16 (+2 in part) formed, 4 isolate
 | | **coverage of k-space** | | | | |
 | B15 | Rectangular field of view and phase oversampling | B9 | formed | [FoldAway](../envs/scanner-foldaway-v0/) | [NoWrap](../envs/scanner-nowrap-v1/) · [ArtefactClinic](../envs/scanner-artefactclinic-v0/) · [Resolve](../envs/scanner-resolve-v0/) |
 | B16 | Placing the field of view: centre and in-plane rotation | B9 | formed | - | [NoWrap](../envs/scanner-nowrap-v1/) · [FoldAway](../envs/scanner-foldaway-v0/) |
-| B17 | Partial Fourier: acquiring part of k-space | B8 B11 | in part | - | [Resolve](../envs/scanner-resolve-v0/) |
+| B17 | Partial Fourier: acquiring part of k-space | B8 B11 | formed | - | [Resolve](../envs/scanner-resolve-v0/) |
 | B18 | Echo-planar readout: echo spacing, bandwidth along phase, distortion | B8 B13 B14 | formed | - | [EPISetup](../envs/scanner-episetup-v0/) |
 | B19 | Segmented acquisition and the order of the lines | B8 | not yet | - | - |
 | B20 | Three-dimensional encoding: a second phase-encode axis, the slab | B2 B7 | in part | - | [T1Transmit](../envs/scanner-t1transmit-v1/) · [TransmitAdjust](../envs/scanner-transmitadjust-v0/) |
@@ -128,15 +128,15 @@ Where the signal lands in the image. 26 items, 16 (+2 in part) formed, 4 isolate
 
 ## C · The system
 
-What the machine adds: field, RF, gradients, noise, limits. 36 items, 12 (+8 in part) formed, 5 isolated by a task, 12 used by a task.
+What the machine adds: field, RF, gradients, noise, limits. 36 items, 13 (+8 in part) formed, 5 isolated by a task, 12 used by a task.
 
 | | Item | Rests on | Scanner | Task that isolates it | Tasks that use it |
 |---|---|---|---|---|---|
 | | **static field** | | | | |
 | C1 | Field strength: what changes between 1.5 T and 3 T | A2 A4 A16 | in part | - | - |
 | C2 | Field inhomogeneity and the field map from two echo times | A6 B23 | formed | - | [FatSuppress](../envs/scanner-fatsuppress-v0/) · [PhantomQA](../envs/scanner-phantomqa-v0/) · [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · [GradientCal](../envs/scanner-gradientcal-v0/) · [ShiftFree](../envs/scanner-shiftfree-v0/) · [EPISetup](../envs/scanner-episetup-v0/) |
-| C3 | Centre frequency and its adjustment | A16 C2 | in part | [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) | [FatSuppress](../envs/scanner-fatsuppress-v0/) · [BandFree](../envs/scanner-bandfree-v0/) |
-| C4 | Shimming | C2 | computed, not served | - | - |
+| C3 | Centre frequency and its adjustment | A16 C2 | formed | [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) | [FatSuppress](../envs/scanner-fatsuppress-v0/) · [BandFree](../envs/scanner-bandfree-v0/) |
+| C4 | Shimming | C2 | in part | - | - |
 | C5 | Magnetic susceptibility: the field around air and tissue boundaries | C2 | in part | - | - |
 | | **RF chain** | | | | |
 | C6 | Transmit field: the flip angle actually reached, its pattern, flip-angle mapping | A3 A10 | formed | [TransmitAdjust](../envs/scanner-transmitadjust-v0/) | [T1Transmit](../envs/scanner-t1transmit-v1/) · [NullTissue](../envs/scanner-nulltissue-v0/) · [FatSuppress](../envs/scanner-fatsuppress-v0/) · [PhantomQA](../envs/scanner-phantomqa-v0/) · [ErnstFlip](../envs/scanner-ernstflip-v0/) |
@@ -208,23 +208,21 @@ How good the image is, and what went wrong. 21 items, 17 (+1 in part) formed, 5 
 
 | | Item | What is missing | Waits for |
 |---|---|---|---|
-| A18 | Fat suppression by a frequency-selective saturation pulse | The pulse has a band, a centre and an efficiency, but it treats all fat as one line and its effect does not depend on repetition time or flip angle | ordinary engine work |
 | A25 | Susceptibility-weighted imaging: the phase of a gradient echo as contrast | Phase images show the field of air cavities; no tissue of the scanner has a susceptibility of its own (no veins, no iron). The 3D head declares one for venous blood, deep grey matter and a lesion; no scan is formed of it | 3D world |
-| B17 | Partial Fourier: acquiring part of k-space | The lines left out are filled with zeros: the time saved and the blur are formed, the loss of SNR on a console is not | ordinary engine work |
 | B20 | Three-dimensional encoding: a second phase-encode axis, the slab | A non-selective 3D scan is priced and its central partition is imaged; no slab profile, no fold along the slab | 3D world |
 | C1 | Field strength: what changes between 1.5 T and 3 T | Two field strengths, one per session; nothing below 1.5 T or above 3 T | ordinary engine work |
-| C3 | Centre frequency and its adjustment | The error of the adjustment can be measured; the console has no frequency setting (only the fat-saturation pulse can be retuned) | ordinary engine work |
+| C4 | Shimming | The two in-plane linear terms can be set for a scan; there is no term through the slice, none above first order and no automatic shim. The 3D field library fits a shim of first or second order (nine solid harmonics) over a volume, with a declared limit on each channel, and returns the fixed first-order shim of the engine on the engine's own field; a second-order setting at the console waits for the slice engine on the 3D world | 3D world |
 | C5 | Magnetic susceptibility: the field around air and tissue boundaries | The scanner adds the field of a few air spheres in closed form; it does not compute the field from the susceptibility of the object. The 3D field library does, with the dipole kernel, for any distribution of susceptibility (checked on a sphere, cylinders, a shell and a spheroid, and run on the seeded 3D head); no scan uses that field yet | 3D world |
 | C8 | Adiabatic pulses: an inversion that tolerates the transmit field | The console's inversion is one efficiency number; the hyperbolic-secant pulse and its threshold are computed in the design layer and played by no sequence | core in the console |
 | C17 | Gradient non-linearity: distortion away from the isocentre | Positions are scaled by one declared term, 1 - g (r / 250 mm)^2, the same along both axes, and the brightness does not change with it; there is no expansion of a real coil, nothing along z and no correction of the distortion | ordinary engine work |
 | C20 | Spoiler and crusher gradients: the moment and what survives it | The spoiler moment of a gradient echo is a parameter and acts on the signal; the crushers of a spin echo are ideal: what they dephase is gone, so there is no stimulated echo. The signal core computes real crushers with the stimulated echoes they leave, and a spoiler played as a lobe with its own duration; the console does not serve these yet | core in the console |
-| C22 | RF power: what raises B1+rms, and its limit | The console prices RF as B1+rms against a limit, from the nominal flip angle; it has no figure in W/kg. The field model computes the power a body absorbs for a given B1+ and how it grows with the square of the frequency; the console does not use it | field model |
+| C22 | RF power: what raises B1+rms, and its limit | The console prices RF as B1+rms against a limit, from the nominal flip angle times the transmit factor of the scan (`tx_scale`); it has no figure in W/kg. The field model computes the power a body absorbs for a given B1+ and how it grows with the square of the frequency; the console does not use it | field model |
 | C33 | Agreement with measurement: a phantom on a real scanner against the same phantom here | Statistics of images, region signals and fitted values of public phantom sessions are compared with the engine's model of the same protocol (for an echo train, which the console does not have, with the design layer), and the differences found are listed; no image of the console's sequences has been compared pixel by pixel with a scan of the same object | measured data |
 | D16 | Ghosts of periodic motion along the phase-encode axis | One tissue class pulses or shifts periodically; no irregular motion, and nothing moves through the slice | 3D world |
 
 ## Not formed yet
 
-41 items. 29 of them wait for one of 6 pieces of engine work; the other 12 take only ordinary work on the present engine. "Computed" in the third column: the package already computes the item and checks it against a closed form or a second method, and no console sequence, parameter or task reaches it yet; [the checks](#the-check-behind-every-item-that-is-formed-formed-in-part-or-computed) name the rows.
+40 items. 29 of them wait for one of 6 pieces of engine work; the other 11 take only ordinary work on the present engine. "Computed" in the third column: the package already computes the item and checks it against a closed form or a second method, and no console sequence, parameter or task reaches it yet; [the checks](#the-check-behind-every-item-that-is-formed-formed-in-part-or-computed) name the rows.
 
 | Waits for | What it is | Items |
 |---|---|---:|
@@ -235,7 +233,7 @@ How good the image is, and what went wrong. 21 items, 17 (+1 in part) formed, 5 
 | **core in the console** | the signal core over lists of blocks (Bloch ensemble, phase graphs, periodic solve) exists as a library; still to do: the engine forming images from it, so that the console serves its sequences | 11 |
 | **realistic anatomy** | textured digital anatomy instead of classes of one value each | 1 |
 | **measured data** | statistics of public phantom sessions on real scanners are compared with the engine in a table that anyone can rebuild; still to do: a scan of the same object with the console's sequences, compared pixel by pixel | 0 |
-| ordinary engine work | nothing new: a term, a parameter or an option of the present engine | 12 |
+| ordinary engine work | nothing new: a term, a parameter or an option of the present engine | 11 |
 
 ### 3D world
 
@@ -315,9 +313,8 @@ Textured digital anatomy instead of classes of one value each.
 | A23 | Contrast agents: relaxivity and concentration | - | No material carries an agent; a dilution series could be built from vials |
 | A27 | BOLD contrast and functional MRI | - | No tissue changes its T2* during the session, and a scan is not repeated as a series |
 | B21 | Radial and spiral trajectories | - | Sampling is Cartesian |
-| B24 | Options of the reconstruction: zero filling, filters, intensity and distortion correction | - | The image is the unfiltered transform of the acquired matrix |
+| B24 | Options of the reconstruction: zero filling, filters, intensity and distortion correction | - | The reconstruction is fixed, with nothing to choose: the unfiltered transform of the acquired matrix, and homodyne detection where part of k-space was left out |
 | B25 | Raw data: looking at k-space, spikes | - | Only images leave the scanner |
-| C4 | Shimming | computed | The 3D field library fits a shim of first or second order (nine solid harmonics) over a volume, with a declared limit on each channel, and returns the fixed first-order shim of the engine on the engine's own field; in the scanner the shim is fixed for the session and the console has no shim setting: the field can be mapped, not corrected. A first-order setting is ordinary work on the present engine; a second-order one waits for the slice engine on the 3D world |
 | C13 | Receiver gain and dynamic range | - | Samples are floating-point numbers: no converter, no clipping |
 | C19 | Eddy currents and concomitant fields | - | Gradients are played as ideal trapezoids |
 | C25 | Acoustic noise of the gradients | - | There is no model of sound |
@@ -372,13 +369,13 @@ Rows of `mrgym validate` ([validation](physics/validation.md)), of `python -m mr
 | A9 | `mrgym validate` S11, S13; `examples/textbook/02_inversion_recovery.py` |
 | A10 | `mrgym validate` S1, S4; `examples/textbook/01_ernst_angle.py` |
 | A11 | `mrgym validate` S5, S9 |
-| A12 | `mrgym validate` S14 |
+| A12 | `mrgym validate` S14, S18; `python -m mrgym.core.validate` Q10, Q10b |
 | A13 | `python -m mrgym.design.validate` E9; `python -m mrgym.core.validate` N8; `examples/textbook/12_approach_to_steady_state.py`; `tests/test_core_evaluators.py::test_the_periodic_state_is_a_fixed_point` |
 | A14 | `python -m mrgym.design.validate` E2, E3, E4; `python -m mrgym.core.validate` N1, N1b, N1c, N2 |
 | A15 | `mrgym validate` S3; `python -m mrgym.core.validate` Q12, N8, N9, N9b, N10 |
 | A16 | `mrgym validate` K3; `examples/textbook/05_chemical_shift.py` |
 | A17 | `mrgym validate` K18; `examples/textbook/11_in_opposed_phase.py` |
-| A18 | `mrgym validate` K28; `tests/test_fat_suppress.py::test_physics_the_saturated_band_has_the_width_of_the_hidden_pulse` |
+| A18 | `mrgym validate` K28, K31, K32, S16, S17; `python -m mrgym.core.validate` Q16, Q16b, Q16c, Q16d; `tests/test_fat_suppress.py::test_physics_the_saturated_band_has_the_width_of_the_hidden_pulse` |
 | A20 | `python -m mrgym.core.validate` X6, X6b, M2, M3 |
 | A21 | `python -m mrgym.design.validate` G5, G6, E10; `python -m mrgym.core.validate` X7, N11, N11c, N12 |
 | A25 | `mrgym validate` K20 |
@@ -389,7 +386,7 @@ Rows of `mrgym validate` ([validation](physics/validation.md)), of `python -m mr
 | A29 | `mrgym validate` R12; `examples/textbook/13_slice_profile_vfa.py`; `examples/textbook/03_t2_spin_echo.py`; `examples/textbook/04_t2star_field_map.py` |
 | A30 | `mrgym validate` K18; `examples/textbook/11_in_opposed_phase.py` |
 | B1 | `mrgym validate` K5, K19 |
-| B2 | `mrgym validate` C5, C6 |
+| B2 | `mrgym validate` C5, C6, R13; `python -m mrgym.core.validate` C2 |
 | B3 | `mrgym validate` R2, R4 |
 | B6 | `mrgym validate` K3; `tests/test_metamorphic.py::test_r6_four_times_the_bandwidth_doubles_the_noise` |
 | B7 | `mrgym validate` C2; `tests/test_metamorphic.py::test_r16_spin_echo_price_table_by_hand` |
@@ -402,17 +399,17 @@ Rows of `mrgym validate` ([validation](physics/validation.md)), of `python -m mr
 | B14 | `mrgym validate` K9, K10 |
 | B15 | `mrgym validate` K7; `tests/test_metamorphic.py::test_r7_phase_oversampling_changes_the_price_not_the_image` |
 | B16 | `mrgym validate` K21, K23 |
-| B17 | `mrgym validate` K15 |
+| B17 | `mrgym validate` K15, K29, K30, K37 |
 | B18 | `mrgym validate` K12; `examples/textbook/10_epi_distortion.py` |
 | B20 | `mrgym validate` C7, C8 |
 | B22 | `python -m mrgym.em.validate` C6, C6b; `python -m mrgym.scanner.array_checks` P1, P2, P3, P4, P6, P7, P11, P12, P16, P17, P21, P22, P33, P34 |
 | B23 | `mrgym validate` K1, K20 |
 | C1 | `tests/test_scanner.py::test_field_strength_changes_tissue_and_limits` |
 | C2 | `mrgym validate` K20; `examples/textbook/04_t2star_field_map.py` |
-| C3 | `mrgym validate` K5 |
-| C4 | `python -m mrgym.scanner.fields3d_validate` F33, F34, F35, F36, F37, F38 |
+| C3 | `mrgym validate` K5, K33 |
+| C4 | `mrgym validate` K34; `python -m mrgym.scanner.fields3d_validate` F33, F34, F35, F36, F37, F38 |
 | C5 | `mrgym validate` R11; `python -m mrgym.scanner.fields3d_validate` F1, F2, F6, F7, F12, F15; `tests/test_artefact_clinic.py::test_signal_loss_of_the_qa_gradient_follows_the_through_slice_formula`; `tests/test_fields3d.py::test_the_seeded_volume_world_end_to_end` |
-| C6 | `mrgym validate` S2; `mrgym qa acr --fault b1_nonuniformity` |
+| C6 | `mrgym validate` S2, K35, K36; `mrgym qa acr --fault b1_nonuniformity`; `tests/test_engine_0_3.py::test_tx_scale_brings_a_nominal_90_degree_pulse_to_90_degrees` |
 | C7 | `mrgym validate` C4, C5 |
 | C8 | `mrgym validate` S11; `python -m mrgym.design.validate` P6, P7 |
 | C9 | `python -m mrgym.design.validate` P3, P4, P9, F1, F4 |
@@ -428,7 +425,7 @@ Rows of `mrgym validate` ([validation](physics/validation.md)), of `python -m mr
 | C18 | `mrgym validate` K13 |
 | C20 | `mrgym validate` S6, S8; `python -m mrgym.core.validate` Q7, N1, N12, N13, N5, N6, N6c |
 | C21 | `python -m mrgym.design.validate` G1, G3, G4, G7, G9 |
-| C22 | `mrgym validate` C1, C5; `python -m mrgym.em.validate` A10, S12 |
+| C22 | `mrgym validate` C1, C5, C9; `python -m mrgym.em.validate` A10, S12 |
 | C23 | `python -m mrgym.em.validate` A10, A10b, A10c, S3e, S7, S12, S13, S13b, S13c, H1 |
 | C35 | `python -m mrgym.em.validate` C3, H1, H2, H3, H3c, H3d, H3e, H4, H5b, H5c |
 | C24 | `python -m mrgym.design.validate` G8 |

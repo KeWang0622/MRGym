@@ -230,6 +230,11 @@ def kind_by_open_loop(stored: dict | None, margin: float = 25.0) -> dict:
         return dict(kind="undetermined", levels={}, evidence="no stored gate result",
                     sentence="Measurement task or decision task (does a fixed list of scans pass within 25 points of the "
                              "reference?): not determined, the gate result is not stored yet.")
+    import mrgym
+    if stored.get("engine") != mrgym.ENGINE_ID:                         # a result of another engine says nothing about this one
+        return dict(kind="undetermined", levels={}, evidence=f"the stored gate result is from {stored.get('engine')}, the engine is {mrgym.ENGINE_ID}",
+                    sentence="Measurement task or decision task (does a fixed list of scans pass within 25 points of the "
+                             f"reference?): not determined on this engine, the stored gate result is from {stored.get('engine')}.")
     gaps = {}
     for lv, s in stored["levels"].items():
         rate = {r["policy"]: r["rate"] for r in s["reported"] + s["ablations"]}.get("open_loop")

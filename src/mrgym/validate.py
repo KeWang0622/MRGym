@@ -211,6 +211,48 @@ def check_bssfp():
                  "closed form (Freeman & Hill 1971; Scheffler & Lehnhardt 2003) against Bloch time stepping", worst, 1e-4)]
 
 
+def check_bssfp_phase_cycle():
+    """The RF phase advance of ``bssfp`` against a pulse-by-pulse simulation in which the phase turns the axis of every
+    pulse (``bloch.slice_bssfp_isochromats``): the sign of the phase cycle, and what the served slice integral leaves
+    out (the balanced pulse of a column away from the slice centre is not a rotation about the pulse axis)."""
+    rng = np.random.default_rng(3)
+    psi = D(np.array([-170.0, -120.0, -75.0, -30.0, 0.0, 20.0, 65.0, 110.0, 155.0]))
+    worst = 0.0
+    for cyc in (0.0, 37.0, 90.0, 180.0, 270.0, 301.0):
+        t1, tr, al = rng.uniform(300, 2500), rng.uniform(3, 10), D(rng.uniform(15, 80))
+        t2 = rng.uniform(30, min(t1, 400))
+        ref = bloch.slice_bssfp_isochromats(al, None, tr, t1, t2, psi, cyc)
+        worst = max(worst, float(np.abs(S.bssfp(al, psi - D(cyc), tr, t1, t2) - ref).max()))
+    rows = [_row("S18", "signal", "balanced SSFP with an RF phase advance of 0, 37, 90, 180, 270 and 301 degrees per TR, 9 off-resonances each",
+                 "pulse-by-pulse Bloch time stepping, the phase turning the axis of every pulse: the spin is ahead of the pulse by "
+                 "2 pi df TR - phase cycle", worst, 1e-6)]
+    ph = W.shapes_phantom([("wm", _rect(40, 110))])
+    n, d = ph["n"], ph["extent_mm"] / ph["n"]
+    w = W.flat_world(ph)
+    w["fields"]["b0_hz"] = 2.0 * np.broadcast_to((np.arange(n) - n // 2) * d, (n, n))
+    eng = kspace.Engine(w)
+    cls, sup = w["tissues"]["wm"], eng.sup[0]
+    row = np.flatnonzero((w["weights"][0][sup] > 0.999) & (np.abs(eng.b1[sup] - 1) < 1e-12))
+    inside, band = 0.0, 0.0
+    for pulse, flip, tr, cyc in (("normal", 40.0, 6.0, 180.0), ("fast", 60.0, 5.0, 90.0), ("sharp", 50.0, 8.0, 300.0)):
+        rp = console.plan(dict(sequence="bssfp", tr_ms=tr, flip_deg=flip, matrix=64, rf_pulse=pulse, phase_cycle_deg=cyc), w["console"])["realised"]
+        free = 2 * np.pi * eng.df[sup][row] * rp["tr_ms"] * 1e-3
+        _, pick = np.unique(np.round(np.rad2deg(free - D(cyc)) % 360.0 / 15.0), return_index=True)     # one voxel per 15 degrees of the band
+        idx = row[pick]
+        served = eng.amplitudes(rp, 0)[0][idx] / (w["weights"][0][sup][idx] * cls["pd"])
+        ref = bloch.slice_bssfp_isochromats(D(flip), rp["rf_tbw"], rp["tr_ms"], cls["t1_ms"], cls["t2_ms"], free[pick], cyc) * np.exp(0.5j * free[pick])
+        from_null = np.abs((np.rad2deg(free[pick]) - cyc + 180.0) % 360.0 - 180.0)                     # degrees per TR from the middle of the dark band
+        top = np.abs(ref).max()
+        inside = max(inside, float((np.abs(served - ref) / top)[from_null >= 90.0].max()))
+        band = max(band, float((np.abs(served - ref) / top)[from_null < 90.0].max()))
+    rows.append(_row("R15", "rf", "`bssfp` of a slice (normal 40 deg, fast 60 deg, sharp 50 deg; phase cycles 180, 90, 300 degrees), in the half of the "
+                     "period around the middle of the pass band, relative to the largest signal",
+                     "isochromats through the slice, every column turned by its whole balanced pulse (prephasing lobe, 128 sub-pulses, rephasing "
+                     "lobe), pulse by pulse", inside, 0.01,
+                     f"{100 * inside:.2f} % / in the band {100 * band:.1f} %"))
+    return rows
+
+
 def check_node_interpolation():
     """The engine evaluates the EPG on a few Chebyshev nodes of the flip angle per tissue and interpolates."""
     w = W.make_world("5b" * 16, dict(kind="qa", b1_shape_amp=(0.2, 0.24)))
@@ -371,7 +413,7 @@ def check_bssfp_bands():
     n, d = ph["n"], ph["extent_mm"] / ph["n"]
     x = np.broadcast_to((np.arange(n) - n // 2) * d, (n, n))
     worst, bw = 0.0, 1000
-    for tr, cf, cyc in ((5.0, 0.0, 180.0), (5.0, 30.0, 180.0), (8.0, 0.0, 180.0)):
+    for tr, cf, cyc in ((5.0, 0.0, 180.0), (5.0, 30.0, 180.0), (8.0, 0.0, 180.0), (5.0, 0.0, 90.0), (8.0, 0.0, 300.0)):
         w = W.flat_world(ph, cf_offset_hz=cf)
         w["fields"]["b0_hz"] = 2.0 * x                                    # 2 Hz / mm along x
         im = np.abs(kspace.Engine(w).scan(dict(sequence="bssfp", tr_ms=tr, flip_deg=40, fov_mm=256, matrix=256,
@@ -383,15 +425,17 @@ def check_bssfp_bands():
                 and prof[i] < 0.5 * np.median(prof[inside])]
         pred = []
         for mth in range(-6, 7):
-            f = (mth + 0.5 - (cyc - 180.0) / 360.0) * 1e3 / tr           # total off-resonance of a null
+            f = (mth + cyc / 360.0) * 1e3 / tr                           # total off-resonance of a null: the spin keeps step with the pulse phase
             xx = (f - cf) / 2.0 - f / bw                                 # position, with the readout displacement (1 mm pixels)
             if abs(xx) < 100:
                 pred.append(xx)
         if len(mins) != len(pred):
-            return [_row("K11", "encoding", "bSSFP dark bands in a 2 Hz/mm field", "nulls at off-resonance (m + 1/2) / TR", 99, 1.0, f"{len(mins)} bands found, {len(pred)} predicted")]
+            return [_row("K11", "encoding", "bSSFP dark bands in a 2 Hz/mm field, phase cycles 180, 90 and 300 degrees",
+                         "nulls at off-resonance (m + phase cycle / 360 degrees) / TR", 99, 1.0, f"{len(mins)} bands found, {len(pred)} predicted")]
         worst = max(worst, max(abs(a - b) for a, b in zip(sorted(mins), sorted(pred))))
-    return [_row("K11", "encoding", "position of bSSFP dark bands in a 2 Hz/mm field (TR 5 and 8 ms, with a 30 Hz offset)",
-                 "nulls at off-resonance (m + 1/2) / TR", worst, 1.0, f"max error {worst:.2f} mm (1 mm pixels)")]
+    return [_row("K11", "encoding", "position of bSSFP dark bands in a 2 Hz/mm field (TR 5 and 8 ms, with a 30 Hz offset; phase cycles 180, "
+                 "90 and 300 degrees)", "nulls at off-resonance (m + phase cycle / 360 degrees) / TR", worst, 1.0,
+                 f"max error {worst:.2f} mm (1 mm pixels)")]
 
 
 def check_epi():
@@ -440,20 +484,58 @@ def check_noise():
         r = eng.scan(dict(base, **ch), rng)
         rp, im = r["plan"]["realised"], r["images"][0]
         clean = eng.scan(dict(base, **ch))["images"][0]
-        noise = (im - clean).real.std()
         dx, dy = rp["fov_mm"] / rp["matrix"], rp["fov_pe_mm"] / rp["matrix_pe"]
-        pred = 0.03 * np.sqrt(rp["bandwidth_hz_per_px"] * rp["lines"] / rp["averages"]) / (dx * dy * rp["lines_full"])
-        sd = max(sd, abs(noise / pred - 1))
-        bg = np.abs(im)[np.abs(clean) < 1e-3 * np.abs(clean).max()]
-        ray = max(ray, abs(bg.mean() / noise - 1.2533), abs(bg.std() / noise - 0.6551))
         yy, xx = np.meshgrid((np.arange(rp["matrix_pe"]) - rp["matrix_pe"] // 2) * dy, (np.arange(rp["matrix"]) - rp["matrix"] // 2) * dx, indexing="ij")
+        partial = rp["lines"] < rp["lines_full"]
+        if partial:
+            # homodyne detection keeps the component in phase with the signal: its noise is read inside the object (real, positive),
+            # and the lines that stand in for their conjugates weigh 2: 2 n + 1 lines of weight 1, lines_full / 2 - 1 - n of weight 2
+            n = rp["lines"] - rp["lines_full"] // 2
+            lines = (2 * n + 1) + 4 * (rp["lines_full"] // 2 - 1 - n)
+            inside = np.hypot(yy, xx) < 32
+            noise = float(np.sqrt(np.mean([(eng.scan(dict(base, **ch), rng)["images"][0] - clean).real[inside].var() for _ in range(8)])))
+        else:
+            lines, noise = rp["lines"], (im - clean).real.std()
+        pred = 0.03 * np.sqrt(rp["bandwidth_hz_per_px"] * lines / rp["averages"]) / (dx * dy * rp["lines_full"])
+        sd = max(sd, abs(noise / pred - 1))
+        if not partial:                                                  # the background of a homodyne image is not Rayleigh distributed
+            bg = np.abs(im)[np.abs(clean) < 1e-3 * np.abs(clean).max()]
+            ray = max(ray, abs(bg.mean() / noise - 1.2533), abs(bg.std() / noise - 0.6551))
         snrs.append(np.abs(clean)[np.hypot(yy, xx) < 25].mean() / noise / r["plan"]["derived"]["relative_snr"])
     snr = max(snrs) / min(snrs) - 1
+    # partial Fourier: the image of a real object is the fully sampled one; the header's relative SNR falls
+    full = eng.scan(dict(base, matrix=64))
+    pf, hdr = 0.0, []
+    for frac in (0.55, 0.65, 0.75, 0.9):
+        part = eng.scan(dict(base, matrix=64, partial_fourier=frac))
+        pf = max(pf, float(np.abs(part["images"][0] - full["images"][0]).max() / np.abs(full["images"][0]).max()))
+        n = part["plan"]["realised"]["lines"] - 32
+        hdr.append(abs(part["plan"]["derived"]["relative_snr"] / full["plan"]["derived"]["relative_snr"] / math.sqrt(64 / ((2 * n + 1) + 4 * (31 - n))) - 1))
+    # the background of a homodyne image: one Gaussian component, not two (noise 10 x higher, so that nothing of the object reaches it)
+    loud, half = _engine([("wm", _disc(40))], dict(sigma0=0.3)), []
+    for matrix, frac in itertools.product((64, 128), (0.55, 0.65, 0.75)):
+        rp = console.plan(dict(base, matrix=matrix, partial_fourier=frac), loud.w["console"])["realised"]
+        d = rp["fov_mm"] / matrix
+        yy, xx = np.meshgrid((np.arange(matrix) - matrix // 2) * d, (np.arange(matrix) - matrix // 2) * d, indexing="ij")
+        far = np.hypot(yy, xx) >= 75
+        half.append(float(np.mean([np.abs(loud.acquire(rp, rng)[0])[far].mean() for _ in range(8)]) / loud.noise_sd(rp)))
+    one = max(abs(v / math.sqrt(2 / math.pi) - 1) for v in half)
     return [
+        _row("K37", "encoding", "mean magnitude of the background of a partial Fourier image over the noise SD of a pixel, fractions 0.55 to 0.75, 64 and 128 lines",
+             "sqrt(2 / pi) = 0.798, the mean of the magnitude of one Gaussian component (the reconstruction keeps the component in phase with a "
+             "low-resolution image); a fully sampled image has the Rayleigh mean 1.2533 (K16)", one, 0.05, f"{min(half):.3f} to {max(half):.3f}"),
         _row("K15", "encoding", "noise SD of the image over 9 protocols (matrix, bandwidth, averages, phase oversampling, partial Fourier, rectangular FOV, slice, FOV)",
-             "sigma = sigma0 sqrt(bandwidth x lines / averages) / (dx dy lines_full)", sd, 0.02, f"max deviation {100 * sd:.1f} %"),
-        _row("K16", "encoding", "magnitude of the background", "Rayleigh: mean 1.2533 sigma, SD 0.6551 sigma; Gudbjartsson & Patz 1995", ray, 0.02, f"max deviation {ray:.3f} sigma"),
+             "sigma = sigma0 sqrt(bandwidth x lines / averages) / (dx dy lines_full); partial Fourier: lines = the sum of the squared homodyne weights, "
+             "noise of the component in phase with the signal", sd, 0.02, f"max deviation {100 * sd:.1f} %"),
+        _row("K16", "encoding", "magnitude of the background (the 8 fully sampled protocols)", "Rayleigh: mean 1.2533 sigma, SD 0.6551 sigma; Gudbjartsson & Patz 1995", ray, 0.02,
+             f"max deviation {ray:.3f} sigma"),
         _row("K17", "encoding", "measured SNR / relative SNR printed in the header, over the same 9 protocols", "constant (voxel volume x sqrt(sampling time))", snr, 0.03, f"spread {100 * snr:.1f} %"),
+        _row("K29", "encoding", "partial Fourier 0.55 to 0.9 of a real object, reconstructed by homodyne detection",
+             "the fully sampled image: conjugate synthesis is exact for a real object (one unpaired line at the edge of k-space is not acquired)",
+             pf, 0.03, f"differs by at most {100 * pf:.1f} % of the maximum"),
+        _row("K30", "encoding", "relative SNR in the header of the same four partial Fourier scans over that of the full scan",
+             "sqrt(lines_full / sum of the squared line weights), weights 1 on the symmetric lines and 2 on the others: Noll, Nishimura & Macovski 1991",
+             max(hdr), 1e-3),
     ]
 
 
@@ -550,8 +632,15 @@ def check_rf_pulse():
             # the cascade takes Mz to +My at the centre, the spinor convention to -i: opposite sign of Mxy
             rot = max(rot, np.abs(2 * np.arcsin(np.clip(np.abs(b), 0, 1)) - th3).max(), np.abs(2 * np.conj(a) * b + mxy3).max())
         t = (np.arange(rf.N_SAMPLES) + 0.5) / rf.N_SAMPLES - 0.5
-        ft = np.abs(np.exp(-2j * np.pi * tbw * np.outer(z, t)) @ rf.sinc_pulse(tbw, window=window))
+        ft = np.abs(np.exp(-2j * np.pi * tbw * bloch.calibration(tbw, window=window) * np.outer(z, t)) @ rf.sinc_pulse(tbw, window=window))
         tip = max(tip, np.abs(rf.excitation(D(1.0), tbw, z, window)[0] / D(1.0) - ft).max())
+    # the calibration: full width at half maximum of the 1 degree profile, read from the profile itself
+    wide, cal, zz = 0.0, 0.0, np.linspace(0.0, 1.0, 20001)
+    for tbw, window in ((2, "hann"), (4, "hann"), (8, "hann"), (2, "hamming"), (4, "hamming"), (8, "hamming")):
+        m = np.sin(rf.excitation(D(1.0), tbw, zz, window)[0])
+        i = int(np.argmax(m < 0.5 * m[0]))
+        half = zz[i - 1] + (m[i - 1] - 0.5 * m[0]) / (m[i - 1] - m[i]) * (zz[i] - zz[i - 1])
+        wide, cal = max(wide, abs(2 * half - 1)), max(cal, abs(rf.fwhm_factor(tbw, window) / bloch.calibration(tbw, window=window) - 1))
     sym = 0.0
     for tbw in (2, 4, 8):
         zz = np.linspace(-3, 3, 601)
@@ -565,6 +654,9 @@ def check_rf_pulse():
              tip, 1e-4, f"{tip:.1e} of alpha"),
         _row("R3", "rf", "symmetry used by the slice integral: flip angle even in z, transverse phase conjugate, echo factor -b^2 real",
              "time-symmetric pulse under a constant gradient", sym, 1e-9),
+        _row("R13", "rf", "full width at half maximum of the 1 degree profile, time-bandwidth 2 / 4 / 8, Hann and Hamming: the slice gradient is calibrated per pulse",
+             "the prescribed slice thickness; the calibration factor against the one found on the separately written cascade (bloch.py)",
+             max(wide, cal), 1e-4, f"width off by {wide:.1e} thicknesses; factors agree to {cal:.1e}"),
     ]
 
 
@@ -584,7 +676,7 @@ def check_slice_integral():
                 else:
                     extreme = max(extreme, err)
     return [
-        _row("R4", "rf", "integral of the spoiled-GRE signal through the slice as served (6 x tbw points per thickness, to 0.5 + 12 / tbw thicknesses), "
+        _row("R4", "rf", "integral of the spoiled-GRE signal through the slice as served (6 x tbw points per nominal bandwidth of the slice gradient, to 0.5 + 12 / tbw of them), "
              "252 cases: TR 20 to 2000 ms, T1 300 to 4300 ms, 2 to 90 degrees", "the same integral on 16,001 positions over +- 12 thicknesses",
              usual, 2e-4, f"{usual:.1e} relative"),
         _row("R5", "rf", "the same at TR 5 ms (84 cases), where the wings of the profile pass the Ernst angle and outweigh the slice centre",
@@ -625,7 +717,23 @@ def check_slice_models():
         got = kspace.slice_signal(rp, dict(t1_ms=t1), scale * np.pi / 2, tbw, inv_eff=kap)[0][0]
         ref = bloch.slice_se_isochromats(scale * np.pi / 2, tbw, tr, te, t1, ti_ms=ti, inv_eff=kap)
         se = max(se, abs(got - ref) / abs(ref))
+    # R14: the same two with a saturation pulse before every excitation
+    sat = 0.0
+    for flip, tbw, tr, t1, t2, q, delay in ((20, 4, 20.0, 380.0, 60.0, 0.1, 7.0), (60, 2, 15.0, 400.0, 40.0, 0.5, 6.5), (10, 8, 30.0, 300.0, 60.0, 0.03, 8.0)):
+        rp = dict(sequence="spgr", tr_ms=tr, rf_phase_increment_deg=117.0, spoiler_mt_ms_per_m=100.0)
+        got = kspace.slice_signal(rp, dict(t1_ms=t1, t2_ms=t2, adc_um2_ms=0.0), D(flip), tbw, sat=(q, delay))[0][0]
+        zmax = 0.5 + rf.WING / tbw
+        ref = bloch.slice_spgr_isochromats(D(flip), tbw, tr, t1, t2, n_z=int(round(2 * zmax * 12 * tbw)) + 1, z_max=zmax, n_iso=192, sat=(q, delay))
+        sat = max(sat, abs(got - ref) / abs(ref))
+    for scale, tbw, tr, te, t1, ti, kap, q, delay in ((1.0, 4, 500.0, 20.0, 380.0, None, 1.0, 0.05, 7.0), (0.85, 2, 2000.0, 15.0, 300.0, None, 1.0, 0.5, 6.5),
+                                                      (1.1, 4, 2000.0, 20.0, 400.0, 250.0, 0.93, 0.1, 7.0)):
+        rp = dict(sequence="se" if ti is None else "ir", tr_ms=tr, te_ms=te, ti_ms=ti)
+        got = kspace.slice_signal(rp, dict(t1_ms=t1), scale * np.pi / 2, tbw, inv_eff=kap, sat=(q, delay))[0][0]
+        ref = bloch.slice_se_isochromats(scale * np.pi / 2, tbw, tr, te, t1, ti_ms=ti, inv_eff=kap, sat=(q, delay))
+        sat = max(sat, abs(got - ref) / abs(ref))
     return [
+        _row("R14", "rf", "the slice integrals of R7 and R9 with a saturation pulse before every excitation (3 gradient-echo, 2 spin-echo, 1 inversion-recovery case; "
+             "9 to 97 % saturated)", "the same isochromat ensembles with Mz multiplied by q at that time in every repetition", sat, 1e-3, f"{sat:.1e} relative"),
         _row("R6", "rf", "excitation = nonselective (hard pulse, one flip angle per voxel): spin-echo image of the reference world",
              "mean, maximum and centre pixel recorded on mrgym-engine-0.1.0", old, 1e-9, f"{old:.1e} relative"),
         _row("R7", "rf", "RF-spoiled gradient echo integrated over the slice (EPG per column), 4 cases, time-bandwidth 2 / 4 / 8",
@@ -658,7 +766,7 @@ def check_slice_engine():
                 direct = []
                 for ai, fi in zip(a, free):
                     th, ph = rf.excitation(ai, tbw, zeta)
-                    direct.append(np.sum(wz * ph.real * S.bssfp(th, fi + D(rp["phase_cycle_deg"]), rp["tr_ms"], cls["t1_ms"], cls["t2_ms"])) * np.exp(0.5j * fi))
+                    direct.append(np.sum(wz * ph.real * S.bssfp(th, fi - D(rp["phase_cycle_deg"]), rp["tr_ms"], cls["t1_ms"], cls["t2_ms"])) * np.exp(0.5j * fi))
                 direct = np.array(direct)
             else:
                 direct = kspace.slice_signal(rp, cls, a, tbw, inv_eff=w["system"]["inv_eff"])[0]
@@ -692,7 +800,8 @@ def check_slice_engine():
         _row("R10", "rf", "slice-integrated signal interpolated over the flip angles of the object (5 to 16 Chebyshev nodes), strong B1 pattern: spgr, se, bssfp",
              "the slice integral at the flip angle and off-resonance of every sampled voxel", worst, 1e-4, f"{worst:.1e} relative"),
         _row("R11", "rf", "signal left by a field gradient through the slice (0.25 to 1.7 cycles across the thickness), small flip angle",
-             "numeric integral of profile x phase ramp against sinc(cycles) x window(cycles / tbw): the profile is the transform of the pulse",
+             "numeric integral of profile x phase ramp against sinc(c) x window(c / tbw), c = cycles / calibration factor (cycles across one nominal "
+             "bandwidth of the slice gradient): the profile is the transform of the pulse",
              max(deph, drop), 2e-3, f"{max(deph, drop):.1e}; image at 0.5 cycles: {img[1] / img[0]:.3f}"),
         _row("R12", "rf", "two-angle variable-flip-angle T1 on a 2D slice, nominal angles in the fit (TR 20 ms, T1 300 to 2500 ms, time-bandwidth 2 and 4, ideal spoiling)",
              "published underestimation without profile correction: 40 to 80 % (Svedin & Parker 2017), -63 % (Dieringer 2014); band -35 to -80 %",
@@ -786,21 +895,149 @@ def check_motion():
     ]
 
 
+def _se_saturated(q, tr, te, t1, delay):
+    """Mz at the excitation of a spin echo with exact 90 and 180 degree pulses and a saturation Mz -> q Mz ``delay``
+    before every excitation (written out here: the 90 degree pulse leaves no Mz, so every repetition starts from 0)."""
+    e = lambda t: np.exp(-t / t1)                                               # noqa: E731
+    return q * (1 - (2 - e(te / 2)) * e(tr - te / 2 - delay)) * e(delay) + 1 - e(delay)
+
+
 def check_fat_saturation_offset():
     worst = 0.0
     f_fat = tissue.FAT_PPM * G * 3.0
-    plain = dict(sequence="se", tr_ms=500, te_ms=20, fov_mm=256, matrix=64, bandwidth_hz_per_px=800)
+    plain = dict(sequence="se", tr_ms=500, te_ms=20, fov_mm=256, matrix=64, bandwidth_hz_per_px=800, **HARD)
+    delay = 8.0 / 2 + 2.0 + 2.0 / 2                                              # half the saturation pulse, the gap, half the 90 degree pulse
     for sys_off, prot_off in ((0.0, 0.0), (60.0, 0.0), (0.0, 110.0), (-100.0, 0.0), (140.0, 0.0), (80.0, -80.0), (-f_fat, 0.0), (-f_fat + 200.0, -200.0)):
         for name in ("subcut_fat", "wm"):
             eng = _engine([(name, _disc(40))], dict(fatsat_eff=1.0, fatsat_bw_hz=200.0, fatsat_offset_hz=sys_off), fat_model="single")
             on = np.abs(eng.scan(dict(plain, fat_sat=True, fatsat_offset_hz=prot_off))["images"][0])[32, 32]
             off = np.abs(eng.scan(plain)["images"][0])[32, 32]
             spin = (0.0 if name == "subcut_fat" else -f_fat) - sys_off - prot_off      # the spin's frequency seen from the pulse centre
-            pred = 1 - 0.5 * (1 - np.tanh((abs(spin) - 100.0) / 8.0))
+            q = 1 - 0.5 * (1 - np.tanh((abs(spin) - 100.0) / 8.0))
+            t1 = eng.w["tissues"][name]["t1_ms"]
+            pred = _se_saturated(q, 500.0, 20.0, t1, delay) / _se_saturated(1.0, 500.0, 20.0, t1, delay)
             worst = max(worst, abs(on / off - pred))
-    return [_row("K28", "encoding", "fat saturation whose pulse misses the fat line (hidden offset of the system, shift requested in the protocol, both): fat and water discs",
-                 "signal left = 1 - efficiency x band(abs(spin frequency - pulse centre)); a requested shift of the opposite size restores the suppression; "
-                 "a pulse moved onto the water line saturates water", worst, 1e-6)]
+    # the six lines of fat, each saturated by its own place in the band (the lines are in phase at the centre of a spin echo)
+    lines = 0.0
+    for b0_t, shift in ((3.0, 0.0), (3.0, 60.0), (1.5, 0.0), (1.5, 3.4 * G * 1.5)):
+        f0, bw = G * b0_t, 1.3 * G * b0_t
+        eng = _engine([("subcut_fat", _disc(40))], dict(fatsat_eff=0.97, fatsat_bw_hz=bw), b0_t=b0_t)
+        p = dict(plain, tr_ms=1500)
+        mid = lambda img: abs(img[28:37, 28:37].mean())                         # noqa: E731  the lines ring differently at a single pixel
+        got = mid(eng.scan(dict(p, fat_sat=True, fatsat_offset_hz=shift))["images"][0]) / mid(eng.scan(p)["images"][0])
+        t1, total = eng.w["tissues"]["subcut_fat"]["t1_ms"], sum(a for _, a in tissue.FAT_PEAKS)
+        pred = sum(a / total * _se_saturated(1 - 0.97 * 0.5 * (1 - np.tanh((abs((ppm - tissue.FAT_PPM) * f0 - shift) - bw / 2) / 8.0)), 1500.0, 20.0, t1, delay)
+                   for ppm, a in tissue.FAT_PEAKS) / _se_saturated(1.0, 1500.0, 20.0, t1, delay)
+        lines = max(lines, abs(got - pred))
+    return [_row("K28", "encoding", "fat saturation whose pulse misses the fat line (hidden offset of the system, shift requested in the protocol, both): fat and water discs, "
+                 "one line each, hard pulses",
+                 "signal left = steady state of the spin echo with Mz x q before every excitation, q = 1 - efficiency x band(abs(spin frequency - pulse centre)); "
+                 "a requested shift of the opposite size restores the suppression; a pulse moved onto the water line saturates water", worst, 1e-6),
+            _row("K31", "encoding", "fat saturation of the six-line fat spectrum, 1.5 and 3 T, pulse on the main line, 60 Hz off it, and on the water line",
+                 "sum over the lines of share x steady state with that line's q: a band of 1.3 ppm leaves the lines outside it (21.9 % of the signal; "
+                 "the two next to water go only with water)", lines, 3e-4, f"{lines:.1e} of the unsaturated signal")]
+
+
+def check_saturation():
+    """A saturation pulse before every excitation: the closed forms, the RF-spoiled steady state, the engine's maps."""
+    t1 = np.array([250.0, 380.0, 700.0, 1100.0, 1800.0, 4300.0])
+    b1 = np.round(np.arange(0.6, 1.41, 0.2), 2)
+    g = np.array(list(itertools.product(t1, b1)))
+    t1, b1 = g[:, 0].copy(), g[:, 1].copy()
+    closed = 0.0
+    for q, delay in itertools.product((0.0, 0.03, 0.3, 0.9, 1.0), (4.5, 7.0, 12.0)):
+        for flip, tr in itertools.product((3, 10, 30, 60, 90), (13, 20, 40, 150, 2000)):
+            a = b1 * D(flip)
+            closed = max(closed, np.abs(S.spgr(a, tr, t1, (q, delay)) - bloch.spgr_ideal(a, tr, t1, sat=(q, delay))).max())
+        for tr, te in itertools.product((60, 300, 1500, 6000), (10.0, 30.0)):
+            a = b1 * np.pi / 2
+            closed = max(closed, np.abs(S.se(a, tr, te, t1, (q, delay)) - bloch.se_ideal(a, tr, te, t1, sat=(q, delay))).max())
+            if tr >= 300:
+                for ti in (30.0, 180.0):
+                    closed = max(closed, np.abs(S.ir_se(a, tr, te, ti, t1, 0.9, (q, delay)) - bloch.se_ideal(a, tr, te, t1, ti=ti, inv_eff=0.9, sat=(q, delay))).max())
+    iso = 0.0
+    for flip, tr, t1_, t2_, q, delay in ((10, 30.0, 382.0, 68.0, 0.1, 6.5), (60, 30.0, 382.0, 68.0, 0.1, 6.5), (25, 15.0, 343.0, 58.0, 0.0, 7.0), (40, 13.0, 300.0, 40.0, 0.5, 8.0),
+                                         (5, 13.0, 1200.0, 100.0, 0.03, 7.0), (60, 500.0, 382.0, 68.0, 0.25, 7.0)):
+        s = epg.steady_state(D(flip), tr, t1_, t2_, sat=(q, delay))[0]
+        ref = bloch.rf_spoiled_isochromats(D(flip), tr, t1_, t2_, n_iso=1024, sat=(q, delay))[0]
+        iso = max(iso, abs(s - ref) / abs(ref))
+    # the engine's amplitude maps: q differs from voxel to voxel and from line to line
+    w = W.make_world("5b" * 16, dict(kind="qa", qa=dict(n_oil=4), b0_hz=400.0, cf_offset_hz=100.0, b1_shape_amp=(0.2, 0.24), fatsat_eff=(0.93, 0.93)))
+    eng = kspace.Engine(w)
+    sy, f0 = w["system"], G * w["b0_t"]
+    maps = 0.0
+    for prot in (dict(sequence="spgr", tr_ms=24.0, flip_deg=25.0), dict(sequence="spgr", tr_ms=24.0, flip_deg=25.0, **HARD), dict(sequence="se", tr_ms=300.0),
+                 dict(sequence="ir", tr_ms=1500.0, ti_ms=180.0), dict(sequence="epi", tr_ms=300.0, flip_deg=70.0)):
+        rp = console.plan(dict(prot, matrix=64, fat_sat=True, fatsat_offset_hz=-40.0), w["console"])["realised"]
+        tbw, delay = rp["rf_tbw"], rp["fatsat_delay_ms"]
+        for c, name in enumerate(w["names"]):
+            cls, sup = w["tissues"][name], eng.sup[c]
+            if not cls["fat"]:
+                continue
+            lines, amps = eng._species(rp, c)
+            idx = np.flatnonzero(w["weights"][c][sup] > 0.5)[::397][:6]
+            for (ppm, _), amp in zip(lines, amps[0]):
+                off = eng.df[sup][idx] + (ppm - tissue.FAT_PPM) * f0 - sy["fatsat_offset_hz"] + 40.0
+                q = 1 - sy["fatsat_eff"] * 0.5 * (1 - np.tanh((np.abs(off) - sy["fatsat_bw_hz"] / 2) / 8.0))
+                for i, qi in zip(idx, q):
+                    a = D(rp["flip_deg"]) * eng.b1[sup][i]
+                    if tbw is not None:
+                        direct = kspace.slice_signal(rp, cls, a, tbw, inv_eff=sy["inv_eff"], sat=(qi, delay))[0][0]
+                    elif rp["sequence"] == "spgr":
+                        direct = epg.spgr(a, rp["tr_ms"], cls["t1_ms"], cls["t2_ms"], rp["rf_phase_increment_deg"],
+                                          kspace.diffusion_bd(cls["adc_um2_ms"], rp["spoiler_mt_ms_per_m"], rp["tr_ms"]), (qi, delay))
+                    else:
+                        direct = S.se(a, rp["tr_ms"], rp["te_ms"], cls["t1_ms"], (qi, delay))
+                    got = amp[i] / (w["weights"][c][sup][i] * cls["pd"])
+                    maps = max(maps, abs(got - direct) / abs(direct))
+    return [
+        _row("S16", "signal", "longitudinal steady state with a saturation pulse (Mz x q, 4.5 to 12 ms before every excitation): spoiled gradient echo, "
+             "spin echo, inversion recovery; q 0 to 1, B1 60 to 140 %", "separately written matrix Bloch steady state with a saturation operator (bloch.py)", closed, 1e-12),
+        _row("S17", "signal", "RF-spoiled steady state with the saturation acting on the longitudinal states of every order (6 cases, 50 to 100 % saturated)",
+             "isochromat ensemble (1024 spins) by time stepping, Mz x q at that time in every repetition", iso, 1e-6, f"{iso:.1e} relative"),
+        _row("K32", "encoding", "amplitude maps under fat saturation in a field that moves the lines across the band (spgr 2D and 3D, se, ir, epi; four oil vials, "
+             "six lines each): cubic interpolation of the slice integral over q, the spoiling term on 13 nodes of q",
+             "the steady state solved at the flip angle and the saturation of every sampled voxel and line", maps, 2e-4, f"{maps:.1e} relative"),
+    ]
+
+
+def check_adjustments():
+    """cf_shift_hz, shim_y / shim_x_hz_per_mm, tx_scale: the adjusted system serves the data of the system that needs none."""
+    shapes = [("wm", _disc(60)), ("subcut_fat", _disc(12, 20.0, -15.0))]
+    prots = [dict(sequence="spgr", tr_ms=30, flip_deg=20, n_echoes=2, fat_sat=True), dict(sequence="se", tr_ms=400, fat_sat=True), dict(sequence="ir", tr_ms=1500, ti_ms=200),
+             dict(sequence="bssfp", tr_ms=8, flip_deg=40), dict(sequence="epi", tr_ms=500), dict(sequence="afi", tr_ms=30, flip_deg=50)]
+    ph = W.shapes_phantom(shapes)
+    y, x = W.grid(W.flat_world(ph))
+    ref = kspace.Engine(W.flat_world(ph, fatsat_eff=0.95))
+    off = kspace.Engine(W.flat_world(ph, fatsat_eff=0.95, cf_offset_hz=-90.0))
+    tilted = W.flat_world(ph, fatsat_eff=0.95)
+    tilted["fields"]["b0_hz"] = 25.0 + 0.6 * y - 0.35 * x
+    tilted = kspace.Engine(tilted)
+    weak = kspace.Engine(W.flat_world(ph, fatsat_eff=0.95, tx_gain=0.8))
+    cf = shim = tx = moved = 0.0
+    for p in prots:
+        p = dict(p, matrix=64, fov_mm=256)
+        want = ref.scan(p)["images"]
+        top = np.abs(want).max()
+        cf = max(cf, np.abs(off.scan(dict(p, cf_shift_hz=-90.0))["images"] - want).max() / top)
+        shim = max(shim, np.abs(tilted.scan(dict(p, cf_shift_hz=25.0, shim_y_hz_per_mm=-0.6, shim_x_hz_per_mm=0.35))["images"] - want).max() / top)
+        tx = max(tx, np.abs(weak.scan(dict(p, tx_scale=1.25))["images"] - want).max() / top)
+        moved = max(moved, min(np.abs(off.scan(p)["images"] - want).max(), np.abs(tilted.scan(p)["images"] - want).max(), np.abs(weak.scan(p)["images"] - want).max()) / top)
+    exam = dict(fov_mm=240.0, min_pixel_mm=0.8, b1rms_limit_ut=3.0, b0_t=3.0)
+    one, more = (console.plan(dict(sequence="bssfp", tr_ms=6.0, flip_deg=40.0, matrix=64, tx_scale=v), exam) for v in (1.0, 1.4))
+    free = max(abs(more["limits"]["rf_power_percent"] / one["limits"]["rf_power_percent"] / 1.4 ** 2 - 1), abs(more["scan_s"] - one["scan_s"]),
+               abs(console.plan(dict(sequence="se", tr_ms=500, cf_shift_hz=120.0, shim_x_hz_per_mm=1.0), exam)["scan_s"] - console.plan(dict(sequence="se", tr_ms=500), exam)["scan_s"]))
+    return [
+        _row("K33", "encoding", "a system 90 Hz off resonance scanned with cf_shift_hz = -90 (six sequences, fat saturation on where it exists)",
+             "the image of the system on resonance: displacement, echo phase, bSSFP bands and the saturation band move together", cf, 1e-9, f"{cf:.1e} of the maximum"),
+        _row("K34", "encoding", "a field of 25 Hz + 0.6 Hz/mm x y - 0.35 Hz/mm x x scanned with the opposite shim terms and cf_shift_hz = 25",
+             "the image of the homogeneous system", shim, 1e-9, f"{shim:.1e} of the maximum"),
+        _row("K35", "encoding", "a transmitter at 80 % scanned with tx_scale = 1.25 (excitation and refocusing angles; the adiabatic inversion is not scaled)",
+             "the image of the calibrated system", tx, 1e-9, f"{tx:.1e} of the maximum"),
+        _row("K36", "encoding", "the same three systems scanned without the adjustment", "an image that differs (the smallest of the largest differences over the six sequences)",
+             moved, 0.01, f"{100 * moved:.1f} % of the maximum", kind="min"),
+        _row("C9", "console", "price of the adjustments: RF power with tx_scale = 1.4, scan time with any of them", "RF power x tx_scale^2; the scan time does not change", free, 2e-3),
+    ]
 
 
 # ================================================================================================== console, continued
@@ -814,11 +1051,11 @@ def check_console_slice():
     err = 0.0
     for name, (dur, tbw) in rf.PULSES.items():
         p = console.plan(dict(sequence="spgr", tr_ms=25, flip_deg=30, matrix=96, rf_pulse=name, slice_mm=4.0), exam)
-        g = tbw / (dur * 1e-3 * gamma * 4e-3) * 1e3
+        g = bloch.calibration(tbw) * tbw / (dur * 1e-3 * gamma * 4e-3) * 1e3
         power = 100 * console._b1_ut(30.0, dur) ** 2 * dur * rf.energy_factor(tbw) / 25.0 / 3.0 ** 2
         err = max(err, abs(p["timing"]["slice_gradient_mt_m"] / g - 1), abs(p["limits"]["rf_power_percent"] - round(power, 2)),
                   abs(p["realised"]["rf_ms"] - dur), abs(p["realised"]["rf_tbw"] - tbw))
-    thin = 4.0 / (2e-3 * gamma * 0.8 * 40e-3) * 1e3
+    thin = bloch.calibration(4.0) * 4.0 / (2e-3 * gamma * 0.8 * 40e-3) * 1e3
     lim = [console.plan(dict(sequence="spgr", tr_ms=25, flip_deg=30, matrix=96, slice_mm=v), exam) for v in (round(thin - 0.02, 2), round(thin + 0.02, 2))]
     refused = lim[0]["accept"] or lim[1]["accept"] is not True or lim[0]["violations"][0]["code"] != "SLICE_TOO_THIN"
     # the 3D mode: time x partitions, noise / sqrt(partitions), the header says so
@@ -838,7 +1075,8 @@ def check_console_slice():
         _row("C4", "console", "energy and peak factors of the windowed-sinc pulses (time-bandwidth 2 / 4 / 8)",
              "mean(b^2) / mean(b)^2 and max(b) / mean(b) of the continuous shape (8,192 samples; the console plays 128 sub-pulses)", shape, 3e-3),
         _row("C5", "console", "slice gradient and RF power of the three selective pulses (30 degrees, TR 25 ms, 4 mm slice)",
-             "G = tbw / (duration x gamma x thickness); B1rms^2 = B1(hard pulse of that duration)^2 x duration x energy factor / TR", err, 1e-3),
+             "G = k x tbw / (duration x gamma x thickness), k = width at half maximum of the small-angle profile of the separately written cascade "
+             "in nominal bandwidths; B1rms^2 = B1(hard pulse of that duration)^2 x duration x energy factor / TR", err, 1e-3),
         _row("C6", "console", f"thinnest slice of the normal pulse: {thin:.2f} mm (80 % of 40 mT/m)", "refused with SLICE_TOO_THIN below it, accepted above",
              float(refused), 0.0, "refused / accepted" if not refused else "wrong verdict"),
         _row("C7", "console", "excitation = nonselective (3D): price and header", "acquisition time x ceil(160 mm / slice), relative SNR x sqrt(partitions)", price, 1e-3,
@@ -848,12 +1086,12 @@ def check_console_slice():
     ]
 
 
-CHECKS = (check_closed_forms, check_ernst_angle, check_epg, check_spin_echo, check_bssfp, check_node_interpolation,
+CHECKS = (check_closed_forms, check_ernst_angle, check_epg, check_spin_echo, check_bssfp, check_bssfp_phase_cycle, check_node_interpolation,
           check_rf_pulse, check_slice_integral, check_slice_models, check_slice_engine,
           check_numerics, check_fat_shift, check_wrap, check_gibbs, check_t2star_blur, check_bssfp_bands, check_epi,
           check_interference, check_noise, check_in_opposed, check_positions, check_field_map, check_field_of_view, check_motion,
-          check_fat_saturation_offset, check_console, check_console_slice)
-GROUP_OF = {check_closed_forms: "signal", check_ernst_angle: "signal", check_epg: "signal", check_spin_echo: "signal", check_bssfp: "signal",
+          check_fat_saturation_offset, check_saturation, check_adjustments, check_console, check_console_slice)
+GROUP_OF = {check_bssfp_phase_cycle: ("signal", "rf"), check_saturation: ("signal", "encoding"), check_adjustments: ("encoding", "console"), check_closed_forms: "signal", check_ernst_angle: "signal", check_epg: "signal", check_spin_echo: "signal", check_bssfp: "signal",
             check_node_interpolation: "signal", check_rf_pulse: "rf", check_slice_integral: "rf", check_slice_models: "rf", check_slice_engine: "rf",
             check_console: "console", check_console_slice: "console"}
 
@@ -863,7 +1101,8 @@ def run(groups=None):
     t0 = time.time()
     rows = []
     for fn in CHECKS:
-        if not groups or GROUP_OF.get(fn, "encoding") in groups:
+        own = GROUP_OF.get(fn, "encoding")
+        if not groups or set((own,) if isinstance(own, str) else own) & set(groups):
             rows += fn()
     if groups:
         rows = [r for r in rows if r["group"] in groups]

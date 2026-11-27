@@ -89,7 +89,10 @@ channels (`array.public`).
   place of the receive profile on the master grid. This is the definition, and it costs one scan per element.
 - **Fast** (`ArrayEngine.fast`): the engine forms the object's k-space once, a little beyond the acquired band; the
   maps multiply its image; the result goes back to k-space. Fat is formed without its chemical shift and receives
-  its spectrum after the coil has weighted it, so every fat peak is weighted where the fat is. Maps are taken at
+  its spectrum after the coil has weighted it, so every fat peak is weighted where the fat is. Under fat saturation
+  the engine (0.3.0) saturates each line of fat by its place in the band of the pulse, so each line has its own
+  amplitude map: the lines are then formed and weighted one by one and each receives its own frequency
+  (`tests/test_array.py`, the fat-saturated formation cases). Maps are taken at
   the position of the spins (the off-resonance displacement along the readout is undone) and never outside the
   object.
 
@@ -118,7 +121,7 @@ tolerance. An independent re-derivation with dense matrices, quadrature and Mont
 | F5 | fast against per-coil formation, 8 loops on a ring, spgr, matrix 64, 300 Hz per pixel: rms difference of the k-space / its rms | per coil: the map in place of the receive profile on the master grid | 0.001484 | ≤ 0.005 | pass |
 | F6 | the same for one loop of radius 60 mm (16 pixels) 20 mm behind the head, matrix 64: the difference grows as the map varies more inside the blur of a sample | reported | 0.00125 | reported |  |
 | F7 | the same for one loop of radius 30 mm (8 pixels) 20 mm behind the head, matrix 64: the difference grows as the map varies more inside the blur of a sample | reported | 0.003527 | reported |  |
-| F8 | the same for one loop of radius 15 mm (4 pixels) 20 mm behind the head, matrix 64: the difference grows as the map varies more inside the blur of a sample | reported | 0.009302 | reported |  |
+| F8 | the same for one loop of radius 15 mm (4 pixels) 20 mm behind the head, matrix 64: the difference grows as the map varies more inside the blur of a sample | reported | 0.009303 | reported |  |
 | F9 | the positions used for the maps on a turned and warped grid (rotation 30 degrees, gradient non-linearity 0.03) against the master grid of that world | world.grid | 0 mm | ≤ 1.0e-09 | pass |
 
 ### Noise
@@ -138,10 +141,10 @@ tolerance. An independent re-derivation with dense matrices, quadrature and Mont
 | # | Quantity | Closed form or independent method | Found | Tolerance | |
 |---|---|---|---|---|---|
 | C1 | SNR of the optimal combination / SNR of the root sum of squares, smallest value over the object (closed forms, 8 loops) | at least 1 (Cauchy-Schwarz) | 1.003 | ≥ 1 | pass |
-| C2 | SNR of the root sum of squares / SNR of the optimal combination, mean over the object | reported | 0.9792 | reported |  |
+| C2 | SNR of the root sum of squares / SNR of the optimal combination, mean over the object | reported | 0.9793 | reported |  |
 | C3 | SNR of the optimal combination / SNR of the best single channel, smallest value over the object | at least 1 (the single channel is one of the linear combinations) | 1.101 | ≥ 1 | pass |
 | C4 | share of the object where the root sum of squares has at least the SNR of the best single channel | reported (no theorem: see C5) | 1 | reported |  |
-| C5 | the same share when one channel has 16 times the noise variance, without whitening | reported | 0.6358 | reported |  |
+| C5 | the same share when one channel has 16 times the noise variance, without whitening | reported | 0.6356 | reported |  |
 | C6 | root sum of squares of whitened channels: SNR / SNR of the optimal combination, largest deviation (closed forms, noisy channel included) | equal | 1.1e-15 | ≤ 1.0e-12 | pass |
 | C7 | noise of the optimal combination by 300 replicas / its closed form, mean over the object | sd of a coil image / sqrt(S^H psi^-1 S) | 7.5e-04 | ≤ 0.01 | pass |
 | C8 | SNR of the root sum of squares by replicas of a scan with 20 times the signal / its closed form, mean over the bright half of the object | S^H S / sqrt(S^H psi S) x magnetisation / sd | 0.001354 | ≤ 0.02 | pass |
@@ -162,29 +165,29 @@ tolerance. An independent re-derivation with dense matrices, quadrature and Mont
 | P6 | the prototype array (given from outside), R = 2: g measured by 300 replicas (noise of SENSE / noise of the full optimal image / sqrt(R)), mean over the object, / the mean closed form | 1 | 4.9e-04 | ≤ 0.01 | pass |
 | P7 | the prototype array (given from outside), R = 2: SNR_full / SNR_R / (g sqrt(R)), mean over the object | 1 | 7.2e-04 | ≤ 0.01 | pass |
 | P8 | the prototype array (given from outside), R = 2: the verifier's noise map (ArrayEngine.noise_sd_map) / the noise by replicas, mean over the object | sd_full(p) g(p) sqrt(R) | 7.9e-04 | ≤ 0.01 | pass |
-| P9 | the prototype array (given from outside), R = 2: residual aliasing of the engine's data with the true maps at the pixel centres, median of \|SENSE - full\| / \|full\| over the object (a map varies inside a pixel; the data know, the pixel value does not) | reported | 0.006179 | reported |  |
+| P9 | the prototype array (given from outside), R = 2: residual aliasing of the engine's data with the true maps at the pixel centres, median of \|SENSE - full\| / \|full\| over the object (a map varies inside a pixel; the data know, the pixel value does not) | reported | 0.00618 | reported |  |
 | P10 | the prototype array (given from outside), matrix 96, R = 3: mean g over the object, closed form | the value recorded for the prototype: 1.944 | 1.8e-05 | ≤ 0.002 | pass |
 | P11 | the prototype array (given from outside), R = 3: g measured by 300 replicas (noise of SENSE / noise of the full optimal image / sqrt(R)), mean over the object, / the mean closed form | 1 | 5.0e-04 | ≤ 0.01 | pass |
 | P12 | the prototype array (given from outside), R = 3: SNR_full / SNR_R / (g sqrt(R)), mean over the object | 1 | 9.8e-04 | ≤ 0.01 | pass |
 | P13 | the prototype array (given from outside), R = 3: the verifier's noise map (ArrayEngine.noise_sd_map) / the noise by replicas, mean over the object | sd_full(p) g(p) sqrt(R) | 8.9e-04 | ≤ 0.01 | pass |
 | P14 | the prototype array (given from outside), R = 3: residual aliasing of the engine's data with the true maps at the pixel centres, median of \|SENSE - full\| / \|full\| over the object (a map varies inside a pixel; the data know, the pixel value does not) | reported | 0.01525 | reported |  |
 | P15 | 8 loops on a ring, matrix 96, R = 2: mean g over the object, closed form | reported | 1.012 | reported |  |
-| P16 | 8 loops on a ring, R = 2: g measured by 300 replicas (noise of SENSE / noise of the full optimal image / sqrt(R)), mean over the object, / the mean closed form | 1 | 0.001656 | ≤ 0.01 | pass |
-| P17 | 8 loops on a ring, R = 2: SNR_full / SNR_R / (g sqrt(R)), mean over the object | 1 | 0.001473 | ≤ 0.01 | pass |
+| P16 | 8 loops on a ring, R = 2: g measured by 300 replicas (noise of SENSE / noise of the full optimal image / sqrt(R)), mean over the object, / the mean closed form | 1 | 0.001654 | ≤ 0.01 | pass |
+| P17 | 8 loops on a ring, R = 2: SNR_full / SNR_R / (g sqrt(R)), mean over the object | 1 | 0.001479 | ≤ 0.01 | pass |
 | P18 | 8 loops on a ring, R = 2: the verifier's noise map (ArrayEngine.noise_sd_map) / the noise by replicas, mean over the object | sd_full(p) g(p) sqrt(R) | 1.3e-04 | ≤ 0.01 | pass |
-| P19 | 8 loops on a ring, R = 2: residual aliasing of the engine's data with the true maps at the pixel centres, median of \|SENSE - full\| / \|full\| over the object (a map varies inside a pixel; the data know, the pixel value does not) | reported | 0.006022 | reported |  |
+| P19 | 8 loops on a ring, R = 2: residual aliasing of the engine's data with the true maps at the pixel centres, median of \|SENSE - full\| / \|full\| over the object (a map varies inside a pixel; the data know, the pixel value does not) | reported | 0.00602 | reported |  |
 | P20 | 8 loops on a ring, matrix 96, R = 3: mean g over the object, closed form | reported | 1.246 | reported |  |
-| P21 | 8 loops on a ring, R = 3: g measured by 300 replicas (noise of SENSE / noise of the full optimal image / sqrt(R)), mean over the object, / the mean closed form | 1 | 0.001311 | ≤ 0.01 | pass |
+| P21 | 8 loops on a ring, R = 3: g measured by 300 replicas (noise of SENSE / noise of the full optimal image / sqrt(R)), mean over the object, / the mean closed form | 1 | 0.001293 | ≤ 0.01 | pass |
 | P22 | 8 loops on a ring, R = 3: SNR_full / SNR_R / (g sqrt(R)), mean over the object | 1 | 1.9e-04 | ≤ 0.01 | pass |
-| P23 | 8 loops on a ring, R = 3: the verifier's noise map (ArrayEngine.noise_sd_map) / the noise by replicas, mean over the object | sd_full(p) g(p) sqrt(R) | 4.5e-04 | ≤ 0.01 | pass |
-| P24 | 8 loops on a ring, R = 3: residual aliasing of the engine's data with the true maps at the pixel centres, median of \|SENSE - full\| / \|full\| over the object (a map varies inside a pixel; the data know, the pixel value does not) | reported | 0.0174 | reported |  |
+| P23 | 8 loops on a ring, R = 3: the verifier's noise map (ArrayEngine.noise_sd_map) / the noise by replicas, mean over the object | sd_full(p) g(p) sqrt(R) | 4.6e-04 | ≤ 0.01 | pass |
+| P24 | 8 loops on a ring, R = 3: residual aliasing of the engine's data with the true maps at the pixel centres, median of \|SENSE - full\| / \|full\| over the object (a map varies inside a pixel; the data know, the pixel value does not) | reported | 0.01739 | reported |  |
 | P25 | 8 loops on a ring, maps estimated from a prescan (matrix 64, 600 Hz per pixel) with the body coil as reference, full sampling: median of \|combined image - body-coil image\| / \|body-coil image\| over the object (the error of the maps alone) | reported | 0.01815 | reported |  |
 | P26 | the same maps, R = 2: median of \|SENSE - body-coil image\| / \|body-coil image\| over the object | reported | 0.0215 | reported |  |
-| P27 | the same maps, R = 2: the part that is residual aliasing: median of \|SENSE - full scan combined with the same maps\| / the latter | reported | 0.006308 | reported |  |
-| P28 | the same maps, R = 3: median of \|SENSE - body-coil image\| / \|body-coil image\| over the object | reported | 0.03281 | reported |  |
+| P27 | the same maps, R = 2: the part that is residual aliasing: median of \|SENSE - full scan combined with the same maps\| / the latter | reported | 0.00631 | reported |  |
+| P28 | the same maps, R = 3: median of \|SENSE - body-coil image\| / \|body-coil image\| over the object | reported | 0.03283 | reported |  |
 | P29 | the same maps, R = 3: the part that is residual aliasing: median of \|SENSE - full scan combined with the same maps\| / the latter | reported | 0.01856 | reported |  |
 | P30 | 8 loops on a ring, R = 2 with 24 calibration lines, maps estimated from those lines (no body coil): median of \|SENSE - full scan combined with the same maps\| / the latter over the object | reported | 0.01047 | reported |  |
-| P31 | a row of 4 loops behind the head (they differ along x only), R = 2: mean g over the object, phase direction along y | reported | 1.938 | reported |  |
+| P31 | a row of 4 loops behind the head (they differ along x only), R = 2: mean g over the object, phase direction along y | reported | 1.937 | reported |  |
 | P32 | the same, phase direction along x | reported | 1.521 | reported |  |
 | P33 | the row of 4 loops, R = 2: mean g with the phase direction along y / along x | above 1: folding along the axis on which the loops do not differ costs more | 1.274 | ≥ 1.1 | pass |
 | P34 | the row of 4 loops, R = 3: mean g with the phase direction along y / along x | above 1: folding along the axis on which the loops do not differ costs more | 1.64 | ≥ 1.1 | pass |
@@ -196,17 +199,17 @@ tolerance. An independent re-derivation with dense matrices, quadrature and Mont
 | P40 | the same: mean g over the object with the dead loop / with all loops | reported | 1.075 | reported |  |
 | P41 | R = 4: mean g over the object | reported | 2.153 | reported |  |
 | P42 | R = 4, Tikhonov regularisation 0.003: mean noise amplification over the object / unregularised | reported: below 1, paid with bias | 0.8977 | reported |  |
-| P43 | R = 4: median residual \|SENSE - full\| / \|full\| over the object, unregularised | reported | 0.03469 | reported |  |
-| P44 | the same with the regularisation | reported | 0.05102 | reported |  |
+| P43 | R = 4: median residual \|SENSE - full\| / \|full\| over the object, unregularised | reported | 0.03468 | reported |  |
+| P44 | the same with the regularisation | reported | 0.05103 | reported |  |
 
 ### Cost
 
 | # | Quantity | Closed form or independent method | Found | Tolerance | |
 |---|---|---|---|---|---|
-| T1 | whole scan of a new contrast, 8 channels, R = 2, matrix 96 (fast formation, noise, SENSE with its unfolding matrices and g map) / the single-channel scan of a new contrast, medians of 3 on one core | design target: 1.5 | 1.376 | ≤ 1.5 | pass |
-| T2 | the same: the 8-channel scan | reported | 0.5071 s | reported |  |
-| T3 | the same: the single-channel scan | reported | 0.3686 s | reported |  |
-| T4 | peak resident memory of this process so far (worlds on the 640 grid, per-coil references included) | reported; limit 3000 | 583.1 MB | reported |  |
+| T1 | whole scan of a new contrast, 8 channels, R = 2, matrix 96 (fast formation, noise, SENSE with its unfolding matrices and g map) / the single-channel scan of a new contrast, medians of 3 on one core | design target: 1.5 | 1.381 | ≤ 1.5 | pass |
+| T2 | the same: the 8-channel scan | reported | 0.4898 s | reported |  |
+| T3 | the same: the single-channel scan | reported | 0.3548 s | reported |  |
+| T4 | peak resident memory of this process so far (worlds on the 640 grid, per-coil references included) | reported; limit 3000 | 599.5 MB | reported |  |
 <!-- validation table: end -->
 
 ## 8. Sources

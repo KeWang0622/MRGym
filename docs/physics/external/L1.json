@@ -21,7 +21,7 @@
    "reference": "independent_bloch.shaped_pulse acting on the three unit vectors, sample by sample",
    "written_by_the_authors": "yes",
    "cases": 12,
-   "value": 4.3634024805220026e-14,
+   "value": 8.31100091800007e-12,
    "tolerance": 1e-09,
    "unit": "",
    "kind": "max",
@@ -34,7 +34,7 @@
    "reference": "independent_bloch.slice_gre: isochromats over (position through the slice) x (96 spoiler phases), the 128-sample pulse stepped under its slice gradient for each of them in every repetition",
    "written_by_the_authors": "yes",
    "cases": 3,
-   "value": 2.0353158966994498e-07,
+   "value": 6.823438178850538e-06,
    "tolerance": 0.001,
    "unit": "relative",
    "kind": "max",
@@ -47,7 +47,7 @@
    "reference": "independent_bloch.slice_se: isochromats over (position) x (32 crusher phases), both pulses stepped under their gradients; the longitudinal magnetisation is averaged over the crusher phases after every echo, as the scanner's model states",
    "written_by_the_authors": "yes",
    "cases": 5,
-   "value": 1.0568235817205973e-10,
+   "value": 1.0575923117457115e-10,
    "tolerance": 0.001,
    "unit": "relative",
    "kind": "max",
@@ -56,11 +56,11 @@
   },
   {
    "id": "L1.5",
-   "quantity": "balanced SSFP against off-resonance (hard pulses, 41 precession angles per TR)",
-   "reference": "independent_bloch.bssfp: time stepping to the steady state",
+   "quantity": "balanced SSFP against off-resonance (hard pulses, 41 precession angles per TR; RF phase advance 180, 90 and 300 degrees per TR)",
+   "reference": "independent_bloch.bssfp: time stepping to the steady state, the phase turning the axis of every pulse",
    "written_by_the_authors": "yes",
-   "cases": 123,
-   "value": 1.5138115505407441e-09,
+   "cases": 205,
+   "value": 1.5138115505483009e-09,
    "tolerance": 1e-06,
    "unit": "M0",
    "kind": "max",
@@ -79,12 +79,38 @@
    "kind": "max",
    "passed": true,
    "note": ""
+  },
+  {
+   "id": "L1.7",
+   "quantity": "slice gradient of the three selective pulses, in nominal bandwidths across the prescribed thickness (1.197 / 0.994 / 1.000)",
+   "reference": "independent_bloch.slice_calibration: the width at half maximum of the transverse magnetisation that a 0.0001 degree pulse leaves on single isochromats, by bisection",
+   "written_by_the_authors": "yes",
+   "cases": 3,
+   "value": 1.7408297026122455e-13,
+   "tolerance": 1e-06,
+   "unit": "relative",
+   "kind": "max",
+   "passed": true,
+   "note": ""
+  },
+  {
+   "id": "L1.8",
+   "quantity": "RF-spoiled steady state with a saturation pulse (Mz x q, 6.5 to 8 ms before every excitation; 50 to 100 % saturated)",
+   "reference": "independent_bloch.spoiled_gre with the saturation as a step of the time stepping: 1,024 isochromats",
+   "written_by_the_authors": "yes",
+   "cases": 5,
+   "value": 3.0755475787571213e-13,
+   "tolerance": 1e-06,
+   "unit": "of the unsaturated signal",
+   "kind": "max",
+   "passed": true,
+   "note": "The saturation acts on the longitudinal magnetisation only, in the scanner and in the integrator: what a real pulse does to the transverse magnetisation of earlier repetitions is left out of both (limits.md, block 9a)."
   }
  ],
  "not_run": [
   "per-pulse transient of the first 300 pulses: the scanner serves the periodic state only"
  ],
- "engine": "mrgym-engine-0.2.0",
+ "engine": "mrgym-engine-0.3.0",
  "date_utc": "2026-11-27",
  "command": "python tools/external/run_all.py --write"
 }

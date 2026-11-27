@@ -3,11 +3,11 @@
 
 **C · The system** · quality control · kind 1, measure · isolates C31: From a failed test to its cause. [The map](../../docs/tasks.md)
 
-**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 99 %, no policy that ignores the object passes more than 3 % (95 % bounds)
+**Status:** CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
 
 The physicist's part of phantom QA. Each test of the guidance can be failed by more than one fault (a gradient miscalibration or a shim error; the transmit field or a receive element; signal instability or a loose phantom), so the QA scan says which test fails and a second scan, chosen for that test, says why.
 
-Kind of task: **{'rule': 'open_loop within 25 points of the reference = measurement task, else decision task', 'levels': {'1': {'kind': 'measurement', 'reference': 1.0, 'open_loop': 1.0, 'gap_points': 0.0, 'n': 300}, '2': {'kind': 'measurement', 'reference': 1.0, 'open_loop': 1.0, 'gap_points': 0.0, 'n': 300}, '3': {'kind': 'measurement', 'reference': 1.0, 'open_loop': 0.7733, 'gap_points': 22.7, 'n': 300}}, 'source': 'mrgym gate Scanner/PhantomQA-v0 --n 300 --write on mrgym-engine-0.2.0, 2026-11-25'}**.
+Kind of task: **{'rule': 'open_loop within 25 points of the reference = measurement task, else decision task', 'levels': {'1': {'kind': 'measurement', 'reference': 1.0, 'open_loop': 1.0, 'gap_points': 0.0, 'n': 60}, '2': {'kind': 'measurement', 'reference': 1.0, 'open_loop': 1.0, 'gap_points': 0.0, 'n': 60}, '3': {'kind': 'decision', 'reference': 1.0, 'open_loop': 0.6667, 'gap_points': 33.3, 'n': 60}}, 'source': 'mrgym gate Scanner/PhantomQA-v0 --n 60 --write on mrgym-engine-0.3.0, 2026-11-27'}**.
 
 ```python
 import mrgym
@@ -70,6 +70,8 @@ Limits: 64 scanner requests and 64 tool calls per episode.
 - Passing: all gates; every quantity within its tolerance; the failed tests and the faults exactly right
 
 ## Gate: the control policies on fresh instances
+
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/PhantomQA-v0 --n 300 --write` measures and stores it. The table below is that older result.
 
 Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/PhantomQA-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 

@@ -39,7 +39,8 @@ python examples/textbook/07_gibbs_ringing.py               # ringing against pix
 python examples/textbook/08_noise.py                       # noise statistics
 python examples/textbook/12_approach_to_steady_state.py    # first sampled line against the periodic state
 python examples/textbook/13_slice_profile_vfa.py           # two-angle T1 on a 2D slice against 3D
-mrgym validate --group rf                                  # the slice-selective pulse and the slice integral (rows R1 to R12)
+mrgym validate --group rf                                  # the slice-selective pulse and the slice integral (rows R1 to R15)
+mrgym validate --group encoding                            # image formation: partial Fourier (K29, K30), fat saturation (K28, K31, K32)
 python tools/external/run_all.py                           # the external ladder (rows L1.1 to L3.10)
 python tools/measured/run_all.py                           # the comparison with measured data (rungs M0 to M9; minutes)
 mrgym timing                                               # seconds of computation per scan
@@ -52,47 +53,65 @@ python -c "from mrgym.scanner import session; print(session.REPLAY_RTOL, session
 
 ---
 
-## 0. Known errors in engine 0.2.0 (fix in progress)
+## 0. Errors of engine 0.2.0: six fixed in `mrgym-engine-0.3.0`, one declared
 
-These four are not simplifications. They are wrong, an audit against textbook physics found them on 2026-11-26, and
-a corrected engine with a test for each is being prepared. The numbers are from that audit, not from a command in
-this repository; the tests arrive with the fix. Until then, treat results that depend on them with care.
+Seven behaviours of engine 0.2.0 were reported as wrong, not as simplifications: four by an audit against textbook
+physics on 2026-11-26, two by the signal core ([core.md](core.md)), which re-derives every served sequence from the
+Bloch equation, on 2026-11-27 (the sign of the `bssfp` phase cycle, which a review of the design layer found the same
+day, and the columns of a `bssfp` slice), and one by the work on the fix itself (the line count of echo-planar partial
+Fourier). Engine 0.3.0 corrects six. Each of the six has a test that states the right behaviour with a number and fails
+on 0.2.0 (`tests/test_engine_0_3.py`), and all but the last have rows of `mrgym validate` against separately written
+calculations. What is still simplified about each is in the blocks named in the last column.
 
-| What the engine does | What a scanner does | Tasks it can affect |
-|---|---|---|
-| Partial Fourier shortens the scan and *raises* the measured SNR (spin echo, matrix 64: 35.5 / 27.5 / 21.5 s give region SNR 256 / 289 / 316 at fractions 1 / 0.75 / 0.55). | Fewer acquired lines never give more SNR at the same resolution: zero filling blurs, conjugate synthesis loses about the square root of the fraction. | any task where the agent may set `partial_fourier` |
-| A perfect fat-saturation pulse removes all six fat peaks. | A spectrally selective pulse saturates the peaks inside its band. About a fifth of the modelled fat spectrum lies outside a 1.3 ppm band, part of it next to water. | `Scanner/FatSuppress-v0` |
-| The fat-saturation factor is the same at every TR and flip angle. | Fat recovers between the saturation pulse and the excitation, and the steady state depends on TR, the T1 of fat and the flip angle. | `Scanner/FatSuppress-v0` |
-| `rf_pulse=fast` excites a slice 1.2 to 1.4 times the prescribed `slice_mm`. | The console calibrates the slice gradient so that the width at half maximum equals the prescription for every pulse. | any task where the agent may set `rf_pulse` |
+| What engine 0.2.0 did | What engine 0.3.0 does | Checked by | Still simplified |
+|---|---|---|---|
+| Partial Fourier shortened the scan and raised the SNR of a region (the missing lines were zero-filled). | The missing lines are synthesised by homodyne detection: the resolution stays, the noise of a pixel rises, and the relative SNR of the header falls with it. | `tests/test_engine_0_3.py::test_p1_partial_fourier_saves_time_and_costs_snr_in_the_header`, `::test_p1_measured_snr_falls_with_partial_fourier_as_the_header_says`; rows K15, K17, K29, K30, K37 | block 5a |
+| A perfect fat-saturation pulse removed all six fat lines. | The pulse saturates each line by its place in the band: the lines outside the band stay. | `tests/test_engine_0_3.py::test_p2_a_perfect_fat_saturation_pulse_leaves_the_lines_outside_its_band`; rows K28, K31 | block 9a |
+| The fat-saturation factor was the same at every TR and flip angle. | The pulse is played before every excitation; a saturated line recovers until the excitation and has its own steady state. | `tests/test_engine_0_3.py::test_p3_the_fat_saturation_factor_depends_on_tr_and_flip_angle`; rows S16, S17, R14, K32; `tools/external/run_all.py` row L1.8 | block 9a |
+| `rf_pulse=fast` excited a slice 1.2 to 1.4 times the prescribed `slice_mm`. | The slice gradient is calibrated per pulse: the width at half maximum of the small-flip-angle profile is `slice_mm` for all three. | `tests/test_engine_0_3.py::test_p4_every_pulse_excites_the_prescribed_thickness`; row R13; row L1.7 | block 1 |
+| `phase_cycle_deg` of `bssfp` moved the dark bands down in frequency (to -50 Hz for 90 degrees at TR 5 ms). | The bands sit where the spin keeps step with the RF phase, at (m + `phase_cycle_deg` / 360) / TR: +50 Hz in that case. 0 and 180 degrees are unchanged. | `tests/test_engine_0_3.py::test_b1_the_dark_band_of_bssfp_moves_up_in_frequency_with_the_rf_phase_advance`; rows S18, K11; row L1.5 | block 11 |
+| Echo-planar partial Fourier with `pe_polarity` -1 acquired one line more than the header and the scan time counted (the line without a conjugate partner on the lattice). | That line is not acquired with either polarity: the number of acquired lines is the `lines` of the realised protocol. | `tests/test_engine_0_3.py::test_epi_partial_fourier_acquires_the_lines_the_protocol_counts` | block 5a |
 
-Two more were reported on 2026-11-27 by the signal core ([core.md](core.md)), which re-derives every served sequence
-from the Bloch equation. They are being checked with a separate simulation before the engine is changed:
+The seventh is not corrected. It is a simplification with a measured size, declared in block 11:
 
-| What the engine does | What the derivation gives | Tasks it can affect |
-|---|---|---|
-| Balanced SSFP with `phase_cycle_deg` other than 0 or 180 puts the dark bands at the mirrored off-resonance: the phase advance enters with the wrong sign. | With the pulse phase advancing by Δ per TR, the precession per TR seen by the pulse is 2π·Δf·TR − Δ. | `Scanner/BandFree-v0`, if a delivery uses another phase cycle than 0 or 180 |
-| Balanced SSFP on a selected slice ignores the small off-resonance each position through the slice gains from the pulse itself. | About 1.2 % of the slice signal. | any balanced SSFP image |
+| What the engine does (0.2.0 and 0.3.0) | Size on engine 0.3.0 | Checked by | Declared in |
+|---|---|---|---|
+| `bssfp` on a selected slice turns each column through the slice about the pulse axis: the small off-resonance that a position gains from the pulse itself is left out. | Against isochromats turned by their whole balanced pulse: 0.24 % of the largest signal over the half of the period round the middle of the pass band, up to 5.2 % of it within 90 degrees of the null. The signal core, with the rotation of every column, finds 1.2 % of the slice integral in its three cases. | row R15; row Q11b of [core.md](core.md) | block 11 |
 
-The training result on the front page was measured on `Scanner/NoWrap-v1` and `Scanner/NullTissue-v0`. Whether any
-of the four enters those episodes has not been checked yet.
+Results measured on engine 0.2.0 are not comparable with results on 0.3.0 (CHANGELOG.md, "Engine 0.3.0"). The
+training result on the front page was measured on `Scanner/NoWrap-v1` and `Scanner/NullTissue-v0` on engine 0.2.0.
+The pass rules of both ids are evaluated on scans without partial Fourier, without fat saturation and with the
+default pulse, so none of the six enters their verdicts except through the calibration of the default pulse (every
+slice-selective signal x 1 / 0.994). What does change for an agent on `Scanner/NullTissue-v0` is the noise of its
+own probes when it uses partial Fourier, and the signed value of such a probe near a null (block 5a); the reference
+policy of that id probes fully sampled since 0.3.0, and so does the probe its practice level proposes. The stored
+episodes of that result do not record the protocols of the scans, so how many of them used partial Fourier, fat
+saturation or another pulse was not counted.
 
-These four came from an audit against textbook physics. What a comparison with measured data found is listed
-separately, each with its number and with what would close it:
+What a comparison with measured data found is listed separately, each with its number and with what would close it:
 [Known differences from measurement](measured.md#known-differences-from-measurement). One of them was a defect of
 the QA measurements and is fixed: the background regions of the ghosting test were placed from the isocentre and
-landed on a phantom that lay off centre.
+landed on a phantom that lay off centre. Two were wrong table values and are fixed with engine 0.3.0 (the amplitude
+of the main fat line, T1 of sphere 5 of the NIST plate: `tests/test_cited_tables.py`).
 
 ---
 
 ## 1. Slice selection: independent columns, one pulse shape
 
 - **Simplified.** A selective scan (`excitation: selective`, the default) excites the slice with a Hann-windowed
-  sinc of 128 steps (`rf_pulse`: time-bandwidth product 2, 4 or 8). The rotation at every height through the slice
-  is the exact product of the 128 steps; nothing relaxes while the pulse plays. The signal of a voxel is the
+  sinc of 128 steps (`rf_pulse`: time-bandwidth product 2, 4 or 8). The slice gradient is calibrated per pulse so
+  that the profile of a small flip angle is `slice_mm` wide at half its maximum (row R13); at large flip angles the
+  profile is wider, and that is served. The rotation at every height through the slice
+  is the exact product of the 128 steps; nothing relaxes while the pulse plays. Fat is excited in the same slice
+  as water: the displacement of the fat slice by the chemical shift is not simulated (it would change nothing in an
+  object that is constant through the slice). The signal of a voxel is the
   integral, over independent columns through the slice, of the sequence's signal at the local flip angle. The
   object and every field are taken as constant through the slice, except for one linear term: the through-slice
   gradient of B0, which multiplies gradient echoes by the small-tip dephasing factor of the pulse. `bssfp` treats
-  the rotation of each column as a rotation about the pulse axis. `excitation: nonselective` serves one flip angle
+  the rotation of each column as a rotation about the pulse axis (block 11). The signal is tabulated over the flip
+  angle at the slice centre and interpolated: on 5 to 16 Chebyshev nodes that span the transmit field of the object,
+  and for the RF-spoiled steady state of `spgr` the difference to the ideal-spoiling form on 16 nodes.
+  `excitation: nonselective` serves one flip angle
   per voxel (hard pulses) and is priced as a 3D scan; its slab profile and slab wrap are not modelled.
 - **A real scanner** plays vendor pulses with other profiles, on an object that changes
   through the slice, and its neighbouring slices disturb each other.
@@ -100,7 +119,9 @@ landed on a phantom that lay off centre.
   of a 2D slice with the nominal angles as -45 to -76 % (time-bandwidth 2), -37 to -70 % (4) and -19 to -53 % (8)
   of the truth; published for uncorrected 2D scans: 40 to 80 % (Svedin & Parker 2017), -63 % (Dieringer 2014).
   Numerics of the integral: rows R4 and R5 of `mrgym validate --group rf` (7.9e-05 relative for TR of 20 ms and
-  more, 6.1e-04 at TR 5 ms, where the wings of the profile outweigh its centre). Relaxation during a 2 ms pulse:
+  more, 6.1e-04 at TR 5 ms, where the wings of the profile outweigh its centre). Interpolation over the flip
+  angle: rows R8 and R10 (2.1e-04 relative for the RF-spoiled `spgr` signal against the phase graph solved at the
+  flip angle of every position; 1.2e-07 for the nodes over the object). Relaxation during a 2 ms pulse:
   0.05 % of the signal in the case of row L1.3 of `python tools/external/run_all.py`. Other pulse shapes:
   `mrgym validate --perturb <id>` re-scores an environment with time-bandwidth 2 and 8, a Hamming window and a
   rectangular profile. The difference to a vendor pulse is not measured.
@@ -110,8 +131,9 @@ landed on a phantom that lay off centre.
 
 ## 2. Steady state served, transient not simulated
 
-- **Simplified.** The console charges dummy time: 4 s for `spgr`, `afi` and `bssfp`, one cycle for `se` and `ir`,
-  two shots for `epi`. Every phase-encode line is then served at the periodic steady state.
+- **Simplified.** The approach to the steady state is not simulated. The console charges dummy time: 4 s for `spgr`,
+  `afi` and `bssfp`, one cycle for `se` and `ir`, two shots for `epi`. Every phase-encode line is then served at the
+  periodic steady state.
 - **A real scanner** starts sampling while the magnetisation still approaches the steady state. The first lines
   carry more signal, and the error depends on the order of the lines.
 - **Size here.** `python examples/textbook/12_approach_to_steady_state.py` computes the missing transient with the
@@ -176,6 +198,29 @@ landed on a phantom that lay off centre.
   (`python -c "from mrgym.scanner import recon; recon.validate()"`). The scanner an agent talks to is unchanged
   until the console offers acceleration and coil combination.
 
+## 5a. Partial Fourier is reconstructed by homodyne detection
+
+- **Simplified.** With `partial_fourier` below 1 the console synthesises the lines it did not acquire: the lines
+  that exist on one side of the centre only weigh 2, and the image is the component of that transform in phase
+  with a low-resolution image made from the lines acquired on both sides (Hann-tapered; where that image has no
+  signal its phase is continued from a coarser one). The step weighting of Noll 1991 is used, with no transition
+  band. The phase of the returned image is the low-resolution phase. The one line without a conjugate partner on
+  the lattice is not acquired.
+- **A real scanner** offers several reconstructions (zero filling, homodyne detection with a ramp, iterative
+  projection) and chooses per sequence.
+- **Size here.** Rows K29 and K30 of `mrgym validate`: for a real object the image differs from the fully sampled
+  one by the bound of K29, and the header's relative SNR is that of the fully sampled scan times
+  sqrt(lines / sum of the squared weights). The noise of a pixel is that of row K15. What an object with a phase
+  that varies within the low-resolution image loses is not measured.
+- **For a task.** Partial Fourier trades scan time for SNR at the nominal resolution, as on a console. The
+  background of such an image is not Rayleigh distributed, so a noise estimate from the background does not hold;
+  with few symmetric lines (0.55 to 0.6) gradient echoes at long echo times lose signal where the field changes
+  quickly. Where a region has almost no signal (a material near its null in an inversion-recovery image) the
+  low-resolution phase there is that of the noise and of the surroundings, and the complex mean of the region is
+  biased towards it; the size is not printed by a command of this repository. The reference policy of
+  `Scanner/NullTissue-v0` therefore probes fully sampled (`envs/null_tissue/controls.py`).
+- **Planned.** Other reconstructions are not on the roadmap.
+
 ## 6. Piecewise-constant tissue, schematic anatomy
 
 - **Simplified.** A tissue class has one value of proton density, T1, T2, T2' and diffusion coefficient per
@@ -225,8 +270,8 @@ landed on a phantom that lay off centre.
 
 ## 8a. Spin echoes: crushed means gone
 
-- **Simplified.** In `se` and `ir` every transverse component that the crushers dephase is lost for good, and the
-  longitudinal magnetisation of a column evolves as one number. A refocusing pulse that is not 180 degrees (a
+- **Simplified.** The stimulated echo of a spin echo is not simulated. In `se` and `ir` every transverse component
+  that the crushers dephase is lost for good, and the longitudinal magnetisation of a column evolves as one number. A refocusing pulse that is not 180 degrees (a
   transmit error, or the edge of its slice profile) in fact stores part of the dephased magnetisation along z as a
   fine grating, and identical crushers recall part of it in the next repetition: a stimulated echo on top of the
   spin echo.
@@ -242,9 +287,9 @@ landed on a phantom that lay off centre.
 ## 9. Idealised EPI
 
 - **Simplified.** Single-shot gradient-echo EPI with flat-top sampling only. Decay and off-resonance advance from
-  line to line, not within a line. Partial Fourier lines are zero-filled. The ghost comes from one constant delay
-  between gradient and acquisition. The signal amplitude is the Ernst steady state at `tr_ms`. Fat saturation is
-  one efficiency per session inside a fixed band.
+  line to line, not within a line. Partial Fourier lines are synthesised (block 5a). The ghost comes from one
+  constant delay between gradient and acquisition. The signal amplitude is the Ernst steady state at `tr_ms`, with
+  the saturation of block 9a when fat saturation is on.
 - **A real scanner** samples on ramps, corrects odd and even echoes with a measured phase, has eddy currents and
   usually halves the distortion with parallel imaging.
 - **Size here.** `mrgym scan sequence=epi tr_ms=3000` prints ESP 0.91 and WFS 37.9 px (phase) at 3 T: fat would
@@ -254,11 +299,37 @@ landed on a phantom that lay off centre.
   spacing, fewer lines or a blip reversal.
 - **Planned.** Not on the roadmap.
 
+## 9a. Fat saturation: a band with one efficiency, acting on the longitudinal magnetisation
+
+- **Simplified.** The saturation pulse multiplies the longitudinal magnetisation of every resonance line by
+  1 - efficiency x band, 7 ms before the centre of a 2 ms excitation (6.5 ms and 8 ms for the 1 ms and 4 ms
+  pulses), in every repetition. The band has one width per session and edges 8 Hz soft, steeper than an 8 ms pulse
+  can make; the efficiency is one number per session and does not follow the transmit field or `tx_scale`. Fat
+  has six lines with one T1 and one T2; water is one line. Each line reaches its own steady state: exactly under
+  ideal spoiling (`se`, `ir`, `epi`); in the RF-spoiled steady state of `spgr` the pulse multiplies the
+  longitudinal states of every order and leaves the transverse states as they are, so what a real pulse turns
+  from the transverse plane into z and back, and the dephasing by its own spoiler, are missing. The fat slice is
+  not displaced against the water slice (block 1). There is no magnetisation transfer from the pulse.
+- **A real scanner** plays a pulse whose band has edges of the order of 1 / duration, whose flip angle follows the
+  transmit field, and whose lines relax with their own T1; its spoiler adds to the spoiling of the sequence.
+- **Size here.** Rows S16, S17, R14, K28, K31 and K32 of `mrgym validate` check that the engine computes this
+  model (against a matrix Bloch chain, an isochromat ensemble by time stepping, and the six-line sum). The
+  difference to a real pulse is not measured.
+- **For a task.** What fat saturation leaves depends on TR, T1 and the flip angle, and never falls below the
+  share of the fat spectrum outside the band: a ratio measured at one repetition time is not the ratio at another.
+  The size of the residual in the RF-spoiled sequence is the model's answer; its exact value should not be
+  carried over to a scanner.
+- **Planned.** Not on the roadmap.
+
 ## 10. Simplified fields
 
 - **Simplified.** Head: the field of three air spheres below the slice. Abdomen: gas spheres in the slice plane.
   Both get a first-order shim over the brain or the abdominal cavity and a smooth random term. QA phantom: a linear
-  plus saddle field. The shim and the frequency adjustment are fixed for the session. The transmit pattern is a closed form
+  plus saddle field. The scanner makes no adjustment of its own during a session: the hidden shim, frequency error
+  and transmit gain stay as they are. A scan can add a frequency shift (`cf_shift_hz`), two in-plane linear field
+  terms (`shim_y_hz_per_mm`, `shim_x_hz_per_mm`) and a transmit factor (`tx_scale`); there is no shim term through
+  the slice and none above first order, the terms are exact (no shim coil imperfection, no eddy currents from
+  switching them), and they cost no time. The transmit pattern is a closed form
   whose amplitude depends on the field strength. The receive profile is unrelated to the transmit pattern. Gradient
   non-linearity is one radial warp of positions (the world-spec key `gnl`), used by level 3 of
   `Scanner/GradientCal-v0` and off everywhere else. There is no concomitant field, no eddy current and no drift. A turned or shifted field of view sees
@@ -269,17 +340,26 @@ landed on a phantom that lay off centre.
   pattern 3 % (1.5 T) and 11 % (3 T) for the head, 7 % and 26 % for the abdomen. Each is varied by up to 20 % per
   session (`world.anatomy_fields`).
   Agreement with in-vivo field maps is not measured.
-- **For a task.** Off-resonance can be mapped but not corrected at the source. Geometry is exact once
-  off-resonance is accounted for.
+- **For a task.** Off-resonance can be mapped, and its constant and in-plane linear parts can be corrected at the
+  source; a saddle term, the field of an air sphere and the gradient through the slice cannot. Geometry is exact
+  once off-resonance is accounted for. Rows K33 to K36 and C9 of `mrgym validate` check the adjustments.
 - **Planned.** Not on the roadmap.
 
 ## 11. bSSFP: steady state only
 
 - **Simplified.** The closed-form steady state with the local off-resonance. No transient and no catalyst. Inside
-  the steady state fat is a single line at -3.4 ppm; the six peaks act only during the readout.
+  the steady state fat is a single line at -3.4 ppm; the six peaks act only during the readout. With a selective
+  pulse every column through the slice is solved as a hard pulse of its own flip angle about the pulse axis. Away
+  from the slice centre the whole balanced pulse of a column (prephasing lobe, pulse, rephasing lobe) is a rotation
+  about a tilted axis: it adds a precession about z that differs from column to column, and that is left out.
 - **A real scanner** needs a preparation, shows transient oscillations, and has finite pulses.
-- **Size here.** Not measured. Band positions against their formula: row K11 and
-  `python examples/textbook/09_bssfp_bands.py`.
+- **Size here.** Transient: not measured. Band positions against their formula, for phase cycles of 180, 90 and 300
+  degrees: row K11 and `python examples/textbook/09_bssfp_bands.py`. The columns: row R15 of
+  `mrgym validate --group rf` compares the served slice integral with isochromats that are turned by their whole
+  balanced pulse, pulse by pulse (`fast`, `normal` and `sharp` at 60, 40 and 50 degrees): the two differ by 0.24 % of
+  the largest signal over the half of the period around the middle of the pass band and by up to 5.2 % of it within
+  90 degrees of the null. The served band has the right position and nearly the right shoulders; its floor is not
+  the floor of a real slice.
 - **For a task.** Bands sit where the formula puts them. Signal right after the start of a scan is not available.
 - **Planned.** Not on the roadmap.
 
@@ -289,9 +369,10 @@ landed on a phantom that lay off centre.
   time and compares with a public limit on B1rms: 3.0 µT at 3 T, 6.0 µT at 1.5 T. A selective pulse counts with
   the energy of its shape (1.80, 3.11 or 7.16 times a hard pulse of the same duration and angle; row C4) and is
   lengthened if its peak would exceed 20 µT, a choice of this package; a nonselective pulse is a hard pulse.
-  Everything is computed from the nominal flip angle. The header calls the result SAR. There is no body model, no
+  Everything is computed from the nominal flip angle times `tx_scale`. The header calls the result SAR: it is
+  B1rms squared as a percentage of a limit, not a specific absorption rate. There is no body model, no
   averaging window and no local SAR. Gradients are checked against an amplitude limit and played at a fixed
-  slew rate; there is no stimulation model.
+  slew rate: no protocol is refused for its slew rate or its dB/dt, and there is no stimulation model.
 - **A real scanner** predicts whole-body and local SAR from the patient and the coil under IEC 60601-2-33, and
   limits dB/dt.
 - **Size here.** Not measured against any SAR model. The transmit-gain error of a session (3 to 12 %, printed by
@@ -350,8 +431,10 @@ landed on a phantom that lay off centre.
 - **A real scanner** never repeats a scan exactly.
 - **Size here.** The two constants are printed by the `session` command above. The size of the difference
   between two machines is not measured. Logs replay only on the engine version that wrote them: engine 0.2.0
-  (slice-selective excitation by default) serves other numbers than 0.1.0 for every protocol. The hard-pulse
-  signal of 0.1.0 is `excitation: nonselective` (row R6), at the price of a 3D scan.
+  (slice-selective excitation by default) serves other numbers than 0.1.0 for every protocol, and engine 0.3.0
+  (calibrated slice gradient, homodyne partial Fourier, fat saturation per line with its steady state) other
+  numbers than 0.2.0 for every selective scan. The hard-pulse signal of 0.1.0 is `excitation: nonselective`
+  without fat saturation and with full Fourier sampling (row R6), at the price of a 3D scan.
 - **For a task.** A verifier on another machine can confirm a log. In tolerance mode it confirms 64 block means
   per image, not every pixel.
 - **Planned.** Not on the roadmap.

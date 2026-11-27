@@ -95,8 +95,10 @@ def _complex(resp, image=0):
 def noise_factor(rp) -> float:
     """SD of the noise in one pixel per unit receiver noise density, from the realised protocol: every acquired
     sample carries noise of variance ~ bandwidth / averages (a 3D scan also averages over its partitions), and the
-    reconstruction sums them into pixels of the acquired field of view."""
-    return rp["matrix"] * math.sqrt(rp["lines"] * rp["bandwidth_hz_per_px"] / (rp["averages"] * rp.get("partitions", 1))) \
+    reconstruction sums them into pixels of the acquired field of view. With partial Fourier the lines without a
+    partner count twice (datasheet, section 4): 3 L - 2 l - 3 lines instead of l."""
+    lines = rp["lines"] if rp["lines"] >= rp["lines_full"] else 3 * rp["lines_full"] - 2 * rp["lines"] - 3
+    return rp["matrix"] * math.sqrt(lines * rp["bandwidth_hz_per_px"] / (rp["averages"] * rp.get("partitions", 1))) \
         / (rp["fov_mm"] * rp["fov_pe_mm"] * rp["lines_full"] / rp["matrix_pe"])
 
 

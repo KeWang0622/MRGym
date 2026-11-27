@@ -499,10 +499,20 @@ def test_r20_at_a_small_flip_angle_the_slice_integral_is_the_hard_pulse_signal()
     """Small-tip limit: the profile is the Fourier transform of the pulse, so its integral is the pulse's centre
     amplitude: ``thickness`` slice thicknesses of hard-pulse signal, computed here from the documented pulse (128
     samples of a sinc of time-bandwidth 4 under a Hann window, summing to 1). The remainder falls with the square of
-    the flip angle."""
+    the flip angle. Engine 0.3.0: the slice gradient is calibrated so that the half-maximum width of that transform is
+    the prescribed thickness, so the integral in thicknesses is divided by that width (0.994 nominal bandwidths; it was
+    0.987 thicknesses on 0.2.0, 0.993 now)."""
     t = (np.arange(128) + 0.5) / 128 - 0.5
-    thickness = 128 / (4.0 * (np.sinc(4.0 * t) * 0.5 * (1 + np.cos(2 * np.pi * t))).sum())
-    assert 0.98 < thickness < 0.99
+    pulse = np.sinc(4.0 * t) * 0.5 * (1 + np.cos(2 * np.pi * t))
+    pulse /= pulse.sum()
+    profile = lambda u: abs(np.sum(pulse * np.exp(-2j * np.pi * 4.0 * u * t)))     # noqa: E731  u in nominal bandwidths of the slice gradient
+    lo, hi = 0.3, 0.7
+    for _ in range(60):                                                    # the half-maximum point, by bisection
+        mid = 0.5 * (lo + hi)
+        lo, hi = (mid, hi) if profile(mid) > 0.5 else (lo, mid)
+    width = lo + hi
+    thickness = 128 / (4.0 * (np.sinc(4.0 * t) * 0.5 * (1 + np.cos(2 * np.pi * t))).sum()) / width
+    assert 0.994 < width < 0.995 and 0.992 < thickness < 0.994
     w, left = world(), {}
     for flip in (1.0, 2.0, 4.0):
         selective, hard = _same_timing(w, dict(GEO, sequence="spgr", tr_ms=4000.0, flip_deg=flip))

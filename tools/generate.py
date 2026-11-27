@@ -65,6 +65,7 @@ WHAT_YOU_DO = {
 }
 # The front page uses plain words for the kind of the registry; envs/README.md and docs/ADDING_A_TASK.md define the kinds.
 STATUS = dict(admitted="ready", candidate="experimental", practice="experimental", sandbox="no score")
+NOT_READY = "not ready"          # whatever its kind: an id registered as known not to work as stated on this engine (its card says why)
 
 
 def _read(rel):
@@ -135,7 +136,10 @@ def env_cards():
                              "this engine yet), `admitted` (the stored gate admits every level of the claim) or `practice` (scored; "
                              "not part of a claim). The gate gives one verdict per level, never one per instance; it is described in "
                              "[docs/DESIGN.md](../docs/DESIGN.md), `mrgym gate <id> --n 300 --write` measures and stores it, and "
-                             "`mrgym check <id>` compares the kind with what is stored.\n" + retired_md)
+                             "`mrgym check <id>` compares the kind with what is stored. An id whose last column says NOT READY is "
+                             "known not to examine on this engine what it was built for (an engine correction took the question "
+                             "away); it stays registered and runnable, because an id is never changed or reused, and the column "
+                             "says why.\n" + retired_md)
     return out, table
 
 
@@ -150,12 +154,14 @@ def tasks_table():
         text = WHAT_YOU_DO.get(env_id) or mrgym.card(env_id)["title"]
         if len(text.split()) > 10:
             raise SystemExit(f"the front-page line of {env_id} has more than ten words: {text!r}")
-    return physics_map.readme_table(WHAT_YOU_DO, STATUS)
+    return physics_map.readme_table(WHAT_YOU_DO, STATUS, not_ready=NOT_READY)
 
 
 def tasks_note():
     """The paragraph under the task table. Its numbers are read: the instances of the stored checks of the ready tasks,
-    and the counts of the map (items listed, formed by the scanner, isolated by a task)."""
+    and the counts of the map (items listed, formed by the scanner, isolated by a task). A check counts on the engine
+    it was made on: when no task is ready because every stored check is from another engine version, the paragraph
+    says that instead (the versions are read from the stored checks and from the package)."""
     import textwrap
 
     import mrgym
@@ -163,6 +169,14 @@ def tasks_note():
     n = sorted({v["n"] for i in mrgym.list_envs() if mrgym.spec(i).kind == "admitted" for v in (mrgym.card(i)["gate"] or {}).get("levels", {}).values()})
     ready = "" if not n else (f"A task is ready when it has been checked on {'' if len(n) == 1 else 'at least '}{n[0]} fresh objects: a scripted "
                               "solution passes, and shortcuts that ignore the object fail. ")
+    stale = [g for g in (mrgym.card(i)["gate"] for i in mrgym.list_envs()) if g and g.get("engine") != mrgym.ENGINE_ID]
+    if not n and stale:
+        short = lambda engine: engine.rsplit("-", 1)[-1]                 # noqa: E731  "mrgym-engine-0.3.0" -> "0.3.0"
+        size = sorted({v["n"] for g in stale for v in g["levels"].values()})
+        ready = (f"No task is marked ready: the stored checks ({'' if len(size) == 1 else 'at least '}{size[0]} fresh objects each) were made on engine "
+                 f"{', '.join(sorted({short(g['engine']) for g in stale}))}, not on engine {short(mrgym.ENGINE_ID)}. ")
+    if any(mrgym.spec(i).not_ready for i in mrgym.list_envs()):
+        ready += f"A task marked {NOT_READY} does not examine on this engine what it was built for; its card says why. "
     c = physics_map.coverage()["total"]
     text = (ready + "Each task has levels of difficulty (`mrgym list`); [envs/](envs/README.md) has the full table. "
             f"[The map](docs/tasks.md) lists {c['listed']} pieces of MR physics: the scanner forms {c['formed']}, and "

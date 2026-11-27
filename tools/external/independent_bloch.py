@@ -68,11 +68,33 @@ def windowed_sinc(tbw, n=128):
     return b / b.sum()
 
 
-def shaped_pulse(m, alpha, phase, tbw, zeta, rephase=0.5, n=128, sample_ms=0.0, t1_ms=np.inf, t2_ms=np.inf):
+_CALIBRATION = {}
+
+
+def slice_calibration(tbw, n=128):
+    """The slice gradient of the scanner (datasheet, sections 1 and 4): the one at which the transverse magnetisation a
+    small pulse leaves is one slice thickness wide at half its maximum. Returned in nominal bandwidths (tbw / duration)
+    across the thickness; found here by playing a pulse of 0.0001 degree on single isochromats and bisecting."""
+    if (tbw, n) not in _CALIBRATION:
+        def left(u):
+            m = shaped_pulse(equilibrium((1,)), np.deg2rad(1e-4), 0.0, tbw, np.array([u]), n=n, gradient=1.0)
+            return float(np.hypot(m[0][0], m[1][0]))
+        half, lo, hi = 0.5 * left(0.0), 0.0, 0.05
+        while left(hi) > half:
+            lo, hi = hi, hi + 0.05
+        for _ in range(60):
+            mid = 0.5 * (lo + hi)
+            lo, hi = (mid, hi) if left(mid) > half else (lo, mid)
+        _CALIBRATION[tbw, n] = lo + hi
+    return _CALIBRATION[tbw, n]
+
+
+def shaped_pulse(m, alpha, phase, tbw, zeta, rephase=0.5, n=128, sample_ms=0.0, t1_ms=np.inf, t2_ms=np.inf, gradient=None):
     """Play the pulse on isochromats at positions ``zeta`` (z / slice thickness; broadcast against m[0]): every sample
-    is a small rotation between two half-steps of precession under the slice gradient (2 pi tbw zeta / n per sample),
-    then the rephasing lobe. ``sample_ms`` > 0 adds relaxation during every sample."""
-    step = 2 * np.pi * tbw * zeta / n
+    is a small rotation between two half-steps of precession under the slice gradient (2 pi tbw g zeta / n per sample,
+    g = ``gradient`` in nominal bandwidths per thickness; None: the calibrated one), then the rephasing lobe.
+    ``sample_ms`` > 0 adds relaxation during every sample."""
+    step = 2 * np.pi * tbw * (slice_calibration(tbw, n) if gradient is None else gradient) * zeta / n
     for b in windowed_sinc(tbw, n) * alpha:
         m = precess(m, step / 2)
         m = rotate(m, b, phase)
@@ -97,11 +119,13 @@ def slice_rotation_parameters(alpha, tbw, zeta, rephase=0.5, n=128):
 
 
 # ------------------------------------------------------------------------------------------------ sequences
-def spoiled_gre(alpha, tr_ms, t1_ms, t2_ms, phi_deg=117.0, pattern=(1,), n_iso=2048, n_periods=None):
+def spoiled_gre(alpha, tr_ms, t1_ms, t2_ms, phi_deg=117.0, pattern=(1,), n_iso=2048, n_periods=None, sat=None):
     """RF-spoiled gradient echo, hard pulses. ``pattern`` gives the pulse amplitude (in units of alpha) at every
     position of a raster of period ``tr_ms``; (1,) is ordinary spoiled gradient echo, (1, 1, 0, 0, 0, 0) the dual-TR
     scheme with TR2 = 5 TR1. The pulse at raster position j has phase phi j (j + 1) / 2, and every raster interval
-    one full turn of spoiler dephasing. Returns the echo right after each pulse of the last period."""
+    one full turn of spoiler dephasing. Returns the echo right after each pulse of the last period.
+    ``sat`` = (q, delay_ms): a saturation pulse that multiplies Mz by q ``delay_ms`` before the end of every raster
+    interval and leaves the transverse magnetisation alone (the scanner's model of spectral fat saturation)."""
     p = len(pattern)
     if n_periods is None:
         n_periods = int(np.ceil(14 * t1_ms / (tr_ms * p))) + 20
@@ -112,7 +136,12 @@ def spoiled_gre(alpha, tr_ms, t1_ms, t2_ms, phi_deg=117.0, pattern=(1,), n_iso=2
             ph = phi * j * (j + 1) / 2
             m = rotate(m, alpha * pattern[j % p], ph)
             out[j % p] = demodulated(m, ph).mean()
-        m = relax(precess(m, spoil), tr_ms, t1_ms, t2_ms)
+        if sat is None:
+            m = relax(precess(m, spoil), tr_ms, t1_ms, t2_ms)
+        else:
+            m = relax(precess(m, spoil), tr_ms - sat[1], t1_ms, t2_ms)
+            m = np.stack([m[0], m[1], sat[0] * m[2]])
+            m = relax(m, sat[1], t1_ms, t2_ms)
     return np.array([out[k] for k in sorted(out)])
 
 

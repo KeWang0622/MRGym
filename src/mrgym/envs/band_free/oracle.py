@@ -112,7 +112,7 @@ def curves(cfg: dict, world: dict, pts: list, bandwidth: float) -> tuple:
         f = _field(world, p["y_mm"], x) + p["shift_hz"]
         k = np.rint(360.0 * f * tr * 1e-3 / STEP_DEG).astype(int)
         s = _steady_state(p["flip_rad"], tr, p["t1_ms"], p["t2_ms"])
-        mean = np.abs((s[(k[:, None] + np.arange(n)[None, :]) % n] * np.exp(1j * np.pi * f * tr * 1e-3)[:, None]).mean(0))   # index = phase cycle
+        mean = np.abs((s[(k[:, None] - np.arange(n)[None, :]) % n] * np.exp(1j * np.pi * f * tr * 1e-3)[:, None]).mean(0))   # index = phase cycle
         rows.append(mean / mean.max())
     return np.array(rows), tr
 

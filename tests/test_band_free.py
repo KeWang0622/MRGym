@@ -81,7 +81,7 @@ def test_fit_band_recovers_the_material_and_the_position_from_the_pixels_of_a_vi
     for ratio, t2, shift, span in ((8.0, 92.0, 6.0, 70.0), (2.0, 160.0, -4.5, 40.0), (30.0, 45.0, 0.0, 110.0)):
         theta = 100.0 + span * rng.uniform(-1, 1, 60)                    # phase per TR of 60 pixels as the map has it
         table = controls.band_table(ratio, 9.0, t2)
-        z = np.array([[table[int(round(th + shift + ph)) % 720] * np.exp(-0.5j * np.deg2rad(ph)) for ph in phases] for th in theta])
+        z = np.array([[table[int(round(th + shift - ph)) % 720] * np.exp(0.5j * np.deg2rad(ph)) for ph in phases] for th in theta])
         z = (0.7 - 0.4j) * z + 0.01 * np.abs(table).max() * (rng.normal(size=z.shape) + 1j * rng.normal(size=z.shape))
         got, got_t2, moved, misfit = controls.fit_band(theta, phases, z, 9.0, np.arange(-9.0, 9.1, 1.5))
         assert 0.7 < got * got_t2 / (ratio * t2) < 1.4 and abs(moved - shift) <= 1.5 and misfit < 0.1, (ratio, t2, got, got_t2, moved, misfit)
@@ -95,7 +95,7 @@ def test_scout_phases_put_a_scan_on_a_flank_of_every_band():
         phases = controls.scout_phases([dict(coef=np.array([f, 0, 0, 0, 0, 0.0])) for f in freqs], 7.3)
         assert len(phases) == 4
         for f in freqs:                                                   # distance of the nearest scan from the middle of the band
-            delta = np.abs((360.0 * f * 7.3e-3 + np.array(phases) + 180.0) % 360.0 - 180.0)
+            delta = np.abs((360.0 * f * 7.3e-3 - np.array(phases) + 180.0) % 360.0 - 180.0)
             assert np.abs(delta - controls.FLANK_DEG).min() <= 25.0, (f, phases)
 
 
@@ -129,9 +129,9 @@ def test_decide_takes_one_acquisition_when_the_spread_fits_and_two_when_it_canno
     apart = [0.0, 60.0, 120.0]                                           # at no allowed repetition time does one pass band hold all three
     assert len(decide(apart)["phases"]) == 2 and len(decide(apart, "single")["phases"]) == 1
     assert len(decide([40.0, 52.0, 61.0], "pair")["phases"]) == 2
-    # the pass band is centred on the regions: phase per TR + phase cycle = 180 degrees at the middle frequency
+    # the pass band is centred on the regions: phase per TR - phase cycle = 180 degrees at the middle frequency
     tr = tr_of(near["bandwidth"])
-    assert abs((360.0 * 50.5 * tr * 1e-3 + near["phases"][0]) % 360.0 - 180.0) <= 12.0
+    assert abs((360.0 * 50.5 * tr * 1e-3 - near["phases"][0]) % 360.0 - 180.0) <= 12.0
 
 
 # ------------------------------------------------------------------------------------------------ the verifier
@@ -238,7 +238,7 @@ def test_statement_prints_every_number_of_the_pass_rule_and_hides_the_world():
     assert all(r["id"] in text for r in t["regions"]) and [i for ids in t["images"].values() for i in ids] == [r["id"] for r in t["regions"]]
     public = (text + str(t) + str(task.submit_schema(cfg))).lower()
     assert not any(word in public for word in ("b0_hz", "seed", "attempt", "oil", "fat", "n_oil")), "the oil region is not told"
-    assert mrgym.spec(ENV).kind == "admitted" and set(mrgym.card(ENV)) >= {"task_kind", "task_kind_why", "controls", "levels", "reward"}
+    assert mrgym.spec(ENV).kind == "candidate" and set(mrgym.card(ENV)) >= {"task_kind", "task_kind_why", "controls", "levels", "reward"}
     assert set(task.COMPETENCIES) <= set(coverage.ids()) and mrgym.card(ENV)["competencies"] == list(task.COMPETENCIES)
 
 

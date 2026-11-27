@@ -72,7 +72,8 @@ def test_the_engine_serves_that_curve():
 def test_the_stated_method_on_noise_free_images_and_what_partial_fourier_does_to_it():
     """Region means of noise-free images, signed with the phase, through the stated equation: within 6 % of the true
     T1 (what is left is the gel around a vial leaking into the region mean at matrix 32). The same scans with partial
-    Fourier 0.55 are cheaper and wrong: zero-filled lines give that leak a complex weight (task module, ``PROBE``)."""
+    Fourier 0.55 are cheaper and worse: the homodyne image takes its phase from a low-resolution image, in which the gel
+    reaches into the vial (task module, ``PROBE``; 2.3 % against 1.0 % here, and 13 % on engine 0.2.0, which zero-filled)."""
     case = CASE("L1")
     t = case.cfg["task"]
     tr, tis = t["method"]["protocol"]["tr_ms"], t["method"]["ti_ms"]
@@ -113,7 +114,7 @@ def test_statement_is_true_of_the_world_and_states_no_hidden_value(level):
     if level == 3:
         assert max(truth.values()) / min(truth.values()) >= task.MIN_SPREAD == 10.0
     assert "they are charged to the scan-time budget" in text and F.NOT_CHARGED not in text      # the agent's scans ARE the measurement
-    assert "with partial Fourier the zero-filled lines mix the\nmaterial around a vial into it" in text
+    assert "with partial Fourier the image takes its phase from a\nlow-resolution image, which mixes the material around a vial into the read-out" in text
     assert "within a factor 1.1 of the true T1" in text and "wrong unit" in text
 
 

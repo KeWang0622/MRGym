@@ -3,7 +3,7 @@
 
 **A · Signal and contrast** · sequences and steady states · kind 2, set · isolates A9: Inversion recovery: the signed signal and its null point (STIR, FLAIR). [The map](../../docs/tasks.md)
 
-**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 92 %, no policy that ignores the object passes more than 3 % (95 % bounds)
+**Status:** CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
 
 What FLAIR does to fluid and STIR does to fat. The inversion time that nulls a material depends on its T1, on the repetition time (recovery is incomplete when the next inversion arrives) and on how complete the inversion is, so it cannot be looked up: it has to be measured on this object and this system.
 
@@ -67,6 +67,8 @@ Limits: 40 scanner requests and 48 tool calls per episode.
 - Passing: all gates and, for every region, error <= 5 %
 
 ## Gate: the control policies on fresh instances
+
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/NullTissue-v0 --n 300 --write` measures and stores it. The table below is that older result.
 
 Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/NullTissue-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 

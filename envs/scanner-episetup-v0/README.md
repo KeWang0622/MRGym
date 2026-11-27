@@ -73,7 +73,7 @@ Limits: 64 scanner requests and 72 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.2.0`). `mrgym gate Scanner/EPISetup-v0 --n 300 --write` measures and stores it.
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/EPISetup-v0 --n 300 --write` measures and stores it.
 
 | Policy | Must | What it does |
 |---|---|---|
@@ -115,7 +115,7 @@ Requirements:
   - displacement: the off-resonance field shifts the material of each region by at most 3 mm along the phase-encode axis
   - ghost: the Nyquist ghost of each region (its copy half a phase field of view away) is at most 5 % of the region's signal
   - wrap: the object does not wrap around in the phase-encode direction
-  - SNR: at least 17.8 in each region; SNR = mean of the magnitude image over the pixels of a region / standard deviation of the noise in one pixel, one channel (real or imaginary part)
+  - SNR: at least 17.9 in each region; SNR = mean of the magnitude image over the pixels of a region / standard deviation of the noise in one pixel, one channel (real or imaginary part)
   - scan time: not longer than the shortest scan time with which any protocol meets the requirements above
 Deliver the protocol with `submit`. The scan is not run in this episode: the scanner evaluates the protocol you
 deliver. Your own scans may use any sequence and any parameters the console accepts; only the deliverable is evaluated, on the scan the task names. That scan is not charged to the scan-time budget and not limited by it.

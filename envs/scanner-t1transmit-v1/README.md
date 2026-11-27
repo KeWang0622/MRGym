@@ -3,7 +3,7 @@
 
 **A · Signal and contrast** · quantitative mapping · kind 1, measure · isolates A29: Relaxation-time mapping: T1, T2 and T2* from a series of scans, and what biases them. [The map](../../docs/tasks.md)
 
-**Status:** PRACTICE: level(s) 1 admitted; ignores_profile loses only 9.0 points against the reference (lower bound 6.3 < 25)
+**Status:** PRACTICE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one
 
 A hidden QA phantom (gel body and 4 to 7 vials) on the 3 T scanner. The agent must deliver T1 per marked region within a scan-time budget. The answer is wrong unless the transmit-field error is mapped and corrected, the slice profile of a 2D scan is modelled (or a non-selective 3D acquisition is paid for) and the gradient-echo protocol keeps spoiling errors small.
 
@@ -73,6 +73,8 @@ Limits: 48 scanner requests and 64 tool calls per episode.
 - Passing: all gates and, for every region, error <= ln(1.1)
 
 ## Gate: the control policies on fresh instances
+
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/T1Transmit-v1 --n 300 --write` measures and stores it. The table below is that older result.
 
 Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/T1Transmit-v1 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 

@@ -72,7 +72,7 @@ Limits: 32 scanner requests and 40 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.2.0`). `mrgym gate Scanner/T1Vial-v0 --n 300 --write` measures and stores it.
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/T1Vial-v0 --n 300 --write` measures and stores it.
 
 | Policy | Must | What it does |
 |---|---|---|
@@ -104,8 +104,8 @@ Regions (circles; centre and radius in mm from the isocentre; each lies inside o
 T1 values lie between 300 and 1500 ms. Nothing else about the object is known, and the noise level is not given.
 The transmit calibration is correct: at the slice centre the flip angle is the nominal one, everywhere in the object.
 Your own scans may use any sequence and any parameters the console accepts; they are charged to the scan-time budget.
-A region read-out is a mean over the image as reconstructed: with partial Fourier the zero-filled lines mix the
-material around a vial into it.
+A region read-out is a mean over the image as reconstructed: with partial Fourier the image takes its phase from a
+low-resolution image, which mixes the material around a vial into the read-out, and its noise is higher.
 
 Passing: for every region the delivered T1 lies within a factor 1.1 of the true T1 (between T1 / 1.1 and 1.1 x T1).
 The scanner's log must show that you measured. An answer in the wrong unit is wrong.

@@ -28,9 +28,30 @@ Per-class echo amplitude (``Engine.amplitudes``), at the local flip angle (nomin
   bssfp       closed form with the local off-resonance;  epi  Ernst steady state
 Slice-selective excitation (``rf_tbw`` of the realised protocol is a number; the default). The pulse is a windowed
 sinc (``rf``); the flip angle and the transverse phase vary through the slice, and the amplitude served is the
-integral of the sequence's signal over 25 independent columns on +-2 slice thicknesses. The local flip angle above
-is then the flip angle at the slice centre. ``rf_tbw`` None (``excitation: nonselective``) is the hard pulse: one
-flip angle per voxel, the signal of a 3D acquisition.
+integral of the sequence's signal over independent columns through the slice (``rf.quadrature``). The slice gradient
+is calibrated per pulse: the full width at half maximum of the small-flip-angle profile is the prescribed thickness.
+The local flip angle above is then the flip angle at the slice centre. ``rf_tbw`` None (``excitation:
+nonselective``) is the hard pulse: one flip angle per voxel, the signal of a 3D acquisition.
+
+Fat saturation (``fat_sat``). A spectrally selective pulse ``fatsat_delay_ms`` before every excitation multiplies the
+longitudinal magnetisation of every resonance LINE by q = 1 - efficiency x band(line frequency - pulse centre): the
+six lines of fat separately, water as one line. Each line then has its own longitudinal steady state, driven by the
+saturation in every repetition: Mz = (beta0 + q beta1) / (1 - q alpha) at the excitation (``signal.mz_saturated``),
+so what is left depends on TR, T1 and the flip angle, and a line inside the band recovers for the delay. In the
+RF-spoiled steady state the saturation multiplies the longitudinal states of every order (``epg``). A class whose
+lines are saturated differently is imaged line by line: each line has its own amplitude map and its own evolution.
+
+Adjustments of the realised protocol: ``cf_shift_hz`` (the scanner's centre frequency is raised by it: every spin is
+that much less off resonance, for the displacement, the echo phase, the bSSFP bands and the fat-saturation band),
+``shim_y_hz_per_mm`` / ``shim_x_hz_per_mm`` (a linear field in patient coordinates added to the off-resonance) and
+``tx_scale`` (a factor on the transmit amplitude: every excitation and refocusing angle).
+
+Reconstruction. A fully sampled scan: the inverse FFT. Partial Fourier: homodyne detection (Noll 1991). The lines
+acquired on both sides of the centre weigh 1, the lines that exist on one side only weigh 2 (they stand in for their
+missing conjugates), and the image is the part of that transform that is in phase with a low-resolution image made
+from the symmetric lines. Where the phase of the object is smooth the resolution is the nominal one; the noise of a
+pixel rises with the sum of the squared weights (``Engine.noise_sd``), and the phase of the image is the
+low-resolution phase.
 
 Field of view. The centre of the field of view moves the chirp-z transforms; a rotation re-evaluates the world on
 turned axes (``world.turned``) and images that: no interpolation anywhere. Periodic motion (``world["motion"]``)
@@ -58,6 +79,10 @@ GAMMA_RAD = 2 * np.pi * console.GAMMA_HZ_PER_T
 KB_W, KB_BETA = 4, 8.996            # Kaiser-Bessel kernel for a grid >= 2x finer than the acquired pixel (Beatty 2005)
 SVD_TOL = 1e-4
 PROFILE_NODES = 16                  # Chebyshev nodes of the flip angle on which a steady state is tabulated for the slice integral
+PF_COARSE, PF_BLEND = 3, 0.02       # homodyne phase reference: lines either side of the coarse image, and its weight
+SAT_EDGE_HZ = 8.0                   # softness of the edges of the fat-saturation band
+SAT_NODES = 13                      # nodes of the saturation factor q on which the EPG's departure from ideal spoiling is tabulated
+SAT_GRID = (33, 8193)               # points of q on which the slice integral of a saturated line is tabulated (fewest, most)
 TURNED_ENGINES = 3                  # engines of turned fields of view kept per engine
 
 
@@ -80,6 +105,37 @@ def bary(nodes, weights, values, x):
     return out
 
 
+def lobatto_nodes(lo, hi, m):
+    """Chebyshev points of the second kind on [lo, hi] (both ends are nodes) and their barycentric weights."""
+    t = np.pi * np.arange(m) / (m - 1)
+    w = (-1.0) ** np.arange(m)
+    w[[0, -1]] *= 0.5
+    return 0.5 * (lo + hi) + 0.5 * (hi - lo) * np.cos(t), w
+
+
+def hermite(x0, h, f, df, x):
+    """Piecewise cubic through the values ``f`` and slopes ``df`` ([..., n] on the uniform grid x0 + h * arange(n)),
+    evaluated at ``x`` [N]: [..., N]."""
+    i = np.clip(np.floor((x - x0) / h).astype(np.int64), 0, f.shape[-1] - 2)
+    t = (x - x0) / h - i
+    return (f[..., i] * ((1 + 2 * t) * (1 - t) ** 2) + h * df[..., i] * (t * (1 - t) ** 2)
+            + f[..., i + 1] * (t * t * (3 - 2 * t)) + h * df[..., i + 1] * (t * t * (t - 1)))
+
+
+def sat_band(off_hz, bw_hz):
+    """Share of the saturation that a line ``off_hz`` from the centre of the pulse receives: 1 inside the band of
+    width ``bw_hz``, 0 outside, edges ``SAT_EDGE_HZ`` soft."""
+    return 0.5 * (1 - np.tanh((np.abs(off_hz) - bw_hz / 2) / SAT_EDGE_HZ))
+
+
+def sat_delay_ms(rp):
+    """Centre of the saturation pulse to centre of the excitation of a realised protocol: what the console planned
+    (``fatsat_delay_ms``), or the same rule from the console's constants for a protocol that was written by hand."""
+    if rp.get("fatsat_delay_ms") is not None:
+        return rp["fatsat_delay_ms"]
+    return console.SYSTEM["fatsat_ms"] / 2 + console.SYSTEM["fatsat_gap_ms"] + rp.get("rf_ms", console.SYSTEM["rf_ms"]) / 2
+
+
 def bary_matrix(nodes, weights, x):
     """[len(x), len(nodes)] matrix Q of the barycentric interpolation: values at ``x`` = Q @ values on ``nodes``."""
     d = x[:, None] - nodes[None, :]
@@ -98,8 +154,9 @@ def diffusion_bd(adc_um2_ms, spoiler_mt_ms_per_m, tr_ms):
     return adc_um2_ms * 1e-9 * (GAMMA_RAD * spoiler_mt_ms_per_m * 1e-6) ** 2 * tr_ms * 1e-3
 
 
-def gre_steady(rp, cls, theta, tier=2, nodes=None):
+def gre_steady(rp, cls, theta, tier=2, nodes=None, sat=None):
     """Steady state of spgr / afi / epi at flip angles ``theta`` (rad, any shape): list over contrasts, complex.
+    ``sat`` = (q, delay_ms): a saturation Mz -> q Mz that long before every excitation (spgr, epi).
 
     Tier 2 (spgr, afi): the EPG steady state, solved on Chebyshev nodes and interpolated. ``nodes`` None: 5 to 10
     nodes that span ``theta`` (a narrow range: one tissue under a smooth B1 pattern). ``nodes`` = m: m nodes on
@@ -109,7 +166,7 @@ def gre_steady(rp, cls, theta, tier=2, nodes=None):
     if seq == "afi":
         ideal = lambda t: [np.asarray(v, complex) for v in S.afi(t, rp["tr_ms"], rp["tr2_ms"], cls["t1_ms"])]   # noqa: E731
     else:
-        ideal = lambda t: [S.spgr(t, rp["tr_ms"], cls["t1_ms"]).astype(complex)]   # noqa: E731
+        ideal = lambda t: [S.spgr(t, rp["tr_ms"], cls["t1_ms"], sat).astype(complex)]   # noqa: E731
     if seq == "epi" or tier != 2:
         return ideal(theta)
     lo, hi = float(theta.min()), float(theta.max())
@@ -120,7 +177,7 @@ def gre_steady(rp, cls, theta, tier=2, nodes=None):
         tn, tw = cheb_nodes(0.0, 1.02 * hi + 1e-3, nodes)
     bd = diffusion_bd(cls["adc_um2_ms"], rp["spoiler_mt_ms_per_m"], rp["tr_ms"])
     if seq == "spgr":
-        vals = [epg.spgr(tn, rp["tr_ms"], cls["t1_ms"], cls["t2_ms"], rp["rf_phase_increment_deg"], bd)]
+        vals = [epg.spgr(tn, rp["tr_ms"], cls["t1_ms"], cls["t2_ms"], rp["rf_phase_increment_deg"], bd, sat)]
     else:
         vals = epg.afi(tn, rp["tr_ms"], rp["tr_ratio"], cls["t1_ms"], cls["t2_ms"], rp["rf_phase_increment_deg"], bd)
     if nodes is None:
@@ -134,7 +191,7 @@ def slice_profile(centre_flip, tbw, window="hann", refocus=False):
     positions of ``rf.quadrature(tbw)``: ``theta`` [flip, position], ``w`` = quadrature weight x real part of the
     transverse phase factor (the two sides of the slice added), and with ``refocus`` the echo factor ``-b^2`` of the
     refocusing pulse of ``se`` / ``ir`` (centre angle 2 x the excitation's, real and >= 0 for a symmetric pulse)."""
-    zeta, wz = rf.quadrature(tbw)
+    zeta, wz = rf.quadrature(tbw, window)
     theta, ph = rf.excitation(centre_flip[:, None], tbw, zeta[None, :], window)
     out = dict(theta=theta, w=wz * ph.real)
     if refocus:
@@ -143,26 +200,37 @@ def slice_profile(centre_flip, tbw, window="hann", refocus=False):
     return out
 
 
-def slice_table(rp, cls, prof, tier=2, inv_eff=1.0):
+def cycle_events(rp, theta, refocus=None, inv_eff=1.0):
+    """(events of one repetition as ``signal.mz_chain`` takes them, starting at the excitation; factor that turns the
+    longitudinal magnetisation at the excitation into the echo) for flip angles ``theta`` under ideal spoiling.
+    ``refocus``: echo factor of the refocusing pulse of se / ir through the slice (None: a hard pulse of 2 theta)."""
+    seq = rp["sequence"]
+    if seq in ("spgr", "epi"):
+        return S.spgr_events(theta, rp["tr_ms"]), np.sin(theta)
+    # se, ir: excitation theta; crushed refocusing pulse: echo = -b^2 conj(Mxy), Mz -> (1 - 2 |b|^2) Mz
+    echo = np.sin(theta) ** 2 if refocus is None else refocus
+    if seq == "se":
+        return S.se_events(theta, rp["tr_ms"], rp["te_ms"], 1 - 2 * echo), np.sin(theta) * echo
+    return S.ir_events(theta, rp["tr_ms"], rp["te_ms"], rp["ti_ms"], inv_eff, 1 - 2 * echo), np.sin(theta) * echo
+
+
+def slice_table(rp, cls, prof, tier=2, inv_eff=1.0, sat=None):
     """Slice-integrated signal per unit slice thickness for every centre flip angle of ``prof`` (``slice_profile``):
     list over contrasts of complex arrays. Independent columns through the slice, each with its own flip angle and
-    transverse phase. Not for bssfp, whose signal also depends on the voxel's off-resonance."""
+    transverse phase. Not for bssfp, whose signal also depends on the voxel's off-resonance. ``sat`` = (q, delay_ms):
+    a saturation Mz -> q Mz that long before every excitation."""
     seq, theta = rp["sequence"], prof["theta"]
     if seq in ("spgr", "afi", "epi"):
-        return [(prof["w"] * v).sum(1) for v in gre_steady(rp, cls, theta, tier, PROFILE_NODES)]
-    # se, ir: excitation theta; crushed refocusing pulse: echo = -b^2 conj(Mxy), Mz -> (1 - 2 |b|^2) Mz
-    events = [("rf", np.cos(theta)), ("wait", rp["te_ms"] / 2), ("rf", 1 - 2 * prof["echo"])]
-    if seq == "se":
-        events += [("wait", rp["tr_ms"] - rp["te_ms"] / 2)]
-    else:
-        events += [("wait", rp["tr_ms"] - rp["ti_ms"] - rp["te_ms"] / 2), ("rf", -inv_eff), ("wait", rp["ti_ms"])]
-    return [(prof["w"] * S.mz_steady(events, cls["t1_ms"]) * np.sin(theta) * prof["echo"]).sum(1).astype(complex)]
+        return [(prof["w"] * v).sum(1) for v in gre_steady(rp, cls, theta, tier, PROFILE_NODES, sat)]
+    events, factor = cycle_events(rp, theta, prof["echo"], inv_eff)
+    mz = S.mz_steady(events, cls["t1_ms"]) if sat is None else S.mz_saturated(events, cls["t1_ms"], sat[0], sat[1])
+    return [(prof["w"] * mz * factor).sum(1).astype(complex)]
 
 
-def slice_signal(rp, cls, centre_flip, tbw, window="hann", tier=2, inv_eff=1.0):
+def slice_signal(rp, cls, centre_flip, tbw, window="hann", tier=2, inv_eff=1.0, sat=None):
     """``slice_table`` for given centre flip angles (rad, 1D): what the scanner serves for a voxel of one material."""
     centre_flip = np.atleast_1d(np.asarray(centre_flip, float))
-    return slice_table(rp, cls, slice_profile(centre_flip, tbw, window, rp["sequence"] in ("se", "ir")), tier, inv_eff)
+    return slice_table(rp, cls, slice_profile(centre_flip, tbw, window, rp["sequence"] in ("se", "ir")), tier, inv_eff, sat)
 
 
 def zoom_dft(x, axis, n_out, cyc_per_sample, offset=0.0, centre=0.0):
@@ -209,8 +277,11 @@ def _deapodise(n_out, cyc_per_sample):
 
 def physics_key(rp, averages=False):
     """The part of a realised protocol that changes the noise-free data: everything but the averages, unless
-    something in the world moves (``averages`` True: the lines of each average are then acquired at other times)."""
-    return tuple((k, tuple(v) if isinstance(v, list) else v) for k, v in sorted(rp.items()) if averages or k != "averages")
+    something in the world moves (``averages`` True: the lines of each average are then acquired at other times).
+    An adjustment at its default is left out: such a protocol has the key it had before the adjustments existed
+    (the phase of a periodic mover is a hash of this key)."""
+    return tuple((k, tuple(v) if isinstance(v, list) else v) for k, v in sorted(rp.items())
+                 if (averages or k != "averages") and not (k in console.ADJUSTMENTS and v == console.ADJUSTMENTS[k]))
 
 
 class Engine:
@@ -233,6 +304,21 @@ class Engine:
         self.b1 = world["fields"]["b1"] * world["system"]["tx_gain"]
         self.b1_range = (float(self.b1[self.body].min()), float(self.b1[self.body].max())) if self.body.any() else (1.0, 1.0)
         self._clean, self._splat, self._turned, self._prof = {}, {}, {}, {}
+        self._yx, self._adjusted = None, (None, None)
+
+    # ------------------------------------------------------------------ the adjustments of a scan
+    def _df(self, rp):
+        """Off-resonance of every master-grid point in the scan ``rp`` (Hz): the hidden field and the error of the
+        frequency adjustment, minus the shift of the centre frequency, plus the linear shim terms (patient
+        coordinates, so a turned field of view sees the same field)."""
+        key = (rp.get("cf_shift_hz", 0.0), rp.get("shim_y_hz_per_mm", 0.0), rp.get("shim_x_hz_per_mm", 0.0))
+        if not any(key):
+            return self.df
+        if self._adjusted[0] != key:
+            if self._yx is None:
+                self._yx = W.grid(self.w)
+            self._adjusted = (key, self.df - key[0] + key[1] * self._yx[0] + key[2] * self._yx[1])
+        return self._adjusted[1]
 
     # ------------------------------------------------------------------ field of view turned in the plane
     def _frame(self, rp):
@@ -268,16 +354,17 @@ class Engine:
             return [S.se(a, rp["tr_ms"], rp["te_ms"], cls["t1_ms"]).astype(complex)]
         if seq == "ir":
             return [S.ir_se(a, rp["tr_ms"], rp["te_ms"], rp["ti_ms"], cls["t1_ms"], self.w["system"]["inv_eff"]).astype(complex)]
-        return [S.bssfp(a, free + np.deg2rad(rp["phase_cycle_deg"]), rp["tr_ms"], cls["t1_ms"], cls["t2_ms"]) * np.exp(0.5j * free)]
+        return [S.bssfp(a, free - np.deg2rad(rp["phase_cycle_deg"]), rp["tr_ms"], cls["t1_ms"], cls["t2_ms"]) * np.exp(0.5j * free)]
 
     def _profile(self, rp, tbw, window):
         """What the pulse of ``rp`` does through the slice, for flip angles at the slice centre that span the whole
         object (Chebyshev nodes ``gn``): one table per protocol, shared by the tissue classes."""
-        key = (rp["flip_deg"], tbw, window, rp["sequence"] in ("se", "ir"))
+        tx = rp.get("tx_scale", 1.0)
+        key = (rp["flip_deg"], tx, tbw, window, rp["sequence"] in ("se", "ir"))
         if key not in self._prof:
             if len(self._prof) >= 8:
                 self._prof.pop(next(iter(self._prof)))
-            lo, hi = (np.deg2rad(rp["flip_deg"]) * v for v in self.b1_range)
+            lo, hi = (np.deg2rad(rp["flip_deg"]) * tx * v for v in self.b1_range)
             pad = 0.01 * (hi - lo) + 1e-4
             gn, gw = cheb_nodes(lo - pad, hi + pad, int(np.clip(np.ceil(30 * (hi - lo) / (hi + lo)) + 4, 5, 16)))
             self._prof[key] = dict(slice_profile(gn, tbw, window, refocus=key[3]), gn=gn, gw=gw)
@@ -289,7 +376,7 @@ class Engine:
         angle at the slice centre."""
         s_tab, c_tab = prof["w"] * np.sin(prof["theta"]), np.cos(prof["theta"])
         e1, e2 = np.exp(-rp["tr_ms"] / cls["t1_ms"]), np.exp(-rp["tr_ms"] / cls["t2_ms"])
-        th = free + np.deg2rad(rp["phase_cycle_deg"])
+        th = free - np.deg2rad(rp["phase_cycle_deg"])                    # precession per TR seen from the pulse, whose phase advances
         cth = np.cos(th)
         p, q = e2 * (e1 - 1) * cth + 1 - e1 * e2 * e2, e2 * (e1 - 1) * cth - e1 + e2 * e2
         out = np.empty(a.shape)
@@ -299,15 +386,105 @@ class Engine:
             out[sl] = ((qm @ s_tab) / (p[sl, None] + q[sl, None] * (qm @ c_tab))).sum(1)
         return [out * (1 - e1) * (1 - e2 * np.exp(-1j * th)) * np.exp(0.5j * free)]
 
-    def amplitudes(self, rp, c):
-        """Echo amplitudes of class ``c`` over its support: list over contrasts (afi: 2, otherwise 1) of arrays."""
+    # ------------------------------------------------------------------ fat saturation: every line has its own steady state
+    def _lines(self, cls):
+        """Resonance lines of a class: ((ppm relative to water, share of the signal), ...)."""
+        if not cls["fat"]:
+            return ((0.0, 1.0),)
+        if self.fat_model != "multipeak":
+            return ((tissue.FAT_PPM, 1.0),)
+        total = sum(a for _, a in tissue.FAT_PEAKS)
+        return tuple((ppm, a / total) for ppm, a in tissue.FAT_PEAKS)
+
+    def _spoiling_gap(self, rp, cls, tn, qn, tbw=None, prof=None):
+        """[len(tn) or centre angles of ``prof``, len(qn)] table of what the RF-spoiled steady state of spgr adds to the
+        ideal-spoiling form under a saturation q (tier 2; zeros otherwise)."""
+        delay = sat_delay_ms(rp)
+        if rp["sequence"] != "spgr" or self.tier != 2:
+            return None
+        if prof is not None:
+            return np.stack([slice_table(rp, cls, prof, 2, sat=(q, delay))[0] - slice_table(rp, cls, prof, 1, sat=(q, delay))[0] for q in qn], 1)
+        bd = diffusion_bd(cls["adc_um2_ms"], rp["spoiler_mt_ms_per_m"], rp["tr_ms"])
+        return np.stack([epg.spgr(tn, rp["tr_ms"], cls["t1_ms"], cls["t2_ms"], rp["rf_phase_increment_deg"], bd, (q, delay))
+                         - S.spgr(tn, rp["tr_ms"], cls["t1_ms"], (q, delay)) for q in qn], 1)
+
+    def _saturated(self, rp, cls, a, qs, tbw, window):
+        """Echo amplitudes of the lines of one class under fat saturation: ``a`` [N] flip angle at the slice centre,
+        ``qs`` list of [N] saturation factors (one per line). Returns a list of complex [N].
+
+        Ideal spoiling: Mz at the excitation is (beta0 + q beta1) / (1 - q alpha) with the terms of the sequence's
+        cycle (``signal.mz_saturated_terms``). Hard pulse: evaluated per voxel. Selective pulse: the terms are
+        tabulated on (centre flip angle node, position through the slice); the slice integral is a sum of such
+        fractions in q, tabulated with its slope on a grid of q fine against the distance of its nearest pole
+        (1 - E1) and interpolated by cubics, then interpolated over the centre flip angle as without saturation.
+        spgr, tier 2: the departure of the RF-spoiled steady state from ideal spoiling is added from a table over
+        (flip angle node, ``SAT_NODES`` values of q)."""
+        t1, delay, inv = cls["t1_ms"], sat_delay_ms(rp), self.w["system"]["inv_eff"]
+        q_lo = min(float(q.min()) for q in qs)
+        q_lo = min(q_lo, 1.0 - 1e-6)
+        qn, qw = lobatto_nodes(q_lo, 1.0, SAT_NODES)
+        if tbw is None:
+            events, factor = cycle_events(rp, a, None, inv)
+            alpha, beta0, beta1 = S.mz_saturated_terms(events, t1, delay)
+            lo, hi = float(a.min()), float(a.max())
+            pad = 0.01 * (hi - lo) + 1e-4
+            tn, tw = cheb_nodes(lo - pad, hi + pad, int(np.clip(np.ceil(30 * (hi - lo) / (hi + lo)) + 4, 5, 10)))
+            gap = self._spoiling_gap(rp, cls, tn, qn)
+            qa = bary_matrix(tn, tw, a) if gap is not None else None
+            out = []
+            for q in qs:
+                v = (factor * (beta0 + q * beta1) / (1 - q * alpha)).astype(complex)
+                if gap is not None:
+                    v = v + np.einsum("ri,ij,rj->r", qa, gap, bary_matrix(qn, qw, q))
+                out.append(v)
+            return out
+        prof = self._profile(rp, tbw, window)
+        events, factor = cycle_events(rp, prof["theta"], prof.get("echo"), inv)
+        alpha, beta0, beta1 = (np.broadcast_to(v, prof["theta"].shape) for v in S.mz_saturated_terms(events, t1, delay))   # [node, position]
+        wgt = prof["w"] * factor
+        pole = max(1.0 - float(np.max(alpha)), 1e-9)                         # distance of the nearest pole of Mz(q) from q = 1
+        n_q = int(np.clip(np.ceil(12 * (1 - q_lo) / pole) + 1, *SAT_GRID))
+        qg = np.linspace(q_lo, 1.0, n_q)
+        f, df = np.empty((len(prof["gn"]), n_q)), np.empty((len(prof["gn"]), n_q))
+        for i in range(len(prof["gn"])):                                     # bounded memory: [q, position]
+            den = 1 - qg[:, None] * alpha[i][None, :]
+            f[i] = (wgt[i] * (beta0[i] + qg[:, None] * beta1[i]) / den).sum(1)
+            df[i] = (wgt[i] * (beta1[i] + alpha[i] * beta0[i]) / den ** 2).sum(1)
+        gap = self._spoiling_gap(rp, cls, None, qn, tbw, prof)
+        out = []
+        for q in qs:
+            v = np.empty(a.shape, complex)
+            for k in range(0, a.size, 32768):
+                sl = slice(k, k + 32768)
+                qa = bary_matrix(prof["gn"], prof["gw"], a[sl])
+                v[sl] = np.einsum("ri,ir->r", qa, hermite(q_lo, qg[1] - qg[0], f, df, q[sl]))
+                if gap is not None:
+                    v[sl] += np.einsum("ri,ij,rj->r", qa, gap, bary_matrix(qn, qw, q[sl]))
+            out.append(v)
+        return out
+
+    def _species(self, rp, c):
+        """(lines, amplitudes) of class ``c`` over its support. ``lines`` None: the class evolves as one species and
+        the amplitudes are a list over contrasts (afi: 2, otherwise 1) of arrays [support]. Under fat saturation a
+        class with several lines that are saturated differently is returned line by line: ``lines`` =
+        ((ppm, share), ...) and each amplitude array is [line, support], without the share."""
         w, name = self.w, self.w["names"][c]
         cls, sup = w["tissues"][name], self.sup[c]
-        a = np.deg2rad(rp["flip_deg"]) * self.b1[sup]                    # flip angle at the slice centre
+        a = np.deg2rad(rp["flip_deg"]) * rp.get("tx_scale", 1.0) * self.b1[sup]      # flip angle at the slice centre
         seq = rp["sequence"]
-        f_fat = tissue.FAT_PPM * GAMMA_MHZ * w["b0_t"] if cls["fat"] else 0.0
-        free = 2 * np.pi * (self.df[sup] + f_fat) * rp["tr_ms"] * 1e-3 if seq == "bssfp" else None
+        scale = w["weights"][c][sup] * cls["pd"]
         tbw, window = self.pulse(rp)
+        if rp["fat_sat"]:                                               # spectrally selective saturation, line by line
+            sy, f0 = w["system"], GAMMA_MHZ * w["b0_t"]
+            lines = self._lines(cls)
+            centre = tissue.FAT_PPM * f0 + sy.get("fatsat_offset_hz", 0.0) + rp.get("fatsat_offset_hz", 0.0)      # of the pulse, from water
+            df = self._df(rp)[sup]
+            qs = [1 - sy["fatsat_eff"] * sat_band(df + ppm * f0 - centre, sy["fatsat_bw_hz"]) for ppm, _ in lines]
+            if a.size and min(float(q.min()) for q in qs) < 1 - 1e-12:
+                amp = [v * scale for v in self._saturated(rp, cls, a, qs, tbw, window)]
+                return (None, [amp[0]]) if len(lines) == 1 else (lines, [np.array(amp)])
+        f_fat = tissue.FAT_PPM * GAMMA_MHZ * w["b0_t"] if cls["fat"] else 0.0
+        free = 2 * np.pi * (self._df(rp)[sup] + f_fat) * rp["tr_ms"] * 1e-3 if seq == "bssfp" else None
         if tbw is None:
             out = self._hard(rp, cls, a, free)
         elif seq == "bssfp":
@@ -315,31 +492,37 @@ class Engine:
         else:
             prof = self._profile(rp, tbw, window)
             out = [bary(prof["gn"], prof["gw"], g, a) for g in slice_table(rp, cls, prof, self.tier, w["system"]["inv_eff"])]
-        scale = w["weights"][c][sup] * cls["pd"]
-        if rp["fat_sat"]:                                               # spectrally selective saturation at the fat line
-            sy = w["system"]
-            off = self.df[sup] + (0.0 if cls["fat"] else -tissue.FAT_PPM * GAMMA_MHZ * w["b0_t"])
-            off = off - sy.get("fatsat_offset_hz", 0.0) - rp.get("fatsat_offset_hz", 0.0)     # the pulse is centred there
-            hit = 0.5 * (1 - np.tanh((np.abs(off) - sy["fatsat_bw_hz"] / 2) / 8.0))
-            scale = scale * (1 - sy["fatsat_eff"] * hit)
-        return [s * scale for s in out]
+        return None, [s * scale for s in out]
+
+    def amplitudes(self, rp, c):
+        """Echo amplitudes of class ``c`` over its support: list over contrasts (afi: 2, otherwise 1) of arrays. For a
+        fat class under fat saturation: the sum over its lines, each with its share (the amplitude at the centre of a
+        spin echo, where the lines are in phase)."""
+        lines, out = self._species(rp, c)
+        if lines is None:
+            return out
+        share = np.array([wgt for _, wgt in lines])
+        return [np.tensordot(share, o, 1) for o in out]
 
     # ------------------------------------------------------------------ one contrast -> k-space [lines_full, os * matrix]
     def _shift_operator(self, rp, epi, fov_pe_os):
         swap = rp["pe_dir"] == "x"
-        df, body = (self.df.T, self.body.T) if swap else (self.df, self.body)
+        df = self._df(rp)
+        df, body = (df.T, self.body.T) if swap else (df, self.body)
+        adjusted = (rp.get("cf_shift_hz", 0.0), rp.get("shim_y_hz_per_mm", 0.0), rp.get("shim_x_hz_per_mm", 0.0))
         if epi:
-            key = ("epi", swap, rp["pe_polarity"], rp["echo_spacing_ms"], fov_pe_os)
+            key = ("epi", swap, rp["pe_polarity"], rp["echo_spacing_ms"], fov_pe_os, adjusted)
             shift, axis = -rp["pe_polarity"] * df * rp["echo_spacing_ms"] * 1e-3 * fov_pe_os / self.d, 0
         else:
-            key = ("line", swap, rp["ro_polarity"], rp["bandwidth_hz_per_px"], rp["fov_mm"], rp["matrix"])
+            key = ("line", swap, rp["ro_polarity"], rp["bandwidth_hz_per_px"], rp["fov_mm"], rp["matrix"], adjusted)
             shift, axis = -rp["ro_polarity"] * df / rp["bandwidth_hz_per_px"] * (rp["fov_mm"] / rp["matrix"]) / self.d, 1
         if key not in self._splat:
             self._splat = {key: _splat_matrix(shift, axis, body)}        # keep the last one: echoes and contrasts share it
         return self._splat[key], axis
 
     def kspace(self, rp, te_ms, amps):
-        """Noise-free k-space of one image. ``amps``: per-class amplitude arrays (one contrast of ``amplitudes``)."""
+        """Noise-free k-space of one image. ``amps``: per-class amplitude arrays (one contrast of ``_species``): [support],
+        or [line, support] for a class that is imaged line by line."""
         w, n, d, eff = self.w, self.n, self.d, self.effects
         seq, epi = rp["sequence"], rp["sequence"] == "epi"
         echo = "gre" if seq in ("spgr", "afi", "epi") else "se"
@@ -353,19 +536,28 @@ class Engine:
         else:
             tau = rp["ro_polarity"] * (np.arange(k_ro) - k_ro // 2) / (k_ro * rp["bandwidth_hz_per_px"])
         peaks = tissue.FAT_PEAKS if self.fat_model == "multipeak" else ((tissue.FAT_PPM, 1.0),)
-        g = np.array([S.time_function(w["tissues"][nm], tau if "t2star" in eff else 0 * tau,
-                                      tau if "chemshift" in eff else 0 * tau, te_ms, echo, w["b0_t"], peaks)
-                      for nm in w["names"]])
+        t_dec, t_spec = tau if "t2star" in eff else 0 * tau, tau if "chemshift" in eff else 0 * tau
+        rows, source = [], []                                            # one row per species: a class, or one line of a class
+        for c, nm in enumerate(w["names"]):
+            cls = w["tissues"][nm]
+            if np.ndim(amps[c]) == 2:
+                for (ppm, share), a in zip(self._lines(cls), amps[c]):
+                    rows.append(share * S.time_function(cls, t_dec, t_spec, te_ms, echo, w["b0_t"], ((ppm, 1.0),)))
+                    source.append((c, a))
+            else:
+                rows.append(S.time_function(cls, t_dec, t_spec, te_ms, echo, w["b0_t"], peaks))
+                source.append((c, amps[c]))
+        g = np.array(rows)
         u, sv, vh = np.linalg.svd(g, full_matrices=False)
         rank = max(1, int(np.sum(sv > SVD_TOL * sv[0])))
         coef, basis = u[:, :rank] * sv[:rank], vh[:rank]
         # ---- component images on the master grid
         comp = np.zeros((rank, n, n), complex)
-        for c in range(len(w["names"])):
-            comp[:, self.sup[c]] += coef[c][:, None] * amps[c][None, :]
+        for row, (c, a) in enumerate(source):
+            comp[:, self.sup[c]] += coef[row][:, None] * a[None, :]
         common = w["fields"]["rx"].astype(complex)
         if echo == "gre":
-            common = common * np.exp(2j * np.pi * self.df * te_ms * 1e-3)
+            common = common * np.exp(2j * np.pi * self._df(rp) * te_ms * 1e-3)
             if "dropout" in eff:
                 # through-slice dephasing: cycles of phase across one slice thickness at the echo
                 cyc = w["fields"]["dbdz_hz_per_mm"] * rp["slice_mm"] * te_ms * 1e-3
@@ -407,11 +599,23 @@ class Engine:
         return ks * (d * d * rp["slice_mm"])
 
     @staticmethod
-    def _acquired(rp):
+    def line_weights(rp):
+        """Weight of every phase-encode line in the reconstruction, [lines_full]. Fully sampled: 1. Partial Fourier
+        (homodyne detection): with n = lines - lines_full / 2, the lines -n .. +n around the centre are acquired on
+        both sides and weigh 1; the lines beyond +n (in the order of acquisition) exist on one side only and weigh 2;
+        the others are not acquired and weigh 0. The one line without a conjugate partner on the lattice (index
+        -lines_full / 2) is among those not acquired, so exactly ``lines`` lines are."""
         k_pe = rp["lines_full"]
+        if rp["lines"] >= k_pe:
+            return np.ones(k_pe)
         line = np.arange(k_pe) - k_pe // 2
         order = rp.get("pe_polarity", 1) * line if rp["sequence"] == "epi" else line
-        return order >= -(rp["lines"] - k_pe // 2)
+        n = rp["lines"] - k_pe // 2
+        return np.where(line == -(k_pe // 2), 0.0, np.where(order > n, 2.0, np.where(order >= -n, 1.0, 0.0)))
+
+    @classmethod
+    def _acquired(cls, rp):
+        return cls.line_weights(rp) > 0
 
     # ------------------------------------------------------------------ periodic motion
     def _line_times(self, rp, offset_ms=0.0):
@@ -472,7 +676,7 @@ class Engine:
         key = physics_key(rp, averages=moving)
         if key not in self._clean:
             n_c = len(self.w["names"])
-            amps = [self.amplitudes(rp, c) for c in range(n_c)]          # [class][contrast]
+            amps = [self._species(rp, c)[1] for c in range(n_c)]         # [class][contrast]
             ks = []
             for k in range(len(amps[0])):
                 for te in rp["echo_times_ms"]:
@@ -486,9 +690,34 @@ class Engine:
         return self._clean[key]
 
     def recon(self, ks, rp):
-        """The console reconstruction: zero-filled inverse FFT, readout and phase oversampling removed. Complex [y, x]."""
+        """The console reconstruction, readout and phase oversampling removed. Complex [y, x].
+
+        Fully sampled: the inverse FFT. Partial Fourier: homodyne detection. The k-space is weighted line by line
+        (``line_weights``) and transformed; a low-resolution image gives the phase; the image is the component of the
+        weighted transform along that phase, with that phase. For an object whose phase is smooth this is the image
+        of the full k-space; the component across the phase, which holds the error of the synthesis and half of the
+        noise, is discarded. The low-resolution image is made from the symmetric lines under a Hann taper, and the
+        same band along the readout, so that it has no ringing of its own; where it has no signal (next to an edge,
+        where the full-resolution image still rings) the phase is that of a coarser image of ``PF_COARSE`` lines
+        either side, added with the weight ``PF_BLEND``: the phase of the object is continued into its surroundings."""
         k_pe, k_ro = ks.shape
-        img = np.fft.fftshift(np.fft.ifft2(np.fft.ifftshift(ks))) * (k_pe * k_ro)
+        if rp["lines"] < k_pe:
+            wgt = self.line_weights(rp)
+            line, col = np.arange(k_pe) - k_pe // 2, np.arange(k_ro) - k_ro // 2
+            n = rp["lines"] - k_pe // 2
+            per_line = (console.SYSTEM["ro_os"] * rp["fov_mm"]) / (rp["fov_pe_mm"] * k_pe / rp["matrix_pe"])      # readout samples per line spacing
+
+            def taper(half):                                             # Hann over +- half lines, and over the same band along the readout
+                pe = np.where((wgt == 1.0) & (np.abs(line) <= half), 0.5 * (1 + np.cos(np.pi * line / (half + 1))), 0.0)
+                ro = np.where(np.abs(col) < (half + 1) * per_line, 0.5 * (1 + np.cos(np.pi * col / ((half + 1) * per_line))), 0.0)
+                return pe[:, None] * ro[None, :]
+            ift = lambda k: np.fft.fftshift(np.fft.ifft2(np.fft.ifftshift(k)))   # noqa: E731
+            img, ref = ift(ks * wgt[:, None]), ift(ks * (taper(n) + PF_BLEND * taper(min(n, PF_COARSE))))
+            mag = np.abs(ref)
+            phase = np.where(mag > 0, ref / np.where(mag > 0, mag, 1.0), 1.0)
+            img = (img * np.conj(phase)).real * phase * (k_pe * k_ro)
+        else:
+            img = np.fft.fftshift(np.fft.ifft2(np.fft.ifftshift(ks))) * (k_pe * k_ro)
         img /= (console.SYSTEM["ro_os"] * rp["fov_mm"]) * (rp["fov_pe_mm"] * k_pe / rp["matrix_pe"])
         lo_p, lo_r = k_pe // 2 - rp["matrix_pe"] // 2, k_ro // 2 - rp["matrix"] // 2
         img = img[lo_p:lo_p + rp["matrix_pe"], lo_r:lo_r + rp["matrix"]]
@@ -518,12 +747,15 @@ class Engine:
 
     def noise_sd(self, rp) -> float:
         """Standard deviation of the noise in ONE component (real or imaginary) of a reconstructed pixel of ``rp``:
-        the receiver noise per k-space sample, summed over the acquired samples by the console reconstruction (a
-        non-selective 3D scan averages over its partitions as well). Verifier side (it holds the hidden noise density)."""
+        the receiver noise per k-space sample, summed over the acquired samples by the console reconstruction with
+        the weight of each line squared (a non-selective 3D scan averages over its partitions as well). Partial
+        Fourier: the component in phase with the signal, which is the noise of the magnitude where there is signal
+        (the component across it is discarded by the reconstruction; the background is not Rayleigh distributed).
+        Verifier side (it holds the hidden noise density)."""
         k_ro = console.SYSTEM["ro_os"] * rp["matrix"]
         sd = self.w["system"]["sigma0"] * np.sqrt(k_ro * rp["bandwidth_hz_per_px"] / (rp["averages"] * rp.get("partitions", 1)))
         area = (console.SYSTEM["ro_os"] * rp["fov_mm"]) * (rp["fov_pe_mm"] * rp["lines_full"] / rp["matrix_pe"])
-        return float(sd * np.sqrt(rp["lines"] * k_ro) / area)
+        return float(sd * np.sqrt(console.noise_lines(rp["lines_full"], rp["lines"]) * k_ro) / area)
 
     def acquire(self, rp, rng=None):
         """What one scan returns: complex images [n_images, y, x]. ``rng`` None = no noise and no interference."""

@@ -124,32 +124,60 @@ def take(sp, index):
 
 
 # ---------------------------------------------------------------------------------------------- slice columns
-def slice_columns(tbw, two_sided=True, points_per_thickness=6, wing=12.0):
+@functools.lru_cache(maxsize=32)
+def _sinc(tbw, window, samples):
+    """The windowed sinc of the design layer with unit flip angle (1 rad at B1 scale 1), 1 ms long, with the gradient
+    that spans its nominal bandwidth (tbw / duration) over 1 mm."""
+    return design_pulses.sinc(math.degrees(1.0), 1.0, tbw, 1.0, window=window, kind="refocusing", n=samples)
+
+
+@functools.lru_cache(maxsize=64)
+def slice_calibration(tbw, window="hann", samples=128):
+    """Nominal bandwidths of the pulse that the slice gradient of the console spans across one slice thickness.
+
+    The console calibrates the slice gradient of every pulse so that the profile of a small flip angle is one slice
+    thickness wide at half its maximum (engine 0.3.0; before, the gradient spanned one nominal bandwidth and a pulse
+    of low time-bandwidth product excited a thicker slice). For a small flip angle the profile is the Fourier
+    transform of the pulse, so the factor is twice the position, in nominal bandwidths, at which the transform of
+    the samples of the design layer's pulse has fallen to half its value at the centre. Found by bisection on the
+    main lobe; ``scanner/rf.py::fwhm_factor`` is the engine's separately written number (row C2)."""
+    b = np.real(_sinc(float(tbw), window, int(samples)).b1_ut)           # a pulse about x: its samples are real
+    b = b / b.sum()
+    t = (np.arange(b.size) + 0.5) / b.size - 0.5                        # sample centres in durations of the pulse
+    above = lambda u: abs(np.sum(b * np.exp(-2j * math.pi * tbw * u * t))) - 0.5       # noqa: E731
+    lo, hi = 0.0, 0.05
+    while above(hi) > 0:                                                # the main lobe falls to its first zero
+        lo, hi = hi, hi + 0.05
+    for _ in range(80):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (mid, hi) if above(mid) > 0 else (lo, mid)
+    return float(lo + hi)
+
+
+def slice_columns(tbw, two_sided=True, points_per_thickness=6, wing=12.0, window="hann"):
     """(zeta, weights): positions through the slice in slice thicknesses and the weights of the integral of the
-    signal over them, per slice thickness: the trapezoid rule with ``points_per_thickness`` x tbw points per thickness
-    out to 0.5 + ``wing`` / tbw thicknesses (the rule of ``scanner/rf.py::quadrature``). ``two_sided`` False: z >= 0
-    only, every weight counting the position and its mirror image (valid for a signal that is even in z)."""
+    signal over them, per slice thickness. The grid is laid out where the lobes of the profile sit, in nominal
+    bandwidths of the slice gradient: the trapezoid rule with ``points_per_thickness`` x tbw points per nominal
+    bandwidth out to 0.5 + ``wing`` / tbw of them, and divided by ``slice_calibration`` to give slice thicknesses (the
+    rule of ``scanner/rf.py::quadrature``). ``two_sided`` False: z >= 0 only, every weight counting the position and
+    its mirror image (valid for a signal that is even in z)."""
     h = 1.0 / (points_per_thickness * tbw)
     k = int(round((0.5 + wing / tbw) / h))
+    cal = slice_calibration(float(tbw), window)
     if two_sided:
         w = np.full(2 * k + 1, h)
         w[[0, -1]] = h / 2
-        return np.arange(-k, k + 1) * h, w
+        return np.arange(-k, k + 1) * h / cal, w / cal
     w = np.full(k + 1, 2 * h)
     w[[0, -1]] = h
-    return np.arange(k + 1) * h, w
-
-
-@functools.lru_cache(maxsize=32)
-def _sinc(tbw, window, samples):
-    """The windowed sinc of the design layer with unit flip angle (1 rad at B1 scale 1), 1 ms long, on a 1 mm slice."""
-    return design_pulses.sinc(math.degrees(1.0), 1.0, tbw, 1.0, window=window, kind="refocusing", n=samples)
+    return np.arange(k + 1) * h / cal, w / cal
 
 
 def selective_rotation(sel, centre_flip_rad, zeta):
     """(a, b) of the selective pulse ``sel`` for flip angles at the slice centre and positions (arrays of one shape),
     after its rephasing lobe, for a pulse about x. Computed for the distinct (position, angle) pairs only."""
-    flip, pos = np.broadcast_arrays(np.asarray(centre_flip_rad, float), np.asarray(zeta, float) / sel.width)
+    cal = slice_calibration(float(sel.tbw), sel.window, int(sel.samples))        # nominal bandwidths across one slice thickness
+    flip, pos = np.broadcast_arrays(np.asarray(centre_flip_rad, float), np.asarray(zeta, float) * cal / sel.width)
     pairs, inverse = np.unique(np.stack([pos.ravel(), flip.ravel()], 1), axis=0, return_inverse=True)
     pulse = _sinc(float(sel.tbw), sel.window, int(sel.samples))
     a, b = design_rotation.rotate(pulse.b1_ut, pulse.dt_ms, pulse.g_mt_m, pairs[:, 0], 0.0, pairs[:, 1])
@@ -304,4 +332,4 @@ def auto_kmax(program, sp, tol=1e-6, cap=1500):
 
 
 __all__ = ["LINESHAPES", "POOLS", "Spins", "auto_kmax", "column_phase", "diffusion_rate", "exp2", "grid", "lineshape", "lorentzian_spread",
-           "rotation", "saturation", "selective_rotation", "slice_columns", "spins", "take"]
+           "rotation", "saturation", "selective_rotation", "slice_calibration", "slice_columns", "spins", "take"]

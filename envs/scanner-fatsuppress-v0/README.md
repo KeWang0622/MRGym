@@ -3,11 +3,11 @@
 
 **A · Signal and contrast** · selective signal · kind 2, set · isolates A18: Fat suppression by a frequency-selective saturation pulse. [The map](../../docs/tasks.md)
 
-**Status:** ADMITTED: on 300 fresh instances per level the reference passes >= 98 %, no policy that ignores the object passes more than 6 % (95 % bounds)
+**Status:** CANDIDATE: the gate has not been run on this engine (mrgym-engine-0.3.0); the stored result is from another engine (mrgym-engine-0.2.0) and says nothing about this one. NOT READY on this engine: spectral fat saturation leaves the fat lines outside the band of its pulse, more than the task's threshold allows, so inversion recovery is the answer in every region and the choice the task examines does not arise; it needs other thresholds, which is a new id (Scanner/FatSuppress-v1, not built)
 
-The daily choice between spectral fat saturation and STIR. Fat saturation keeps the water signal but fails where the field is inhomogeneous, where the frequency adjustment is off and where the pulse is weak; STIR works everywhere but removes a large part of the water signal, and its inversion time depends on the T1 of that fat, on the repetition time and on how complete the inversion is. Neither can be looked up: fat saturation has to be tried on this object, and the null has to be measured. By level: level 1 is a measurement task, level 2 is a measurement task, level 3 is a measurement task (a fixed list of scans with a fixed estimator passes this many points below the reference: 0 at level 1, 0 at level 2, 0 at level 3; 300 instances per level; 25 points or more make a decision task).
+The daily choice between spectral fat saturation and STIR. Fat saturation keeps the water signal but fails where the field is inhomogeneous, where the frequency adjustment is off and where the pulse is weak; STIR works everywhere but removes a large part of the water signal, and its inversion time depends on the T1 of that fat, on the repetition time and on how complete the inversion is. Neither can be looked up: fat saturation has to be tried on this object, and the null has to be measured. On engine 0.3.0 this choice does not arise: fat saturation leaves the lines of the fat spectrum outside the band of its pulse, more than the task allows, so it passes in no region and the answer is inversion recovery everywhere; the id needs a successor with other thresholds. Measurement task or decision task (does a fixed list of scans pass within 25 points of the reference?): not determined on this engine, the stored gate result is from mrgym-engine-0.2.0.
 
-Kind of task: **measurement** (reference minus open_loop, points of pass rate: 0 at level 1, 0 at level 2, 0 at level 3 (n = 300 per level, engine mrgym-engine-0.2.0)).
+Kind of task: **undetermined** (the stored gate result is from mrgym-engine-0.2.0, the engine is mrgym-engine-0.3.0).
 
 ```python
 import mrgym
@@ -70,6 +70,8 @@ Limits: 48 scanner requests and 64 tool calls per episode.
 - Passing: all gates and, for every region, error <= 5 %, and stir only where fat saturation leaves more than 3 %
 
 ## Gate: the control policies on fresh instances
+
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`): the stored gate was measured on engine mrgym-engine-0.2.0, not on mrgym-engine-0.3.0. `mrgym gate Scanner/FatSuppress-v0 --n 300 --write` measures and stores it. The table below is that older result.
 
 Run 2026-11-25 on engine `mrgym-engine-0.2.0`, package 0.1.0.dev0: `mrgym gate Scanner/FatSuppress-v0 --n 300 --write` (split gate, seeds 0..299; recipes tuned on split tune, seeds <set 0..2>:<0..15>). A level is admitted when the lower bound of the reference is at least 90 %, the upper bound of every must-fail policy is at most 10 % and every ablation required at the level loses at least 25 points (lower bound of the paired difference). Bounds are one-sided, 95 %. Cells: passed / instances (rate; bound).
 

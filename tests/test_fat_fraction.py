@@ -22,8 +22,10 @@ from mrgym.scanner import console, kspace, tissue
 from mrgym.scanner import world as W
 
 ENV_ID = "Scanner/FatFraction-v0"
-# The fat spectrum of the scanner (docs/physics/references.md: Hamilton 2011, liver fat): ppm relative to water, share.
-PEAKS = ((-3.80, 0.087), (-3.40, 0.693), (-2.60, 0.128), (-1.94, 0.004), (-0.39, 0.039), (0.60, 0.048))
+# The fat spectrum of the scanner: ppm relative to water, share. Typed here from the source the engine cites since 0.3.0
+# (docs/physics/references.md: the six-peak model listed by Hernando 2017, without its 0.1 ppm room-temperature shift;
+# engine 0.2.0 carried 0.693 for the main peak and named Hamilton 2011).
+PEAKS = ((-3.80, 0.087), (-3.40, 0.694), (-2.60, 0.128), (-1.94, 0.004), (-0.39, 0.039), (0.60, 0.048))
 HZ_PER_PPM = 42.577478518 * 1.5             # at 1.5 T
 
 
@@ -106,35 +108,68 @@ def test_the_estimators_recover_the_fraction_of_the_second_calculation():
     assert controls.fit_complex(TE, s, 100.0, single_peak=True)["pdff"] < 30.0 - 3.0
 
 
-@pytest.fixture(scope="module")
-def scanned():
-    """One level-3 world scanned noise-free with the stated scan: (cfg, echo times, {disc: complex echoes})."""
+def _scan(protocol):
+    """One level-3 world scanned noise-free: (cfg, echo times, {disc: complex echoes}, world, engine, realised protocol)."""
     cfg = task.make_instance(derive_seed(ENV_ID, 3, "train", 2, environ={}), 3, task_id="t")
     world = W.make_world(cfg["seed"], cfg["world_spec"])
     engine = kspace.Engine(world)
-    rp = console.plan(dict(controls.SCAN), world["console"])["realised"]
+    rp = console.plan(dict(protocol), world["console"])["realised"]
     rows = F.noise_free(engine, rp, cfg["task"]["regions"])[1]
     echoes = {k: np.array(r["complex_mean_magnitude"]) * np.exp(1j * np.array(r["complex_mean_phase_rad"])) for k, r in rows.items()}
-    return cfg, np.array(rp["echo_times_ms"]), echoes, world, engine
+    return cfg, np.array(rp["echo_times_ms"]), echoes, world, engine, rp
 
 
-def test_the_engine_serves_the_echoes_of_the_second_calculation(scanned):
-    cfg, te, echoes, world, _ = scanned
-    assert np.allclose(te, TE)
+@pytest.fixture(scope="module")
+def scanned():
+    """The stated scan (``controls.SCAN``: partial Fourier 0.75): (cfg, echo times, {disc: complex echoes}, world, engine)."""
+    return _scan(controls.SCAN)[:5]
+
+
+def _voxels(cfg):
+    """Per region the water and fat parts of its disc as ``mixture`` takes them."""
     inserts = cfg["world_spec"]["qa"]["inserts"]
+    out = {}
     for k, r in enumerate(cfg["task"]["regions"]):
         parts = []
         for ins in inserts[2 * k:2 * k + 2]:
             m = ins["tissue"]
             parts.append(dict(amount=ins["weight"] * m["pd"], t1_ms=m["t1_ms"], t2s_ms=1.0 / (1.0 / m["t2_ms"] + 1.0 / m["t2p_ms"])))
-        want, got = np.abs(mixture(te, *parts)), np.abs(echoes[r["id"]])
+        out[r["id"]] = parts
+    return out
+
+
+def test_the_engine_serves_the_echoes_of_the_second_calculation(scanned):
+    """The physics of the echoes, on the stated scan with every line acquired: beat and decay of the six echoes."""
+    cfg, te, echoes, world, _, rp = _scan(dict(controls.SCAN, partial_fourier=1.0))
+    assert np.allclose(te, TE) and rp["fat_sat"] is False and rp["lines"] == rp["lines_full"]      # no saturation pulse, nothing synthesised
+    for i, parts in _voxels(cfg).items():
+        want, got = np.abs(mixture(te, *parts)), np.abs(echoes[i])
         # the beat and the decay of the six echoes, to 2 % of the first in-phase echo (an opposed-phase echo is the small
         # difference of water and fat, and the 2D slice of the engine weights T1 a little less than the one flip angle here)
         assert np.allclose(got / got[1], want / want[1], rtol=0.0, atol=0.02)
         # ... and the phase the fit has to see through: receive phase + off-resonance x echo time + the fat vector
-        turn = np.angle(echoes[r["id"]][3] / echoes[r["id"]][1]) - np.angle(mixture(te, *parts)[3] / mixture(te, *parts)[1])
+        turn = np.angle(echoes[i][3] / echoes[i][1]) - np.angle(mixture(te, *parts)[3] / mixture(te, *parts)[1])
         psi = turn / (2 * np.pi * (te[3] - te[1]) * 1e-3)
         assert abs(psi) < task.OFF_RESONANCE_MAX_HZ
+
+
+def test_what_partial_fourier_of_the_stated_scan_does_to_the_echoes(scanned):
+    """The stated scan acquires 0.75 of the lines and the console synthesises the rest by homodyne detection (engine
+    0.3.0; docs/physics/limits.md, block 5a): the image takes its phase from a low-resolution image. The in-phase
+    echoes are those of the second calculation as before. An opposed-phase echo in which water and fat nearly cancel
+    reads lower, because the low-resolution phase inside such a disc is partly that of the gel around it: up to 5 % of
+    the in-phase echo in this world, whose discs D1 and D3 lie near the cancellation. The fit of the reference still
+    finds every fraction (the next test, on these echoes); the tolerance of the task is not touched by this."""
+    cfg, te, echoes, world, _ = scanned
+    assert console.plan(dict(controls.SCAN), world["console"])["realised"]["lines"] < console.plan(dict(controls.SCAN), world["console"])["realised"]["lines_full"]
+    lowest, gap = 1.0, 0.0
+    for i, parts in _voxels(cfg).items():
+        want, got = np.abs(mixture(te, *parts)), np.abs(echoes[i])
+        want, got = want / want[1], got / got[1]
+        assert np.allclose(got[1::2], want[1::2], rtol=0.0, atol=0.02)   # echoes 2, 4, 6: fat in phase with water
+        assert np.allclose(got[0::2], want[0::2], rtol=0.0, atol=0.05)   # echoes 1, 3, 5: fat opposed
+        lowest, gap = min(lowest, float(want[0::2].min())), max(gap, float(np.abs(got - want)[0::2].max()))
+    assert lowest < 0.05 and 0.02 < gap                                   # the world has such an echo, and there homodyne detection shows
 
 
 def test_the_fit_recovers_the_hidden_fractions_on_noise_free_scans_of_the_engine(scanned):
@@ -223,7 +258,7 @@ def test_the_statement_is_written_from_the_public_task_alone():
         assert ("How to do it" in text) == (level == 1) and ("hints" in cfg["task"]) == (level == 1)
         lo, hi = cfg["task"]["pdff_range_percent"]
         assert f"The fat fractions lie between {lo:g} and {hi:g} percent." in text and "within 3 percentage points" in text
-        assert "-3.80 ppm 8.7 %, -3.40 ppm 69.3 %, -2.60 ppm 12.8 %, -1.94 ppm 0.4 %, -0.39 ppm 3.9 %, +0.60 ppm 4.8 %" in text
+        assert "-3.80 ppm 8.7 %, -3.40 ppm 69.4 %, -2.60 ppm 12.8 %, -1.94 ppm 0.4 %, -0.39 ppm 3.9 %, +0.60 ppm 4.8 %" in text      # the table of engine 0.3.0
         assert "At 1.5 T, 1 ppm is 63.87 Hz." in text and "below 80 Hz" in text and "An answer in the wrong unit is wrong." in text
     method = task.method_text()
     assert "flip_deg 3, tr_ms 60, n_echoes 6, te_ms 2.3, echo_spacing_ms 2.3, matrix 64" in method and "averages 8" in method

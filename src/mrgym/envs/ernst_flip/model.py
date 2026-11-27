@@ -47,7 +47,11 @@ def slice_profile(tbw: float = TBW):
     """(theta [alpha, z], weight [alpha, z]) of the selective pulse with time-bandwidth product ``tbw``. ``theta`` is
     the flip angle at height z for a flip angle alpha (``ALPHA_GRID``) at the slice centre; ``weight`` is the
     quadrature weight of z times the cosine of the transverse phase after the rephasing lobe (the two halves of the
-    slice added), per slice thickness.
+    slice added). z is counted in nominal bandwidths of the pulse across the slice gradient. Since engine 0.3.0 the
+    console calibrates that gradient so that the profile of a small flip angle is one slice thickness wide at half
+    its maximum, which for this pulse is 0.994 nominal bandwidths: the sum over z is the signal per 0.994 slice
+    thicknesses. The factor is the same at every flip angle and T1, so it drops out of every ratio, fit and optimum
+    this module is used for (a fit has a free amplitude).
 
     The pulse is ``PULSE_SAMPLES`` hard sub-pulses about x with the amplitudes of a Hann-windowed sinc; between them a
     spin at height z precesses about z in proportion to z. Each step is a 2 x 2 unitary matrix; the product is
@@ -55,7 +59,7 @@ def slice_profile(tbw: float = TBW):
     t = (np.arange(PULSE_SAMPLES) + 0.5) / PULSE_SAMPLES - 0.5
     amp = np.sinc(tbw * t) * 0.5 * (1.0 + np.cos(2 * np.pi * t))
     amp /= amp.sum()
-    reach = 0.5 + 12.0 / tbw                                     # slice thicknesses: the wings matter (see the module docstring)
+    reach = 0.5 + 12.0 / tbw                                     # nominal bandwidths: the wings matter (see the module docstring)
     z = np.linspace(0.0, reach, int(round(8 * tbw * reach)) + 1)
     wz = np.full(len(z), 2 * (z[1] - z[0]))
     wz[[0, -1]] /= 2
@@ -76,8 +80,8 @@ def slice_profile(tbw: float = TBW):
 
 
 def curve(alpha_rad, tr_ms, t1_ms):
-    """2D signal per unit M0 and slice thickness for flip angles ``alpha_rad`` (1D) at the slice centre and T1 values
-    ``t1_ms`` (a number or 1D): array [t1, alpha]."""
+    """2D signal per unit M0 (and per 0.994 slice thicknesses: ``slice_profile``) for flip angles ``alpha_rad`` (1D) at
+    the slice centre and T1 values ``t1_ms`` (a number or 1D): array [t1, alpha]."""
     theta, weight = slice_profile()
     x = np.clip(np.asarray(alpha_rad, float) / (ALPHA_GRID[1] - ALPHA_GRID[0]), 0.0, len(ALPHA_GRID) - 1.000001)
     i = x.astype(int)

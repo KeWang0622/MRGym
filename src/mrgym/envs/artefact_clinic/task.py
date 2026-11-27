@@ -218,6 +218,12 @@ def check(cfg: dict, answer, exam: dict):
         vocabulary = cfg["task"]["causes_vocabulary"]
         if not isinstance(v, list) or len(v) > MAX_CAUSES or len(set(map(str, v))) != len(v) or any(c not in vocabulary for c in v):
             return f"causes of {i}: a list of at most {MAX_CAUSES} different names from {list(vocabulary)}"
+    # engine 0.3.0: the adjustments of a single scan (centre frequency, transmit amplitude, shim) are not fields of an
+    # examination's protocol; delivered, tx_scale would move the locked flip angle
+    moved = [k for k, v in console.ADJUSTMENTS.items() if isinstance(answer["protocol"], dict) and answer["protocol"].get(k, v) != v]
+    if moved:
+        return (f"the corrected protocol is the examination's protocol: an adjustment of a single scan ({', '.join(moved)}) is not part of it; "
+                "leave it out")
     pl = console.plan(answer["protocol"], exam)
     if not pl["accept"]:
         return "the console rejects the delivered protocol: " + "; ".join(v["message"] for v in pl["violations"])

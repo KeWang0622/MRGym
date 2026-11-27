@@ -33,7 +33,9 @@ ENV_ID = "Scanner/ProtocolToSpec-v0"
 INSTANCES = {"TI": dict(level=1, seed=19), "TE": dict(level=2, seed=0)}       # the first one is found on the first world of its seed
 T1_RATIO, T2_RATIO, SNR_MIN = 4.0, 1.5, 20.0                            # the specification of the task statement
 TR_MS, TI0_MS, TE0_MS, LINES, FOV_MM, BANDWIDTH, SLICE_MM, PRICE_S = 400.0, 80.0, 12.0, 128, 240.0, 200.0, 5.0, 30.0
-PROFILE = 0.82                      # slice-integrated signal of the selective pulses / hard-pulse signal (measured here: 0.78 to 0.86)
+# slice-integrated signal of the selective pulses / hard-pulse signal (measured here on engine 0.2.0: 0.78 to 0.86, taken as
+# 0.82; engine 0.3.0 calibrates the slice gradient of the default pulse, which divides every slice integral by 0.99443)
+PROFILE = 0.82 / 0.99443
 RATIO_RTOL, SIGNAL_RTOL, NULL_ATOL = 0.09, 0.09, 0.03
 CLEAR, CLEAR_SNR = 1.08, 1.12       # every row is at least this factor away from each threshold, by the chain (SNR: the larger one)
 

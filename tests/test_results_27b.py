@@ -329,3 +329,28 @@ def test_the_front_page_says_what_it_is_before_it_shows_training_and_the_recipe_
     assert f"{lo}-{hi} %" in _block(recipe, "RECIPE_PITFALLS")                              # the band of mrgym.learn, not a typed one
     assert len(recipe.rstrip("\n").split("\n")) <= 120
     assert "RECIPE.md" in _read("docs", "README.md")
+
+
+def test_every_page_says_which_engine_the_runs_were_measured_on(report, stored):
+    """The episode logs do not record the engine. It is the engine version of the code each run was played with
+    (``runs.json`` names the commit); results on two engine versions are not comparable, so the report, the recipe page
+    and the front page name the engine of the runs and say when the package serves another one."""
+    import mrgym
+    measured = report.MEASURED_ON
+    assert re.fullmatch(r"mrgym-engine-\d+\.\d+\.\d+", measured)
+    sentence = report.engine_sentence()
+    assert f"`{measured}`" in sentence and (mrgym.ENGINE_ID == measured or (f"`{mrgym.ENGINE_ID}`" in sentence and "have not been repeated" in sentence))
+    plain = " ".join(report.engine_sentence(plain=True).split())
+    assert plain in " ".join(_block(_read("README.md"), "TRAINING").split()) and "`" not in plain
+    assert sentence in _block(_read("docs", "RECIPE.md"), "TRAINING") and f"**Engine.** {sentence}" in _read("docs", "experiments", "RESULTS-27b.md")
+    # where the checkout has the history: the engine version of every commit that runs.json names
+    commits = sorted({c for r in stored["runs"].values() if isinstance(r, dict) for c in re.findall(r"`([0-9a-f]{7,40})`", r["code"])})
+    assert commits
+    found = {}
+    for c in commits:
+        run = subprocess.run(["git", "-C", ROOT, "show", f"{c}:src/mrgym/scanner/session.py"], capture_output=True, text=True)
+        if run.returncode == 0:
+            found[c] = "mrgym-engine-" + re.search(r'^ENGINE_VERSION = "([^"]+)"', run.stdout, re.M)[1]
+    if not found:
+        pytest.skip("the commits of the runs are not in this checkout")
+    assert set(found.values()) == {measured}, found

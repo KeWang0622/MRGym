@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 import scoring
-from mrgym.envs.null_tissue import task
+from mrgym.envs.null_tissue import controls, task
 from mrgym.scanner import console
 from scoring import null_tissue as table
 
@@ -150,7 +150,8 @@ def test_prefill_acquires_the_first_probe_only_where_the_level_says_so():
     assert task.prefill(level1, Scanner()) is None and Scanner.calls == []
     assert task.prefill(level0, Scanner()) == [dict(scan_index=0)]
     assert Scanner.calls == [(task.FIRST_PROBE, level0["task"]["regions"])] and Scanner.calls[0][0] is not task.FIRST_PROBE
-    assert task.FIRST_PROBE == dict(sequence="ir", matrix=64, partial_fourier=0.6, bandwidth_hz_per_px=300.0, tr_ms=800.0, ti_ms=740.0)
+    # the probe of the reference policy at the repetition time and inversion time of the hint (fully sampled since engine 0.3.0)
+    assert task.FIRST_PROBE == dict(controls.PROBE, tr_ms=800.0, ti_ms=740.0) == dict(sequence="ir", matrix=32, bandwidth_hz_per_px=300.0, tr_ms=800.0, ti_ms=740.0)
     assert task.statement(level1) == task.statement(level1, [dict(scan_index=0)]) and task.hint_text(level1) == ""
     only_rule = dict(level0, task=dict(level0["task"], hints=["rule"]))
     assert task.hint_text(only_rule, [dict()]) == task.hint_text(level0) and task.hint_text(level0).startswith("How to do it")

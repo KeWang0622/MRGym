@@ -73,7 +73,7 @@ Limits: 40 scanner requests and 48 tool calls per episode.
 
 ## Gate: the control policies on fresh instances
 
-**Gate not stored on this engine** (`mrgym-engine-0.2.0`). `mrgym gate Scanner/FatFraction-v0 --n 300 --write` measures and stores it.
+**Gate not stored on this engine** (`mrgym-engine-0.3.0`). `mrgym gate Scanner/FatFraction-v0 --n 300 --write` measures and stores it.
 
 | Policy | Must | What it does |
 |---|---|---|
@@ -110,7 +110,7 @@ Regions (circles; centre and radius in mm from the isocentre; each lies inside o
   D4: y -20.05, x -46.9, radius 10
 The fat fractions lie between 5 and 45 percent.
 The fat of this scanner has six peaks (frequency relative to water, share of the fat signal):
-    -3.80 ppm 8.7 %, -3.40 ppm 69.3 %, -2.60 ppm 12.8 %, -1.94 ppm 0.4 %, -0.39 ppm 3.9 %, +0.60 ppm 4.8 %
+    -3.80 ppm 8.7 %, -3.40 ppm 69.4 %, -2.60 ppm 12.8 %, -1.94 ppm 0.4 %, -0.39 ppm 3.9 %, +0.60 ppm 4.8 %
 At 1.5 T, 1 ppm is 63.87 Hz. The field at a disc is off resonance by an unknown amount below 80 Hz.
 T1 and T2* of the water and of the fat differ from disc to disc and are not known.
 

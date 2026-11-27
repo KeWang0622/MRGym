@@ -21,7 +21,7 @@ LOCALISER = {"sequence": "spgr", "tr_ms": 11.0, "flip_deg": 10.0, "fov_mm": 288.
 # ------------------------------------------------------------------ registry
 def test_registry_lists_the_ids_with_their_kind():
     assert {EXPLORE, NOWRAP, T1} <= set(mrgym.list_envs()) and mrgym.list_envs() == mrgym.list_envs("Scanner")
-    assert [mrgym.spec(i).kind for i in (EXPLORE, NOWRAP, T1)] == ["sandbox", "admitted", "practice"]
+    assert [mrgym.spec(i).kind for i in (EXPLORE, NOWRAP, T1)] == ["sandbox", "candidate", "practice"]      # NoWrap: no gate on engine 0.3.0 yet
     assert all(mrgym.spec(i).kind in cards.KINDS for i in mrgym.list_envs())
     assert mrgym.spec(T1).levels == (1, 2, 3) and mrgym.spec(NOWRAP).levels == (0, 1, 2, 3) and mrgym.spec(NOWRAP).version == 1
     assert gate.claim_levels(mrgym.spec(NOWRAP)) == [2, 3] and gate.claim_levels(mrgym.spec(T1)) == [1, 2, 3]
@@ -489,3 +489,15 @@ def test_replaying_an_instance_with_a_log_dir_starts_a_fresh_episode(tmp_path):
         assert env._session.n_scans == 0 and env._session.used == 0.0
     assert len(set(spent)) == 1 and spent[0] > 0
     assert len(os.listdir(tmp_path)) == 6
+
+
+def test_a_hidden_value_is_served_when_it_stands_as_a_number_not_when_its_digits_do():
+    """``mrgym check`` looks for the hidden values of an episode in everything the agent received. A value is found
+    where it stands as a number of its own; its digits inside another number are not the value. (A plain substring
+    search reported the 150 ms of the ``Scanner/NoiseSNR-v0`` phantom in a read-out of 0.0121506732 once the scan
+    data of engine 0.3.0 held those digits.)"""
+    served = check.served
+    assert served("150", '"t1_ms": 150.0') and served("150", "T1 150 ms") and served("150", "[150]") and served("150", "150")
+    assert not served("150", "0.0121506732") and not served("150", "2.251500048") and not served("150", "1500") and not served("150", "0.150")
+    assert served("0.0221475", "noise 0.0221475 per sample") and served("0.0221475", "0.02214753") and not served("0.0221475", "10.0221475")
+    assert served("-4.12836", "offset -4.12836 Hz") and served("ab" * 16, "seed " + "ab" * 16) and not served("0.982253", "x")

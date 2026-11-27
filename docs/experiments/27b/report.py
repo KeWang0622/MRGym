@@ -42,6 +42,7 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 from mrgym_verl import readout as R  # noqa: E402
 from mrgym_verl import stoprules as S  # noqa: E402
 
+import mrgym  # noqa: E402
 from mrgym import learn  # noqa: E402
 
 RESULTS = os.path.join(HERE, "results")
@@ -52,6 +53,12 @@ SIDECAR = os.path.join(ROOT, "assets", "training_27b.json")
 RECIPE_ENV = os.path.join(ROOT, "recipes", "qwen3.8-27b-nowrap.env")
 FIGURE_VERSION = 2                                         # raise it when draw() changes: the stored figure is then stale
 MAIN_RUN = "v17"                                           # the headline: the recipe on the published code
+# The engine every stored run was played on. The episode logs do not record it: it is the ENGINE_VERSION of
+# src/mrgym/scanner/session.py at the commits that runs.json names for the runs (all of them the same;
+# ``git show <commit>:src/mrgym/scanner/session.py``; tests/test_results_27b.py repeats that where the checkout has the
+# history). Results on two engine versions are not comparable (CHANGELOG.md), so every page that shows these numbers
+# says which engine they are from, and whether that is the engine of the package (``engine_sentence``).
+MEASURED_ON = "mrgym-engine-0.2.0"
 FIRST_RUN, MANY_CELLS_RUN, LONGER_RUN, STOPPED_RUN, RECOUNT_RUN = "v07", "v09", "v13", "v18", "v19"
 READOUT_FILES = {"v07": ("test_base_57k.jsonl.gz", "test_trained_step60.jsonl.gz")}       # other runs: test_base_<run>, test_trained_<run>
 READOUT_BY = {"v07": "v15"}                                # the evaluation-only run that read a run out, where it was not the run itself
@@ -596,6 +603,8 @@ def build(d: dict | None = None) -> str:
          f"with one sampler seed; a cell holds {' or '.join(map(str, sizes))} secret instances. The headline is run `{MAIN_RUN}`: the recipe of "
          f"[RECIPE.md](../RECIPE.md) on the published code (commit {runs[MAIN_RUN]['code']}). Read it as evidence that the model learns on the "
          "environment, not as the pre-registered result.", "",
+         f"**Engine.** {engine_sentence()} Every run on this page was played on that engine (the commits in the table of runs). Results on "
+         "two engine versions are not comparable: an engine version changes the data of the scans ([CHANGELOG.md](../../CHANGELOG.md)).", "",
          "The model is trained by reinforcement learning only: LoRA (rank 32) with GRPO in verl on episodes played through the "
          "environment's tools, reward 1 when the delivered result passes the verifier and 0 otherwise. No demonstrations, no supervised "
          "step, no reference answers. Thinking is off and a reply holds at most 2,048 tokens, because an episode has to fit one "
@@ -867,6 +876,16 @@ def _figure(data: dict, prefix: str, short: str) -> list[str]:
             "</p>"]
 
 
+def engine_sentence(plain: bool = False) -> str:
+    """Which engine the stored runs were measured on, and, when the package serves another one, that they have not
+    been repeated on it. ``plain``: engine versions as numbers (the front page), otherwise as engine ids."""
+    short = lambda e: e.rsplit("-", 1)[-1] if plain else f"`{e}`"       # noqa: E731
+    if mrgym.ENGINE_ID == MEASURED_ON:
+        return f"Measured on engine {short(MEASURED_ON)}, the engine of this package."
+    return (f"Measured on engine {short(MEASURED_ON)}; this package serves engine {short(mrgym.ENGINE_ID)}, on which the runs have not been "
+            "repeated.")
+
+
 def front_block(data: dict, prefix: str, model: str) -> str:
     """The TRAINING block of the front page: the figure, two plain sentences, two links. The first sentence gives the
     passes before and after training on the level that was trained and on the easy level of the family that was never
@@ -881,7 +900,7 @@ def front_block(data: dict, prefix: str, model: str) -> str:
     text = (f"{short} was trained for {data['steps']} steps by reinforcement learning, on the reward alone. On {n} test episodes with "
             f"objects it had never seen, the level it trained on went from {trained['before']['passed']} passes to "
             f"{trained['after']['passed']}, and an easy level of a task it never trained on from {other['before']['passed']} to "
-            f"{other['after']['passed']}. These are first runs on one task, and training on a second task did not work: "
+            f"{other['after']['passed']}. {engine_sentence(plain=True)} These are first runs on one task, and training on a second task did not work: "
             f"[the recipe]({prefix}docs/RECIPE.md) and [the full report]({prefix}docs/experiments/RESULTS-27b.md) have the details.")
     return "\n".join([
         '<p align="center">',
@@ -905,7 +924,8 @@ def training_block(data: dict, prefix: str, model: str) -> str:
                 f"was measured in {len(reps)} independent training runs: " + ", ".join(f"{gain(r)} (`{r['run']}`)" for r in reps) + ". Exploratory: "
                 f"the pre-registered rule needs {data['rule']['needed']} trained environments, "
                 + (f"each run trained {met[0]} that meets it" if len(set(met)) == 1 else "the runs trained " + words(met) + " that meet it")
-                + f". The other family's row is a practice level whose text states the method. [Full report]({prefix}docs/experiments/RESULTS-27b.md)."]
+                + f". The other family's row is a practice level whose text states the method. {engine_sentence()} "
+                  f"[Full report]({prefix}docs/experiments/RESULTS-27b.md)."]
     return "\n".join(out)
 
 

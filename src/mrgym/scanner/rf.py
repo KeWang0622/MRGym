@@ -11,8 +11,13 @@ are biased by it (Malik 2011; Dieringer 2014; Svedin & Parker 2017).
 Model
   pulse      ``n`` hard sub-pulses (128) with the amplitudes of a sinc of ``tbw`` zero crossings (time-bandwidth
              product) under a Hann window; the samples sum to 1, so the flip angle at the slice centre is the nominal
-             angle. Bandwidth = tbw / duration; one "slice thickness" is the distance over which the slice gradient
-             spans that bandwidth.
+             angle. Nominal bandwidth = tbw / duration.
+  thickness  the console calibrates the slice gradient per pulse: one "slice thickness" is the full width at half
+             maximum of the small-flip-angle profile (the Fourier transform of the pulse). The gradient spans
+             ``fwhm_factor(tbw)`` nominal bandwidths across it: 1.197 for time-bandwidth 2, 0.994 for 4, 1.000 for 8.
+             A pulse of low time-bandwidth product therefore has the prescribed width and a wide transition band, not
+             a thicker slice. At large flip angles the profile broadens (the Bloch equations are not linear in B1);
+             that is in the rotation below and is not calibrated away.
   rotation   forward Shinnar-Le Roux transform (Pauly 1991): the product of the sub-pulse rotations and the
              precession between them, as Cayley-Klein parameters (a, b) of an SU(2) rotation, exact for a
              piecewise-constant B1. No relaxation during the pulse. A rephasing lobe of half the selection area
@@ -23,10 +28,10 @@ Convention: a rotation by phi about the unit axis n has  a = cos(phi / 2) - i n_
 b = -i (n_x + i n_y) sin(phi / 2). A pulse about x at the slice centre gives Mxy = -i sin(alpha).
 
 Positions are in units of the slice thickness (``zeta`` = z / thickness). The engine integrates the signal through
-the slice with ``quadrature(tbw)``: the trapezoid rule with 6 x tbw points per thickness out to 0.5 + 12 / tbw
-thicknesses. The pulse is symmetric in time, so the flip angle is even in z and the transverse phase factor at -z is
-the complex conjugate of the one at +z: only z >= 0 is tabulated and the two sides are added, which leaves the real
-part of the phase factor. The range and the density are set by the wings of the profile, not by its core: where the
+the slice with ``quadrature(tbw)``: the trapezoid rule with 6 x tbw points per nominal bandwidth out to 0.5 + 12 / tbw
+nominal bandwidths (divided by ``fwhm_factor`` in thicknesses). The pulse is symmetric in time, so the flip angle is
+even in z and the transverse phase factor at -z is the complex conjugate of the one at +z: only z >= 0 is tabulated
+and the two sides are added, which leaves the real part of the phase factor. The range and the density are set by the wings of the profile, not by its core: where the
 flip angle in a wing passes the Ernst angle of a long-T1 material at short TR, the wing gives more signal per
 millimetre than the slice centre, and lobes of opposite sign nearly cancel (``mrgym validate`` rows R3, R4).
 
@@ -38,9 +43,10 @@ from __future__ import annotations
 import functools
 
 import numpy as np
+import scipy.optimize
 
 N_SAMPLES = 128
-POINTS_PER_THICKNESS, WING = 6, 12.0      # quadrature: points per thickness = 6 tbw; range = 0.5 + WING / tbw thicknesses
+POINTS_PER_THICKNESS, WING = 6, 12.0      # quadrature, in nominal bandwidths: 6 tbw points per unit; range = 0.5 + WING / tbw
 REFOCUS_WIDTH = 1.5                 # thickness of the refocusing slice of ``se`` / ``ir`` relative to the excitation slice
 PULSES = dict(fast=(1.0, 2.0), normal=(2.0, 4.0), sharp=(4.0, 8.0))      # name: (duration of an excitation in ms, tbw)
 WINDOWS = ("hann", "hamming")
@@ -59,13 +65,28 @@ def sinc_pulse(tbw, n=N_SAMPLES, window="hann"):
     return b / b.sum()
 
 
+@functools.lru_cache(maxsize=64)
+def fwhm_factor(tbw, window="hann", n=N_SAMPLES):
+    """Full width at half maximum of the small-flip-angle slice profile, in nominal bandwidths (tbw / duration) of the
+    slice gradient. The profile of a small flip angle is the Fourier transform of the pulse; the half-maximum point is
+    found on it. The console sets the slice gradient to ``fwhm_factor x tbw / (duration x gamma x slice thickness)``,
+    so that this width is the prescribed thickness for every pulse."""
+    b = sinc_pulse(tbw, n, window)
+    t = (np.arange(n) + 0.5) / n - 0.5
+    over_half = lambda u: abs(np.sum(b * np.exp(-2j * np.pi * tbw * u * t))) - 0.5        # noqa: E731  the samples sum to 1
+    hi = 0.05
+    while over_half(hi) > 0:                               # the main lobe falls monotonically to its first zero
+        hi += 0.05
+    return float(2 * scipy.optimize.brentq(over_half, hi - 0.05, hi, xtol=1e-13))
+
+
 def cayley_klein(alpha, tbw, zeta, n=N_SAMPLES, rephase=0.5, window="hann"):
     """Rotation made by the pulse at positions ``zeta`` (z / slice thickness) for a flip angle ``alpha`` (rad) at the
     slice centre. ``alpha`` and ``zeta`` broadcast. Returns (a, b) after the pulse and a rephasing lobe of ``rephase``
     times the selection area (0.5 for an excitation, 0 for a refocusing pulse between crushers)."""
     alpha, zeta = np.broadcast_arrays(np.asarray(alpha, float), np.asarray(zeta, float))
     bj = sinc_pulse(tbw, n, window)
-    dphi = 2 * np.pi * tbw * zeta / n                      # precession per sample
+    dphi = 2 * np.pi * tbw * fwhm_factor(tbw, window, n) * zeta / n      # precession per sample under the calibrated gradient
     a, b = np.ones(dphi.shape, complex), np.zeros(dphi.shape, complex)
     ez = np.exp(-0.25j * dphi)                             # half a sample of precession
     for w in bj:
@@ -78,14 +99,17 @@ def cayley_klein(alpha, tbw, zeta, n=N_SAMPLES, rephase=0.5, window="hann"):
 
 
 @functools.lru_cache(maxsize=16)
-def quadrature(tbw):
+def quadrature(tbw, window="hann"):
     """(zeta, weights) of the integral through the slice, in slice thicknesses: positions z >= 0 only, each weight
-    counting the position and its mirror image. Sum of the weights = 2 x the range."""
+    counting the position and its mirror image. Sum of the weights = 2 x the range. The grid is laid out in nominal
+    bandwidths of the slice gradient (where the lobes of the profile sit, whatever the calibration) and divided by
+    ``fwhm_factor``."""
     h = 1.0 / (POINTS_PER_THICKNESS * tbw)
     k = int(round((0.5 + WING / tbw) / h))
     w = np.full(k + 1, 2 * h)
     w[[0, -1]] = h
-    return np.arange(k + 1) * h, w
+    cal = fwhm_factor(tbw, window)
+    return np.arange(k + 1) * h / cal, w / cal
 
 
 def excitation(alpha, tbw, zeta, window="hann"):
@@ -118,8 +142,10 @@ def peak_factor(tbw, window="hann", n=N_SAMPLES):
 def dephasing_factor(cycles, tbw, window="hann"):
     """Signal left when the phase runs through ``cycles`` turns across one slice thickness (through-slice field
     gradient x thickness x echo time). For a small flip angle the profile is the Fourier transform of the pulse, so
-    the integral of profile x phase ramp is the pulse shape itself at t = cycles / tbw of its duration:
-    sinc(cycles) x window(cycles / tbw), and nothing beyond the end of the pulse (|cycles| >= tbw / 2)."""
-    t = np.asarray(cycles, float) / tbw
+    the integral of profile x phase ramp is the pulse shape itself at t = c / tbw of its duration, with c the turns
+    across one nominal bandwidth of the slice gradient (``cycles / fwhm_factor``): sinc(c) x window(c / tbw), and
+    nothing beyond the end of the pulse (|c| >= tbw / 2)."""
+    c = np.asarray(cycles, float) / fwhm_factor(tbw, window)
+    t = c / tbw
     w = 0.5 * (1 + np.cos(2 * np.pi * t)) if window == "hann" else 0.54 + 0.46 * np.cos(2 * np.pi * t)
-    return np.where(np.abs(t) < 0.5, np.sinc(np.asarray(cycles, float)) * w, 0.0)
+    return np.where(np.abs(t) < 0.5, np.sinc(c) * w, 0.0)

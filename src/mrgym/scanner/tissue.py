@@ -17,12 +17,23 @@ Sources (full records in docs/physics/references.md)
   Peters 2007        MRI 25:748, doi:10.1016/j.mri.2007.02.014      T2* of GM and WM at 1.5 and 3 T                    [T]
   Stanisz 2005       MRM 54:507, doi:10.1002/mrm.20605              muscle, blood, cord T1 / T2 at 1.5 and 3 T         [T]
   de Bazelaire 2004  Radiology 230:652, doi:10.1148/radiol.2303021331   abdomen: 3 T values [A], 1.5 T values [T]
-  Hamilton 2011      NMR Biomed 24:784, doi:10.1002/nbm.1622        six-peak fat spectrum (amplitudes [T])
+  Hernando 2017      MRM 77:1516, doi:10.1002/mrm.26228 (PMC4835219)  six-peak fat model: shifts and amplitudes, read in
+                                                                    the full text (Methods, image reconstruction)      [F]
+  Hamilton 2011      NMR Biomed 24:784, doi:10.1002/nbm.1622        the measured liver fat spectrum (Table 3) that such
+                                                                    models describe; NOT the list used here (below)
+  [F]  the value is stated in the full text of the cited paper, which was read for it
 """
 
-FAT_PPM = -3.4              # main methylene peak (1.3 ppm) relative to water (4.7 ppm)  [T]
-# six-peak fat spectrum relative to water, ppm and relative amplitude (Hamilton 2011, liver fat)  [T]
-FAT_PEAKS = ((-3.80, 0.087), (-3.40, 0.693), (-2.60, 0.128), (-1.94, 0.004), (-0.39, 0.039), (0.60, 0.048))
+FAT_PPM = -3.4              # main methylene peak (1.3 ppm) relative to water (4.7 ppm)
+# Six-peak fat model, ppm relative to water and relative amplitude. Source: Hernando 2017, which lists the model it
+# reconstructs with as shifts of -3.90, -3.50, -2.70, -2.04, -0.49, 0.50 ppm with amplitudes 0.087, 0.694, 0.128, 0.004,
+# 0.039, 0.048, after "a common frequency shift of 0.1 ppm" for a phantom at room temperature (3.50 ppm between water
+# and the main peak). The list here is that model without the room-temperature shift: 3.40 ppm, the body's.
+# It is not Table 3 of Hamilton 2011, although engine 0.2.0 and before labelled it so (and carried 0.693 for the main
+# peak). That table has 8.8, 70.0, 12.0, 0.6, 3.9 and 4.7 % at 0.9, 1.3, 2.1, 2.75, 4.2 and 5.3 ppm with water at 4.7:
+# the amplitudes are within 0.8 points of the model's, five positions within 0.01 ppm, and the glycerol peak, which
+# the table has at 4.2 ppm, sits at 4.31 ppm in the model (``tests/test_cited_tables.py`` holds both lists).
+FAT_PEAKS = ((-3.80, 0.087), (-3.40, 0.694), (-2.60, 0.128), (-1.94, 0.004), (-0.39, 0.039), (0.60, 0.048))
 
 #            name            PD     T1@1.5  T1@3   T2@1.5 T2@3  T2*@1.5 T2*@3  ADC   fat
 _T = [

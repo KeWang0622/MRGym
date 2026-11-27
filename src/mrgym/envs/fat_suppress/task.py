@@ -15,13 +15,21 @@ Pass rule      for every marked region, on noise-free scans of the target image 
                   is where fat saturation leaves more than ``fat_sat_sufficient`` (< ``fat_max``) of the signal. Between
                   the two numbers both methods pass, so a region on the edge never decides an episode.
 
+Engine 0.3.0. Fat saturation acts on the lines of the fat spectrum inside the band of the pulse and drives a steady
+state (``docs/physics/limits.md``, block 9a): the lines outside the band keep their signal, 9 to 31 % of the fat for
+the bands of the levels. With ``FAT_MAX`` = 5 % fat saturation therefore passes rule 1 in no region, the right answer
+is inversion recovery everywhere, and rule 2 cannot fail: the choice between the two methods, which this family was
+built to examine, does not exist at these thresholds on this engine. The thresholds are part of the id and are not
+changed here; a successor id needs thresholds between what a band that holds the main lines leaves (a quarter of the
+signal) and what one that misses them leaves.
+
 Why several regions. With one region the answer is one of two methods, and the commoner one passes without a scan.
 Each marked region holds its own fat (its own T1) at its own place in the field, so the methods and the inversion
 times of the regions are separate coordinates of the deliverable; the same probe scans serve all of them.
 
 The hidden world is ``W.make_world(seed, world_spec)`` and nothing else: the verifier, ``mrgym verify``, the HTTP
 service and an exported task rebuild exactly the world the episode was played on. Two keys of the level specs do the
-work of this family (both are drawn by the world generator of engine 0.2.0):
+work of this family (both are drawn by the world generator since engine 0.2.0):
   ``qa.oil_t1_jitter``  j: the T1 of every fat-containing vial is the table value times an independent factor drawn
                         uniformly from 1 - j to 1 + j, so no constant inversion time nulls every fat
   ``fatsat_bw_hz``      (low, high): the bandwidth of the saturation pulse at 3 T is drawn uniformly from this range
@@ -209,7 +217,10 @@ def card() -> dict:
                 "fails where the field is inhomogeneous, where the frequency adjustment is off and where the pulse is "
                 "weak; STIR works everywhere but removes a large part of the water signal, and its inversion time depends on "
                 "the T1 of that fat, on the repetition time and on how complete the inversion is. Neither can be "
-                "looked up: fat saturation has to be tried on this object, and the null has to be measured. " + kind["sentence"],
+                "looked up: fat saturation has to be tried on this object, and the null has to be measured. "
+                "On engine 0.3.0 this choice does not arise: fat saturation leaves the lines of the fat spectrum outside the "
+                "band of its pulse, more than the task allows, so it passes in no region and the answer is inversion recovery "
+                "everywhere; the id needs a successor with other thresholds. " + kind["sentence"],
         task_kind=kind["kind"], task_kind_why=kind["evidence"], task_kind_levels=kind["levels"], competencies=list(COMPETENCIES),
         world=dict(phantom="QA phantom (a disc of gel with vials, four of them fat with their own T1), 3 T",
                    sequences_useful=["se", "ir", "spgr"],
