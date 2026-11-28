@@ -190,3 +190,54 @@ Statements that the package makes without a reference, so that a reader does not
   T1 ln 2 (row S13) are standard results quoted as numbers;
 - the proton gyromagnetic ratio 42.577478518 MHz/T carries no citation in the code;
 - the sizes of the system errors and of the noise are choices of the package ([limits.md](limits.md), block 15).
+
+## Added with the periodic state of the repetition, the prepared sequences and the opened tissue sources
+
+Opened on 2026-11-27 through Europe PMC, PubMed Central or an archived copy of the publisher's page. "Abstract":
+the number is in the abstract and the abstract was read; "full text": the number was read in the full text. A paper
+that could not be opened is said to be so, and no number of this table rests on a paper that was not opened.
+
+**The ratio of the refocusing slice to the excited slice** (`console.REFOCUS_SLICE_RATIO`, parameter
+`refocus_slice_ratio`; [measured.md](measured.md), rung M3b). Product sequences differ: no single value is a
+standard. The console keeps 1.5, the pulse pair of its `se` and `ir`, and takes 1.0 to 3.0.
+
+| Reference | What it states | Read |
+|---|---|---|
+| Ben-Eliezer, Sodickson, Block. Magn Reson Med 73:809-817, 2015 (PMC4169365) | a product multi-echo spin echo at 3 T: "slice thickness=3 mm, refocusing / excitation slice-thickness factor = 1.2"; TR 1500 ms, 18 echoes of 12 ms | full text |
+| Ben-Eliezer et al. 2016 (PMC4609223); Akhondi-Asl et al. 2016 (PMC4854813); Santini et al. 2021 (PMC7952742); Mehdizadeh & Wilman 2022 (PMC9321077) | the same factor, 1.2, for multi-echo spin echo on scanners of the same manufacturer | full text |
+| Sarlls & Pierpaoli 2008 (PMC2597557) | "the default refocusing slice width set by the manufacturer for FSE acquisition (150%)"; they use 3.0 | full text |
+| Huang et al. 2013 (PMC3593752) | fast spin echo of the same manufacturer: the refocusing pulses "about 1.6 times as thick" at half maximum | full text |
+| Sammet et al. 2013 (PMC3640690) | a preset turbo spin echo of a third manufacturer: "the refocusing and excitation slice thickness are the same"; 3.0 after optimisation | full text |
+| Pell et al. J Magn Reson Imaging 23:248-252, 2006 | relaxometry with a standard CPMG sequence: a ratio of 3 : 1 is required | abstract |
+
+**Diffusion coefficients** (`scanner/tissue.py`, `ADC_SOURCES`; the numbers and the quoted statements are in that
+table).
+
+| Reference | Used for | Read |
+|---|---|---|
+| Helenius et al. AJNR 23:194-199, 2002 (PMID 11847041) | white matter, cortical and deep grey matter (abstract); lateral ventricle, Table 1 (full text) | abstract and full text |
+| Annet et al. Neuroradiology 44:326, 2002 (PMID 11914809) | cerebrospinal fluid | abstract |
+| Kılıçkesmez et al. Diagn Interv Radiol 14:83-87, 2008 (PMID 18553281) | liver, spleen, renal cortex and medulla, pancreas | abstract |
+| Bruegel et al. Eur Radiol 18:477, 2008 (PMID 17960390); Yoshikawa et al. AJR 187:1521, 2006 (PMID 17114546) | liver, a second and third source; liver lesions | abstract |
+| Zaraiskaya et al. J Magn Reson Imaging 24:402, 2006 (PMID 16823776) | skeletal muscle (calf) | abstract |
+| Weedall et al. BJR Open 6:tzae002, 2024 (PMC10873271) | lumbar muscles | full text |
+| Funck et al. Magn Reson Med 79:2752, 2018 (PMID 28940621) | blood, ex vivo | abstract |
+| Mamata et al. J Magn Reson Imaging 22:38, 2005 (PMID 15971186) | spinal cord | abstract |
+| Skwierawska et al. Diagnostics 14:934, 2024 (PMC11083106) | skin | full text |
+| Dietrich et al. NMR Biomed 30:e3333, 2017 (PMID 26114411) | vertebral bone marrow | abstract |
+| Lehnert et al. Magn Reson Imaging 22:39, 2004 (PMID 14972393); Steidle et al. Magn Reson Med 65:1118, 2011 (PMID 21413077) | fat | abstract |
+| Fernández-Seara et al. Biophys J 82:522, 2002 (PMID 11751339) | cortical bone | abstract |
+| Roychowdhury et al. AJNR 21:869, 2000 (PMID 10815662) | lesions of multiple sclerosis | abstract |
+| Kono et al. AJNR 22:1081, 2001 (PMID 11415902) | low-grade tumour (abstract), peritumoral oedema (full text) | abstract and full text |
+| Fardis et al. Int J Mol Sci 23:14432, 2022 (PMC9697084) | quotes the constants of the water fit of Holz 2000 (`tissue.water_adc_um2_ms`); Holz 2000 and Mills 1973 themselves were not opened | full text |
+
+**Two pools** (`scanner/tissue.py`, `mt_table`).
+
+| Reference | Used for | Read |
+|---|---|---|
+| Stanisz et al. Magn Reson Med 54:507-512, 2005 (doi:10.1002/mrm.20605) | Table 2: bound-pool fraction, exchange rate constant and bound-pool T2 of white and grey matter, muscle, liver, spinal cord, blood, cartilage at 3 T (measured) and the literature values it lists at 1.5 T | full text (archived copy of the publisher's page) |
+| Sled & Pike. Magn Reson Med 46:923-931, 2001 (PMID 11675644) | the definition F = M0,r / M0,f and kr = kf / F that the table above is read with; T1 of the bound pool "set ... arbitrarily to 1 s-1" | full text (archived copy) |
+| Morrison & Henkelman. Magn Reson Med 33:475-482, 1995 | "In CSF, as expected, there is no measurable exchange of magnetization"; the absorption lines of `operators.lineshape` are attributed to it and were NOT read there | abstract |
+| Weigel et al. 2010 (magnetisation transfer in turbo spin echo, 3 T) | "the MT effect in CSF and fat is negligible (<3.5%)"; up to 18.7 % signal loss of white matter with five slices | full text (archived copy) |
+| Henkelman et al. Magn Reson Med 29:759-766, 1993 | the two-pool model and its closed form for continuous irradiation (row M2 of the core): NOT opened beyond the abstract; the row checks the formula against the linear solve of the two rate equations | abstract |
+| McConnell. J Chem Phys 28:430, 1958 | the exchange equations of rows X6c and X6d of the core: not opened; the closed form is derived in the row | not opened |

@@ -52,7 +52,6 @@ import fits  # noqa: E402
 import page  # noqa: E402
 
 from mrgym import qa  # noqa: E402
-from mrgym.core import library  # noqa: E402
 from mrgym.design import pulses  # noqa: E402
 from mrgym.design import sequence as Q  # noqa: E402
 from mrgym.scanner import anatomy, console, kspace, tissue  # noqa: E402
@@ -78,7 +77,7 @@ def test(id, quantity, measured, engine, difference, tolerance, ok, note=""):
 # that grows past its ceiling fails ``--check`` and tests/test_measured.py; one that shrinks is good news and a
 # reason to lower the ceiling.
 CEILINGS = {
-    "M0.3": 3.6, "M0.4": 21.0, "M0.6": 70.0, "M0.7": 43.0, "M0.8": 22.0, "M1.5": 5.5, "M1.6": 2.8, "M2.3": 11.0, "M3b.7": 19.0,
+    "M0.3": 3.6, "M0.4": 21.0, "M0.6": 70.0, "M0.7": 43.0, "M0.8": 22.0, "M1.5": 5.5, "M1.6": 2.8, "M2.3": 11.0,
     "M4.2": 0.12, "M5.2": 17.0, "M6.3": 1.3, "M6.4": 1.0, "M6.5": 0.02, "M6.6": 0.22, "M6.8": 4.2, "M6.11": 21.0, "M6.12": 4.0, "M7.5": 4.6, "M8.3": 0.10,
     "M9.3": 160.0, "M9.4": 9.0, "M9.5": 4.0, "M9.6": 0.33, "M9.7": 1.3,
 }
@@ -406,32 +405,41 @@ def rung_m3b():
     # ---- the console's own sequence: `mese` on a world of the nine tubes, the images fitted as the design-layer echoes are
     w, cen = _tube_world()
     eng = kspace.Engine(w)
+    own_ratio = console.REFOCUS_SLICE_RATIO
     served = {ratio: {ang: {pulse: _console_bias(eng, w, cen, ang, pulse, ratio) for pulse in ("normal", "fast")} for ang in (180, 150, 120)}
-              for ratio in (M3B["width"], library.REFOCUS_WIDTH)}
+              for ratio in (M3B["width"], own_ratio)}
     for k, ang in enumerate((180, 150, 120)):
         m, sd = M3B_MEASURED[ang]
         got = served[M3B["width"]][ang]
-        rows.append(test(f"M3b.{k + 4}", f"the same from the images of the console's `mese` with the published ratio of the two slices ({M3B['width']:g}), refocusing {ang}°",
+        rows.append(test(f"M3b.{k + 4}", f"the same from the images of the console's `mese` with the protocol of the paper (`refocus_slice_ratio` {M3B['width']:g}), refocusing {ang}°",
                          f"{m:+.1f} % (SD over the tubes {sd:.1f})", f"{got['normal']:+.1f} % (normal pulse, time-bandwidth 4), {got['fast']:+.1f} % (fast pulse, time-bandwidth 2)",
                          f"{got['normal'] - m:+.1f} and {got['fast'] - m:+.1f} points", "the measured mean lies between the two pulse shapes", min(got.values()) <= m <= max(got.values()),
-                         note=f"The ratio is `mrgym.core.library.REFOCUS_WIDTH`, set to {M3B['width']:g} for these rows only; it is not a console parameter."))
-    own = served[library.REFOCUS_WIDTH]
-    short = max(M3B_MEASURED[ang][0] - own[ang]["normal"] for ang in (180, 150, 120))
-    rows.append(declared("M3b.7", f"the same from the console's `mese` as it is served (refocusing slice {library.REFOCUS_WIDTH:g} × the excitation slice), 180° / 150° / 120°",
-                         " / ".join(f"{M3B_MEASURED[a][0]:+.1f} %" for a in (180, 150, 120)),
-                         " / ".join(f"{own[a]['normal']:+.1f} %" for a in (180, 150, 120)) + " (normal pulse); " + " / ".join(f"{own[a]['fast']:+.1f} %" for a in (180, 150, 120)) + " (fast pulse)",
-                         f"{min(M3B_MEASURED[a][0] - own[a]['fast'] for a in (180, 150, 120)):.1f} to {short:.1f} points below", short, 8,
-                         note="The console refocuses on a wider slice than the product sequence of the measurement: fewer spins of the excited slice see a refocusing angle "
-                              "below the nominal one, and fewer stimulated echoes bias the fit."))
+                         note=f"The ratio of the refocusing slice to the excitation slice is a protocol parameter of the console; {M3B['width']:g} is the value the paper "
+                              "states for its product sequence, taken from its protocol and not fitted."))
+    own = served[own_ratio]
+    below = [served[M3B["width"]][a][pulse] - own[a][pulse] for a in (180, 150, 120) for pulse in ("normal", "fast")]
+    rows.append(test("M3b.7", f"the same at the console's default ratio ({own_ratio:g}, the pulse pair of its `se` and `ir`), 180° / 150° / 120°",
+                     " / ".join(f"{M3B_MEASURED[a][0]:+.1f} %" for a in (180, 150, 120)) + f" (measured at ratio {M3B['width']:g})",
+                     " / ".join(f"{own[a]['normal']:+.1f} %" for a in (180, 150, 120)) + " (normal pulse); " + " / ".join(f"{own[a]['fast']:+.1f} %" for a in (180, 150, 120))
+                     + " (fast pulse)",
+                     f"{min(M3B_MEASURED[a][0] - own[a]['fast'] for a in (180, 150, 120)):.1f} to {max(M3B_MEASURED[a][0] - own[a]['normal'] for a in (180, 150, 120)):.1f} points "
+                     f"below the measurement; {min(below):.1f} to {max(below):.1f} points below the console at ratio {M3B['width']:g}",
+                     "a wider refocusing slice gives a smaller error, for both pulses and all three angles (another sequence than the measured one, not a difference of the "
+                     "engine from the measurement)", min(below) > 0,
+                     note=f"Product sequences differ in this ratio: {M3B['width']:g} on the scanner of the measurement, 1.5 as a manufacturer's default of fast spin echo "
+                          "(Sarlls & Pierpaoli 2008), 1.0 for a preset turbo spin echo (Sammet 2013); see docs/physics/references.md. The wider the refocusing slice, the "
+                          "fewer spins of the excited slice see a refocusing angle below the nominal one, and the fewer stimulated echoes bias the fit."))
     return dict(rung="M3b", title="T2 from a multi-echo spin echo (design layer, and the console's `mese`)", rows=rows, extracts=[],
                 source="Ben-Eliezer 2015, Magn Reson Med 73:809, Table 1 (no open licence: the nine tubes' T1 and T2 as the object, and derived means of the measured error)",
                 notes=[f"Protocol of the paper: 3 T, {M3B['n']} echoes of {M3B['esp']:g} ms, TR {M3B['tr']:g} ms, {M3B['thk']:g} mm, refocusing slice {M3B['width']:g} × the "
                        "excitation slice. Rows M3b.1 to M3b.3: the block-list EPG of the design layer through the slice profile of the console's windowed-sinc pulses "
                        "(gratings along z survive between repetitions); nothing is fitted.",
                        "Rows M3b.4 to M3b.7: `Engine.acquire` of the console's `mese` with that protocol (matrix 128, field of view 256 mm) on a world of nine tubes with "
-                       "the published T1 and T2, perfect fields, no noise; the mean of each tube in each of the 18 images, then the same exponential fit. The console "
-                       "calibrates its slice to the width at half maximum of the profile and ends every repetition with an ideal crusher (limits.md, block 8a); the "
-                       "design-layer rows do neither."])
+                       "the published T1 and T2 and the diffusion of water (2.0 um^2/ms), perfect fields, no noise; the mean of each tube in each of the 18 images, then the "
+                       "same exponential fit. The console calibrates its slice to the width at half maximum of the profile, plays crusher lobes of 1 ms and a spoiler, and "
+                       "keeps what survives the repetition (the gratings along z, as the design-layer rows do; core.md, section 11).",
+                       "What was fixed before the comparison: the ratio of the two slices (from the paper's protocol), and the periodic state of the repetition with its "
+                       "gratings (checked against an isochromat ensemble and the design layer, rows J9 and J20 of `mrgym validate`). Nothing was fitted to the measured means."])
 
 
 def _tube(cy, cx, radius_mm=14.0):
@@ -451,16 +459,11 @@ def _tube_world():
 
 def _console_bias(eng, w, cen, refocus_deg, pulse, ratio):
     """Mean over the tubes of 100 (T2 fitted to the console's `mese` images / T2 - 1), with the refocusing slice ``ratio``
-    times the excitation slice."""
-    keep = library.REFOCUS_WIDTH
-    library.REFOCUS_WIDTH = float(ratio)
-    try:
-        pl = console.plan(dict(sequence="mese", tr_ms=M3B["tr"], n_echoes=M3B["n"], echo_spacing_ms=M3B["esp"], slice_mm=M3B["thk"], refocus_deg=float(refocus_deg),
-                               rf_pulse=pulse, matrix=128, fov_mm=256.0), w["console"])
-        rp = pl["realised"]
-        img = kspace.Engine(w).acquire(rp, None) if ratio != keep else eng.acquire(rp, None)      # a fresh engine: its cache is keyed by the protocol, not by the ratio
-    finally:
-        library.REFOCUS_WIDTH = keep
+    times the excitation slice (the protocol parameter ``refocus_slice_ratio``)."""
+    pl = console.plan(dict(sequence="mese", tr_ms=M3B["tr"], n_echoes=M3B["n"], echo_spacing_ms=M3B["esp"], slice_mm=M3B["thk"], refocus_deg=float(refocus_deg),
+                           rf_pulse=pulse, matrix=128, fov_mm=256.0, refocus_slice_ratio=float(ratio)), w["console"])
+    rp = pl["realised"]
+    img = eng.acquire(rp, None)
     yy = (np.arange(rp["matrix_pe"]) - rp["matrix_pe"] // 2) * rp["fov_pe_mm"] / rp["matrix_pe"]
     xx = (np.arange(rp["matrix"]) - rp["matrix"] // 2) * rp["fov_mm"] / rp["matrix"]
     te = np.array(rp["echo_times_ms"])
@@ -1019,10 +1022,10 @@ KNOWN = [
      ("M6.11", "M6.13"), "a positioning error of the phantom drawn from the measured range (`anatomy.ACR_SPEC`; ordinary engine work). The measurement side is closed here"),
     (7, "The engine cannot say how T1 and T2 of one phantom differ between sites and units: its objects hold exactly the published values, and nothing in `ir` or `se` changes them.",
      ("M1.5", "M9.4", "M9.5"), "a spread of the phantom values per unit and temperature, and transverse coherence across TR (engine packages: temperature, block-list core)"),
-    (8, "The console's multi-echo spin echo (`mese`, served from the block-list core) refocuses on a slice 1.5 times the excitation slice; the product sequence of the "
-        "measurement on 1.2 times. The wider refocusing slice leaves fewer stimulated echoes, so the T2 error of an exponential fit is smaller than the measured one. "
-        "With the published ratio the same code brackets the measurement.",
-     ("M3b.7", "M3b.4"), "the ratio of the two slices as a console parameter (ordinary engine work on `console.py` and `library.REFOCUS_WIDTH`)"),
+    (8, "Closed. The console's multi-echo spin echo refocused on a slice 1.5 times the excitation slice and ended every repetition with an ideal crusher; the "
+        "product sequence of the measurement refocuses on 1.2 times. The ratio is now a protocol parameter (`refocus_slice_ratio`, 1.0 to 3.0), and the repetition "
+        "keeps its gratings: with the protocol of the paper the console brackets the measurement, as the design layer does.",
+     ("M3b.4", "M3b.5", "M3b.6", "M3b.7"), "nothing left: at the console's default ratio the error is smaller for a stated reason (M3b.7)"),
     (9, "The NIST world exists at 3 T only, with a declared T2 rule and declared water. The published T1 and T2 of both plates at both fields are in the package since this branch.",
      ("M0.3", "M0.4", "M0.8", "M0.5"), "`nist_t2` and the 1.5 T plates as world kinds, `nist_t1` on the published T2, water and outline (an engine version of its "
      "own, since it changes the data of `nist_t1`, and one branch of `world.py`)"),

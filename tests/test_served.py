@@ -3,7 +3,7 @@
 What is pinned here, next to the validation rows of ``mrgym validate`` (group ``core``), which this file also runs:
   * a console whose card lists no sequences is the console of before: tables, schema, refusals;
   * the registry is one source: every entry plans, has a block list and a sampling plan;
-  * the four sequences of ``console.EXTENDED`` scan through ``Engine.scan`` and through a session, are replayed bit for
+  * the sequences of ``console.EXTENDED`` scan through ``Engine.scan`` and through a session, are replayed bit for
     bit, and their noise-free data do not depend on the averages;
   * the line path equals the engine's own formation where the amplitude does not change from line to line.
 """
@@ -23,6 +23,7 @@ PROTOCOLS = dict(
     mese=dict(sequence="mese", tr_ms=1500.0, n_echoes=6, matrix=64, refocus_deg=150.0),
     megre=dict(sequence="megre", tr_ms=60.0, flip_deg=20.0, n_echoes=3, matrix=64, readout="bipolar"),
     dwse=dict(sequence="dwse", tr_ms=2500.0, b_value=800.0, matrix=64),
+    satrec=dict(sequence="satrec", tr_ms=700.0, ts_ms=300.0, matrix=64),
 )
 _rows = {}
 
@@ -43,7 +44,7 @@ def engine(world):
     return kspace.Engine(world)
 
 
-# The sequences this file is about: the six with a closed form and the four of the block-list core. ``rfscan`` (a
+# The sequences this file is about: the six with a closed form and those of the block-list core. ``rfscan`` (a
 # designed excitation, ``scanner/rfscan.py``) is in the registry too; a card lists it by name and tests/test_rf_pulse.py holds it.
 SERVED = sorted(n for n in console.REGISTRY if console.REGISTRY[n].serves != "design")
 
@@ -52,14 +53,15 @@ SERVED = sorted(n for n in console.REGISTRY if console.REGISTRY[n].serves != "de
 def test_a_card_without_sequences_offers_the_six_and_nothing_else():
     assert console.offered(None) is console.SEQUENCES and console.offered(EXAM) is console.SEQUENCES
     assert console.CLASSIC == tuple(console.SEQUENCES) == ("spgr", "afi", "se", "ir", "bssfp", "epi")
-    # the six, the four of the block-list core, and the scan that plays a stored design (a card lists it by name; "all" does not)
+    # the six, those of the block-list core, and the scan that plays a stored design (a card lists it by name; "all" does not)
     assert set(console.REGISTRY) == set(console.SEQUENCES) | set(console.EXTENDED) | {"rfscan"}
     assert "rfscan" not in console.offered(dict(EXAM, sequences="all")) and "rfscan" in console.offered(dict(EXAM, sequences=["rfscan"]))
     for name, prot in PROTOCOLS.items():
         pl = console.plan(prot, EXAM)
         assert not pl["accept"] and pl["violations"][0]["code"] == "UNKNOWN_SEQUENCE" and name not in pl["violations"][0]["message"]
     assert console.protocol_schema(EXAM)["properties"]["sequence"]["enum"] == sorted(console.SEQUENCES)
-    assert not set(console.protocol_schema(EXAM)["properties"]) & {"etl", "b_value", "refocus_deg", "echo_order", "readout", "diffusion_dir"}
+    assert not set(console.protocol_schema(EXAM)["properties"]) & {"etl", "b_value", "refocus_deg", "echo_order", "readout", "diffusion_dir", "prep", "ts_ms",
+                                                                   "refocus_slice_ratio"}
     # the words of real consoles keep their refusal there, and get the parameter that provides them where it exists
     old = console.plan(dict(sequence="se", tr_ms=500.0, turbo_factor=4), EXAM)["violations"][0]
     new = console.plan(dict(sequence="se", tr_ms=500.0, turbo_factor=4), ALL)["violations"][0]
@@ -127,12 +129,15 @@ def test_later_echoes_decay_and_the_diffusion_weighted_image_is_darker(engine):
     assert np.abs(hi).mean() < 0.7 * np.abs(lo).mean()
 
 
-def test_a_world_with_periodic_motion_is_refused_for_core_sequences():
+def test_a_world_with_periodic_motion_is_scanned_by_core_sequences():
+    """(Refused until the line modulation of the engine was formed for them: tests/test_served_motion.py.)"""
     w = W.make_world("c1" * 16, dict(kind="brain", n=128, console_sequences="all", motion=[dict(kind="pulse", cls="csf", f_hz=1.1, depth=0.2)]))
-    eng = kspace.Engine(w)
+    eng, still = kspace.Engine(w), kspace.Engine(dict(w, motion=[]))
     assert eng.scan(dict(sequence="se", tr_ms=500.0, matrix=32))["images"].shape == (1, 32, 32)
-    with pytest.raises(ValueError, match="periodic motion"):
-        eng.scan(dict(PROTOCOLS["fse"], matrix=32))
+    for name in ("fse", "mese", "megre", "dwse"):
+        prot = dict(PROTOCOLS[name], matrix=32)
+        a, b = eng.scan(prot)["images"], still.scan(prot)["images"]
+        assert a.shape == b.shape and np.abs(a - b).max() > 1e-6 * np.abs(b).max(), name
 
 
 def test_the_line_path_is_the_engines_formation_where_nothing_changes_from_line_to_line(engine):
@@ -141,8 +146,11 @@ def test_the_line_path_is_the_engines_formation_where_nothing_changes_from_line_
     w = engine.w
     rp = console.plan(dict(sequence="dwse", tr_ms=800.0, te_ms=40.0, b_value=0.0, matrix=64, pe_dir="x", centre_y_mm=12.0, phase_fov=0.75), w["console"])["realised"]
     se = console.plan(dict(sequence="se", tr_ms=800.0, te_ms=40.0, matrix=64, pe_dir="x", centre_y_mm=12.0, phase_fov=0.75), w["console"])["realised"]
-    a, b = engine.clean_kspace(rp)[0], engine.clean_kspace(se)[0]
+    ideal = {k: v for k, v in rp.items() if k != "crusher_g_mt_m"}       # without the console's lobes: perfect crushers, the model of ``se``
+    a, b = engine.clean_kspace(ideal)[0], engine.clean_kspace(se)[0]
     assert np.abs(a - b).max() < 1e-4 * np.abs(b).max()                 # the engine cuts its readout basis at 1e-4
+    real = engine.clean_kspace(rp)[0]                                   # as the console plays it: the stimulated echo of the last repetition is in it
+    assert 1e-3 * np.abs(b).max() < np.abs(real - b).max() < 0.5 * np.abs(b).max()
     det = {}
     served.form_lines(engine, rp, served.table(engine, rp), console.sampling(rp), details=det)
     assert 0 < det["terms"] <= 16 and det["bound"] <= det["tolerance"] == served.LINE_NOISE_FRACTION * served.noise_per_sample(engine, rp, 64)
@@ -220,16 +228,20 @@ def test_the_supplement_names_every_parameter_of_the_core_sequences_with_its_ran
     assert not any(f"`{name}`" in old for name in console.EXTENDED)
 
 
-def test_every_diffusion_coefficient_has_a_source_line_and_the_table_did_not_move():
+def test_every_diffusion_coefficient_stands_against_an_opened_source_or_is_declared():
     from mrgym.scanner import tissue
     rep = {r["name"]: r for r in tissue.adc_report()}
     assert set(rep) == set(tissue.NAMES) == set(tissue.ADC_SOURCES)
-    assert sum(r["tag"] == "A" for r in rep.values()) == 8 and sum(r["tag"] == "C" for r in rep.values()) == 16 and rep["csf"]["tag"] == "R"
-    assert all(r["source"] and r["low"] < r["high"] for r in rep.values() if r["tag"] != "C")
+    # 23 coefficients lie against a source that was opened (abstract or full text), 2 are declared
+    assert sorted(n for n, r in rep.items() if r["tag"] == "C") == ["bowel_fluid", "liver_lesion"]
+    assert all(r["tag"] in ("A", "F") and r["source"] and r["low"] < r["high"] for n, r in rep.items() if r["tag"] != "C")
+    # what lies outside its source is marked in the table itself and listed with the value the source supports. The numbers
+    # are those of engine 0.3.0: correcting one moves the data of spgr and afi on the worlds that hold the class, which is an
+    # engine version (the liver, known since the sources were first opened: 1.10 against 1.34 to 1.77; six more found now)
     outside = sorted(n for n, r in rep.items() if r["inside"] is False)
-    assert outside == ["liver"]                                           # declared in limits.md, block 3a: not corrected, the table is read by spgr
-    # the column itself: the numbers of engine 0.3.0 (a change would move the data of spgr and afi)
-    assert [tissue.table(3.0)[n]["adc_um2_ms"] for n in ("wm", "gm", "csf", "scalp_fat", "muscle", "liver")] == [0.75, 0.85, 3.0, 0.05, 1.4, 1.1]
+    assert outside == sorted(tissue.ADC_OUTSIDE_SOURCE) == ["blood", "cord", "liver", "scalp_fat", "skull", "subcut_fat", "visceral_fat"]
+    assert all(rep[n]["low"] <= v <= rep[n]["high"] for n, v in tissue.ADC_OUTSIDE_SOURCE.items())
+    assert [tissue.table(3.0)[n]["adc_um2_ms"] for n in ("wm", "gm", "csf", "scalp_fat", "muscle", "liver", "blood", "cord", "skull")] == [0.75, 0.85, 3.0, 0.05, 1.4, 1.1, 2.5, 0.9, 0.1]
     assert abs(tissue.water_adc_um2_ms(25.0) - 2.299) < 2e-3 and abs(tissue.water_adc_um2_ms(20.0) - 2.023) < 2e-3 and 3.0 < tissue.water_adc_um2_ms(37.0) < 3.1
     with pytest.raises(ValueError):
         tissue.water_adc_um2_ms(-5.0)

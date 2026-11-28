@@ -14,6 +14,77 @@ Three versions travel with every number:
 
 ## Unreleased
 
+### Spin-echo trains with what survives the repetition; prepared sequences; the tissue sources opened
+
+No engine bump, no environment id touched, no fingerprint moved: every protocol of the six sequences gives the bytes
+it gave (`tests/test_compat_2d_unchanged.py`; `python tools/audit/golden.py --check`: images, noisy scans, prices,
+array, task snapshots, volume worlds and the 2D baseline unchanged; `python -m mrgym.compat.fingerprint --check`).
+
+How the engine version was decided (docs/VERSIONING.md: it changes when the same seed and protocol can give other
+data). The numbers of `fse`, `mese` and `dwse` moved: on a console whose card lists them the same protocol now gives
+other data. The engine version protects stored results, and no stored result can depend on these sequences: no
+registered id has a console that lists one (`python tools/audit/golden.py --write --additive-core` makes every id at
+every level and reads its console card before it rewrites the additive section `core`; every number that changed
+lies in that section), no gate, no log and no fingerprint holds them. So the version stays 0.3.0, and the golden section
+`core` was written again (now 12 protocols on 2 worlds). Results on these sequences measured on a tree before this
+entry (development gates of families that are being built on them) are NOT comparable and must be measured again.
+
+- **What survives a repetition** (`core/periodic.py`, method "carry"; `scanner/served.py`). `fse`, `mese` and `dwse`
+  ended every repetition with an ideal crusher: only Mz of each slice column reached the next excitation. They now
+  play the lobes the console's timing has always counted: a crusher of 1 ms at the derated limits either side of every
+  refocusing pulse (23.5 mT ms/m, one cycle per 1.0 mm), and one more as the spoiler of the repetition. Spins diffuse
+  across them, and the periodic state of the whole repetition is solved with the gratings along z that reach the next
+  excitation. Size against the ideal crusher, largest change of an echo in per cent of the largest echo (8 echoes of
+  10 ms, 180 degrees; `mrgym validate`, row J24): at TR 500 ms white matter 3.3, grey matter 6.3, cerebrospinal
+  fluid 18, fat 1.2, muscle 3.3, blood 11, liver 1.6; at 1500 ms 0.70, 2.3, 9.2, 0.07, 1.1, 4.0, 0.29; at 4000 ms
+  0.03, 0.37, 2.9, 0.00, 0.16, 0.70, 0.01. Checked against closed forms (a spin echo with incomplete recovery, a
+  CPMG train at short TR: core rows N14; exact pulses with the diffusion weighting of the crushers, 0.15 s/mm^2 per
+  echo: J7), against the isochromat ensemble stepped to its steady state (core rows N14b, N14c; through the slice at
+  TR 1500, 330 and 200 ms: J9, 1e-10) and against the phase graph of the design layer (J20, 5e-8). The carried
+  gratings are cut (a factor of 1e-3 by relaxation and diffusion, at most 16 orders): the cut costs 9e-8 where
+  diffusion sets it and at most 1e-3 of the largest echo, for a train repeated without a pause (J23, J23b, J24b,
+  J24c).
+  NOT carried, and declared (limits.md, block 8a; row J24d): the transverse magnetisation that is left at the end of
+  the repetition. For a static voxel exactly on resonance it would add 24 % to the echoes of cerebrospinal fluid at
+  TR 1.5 s (89 % at 0.5 s, 4.6 % at 4 s; blood 8 % at 0.5 s; tissue under 0.3 %), and that amount swings by as much
+  with an off-resonance of a fraction of 1 / TR and falls with T2'. The amplitude of these sequences holds neither,
+  so it is taken as dephased. The core computes it; an independent review showed that serving it on resonance alone
+  would have been wrong (and that the slice integral then loses its mirror symmetry).
+  Consequences an agent can see: `dwse` with b = 0 is no longer the image of `se` (7 % of the largest pixel at TR
+  900 ms, J15b), a diffusion coefficient from b = 0 and b = 1000 at TR 3 s is off by 1.6 % (J35b: the b = 0 scan
+  holds the stimulated echo of its last repetition), and a fluid in an echo train at a TR of seconds is brighter
+  than behind the ideal crusher.
+- **The refocusing slice** is a protocol parameter of `fse`, `mese` and `dwse`: `refocus_slice_ratio`, 1.0 to 3.0,
+  default 1.5 (the pulse pair of `se` and `ir`, which keep it; one manufacturer's default for fast spin echo, where
+  another uses 1.2 and a third 1.0: docs/physics/references.md). Measured rung M3b: with the ratio of the paper
+  (1.2, from its protocol, not fitted) the console's `mese` reads +45.1 / +50.9 / +77.4 % (normal pulse) and +53.6 /
+  +61.5 / +90.3 % (fast pulse) where +50.5 / +55.3 / +82.6 % was measured: the measurement lies between the two
+  pulse shapes, as it does for the design layer. Known difference 8 is closed; at the default ratio the error is
+  +32.6 / +38.4 / +64.0 %, another sequence than the measured one (row M3b.7).
+- **Periodic motion** is formed for the sequences served from the core as for the others (they refused a world
+  with movers): a line is modulated at the time it is read; in an echo train that is shot index x TR + the echo
+  time of the echo that fills the line (`served.line_times`, `tests/test_served_motion.py`).
+- **New on a console that lists them.** `satrec`: saturation recovery with a gradient echo (`ts_ms`, `flip_deg`;
+  rows J41 to J43). `fse` with `prep` (inversion or saturation) and `ti_ms`: the preparation acts on Mz and on the
+  gratings that survive the repetition (rows J44 to J47; FLAIR-type nulling). Not served: the prepared gradient-echo
+  train, magnetisation transfer, `dess`, the gradient echo with a real spoiler lobe (core.md, section 11).
+- **Tissue data.** Every diffusion coefficient was held against a source that was opened (`tissue.ADC_SOURCES`: 23
+  of 25; 2 declared). Seven lie outside their source: the liver (1.10 against 1.34 to 1.77, known), and blood, the
+  three fats, spinal cord and cortical bone (found now). They are marked in the table and listed with the value the
+  source supports (`tissue.ADC_OUTSIDE_SOURCE`); the numbers themselves are those of engine 0.3.0. Correcting them
+  moves the data of `spgr` and `afi` on the worlds that hold the classes (abdomen; brain; the oil vials of the QA
+  phantom): that is an engine version, and every stored admission gate is tied to the engine it was measured on
+  (`check.claim_evidence`), so a bump for one coefficient would unseat every admitted family. One bump for all seven
+  is the proposal; it is not in this entry. New, additive: `tissue.mt_table`, the two-pool numbers of seven tissues
+  from Stanisz 2005 (read in full); no sequence reads them.
+- **The core's validation table** gained the checks its reviewers missed: `periodic.approach` against the closed
+  form of the approach to the Ernst state and against the isochromat ensemble (N15, N15b); a two-site exchange decay
+  against the closed form of the Bloch-McConnell equations and its limits (X6c, X6d); the row that compared rounded
+  numbers typed from a page (N13) now compares every slice column with the isochromat ensemble.
+- **Cost.** A cold scan of `fse` or `mese` computes the periodic state of every tissue class with its carried
+  states: see the table of core.md, section 11. The amplitude table of a protocol is kept per engine and reused when
+  only the geometry of the scan changes.
+
 ### Runner processes that share a run folder; the memory bound of `calc` is measured on the process itself
 
 No reward, no environment, no engine number changes. Two tests gave different results from run to run; both had a

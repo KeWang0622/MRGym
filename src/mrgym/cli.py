@@ -332,7 +332,10 @@ TIMING_PROTOCOLS = (
     ("mese, 8 echoes", dict(sequence="mese", tr_ms=2000.0, n_echoes=8)), ("mese, 32 echoes", dict(sequence="mese", tr_ms=2000.0, n_echoes=32)),
     ("megre, 4 echoes", dict(sequence="megre", tr_ms=60.0, flip_deg=20.0, n_echoes=4)),
     ("megre, 16 echoes", dict(sequence="megre", tr_ms=120.0, flip_deg=20.0, n_echoes=16, bandwidth_hz_per_px=600.0)),
-    ("dwse, b 0", dict(sequence="dwse", tr_ms=3000.0, b_value=0.0)), ("dwse, b 1000", dict(sequence="dwse", tr_ms=3000.0, b_value=1000.0)))
+    ("dwse, b 0", dict(sequence="dwse", tr_ms=3000.0, b_value=0.0)), ("dwse, b 1000", dict(sequence="dwse", tr_ms=3000.0, b_value=1000.0)),
+    ("satrec", dict(sequence="satrec", tr_ms=700.0, ts_ms=300.0)),
+    ("fse, 8 echoes, inversion", dict(sequence="fse", tr_ms=6000.0, etl=8, prep="inversion", ti_ms=2000.0)),
+    ("fse, 4 echoes, TR 500 ms", dict(sequence="fse", tr_ms=500.0, etl=4)))
 
 
 def timing_table(repeats=3, matrices=(64, 128, 256), cpu=False):
@@ -363,6 +366,7 @@ def timing_table(repeats=3, matrices=(64, 128, 256), cpu=False):
             for i in range(repeats):
                 eng._clean.clear()
                 eng._splat.clear()
+                eng.__dict__.pop("_tables", None)                       # the amplitude tables of the core sequences: a cold scan computes its own
                 t = clock()
                 eng.acquire(pl["realised"], np.random.default_rng(i))
                 ts.append(clock() - t)

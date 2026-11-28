@@ -117,16 +117,22 @@ SEQUENCES = dict(
 # Sequences served from the block-list core (``mrgym.core``; image formation in ``scanner/served.py``). A console offers
 # them when its card lists them (``offered``). Their limits are those that keep a scan near a second of computing on one
 # core; ``REASONS`` says why, and the refusal of a value beyond them repeats it.
-_TRAIN = dict(echo_spacing_ms=(2.0, 100.0, "f", "min"), refocus_deg=(60.0, 180.0, "f", 180.0), tr_ms=(50.0, 20000.0, "f", None))
+REFOCUS_SLICE_RATIO = 1.5                   # slice of the refocusing pulse in excitation slices: the console's pulse pair (``se``, ``ir`` play it too)
+_RSR = dict(refocus_slice_ratio=(1.0, 3.0, "f", REFOCUS_SLICE_RATIO))
+_TRAIN = dict(echo_spacing_ms=(2.0, 100.0, "f", "min"), refocus_deg=(60.0, 180.0, "f", 180.0), tr_ms=(50.0, 20000.0, "f", None), **_RSR)
+# A preparation of the longitudinal magnetisation in front of the excitation: ``ti_ms`` is its time and has no default
+# (default kind "none": the parameter is left out unless the protocol gives it).
+_PREP = dict(prep=(("none", "inversion", "saturation"), None, "c", "none"), ti_ms=(5.0, 19000.0, "f", "none"))
 EXTENDED = dict(
-    fse={**_GEOM, **_TRAIN, "matrix": (32, 256, "i", 128), "etl": (2, 32, "i", 8), "te_ms": (2.0, 3200.0, "f", "min"),
+    fse={**_GEOM, **_TRAIN, **_PREP, "matrix": (32, 256, "i", 128), "etl": (2, 32, "i", 8), "te_ms": (2.0, 3200.0, "f", "min"),
          "echo_order": (("centric", "linear"), None, "c", "centric")},
     mese={**_GEOM, **_TRAIN, "matrix": (32, 256, "i", 128), "n_echoes": (2, 32, "i", 8)},
     megre={**_GEOM, **_TE, "flip_deg": (1.0, 90.0, "f", None), "spoiler_mt_ms_per_m": (10.0, 600.0, "f", 100.0),
            "rf_phase_increment_deg": (0.0, 180.0, "f", 117.0), "tr_ms": (3.0, 5000.0, "f", None), "n_echoes": (2, 16, "i", 4),
            "echo_spacing_ms": (0.5, 50.0, "f", "min"), "readout": (("monopolar", "bipolar"), None, "c", "monopolar")},
-    dwse={**_GEOM, **_TE, "tr_ms": (50.0, 20000.0, "f", None), "b_value": (0.0, 3000.0, "f", None),
+    dwse={**_GEOM, **_TE, **_RSR, "tr_ms": (50.0, 20000.0, "f", None), "b_value": (0.0, 3000.0, "f", None),
           "diffusion_dir": (("x", "y", "z"), None, "c", "z")},
+    satrec={**_GEOM, **_TE, "tr_ms": (20.0, 20000.0, "f", None), "ts_ms": (1.0, 15000.0, "f", None), "flip_deg": (1.0, 90.0, "f", 90.0)},
 )
 REASONS = dict(                             # the numbers: ``mrgym timing --cpu`` on the brain world (docs/physics/core.md, section 11)
     fse=dict(etl="a limit of the simulation: an image whose amplitude changes from line to line is formed from 30 to 45 transforms of the object, and "
@@ -170,6 +176,12 @@ PARAMETER_UNITS = dict(
     readout="monopolar: every echo read in the same direction (a flyback lobe between the echoes); bipolar: alternating directions, "
             "shorter echo spacing, and what is displaced along the readout is displaced the other way in every second echo",
     b_value="s/mm^2, diffusion weighting of the pair of gradient lobes either side of the refocusing pulse; 0 plays no lobes",
+    prep="preparation of the longitudinal magnetisation ti_ms before the excitation: none, inversion (the adiabatic pulse of ir: "
+         "Mz -> -efficiency x Mz) or saturation (Mz -> 0); a spoiler follows it",
+    ts_ms="ms, saturation time: centre of the saturation pulse to centre of the excitation",
+    refocus_slice_ratio="thickness of the slice of the refocusing pulse in excitation slices (1.5: this console's pulse pair, as in se and ir; "
+                        "product sequences use 1.0 to 1.6, relaxometry protocols up to 3): the thinner, the more of the excited slice is "
+                        "refocused by less than the nominal angle and the larger the stimulated echoes",
     diffusion_dir="axis of the diffusion gradients: x, y or z (patient axes); the diffusion of every tissue is isotropic here, so the "
                   "data do not depend on it",
 )
@@ -199,9 +211,11 @@ DESCRIPTIONS_EXTENDED = dict(
           "state of spgr, one image per echo",
     dwse="diffusion-weighted spin echo (Stejskal-Tanner): a pair of gradient lobes either side of the refocusing pulse gives "
          "the weighting b_value; the lobes lengthen the minimum echo time; signal x exp(-b_value x diffusion coefficient)",
+    satrec="saturation recovery: a saturation pulse sets the longitudinal magnetisation to zero, a gradient echo is excited ts_ms "
+           "later; signal x (1 - exp(-ts_ms / T1)), whatever tr_ms and the flip angle",
 )
 SEQUENCE_NAMES_EXTENDED = dict(fse="fast spin echo (echo train)", mese="multi-echo spin echo", megre="multi-echo gradient echo",
-                               dwse="diffusion-weighted spin echo")
+                               dwse="diffusion-weighted spin echo", satrec="saturation recovery (gradient echo)")
 
 # ------------------------------------------------------------------ tables of the agent-facing schema
 # What a short word means, for the schema descriptions (the unit texts above are for the datasheet tables).
@@ -227,6 +241,8 @@ PARAMETER_MEANING = dict(
     etl="echo-train length: echoes (phase-encode lines) per excitation", echo_order="echo that fills the centre of k-space: centric (the first) or linear (the echo at te_ms)",
     refocus_deg="nominal flip angle of the refocusing pulses", readout="direction of the readout from echo to echo",
     b_value="diffusion weighting, s/mm^2", diffusion_dir="axis of the diffusion gradients",
+    refocus_slice_ratio="slice of the refocusing pulse in excitation slices",
+    prep="preparation before the excitation: none, inversion or saturation; its time is ti_ms", ts_ms="saturation time",
 )
 # One name per sequence for the schema (the full descriptions are in DESCRIPTIONS and behind scanner_info).
 SEQUENCE_NAMES = dict(spgr="RF-spoiled gradient echo", afi="actual flip-angle imaging (dual TR)", se="spin echo",
@@ -243,10 +259,13 @@ PARAMETER_ORDER = ("tr_ms", "te_ms", "flip_deg", "ti_ms", "fov_mm", "phase_fov",
                    "echo_spacing_ms", "spoiler_mt_ms_per_m", "rf_phase_increment_deg", "tr_ratio", "phase_cycle_deg", "ro_polarity",
                    "pe_polarity", "centre_y_mm", "centre_x_mm", "rotation_deg", "rf_pulse", "excitation",
                    "cf_shift_hz", "tx_scale", "shim_y_hz_per_mm", "shim_x_hz_per_mm",
-                   "etl", "echo_order", "refocus_deg", "readout", "b_value", "diffusion_dir")
+                   "etl", "echo_order", "refocus_deg", "refocus_slice_ratio", "readout", "b_value", "diffusion_dir", "prep", "ts_ms")
 # Times whose lower bound depends on the rest of the protocol: the schema states no minimum for them (a model copies
 # a schema minimum into the call), ``plan`` prints the one that applies.
 PROTOCOL_DEPENDENT = ("tr_ms", "te_ms", "ti_ms", "echo_spacing_ms")
+# The same for a parameter that only a sequence served from the core has (the tuple above is read by the tool layer of
+# every console, whose schema does not hold these names).
+PROTOCOL_DEPENDENT_CORE = ("ts_ms",)
 MIN = "min"                                 # the literal for "the shortest the console can realise"
 # What the adjustments before a scan depend on (centre frequency, transmit gain, shim): the sequence family and where
 # the field of view lies. A console that states ``repeat_overhead_s`` (``exam["system"]``) charges its full
@@ -446,6 +465,8 @@ def default_text(sequence, name, exam=None):
     d = REGISTRY[sequence].parameters[name][3]
     if d is None:
         return None
+    if d == "none" and REGISTRY[sequence].parameters[name][2] != "c":   # a parameter that is left out unless another one asks for it
+        return "left out"
     if d == "min":
         return f'"{MIN}"'
     if d == "seq":
@@ -524,7 +545,7 @@ def validate(protocol, exam=None):
         if default == MIN and isinstance(v, str) and v == MIN:
             p[name] = MIN
             continue
-        if name not in protocol and v in ("min", "seq", "exam"):
+        if name not in protocol and v in ("min", "seq", "exam", "none"):
             p[name] = (exam or {}).get(name, 240.0) if v == "exam" else v
             continue
         if kind == "b":
@@ -811,6 +832,29 @@ def acquired_lines(lines_full, lines):
     return [k != -half and k >= -n for k in range(-half, lines_full - half)]
 
 
+def crusher_lobe(s):
+    """The crusher of the spin-echo sequences served from the core, and the spoiler that ends their repetition (one
+    more lobe of the same area): the largest trapezoid that fits ``crusher_ms`` at ``derate`` of the gradient and slew
+    limits. dict(ms, ramp_ms, g_mt_m: plateau; mt_ms_per_m: area; cycles_per_mm: gamma x area)."""
+    g, slew = s["g_max_mt_m"] * s["derate"], s["slew_t_m_s"] * s["derate"]            # mT/m; T/m/s = mT/m/ms
+    t = float(s["crusher_ms"])
+    ramp = min(t / 2, g / slew)
+    amp = slew * ramp
+    area = amp * (t - ramp)
+    return dict(ms=t, ramp_ms=round(ramp, 9), g_mt_m=round(amp, 9), mt_ms_per_m=round(area, 9), cycles_per_mm=GAMMA_HZ_PER_T * area * 1e-9)
+
+
+def _real_lobes(c):
+    """What a spin-echo sequence served from the core adds to its realised protocol so that its block list plays the
+    lobes of the console: the crusher either side of every refocusing pulse (the diffusion lobes take its place in
+    ``dwse`` with b > 0), the duration of the refocusing pulse, and the spoiler: one more crusher lobe, which starts
+    when the last readout has ended (half the readout and its ramp after the echo)."""
+    lobe = crusher_lobe(c.s)
+    c.r.update(crusher_ms=lobe["ms"], crusher_ramp_ms=lobe["ramp_ms"], crusher_g_mt_m=lobe["g_mt_m"], rf_180_ms=round(c.rf180_ms, 6),
+               spoiler_after_ms=round(c.t_ro / 2 + c.ramp, 6), refocus_slice_ratio=c.p["refocus_slice_ratio"])
+    c.timing.update(crusher_mt_ms_per_m=round(lobe["mt_ms_per_m"], 4), crusher_cycles_per_mm=round(lobe["cycles_per_mm"], 4))
+
+
 def _echo_spacing_min(c):
     """Shortest spacing of the echoes of a spin-echo train: the first interval holds half the excitation, the
     prephaser, a crusher and half the refocusing pulse, twice; every later one a refocusing pulse, two crushers and
@@ -836,6 +880,23 @@ def _time_train(c):
     pulses = [(_b1_ut(c.flip, c.rf_ms), c.rf_ms * c.energy)] + [(_b1_ut(p["refocus_deg"] * c.tx, c.rf180_ms), c.rf180_ms * c.energy)] * n
     timing.update(rf_180_ms=round(c.rf180_ms, 6), echo_spacing_min_ms=esp_min, echo_train_ms=round(n * esp, 6))
     r.update(tr_ms=tr, flip_deg=90.0, refocus_deg=p["refocus_deg"], echo_spacing_ms=esp)
+    if "prep" in p:                                                      # a preparation ti_ms before the excitation (fse)
+        ti, prep = p["ti_ms"], p["prep"]
+        r.update(prep=prep, ti_ms=None)
+        if prep == "none" and ti != "none":
+            bad.append(_violation("OUT_OF_RANGE", "ti_ms", "ti_ms is the time of a preparation: set prep to inversion or saturation, or leave ti_ms out",
+                                  allowed=["inversion", "saturation"]))
+        elif prep != "none" and ti == "none":
+            bad.append(_violation("MISSING_PARAMETER", "ti_ms", f"fse with prep={prep} needs ti_ms [{PARAMETER_UNITS['ti_ms']}]"))
+        elif prep != "none":
+            ti = _up(ti, ras)
+            ti_min = _up(s["inv_ms"] / 2 + s["crusher_ms"] + c.rf_tr / 2, ras)
+            if ti < ti_min - 1e-9:
+                bad.append(_violation("TI_NOT_REALISABLE", "ti_ms", f"ti_ms={ti} is below the minimum {ti_min} ms", requested=ti, minimum=ti_min))
+            tr_min = _up(s["inv_ms"] / 2 + ti + n * esp + c.t_ro / 2 + c.ramp + s["se_spoil_ms"], ras)
+            pulses.append((s["inv_b1_ut"], s["inv_ms"]))
+            r.update(ti_ms=ti)
+            timing.update(ti_min_ms=ti_min)
     if seq == "fse":
         last = round(n * esp, 6)
         if p["te_ms"] == MIN:
@@ -862,6 +923,7 @@ def _time_train(c):
         te = esp
         r.update(te_ms=te, n_echoes=n)
         c.echo_times = [round((i + 1) * esp, 6) for i in range(n)]
+    _real_lobes(c)
     c.__dict__.update(te=te, te_min=esp, tr=tr, tr_min=tr_min, pulses=pulses, cycle=tr, dummies=s["prepared_dummy_cycles"], esp=esp)
 
 
@@ -896,6 +958,25 @@ def _time_megre(c):
                       dummies=math.ceil(s["dummy_ms"] / tr), esp=esp, n_echo=n_echo)
 
 
+def _time_satrec(c):
+    """Timing rule of ``satrec``: a saturation pulse (the amplitude and duration of the adiabatic inversion pulse) and
+    its spoiler, the saturation time, one gradient echo, a spoiler. One phase-encode line per repetition."""
+    p, s, r, timing, bad, ras = c.p, c.s, c.r, c.timing, c.bad, c.ras
+    te_min = _up(c.rf_ms / 2 + c.pre + c.ramp + c.t_ro / 2 + s["dead_ms"], ras)
+    te = te_min if p["te_ms"] == MIN else _up(p["te_ms"], ras)
+    ts = _up(p["ts_ms"], ras)
+    ts_min = _up(s["inv_ms"] / 2 + s["crusher_ms"] + c.rf_tr / 2, ras)
+    if ts < ts_min - 1e-9:
+        bad.append(_violation("TI_NOT_REALISABLE", "ts_ms", f"ts_ms={ts} is below the minimum {ts_min} ms (half the saturation pulse, its spoiler, half "
+                              "the excitation)", requested=ts, minimum=ts_min, nearest_valid=ts_min))
+    tr = _up(p["tr_ms"], ras)
+    tr_min = _up(s["inv_ms"] / 2 + ts + te + c.t_ro / 2 + c.ramp + s["se_spoil_ms"], ras)
+    r.update(tr_ms=tr, te_ms=te, ts_ms=ts, flip_deg=p["flip_deg"])
+    timing.update(ts_min_ms=ts_min)
+    c.__dict__.update(te=te, te_min=te_min, tr=tr, tr_min=tr_min, cycle=tr, dummies=s["prepared_dummy_cycles"],
+                      pulses=[(_b1_ut(c.flip, c.rf_ms), c.rf_ms * c.energy), (s["inv_b1_ut"], s["inv_ms"])])
+
+
 def diffusion_b(g_mt_m, delta_ms, separation_ms, ramp_ms):
     """b-value (s/mm^2) of a pair of equal trapezoid lobes of plateau ``g_mt_m``: gamma^2 G^2 (delta^2 (Delta - delta / 3)
     + eps^3 / 30 - delta eps^2 / 6), with delta = ramp + plateau, Delta the time from the start of the first lobe to
@@ -926,8 +1007,8 @@ def _time_dwse(c):
     Lobes at ``derate`` of the gradient and slew limits. The first ends half a refocusing pulse before TE / 2, the
     second starts half a refocusing pulse after it, so Delta = lobe duration + refocusing pulse. The plateau is the
     shortest, on the raster, that reaches the b-value at the amplitude limit; the amplitude is then lowered until the
-    b-value is the requested one. The lobes are the crushers of the refocusing pulse. b = 0 plays no lobes: the
-    timing and the signal of ``se``. The minimum echo time is that of THIS layout (equal lobes next to the refocusing
+    b-value is the requested one. The lobes are the crushers of the refocusing pulse. b = 0 plays no diffusion lobes:
+    the timing of ``se``, with the console's crusher lobes either side of the refocusing pulse (0.15 s/mm^2). The minimum echo time is that of THIS layout (equal lobes next to the refocusing
     pulse): where the two halves of the echo time need different times, moving the lobes into the idle half would
     shorten it (0.1 ms at the default geometry, 6.5 ms at 50 Hz per pixel and b = 1000; found by the independent
     review). Not counted: the heating of the gradient coil, eddy currents, the b-value of the
@@ -967,8 +1048,15 @@ def _time_dwse(c):
     timing.update(rf_180_ms=round(rf180_ms, 6), diffusion_lobe_ms=round(lobe["delta"] + lobe["eps"], 6),
                   diffusion_gradient_percent=round(100.0 * lobe["g"] / s["g_max_mt_m"], 2))
     c.derived.update(b_value_requested=float(b))
+    _real_lobes(c)
     c.__dict__.update(te=te, te_min=te_min, tr=tr, tr_min=tr_min, cycle=tr, dummies=s["prepared_dummy_cycles"],
                       pulses=[(_b1_ut(c.flip, rf_ms), rf_ms * c.energy), (_b1_ut(180 * c.tx, rf180_ms), rf180_ms * c.energy)])
+
+
+def _rsr(r):
+    """Header text of a refocusing slice that is not the console's own."""
+    ratio = r.get("refocus_slice_ratio", REFOCUS_SLICE_RATIO)
+    return "" if ratio == REFOCUS_SLICE_RATIO else f" RS x{ratio:g}"
 
 
 def _sample_train(rp):
@@ -990,11 +1078,17 @@ def _sample_echoes(rp):
     return Sampling(images=tuple(enumerate(rp["echo_times_ms"])), lines=None, shots=rp["lines"], samples=rp["n_echoes"])
 
 
+def _prep_text(r):
+    """Header text of a preparation in front of the train."""
+    return {"inversion": f" IR TI {r['ti_ms']:.0f}", "saturation": f" SR TS {r['ti_ms']:.0f}"}.get(r.get("prep"), "") if r.get("ti_ms") else ""
+
+
 for _name, _rule, _plan, _more in (
-        ("fse", _time_train, _sample_train, dict(echo="se", spin_echo=True, header=lambda r: f" ETL {r['etl']} ESP {r['echo_spacing_ms']:.1f} RFA {r['refocus_deg']:.0f}")),
-        ("mese", _time_train, _sample_echoes, dict(echo="se", spin_echo=True, header=lambda r: f" x{r['n_echoes']} ESP {r['echo_spacing_ms']:.1f} RFA {r['refocus_deg']:.0f}")),
+        ("satrec", _time_satrec, _sample_steady, dict(header=lambda r: f" TS {r['ts_ms']:.0f}")),
+        ("fse", _time_train, _sample_train, dict(echo="se", spin_echo=True, header=lambda r: f" ETL {r['etl']} ESP {r['echo_spacing_ms']:.1f} RFA {r['refocus_deg']:.0f}{_rsr(r)}{_prep_text(r)}")),
+        ("mese", _time_train, _sample_echoes, dict(echo="se", spin_echo=True, header=lambda r: f" x{r['n_echoes']} ESP {r['echo_spacing_ms']:.1f} RFA {r['refocus_deg']:.0f}{_rsr(r)}")),
         ("megre", _time_megre, _sample_steady, dict(header=lambda r: f" x{r['n_echoes']} dTE {r['echo_spacing_ms']:.2f}{' bipolar' if r['readout'] == 'bipolar' else ''}")),
-        ("dwse", _time_dwse, _sample_steady, dict(echo="se", spin_echo=True, header=lambda r: f" b {r['b_value']:.0f} {r['diffusion_dir']}"))):
+        ("dwse", _time_dwse, _sample_steady, dict(echo="se", spin_echo=True, header=lambda r: f" b {r['b_value']:.0f} {r['diffusion_dir']}{_rsr(r)}"))):
     register(Sequence(name=_name, parameters=EXTENDED[_name], title=SEQUENCE_NAMES_EXTENDED[_name], description=DESCRIPTIONS_EXTENDED[_name],
                       timing=_rule, sampling=_plan, serves="core", **_more))
 
@@ -1053,6 +1147,7 @@ def protocol_schema(exam=None, brief=False):
     """
     table = offered(exam)
     seqs = sorted(table)
+    dependent = PROTOCOL_DEPENDENT + PROTOCOL_DEPENDENT_CORE
     props = {"sequence": {"type": "string", "enum": seqs, "description": "see plan" if brief else "; ".join(
         f"{k}: {REGISTRY[k].title or REGISTRY[k].description.split(':')[0].split(';')[0].split(',')[0]}" for k in seqs)}}
     for name in parameter_names(table):
@@ -1082,14 +1177,14 @@ def protocol_schema(exam=None, brief=False):
             if accepts_min(name, table):
                 parts.append(f'a number or "{MIN}" (default): the shortest the console can realise'
                              + ("; a smaller number is raised to it and reported" if name == "te_ms" else ""))
-            elif name in PROTOCOL_DEPENDENT:
+            elif name in dependent:
                 parts.append("plan prints its minimum")
             doc += f"{where}; " + "; ".join(parts)
             if fixed:
                 doc += f"; fixed at {FIXED[fixed[0]][name]:g} for {', '.join(fixed)}"
             if kind in "fi":
                 ranges = {(table[q][name][0], table[q][name][1]) for q in used}
-                if len(ranges) > 1 and name not in PROTOCOL_DEPENDENT:
+                if len(ranges) > 1 and name not in dependent:
                     doc += "; " + ", ".join(f"{q}: {table[q][name][0]:g} to {table[q][name][1]:g}" for q in used
                                             if (table[q][name][0], table[q][name][1]) != max(ranges, key=lambda r: r[1] - r[0]))
         if kind == "b":
@@ -1099,7 +1194,7 @@ def protocol_schema(exam=None, brief=False):
             props[name] = {"type": "string" if isinstance(choices[0], str) else "integer", "enum": choices, "description": doc}
         else:
             number = {"type": "integer" if kind == "i" else "number"}
-            if name not in PROTOCOL_DEPENDENT and not brief:
+            if name not in dependent and not brief:
                 number.update(minimum=min(table[q][name][0] for q in used), maximum=max(table[q][name][1] for q in used))
             if accepts_min(name, table):
                 props[name] = {"anyOf": [number, {"type": "string", "enum": [MIN]}], "description": doc}

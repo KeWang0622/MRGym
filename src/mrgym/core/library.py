@@ -50,19 +50,48 @@ from . import blocks as B
 REFOCUS_WIDTH = 1.5
 
 
+@dataclasses.dataclass(frozen=True)
+class Tail:
+    """How a repetition of a spin-echo sequence ends when it does not end with the ideal crusher: ``after_ms`` after
+    the last sample a spoiler lobe of ``cycles`` cycles on lattice axis ``axis`` plays for ``ms`` (shape moments
+    ``shape``, ``blocks.lobe_shape``), and the rest of the repetition is free evolution. The gratings stored along z
+    reach the next excitation (``periodic``, method "carry"). ``dephased`` False: so does whatever is still transverse,
+    with the phase of a spin exactly on resonance. True: what is transverse at the end of the repetition is set to
+    zero (an ideal spoiler as the last block): the model of a voxel whose spins have dephased against each other
+    between the last echo and the next excitation (spoiler, static field spread, T2'); the gratings stay."""
+    cycles: float = 1.0
+    ms: float = 0.0
+    after_ms: float = 0.0
+    shape: tuple = B.LINEAR
+    axis: int = 0
+    dephased: bool = False
+
+
+def _end(tail, room_ms):
+    """The blocks from the last sample to the end of the repetition (``room_ms`` long)."""
+    if tail is None:
+        return [B.delay(room_ms), B.crush()]
+    if tail.after_ms + tail.ms > room_ms + 1e-9:
+        raise ValueError("the spoiler does not fit between the last sample and the end of the repetition")
+    cyc = tuple(float(tail.cycles) if i == tail.axis else 0.0 for i in range(tail.axis + 1))
+    return [B.delay(tail.after_ms), B.gradient(cyc, ms=tail.ms, shape=tail.shape), B.delay(max(0.0, room_ms - tail.after_ms - tail.ms))] \
+        + ([B.spoil()] if tail.dephased else [])
+
+
 def spoiler_cycle_mm(spoiler_mt_ms_per_m):
     """Length (mm) over which a gradient lobe of the given area (mT ms / m) dephases by one cycle: 1 / (gamma A)."""
     return 1e3 / (GAMMA_HZ_PER_T * spoiler_mt_ms_per_m * 1e-6)
 
 
-def _refocus(sel):
-    return None if sel is None else dataclasses.replace(sel, rephase=0.0, width=sel.width * REFOCUS_WIDTH)
+def _refocus(sel, width=None):
+    return None if sel is None else dataclasses.replace(sel, rephase=0.0, width=sel.width * (REFOCUS_WIDTH if width is None else float(width)))
 
 
-def refocusing_pulse(sel):
+def refocusing_pulse(sel, width=None):
     """The refocusing pulse that goes with the excitation pulse ``sel`` in every spin-echo sequence of this module:
-    the same shape on a slice ``REFOCUS_WIDTH`` times as thick, without a rephasing lobe."""
-    return _refocus(sel)
+    the same shape on a slice ``width`` times as thick (None: ``REFOCUS_WIDTH``, the ratio of ``se`` and ``ir``),
+    without a rephasing lobe."""
+    return _refocus(sel, width)
 
 
 # ---------------------------------------------------------------------------------------------- the six served
@@ -113,20 +142,22 @@ def epi(tr_ms, flip_deg=90.0, selective=None, repetitions=1, sat=None):
     return dataclasses.replace(seq, name="epi")
 
 
-def se(tr_ms, te_ms, flip_deg=90.0, selective=None, crusher_cycles=None, repetitions=1, sat=None):
+def se(tr_ms, te_ms, flip_deg=90.0, selective=None, crusher_cycles=None, repetitions=1, sat=None, tail=None, refocus_width=None):
     """``crusher_cycles`` None: the ideal crushed refocusing pulse and an ideal spoiler at the end of the TR (the
     engine's model). A number: real crushers of that many cycles either side of the refocusing pulse and nothing
-    else, which keeps the stimulated echoes of the following repetitions (docs/physics/limits.md, 8a)."""
+    else, which keeps the stimulated echoes of the following repetitions (docs/physics/limits.md, 8a); ``tail``
+    (``Tail``) then plays a real spoiler after the echo. ``refocus_width``: the slice of the refocusing pulse in
+    excitation slices (None: ``REFOCUS_WIDTH``, what the engine's ``se`` and ``ir`` play)."""
     exc = B.rf(flip_deg, 0.0, selective=selective)
     if crusher_cycles is None:
         tail, d = _saturation(sat, tr_ms - te_ms)
-        body = [exc, B.delay(te_ms / 2), B.rf(2 * flip_deg, 90.0, crushed=True, selective=_refocus(selective)), B.delay(te_ms / 2),
+        body = [exc, B.delay(te_ms / 2), B.rf(2 * flip_deg, 90.0, crushed=True, selective=_refocus(selective, refocus_width)), B.delay(te_ms / 2),
                 B.adc("echo"), B.delay(tr_ms - te_ms - d), B.spoil()] + tail
     else:
         if sat is not None:
             raise ValueError("se: the saturation pulse is modelled with the ideal crushed refocusing pulse only")
-        body = [exc, B.delay(te_ms / 2), B.gradient(crusher_cycles), B.rf(2 * flip_deg, 90.0, selective=_refocus(selective)),
-                B.gradient(crusher_cycles), B.delay(te_ms / 2), B.adc("echo"), B.delay(tr_ms - te_ms)]
+        body = [exc, B.delay(te_ms / 2), B.gradient(crusher_cycles), B.rf(2 * flip_deg, 90.0, selective=_refocus(selective, refocus_width)),
+                B.gradient(crusher_cycles), B.delay(te_ms / 2), B.adc("echo")] + ([B.delay(tr_ms - te_ms)] if tail is None else _end(tail, tr_ms - te_ms))
     return B.sequence([B.repeat(body, repetitions)], name="se")
 
 
@@ -153,12 +184,13 @@ def ir_gre(tr_ms, ti_ms, flip_deg, inv_eff=1.0, repetitions=1):
     return B.sequence([B.repeat(body, repetitions)], name="ir-gre")
 
 
-def served(rp, selective=None, inv_eff=1.0, tier=2, sat=None):
+def served(rp, selective=None, inv_eff=1.0, tier=2, sat=None, sat_eff=1.0):
     """The block list of a realised protocol of the console (``console.plan(...)["realised"]``): (sequence, labels of
     the samples that are the engine's contrasts, in order). ``selective``: the excitation pulse, or None for the hard
     pulse. ``sat`` = (q, delay_ms): the saturation of ONE resonance line by the fat-saturation pulse of the protocol
     (spgr, epi, se, ir; the caller gives q of the line and the delay the console planned, ``fatsat_delay_ms``); None:
-    a line the pulse does not reach, or a protocol without fat saturation. ``phase_cycle_deg`` of bssfp is the advance
+    a line the pulse does not reach, or a protocol without fat saturation. ``inv_eff``, ``sat_eff``: the efficiency of
+    the inversion and of the saturation pulse of the system (ir; satrec; a preparation of fse). ``phase_cycle_deg`` of bssfp is the advance
     of the RF phase per TR (rows Q10, Q10b; engine 0.2.0 counted it the other way and this function followed it until
     the engine was corrected)."""
     name = rp["sequence"]
@@ -181,41 +213,94 @@ def served(rp, selective=None, inv_eff=1.0, tier=2, sat=None):
     if sat is not None:
         raise ValueError(f"no saturation pulse in the block list of {name}")
     # ---- the sequences a console serves from the core (``scanner/served.py``)
+    lobes = _console_lobes(rp)                                      # the crusher and the spoiler the console plays, or None
+    width = rp.get("refocus_slice_ratio")
     if name in ("fse", "mese"):                                     # the train: real crushers, the stimulated echoes kept
         n = rp["etl"] if name == "fse" else rp["n_echoes"]
         make = fse if name == "fse" else mese
         # ``refocus_deg``: one angle from the console; a realised protocol written by hand (the design layer) may
         # carry one angle per echo, which ``fse`` takes as it is
-        return make(rp["tr_ms"], rp["echo_spacing_ms"], n, rp["refocus_deg"], excitation_deg=rp["flip_deg"], selective=selective), \
+        kind = rp.get("prep", "none")
+        prep = None if kind == "none" else (kind, rp["ti_ms"], inv_eff if kind == "inversion" else sat_eff)
+        return make(rp["tr_ms"], rp["echo_spacing_ms"], n, rp["refocus_deg"], excitation_deg=rp["flip_deg"], selective=selective, refocus_width=width, prep=prep,
+                    **({} if lobes is None else dict(tail=lobes["tail"](rp["tr_ms"] - n * rp["echo_spacing_ms"], 0), crusher_ms=lobes["ms"], pulse_ms=lobes["pulse_ms"],
+                                                    crusher_shape=lobes["shape"], cycle_mm=lobes["cycle_mm"]))), \
             tuple(("echo", i) for i in range(n))
+    if name == "satrec":
+        return satrec(rp["tr_ms"], rp["ts_ms"], rp["flip_deg"], sat_eff, selective=selective), ("echo",)
     if name == "megre":                                             # the steady state of spgr; the echoes are read from it
         kw = dict(spoiling="rf", phase_inc_deg=rp["rf_phase_increment_deg"], spoiler_mt_ms_per_m=rp["spoiler_mt_ms_per_m"]) if tier == 2 else dict(spoiling="ideal")
         return dataclasses.replace(spgr(rp["tr_ms"], rp["flip_deg"], selective=selective, **kw), name="megre"), ("echo",)
     if name == "dwse":
-        if not rp["b_value"]:                                       # no lobes: the spin echo between perfect crushers
-            return dataclasses.replace(se(rp["tr_ms"], rp["te_ms"], rp["flip_deg"], selective=selective), name="dwse"), ("echo",)
+        if lobes is None:                                           # a protocol written by hand: ideal crushers
+            if not rp["b_value"]:
+                return dataclasses.replace(se(rp["tr_ms"], rp["te_ms"], rp["flip_deg"], selective=selective, refocus_width=width), name="dwse"), ("echo",)
+            return dwse(rp["tr_ms"], rp["te_ms"], rp["diffusion_g_mt_m"], rp["diffusion_delta_ms"], rp["diffusion_separation_ms"], rp["diffusion_ramp_ms"],
+                        rp["diffusion_start_ms"], flip_deg=rp["flip_deg"], selective=selective, refocus_width=width), ("echo",)
+        tail = lobes["tail"](rp["tr_ms"] - rp["te_ms"], 1)             # the spoiler on a second axis, perpendicular to the lobes
+        if not rp["b_value"]:                                       # no diffusion lobes: the console's crushers either side of the pulse
+            seq = fse(rp["tr_ms"], rp["te_ms"], 1, 2 * rp["flip_deg"], excitation_deg=rp["flip_deg"], crusher_cycles=(1, 0), selective=selective,
+                      tail=tail, crusher_ms=lobes["ms"], pulse_ms=lobes["pulse_ms"], crusher_shape=lobes["shape"], cycle_mm=(lobes["cycle_mm"],) * 2,
+                      refocus_width=width)
+            return dataclasses.replace(seq, name="dwse"), (("echo", 0),)
         return dwse(rp["tr_ms"], rp["te_ms"], rp["diffusion_g_mt_m"], rp["diffusion_delta_ms"], rp["diffusion_separation_ms"], rp["diffusion_ramp_ms"],
-                    rp["diffusion_start_ms"], flip_deg=rp["flip_deg"], selective=selective), ("echo",)
+                    rp["diffusion_start_ms"], flip_deg=rp["flip_deg"], selective=selective, tail=tail, tail_cycle_mm=lobes["cycle_mm"],
+                    refocus_width=width), ("echo",)
     raise ValueError(f"no block list for sequence {name!r}")
 
 
+def _console_lobes(rp):
+    """The crusher lobe and the spoiler of a realised protocol of the console (``console._real_lobes``), or None for a
+    protocol without them (written by hand): dict(ms, pulse_ms, shape, cycle_mm, tail: (room_ms, axis) -> ``Tail``).
+    The lobe is a trapezoid of plateau ``crusher_g_mt_m``; the spoiler is one more lobe of the same area, which starts
+    ``spoiler_after_ms`` after the last sample (earlier when the repetition is shorter than that). The repetition ends
+    with ``Tail(dephased=True)``: the gratings along z survive it, the transverse magnetisation does not."""
+    if not rp.get("crusher_g_mt_m") or not rp.get("crusher_ms"):         # no lobe (a console whose card sets the crusher time to zero): ideal crushers
+        return None
+    ms, ramp, g = rp["crusher_ms"], rp["crusher_ramp_ms"], rp["crusher_g_mt_m"]
+    t, v = (np.array([0.0, ramp, ms - ramp, ms]), np.array([0.0, g, g, 0.0])) if ms > 2 * ramp + 1e-12 else (np.array([0.0, ms / 2, ms]), np.array([0.0, g, 0.0]))
+    area, _, shape = B.lobe_shape(t, v)
+
+    def tail(room_ms, axis):                                        # what is transverse at the end of the repetition: dephased for good
+        return Tail(cycles=1.0, ms=ms, after_ms=max(0.0, min(rp["spoiler_after_ms"], room_ms - ms)), shape=shape, axis=axis, dephased=True)
+    return dict(ms=ms, pulse_ms=rp["rf_180_ms"], shape=shape, cycle_mm=1.0 / (CYCLES_PER_MM_PER_MT_M_MS * abs(area)), tail=tail)
+
+
 # ---------------------------------------------------------------------------------------------- echo trains
-def fse(tr_ms, esp_ms, etl, refocus_deg=180.0, excitation_deg=90.0, crusher_cycles=1, ideal_crushers=False, selective=None, repetitions=1):
+def fse(tr_ms, esp_ms, etl, refocus_deg=180.0, excitation_deg=90.0, crusher_cycles=1, ideal_crushers=False, selective=None, repetitions=1,
+        tail=None, crusher_ms=0.0, pulse_ms=0.0, crusher_shape=B.LINEAR, cycle_mm=None, refocus_width=None, prep=None):
     """CPMG train: excitation about x, ``etl`` refocusing pulses about y spaced ``esp_ms`` apart, echo i labelled
     ("echo", i). ``refocus_deg``: one angle or one per echo (a variable flip-angle train). Equal crushers either side
     of every refocusing pulse (``ideal_crushers``: the ideal crushed pulse, which keeps the spin-echo pathway only).
-    An ideal crusher ends the TR."""
+    ``crusher_ms``, ``crusher_shape``: the duration and the shape moments of a crusher lobe, which ends ``pulse_ms`` / 2
+    before the centre of its pulse and starts as long after it (they matter for diffusion only, with ``cycle_mm``).
+    The repetition ends with an ideal crusher, or with ``tail`` (``Tail``): a real spoiler, after which the gratings
+    along z and what is still transverse reach the next excitation. ``refocus_width``: the slice of the refocusing
+    pulse in excitation slices (None: ``REFOCUS_WIDTH``). ``prep`` = (kind, ms, efficiency): a preparation of the
+    longitudinal magnetisation ``ms`` before the excitation, "inversion" (Mz -> -efficiency x Mz, the gratings along z
+    with it) or "saturation" (Mz -> (1 - efficiency) x Mz), followed by an ideal spoiler of what is transverse. The
+    period is written from the excitation on, so the preparation stands at its end, before the NEXT excitation."""
     flips = tuple(float(v) for v in np.broadcast_to(np.asarray(refocus_deg, float), (int(etl),)))
     if tr_ms < etl * esp_ms:
         raise ValueError("the echo train is longer than TR")
-    ref = _refocus(selective)
+    ref = _refocus(selective, refocus_width)
+    wait = esp_ms / 2 - crusher_ms - pulse_ms / 2
+    if wait < -1e-9:
+        raise ValueError("the crusher and half the refocusing pulse do not fit into half the echo spacing")
+    gap = [B.delay(pulse_ms / 2)] if pulse_ms else []
     if ideal_crushers:
         echo = [B.delay(esp_ms / 2), B.rf(phase_deg=90.0, crushed=True, selective=ref, flip_table="refocus"), B.delay(esp_ms / 2), B.adc("echo")]
     else:
-        echo = [B.delay(esp_ms / 2), B.gradient(crusher_cycles), B.rf(phase_deg=90.0, selective=ref, flip_table="refocus"),
-                B.gradient(crusher_cycles), B.delay(esp_ms / 2), B.adc("echo")]
-    body = [B.rf(excitation_deg, 0.0, selective=selective), B.repeat(echo, etl, tables=dict(refocus=flips)), B.delay(tr_ms - etl * esp_ms), B.crush()]
-    return B.sequence([B.repeat(body, repetitions)], name="fse")
+        lobe = B.gradient(crusher_cycles, ms=crusher_ms, shape=crusher_shape)
+        echo = [B.delay(max(0.0, wait)), lobe] + gap + [B.rf(phase_deg=90.0, selective=ref, flip_table="refocus")] + gap + [lobe, B.delay(max(0.0, wait)), B.adc("echo")]
+    room, last = tr_ms - etl * esp_ms, []
+    if prep is not None:
+        kind, ms, eff = prep
+        if kind not in ("inversion", "saturation") or not 0 <= ms <= room:
+            raise ValueError("prep is (inversion or saturation, a time that fits between the train and the next excitation, an efficiency)")
+        room, last = room - ms, [B.mz(-eff if kind == "inversion" else 1.0 - eff), B.spoil(), B.delay(ms)]
+    body = [B.rf(excitation_deg, 0.0, selective=selective), B.repeat(echo, etl, tables=dict(refocus=flips))] + _end(tail, room) + last
+    return B.sequence([B.repeat(body, repetitions)], cycle_mm=cycle_mm, name="fse")
 
 
 def mese(tr_ms, esp_ms, n_echoes, refocus_deg=180.0, **kw):
@@ -310,10 +395,10 @@ def t2prep(tr_ms, te_prep_ms, flip_deg=90.0, n_refocus=1, repetitions=1):
     return B.sequence([B.repeat(body, repetitions)], name="t2prep")
 
 
-def satrec(tr_ms, ts_ms, flip_deg=90.0, sat_eff=1.0, repetitions=1):
+def satrec(tr_ms, ts_ms, flip_deg=90.0, sat_eff=1.0, repetitions=1, selective=None):
     """Saturation recovery: saturation of efficiency ``sat_eff`` (Mz -> (1 - e) Mz, ideal spoiler), ``ts_ms``, one
     pulse, sample, rest of the TR, ideal spoiler."""
-    body = [B.mz(1.0 - sat_eff), B.spoil(), B.delay(ts_ms), B.rf(flip_deg), B.adc("echo"), B.delay(tr_ms - ts_ms), B.spoil()]
+    body = [B.mz(1.0 - sat_eff), B.spoil(), B.delay(ts_ms), B.rf(flip_deg, selective=selective), B.adc("echo"), B.delay(tr_ms - ts_ms), B.spoil()]
     return B.sequence([B.repeat(body, repetitions)], name="satrec")
 
 
@@ -335,24 +420,30 @@ def diffusion_lobe(g_mt_m, delta_ms, ramp_ms):
     return dict(t=t, g=g, area=area, duration=dur, shape=shape, cycle_mm=1.0 / (CYCLES_PER_MM_PER_MT_M_MS * abs(area)))
 
 
-def dwse(tr_ms, te_ms, g_mt_m, delta_ms, big_delta_ms, ramp_ms=0.0, start_ms=0.0, repetitions=1, flip_deg=90.0, selective=None):
+def dwse(tr_ms, te_ms, g_mt_m, delta_ms, big_delta_ms, ramp_ms=0.0, start_ms=0.0, repetitions=1, flip_deg=90.0, selective=None,
+         tail=None, tail_cycle_mm=None, refocus_width=None):
     """Stejskal-Tanner spin echo: excitation, a lobe starting ``start_ms`` later, the 180 at TE / 2, the same lobe
-    starting ``big_delta_ms`` after the first, sample at TE, ideal crusher at the end of the TR. The cycle length of
-    the sequence is the one over which a lobe dephases by one cycle, so the lobes are gradient blocks of 1 cycle with
-    the shape moments of the trapezoid. ``waveform`` gives the same program for ``mrgym.design.gradients.b_value``.
+    starting ``big_delta_ms`` after the first, sample at TE. The cycle length of the sequence is the one over which a
+    lobe dephases by one cycle, so the lobes are gradient blocks of 1 cycle with the shape moments of the trapezoid.
+    ``waveform`` gives the same program for ``mrgym.design.gradients.b_value``.
     ``flip_deg``: the excitation angle, the refocusing pulse has twice that; ``selective``: the excitation pulse of a
-    slice, the refocusing pulse then plays on a slice 1.5 times as thick (as ``se``)."""
+    slice, the refocusing pulse then plays on a slice ``refocus_width`` times as thick (None: 1.5, as ``se``).
+    The repetition ends with an ideal crusher, or with ``tail`` (``Tail`` with ``axis=1``): a real spoiler on a second
+    axis, perpendicular to the lobes, whose cycle length is ``tail_cycle_mm``."""
     lobe = diffusion_lobe(g_mt_m, delta_ms, ramp_ms)
     dur = lobe["duration"]
     gaps = (start_ms, te_ms / 2 - start_ms - dur, start_ms + big_delta_ms - te_ms / 2, te_ms - start_ms - big_delta_ms - dur, tr_ms - te_ms)
     if min(gaps) < -1e-9:
         raise ValueError("the lobes do not fit: need start + duration <= TE / 2 <= start + Delta and start + Delta + duration <= TE <= TR")
     gaps = [max(0.0, v) for v in gaps]
-    grad = B.gradient(1, ms=dur, shape=lobe["shape"])
+    if tail is not None and (tail.axis != 1 or tail_cycle_mm is None):
+        raise ValueError("dwse: the spoiler plays on the second axis (Tail(axis=1)) and needs its cycle length")
+    grad = B.gradient(1 if tail is None else (1, 0), ms=dur, shape=lobe["shape"])
     body = [B.rf(flip_deg, 0.0, selective=selective), B.delay(gaps[0]), grad, B.delay(gaps[1]),
-            B.rf(2 * flip_deg, 90.0, selective=_refocus(selective)), B.delay(gaps[2]), grad, B.delay(gaps[3]),
-            B.adc("echo"), B.delay(gaps[4]), B.crush()]
-    return B.sequence([B.repeat(body, repetitions)], cycle_mm=lobe["cycle_mm"], name="dwse")
+            B.rf(2 * flip_deg, 90.0, selective=_refocus(selective, refocus_width)), B.delay(gaps[2]), grad, B.delay(gaps[3]),
+            B.adc("echo")] + _end(tail, gaps[4])
+    cycle = lobe["cycle_mm"] if tail is None else (lobe["cycle_mm"], float(tail_cycle_mm))
+    return B.sequence([B.repeat(body, repetitions)], cycle_mm=cycle, name="dwse")
 
 
 def steam(tr_ms, te_ms, tm_ms, g_mt_m, delta_ms, ramp_ms=0.0, flips_deg=(90.0, 90.0, 90.0), tm_crusher_cycles=2, repetitions=1):
@@ -406,6 +497,6 @@ SERVED = dict(spgr=spgr, afi=afi, epi=epi, se=se, ir=ir, bssfp=bssfp)
 NEW = dict(fse=fse, mese=mese, megre=megre, spgr_lobe=spgr_lobe, dess=dess, mprage=mprage, t2prep=t2prep, satrec=satrec, dwse=dwse, steam=steam,
            mt_spgr=mt_spgr)
 
-__all__ = ["NEW", "REFOCUS_WIDTH", "SERVED", "afi", "bssfp", "dess", "diffusion_lobe", "diffusion_waveform", "dwse", "echo_of_line", "epi", "fse",
+__all__ = ["NEW", "REFOCUS_WIDTH", "SERVED", "Tail", "afi", "bssfp", "dess", "diffusion_lobe", "diffusion_waveform", "dwse", "echo_of_line", "epi", "fse",
            "ir", "ir_gre", "megre", "mese", "mprage", "mt_spgr", "refocusing_pulse", "satrec", "se", "served", "spgr", "spgr_lobe", "spoiler_cycle_mm", "steam", "t2prep",
            "t2prep_module"]

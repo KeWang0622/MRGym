@@ -641,16 +641,19 @@ class Engine:
             t = (order[:, None] * nex + np.arange(nex)[None, :]) * cycle
         return (t + offset_ms) * 1e-3
 
-    def _motion(self, ks, rp, te_ms, contrast, amps, key):
+    def _motion(self, ks, rp, te_ms, contrast, amps, key, times=None, of_class=None):
         """Add what periodic motion does to the k-space ``ks`` of one image. Every mover is one tissue class (or the
         whole object) whose k-space lines are modulated with the time of their acquisition:
           pulse   amplitude x (1 + depth cos(2 pi f t + phase))
           shift   rigid displacement amp_mm cos(2 pi f t + phase) along a patient axis: exp(-2 pi i k . delta(t))
         averaged over the averages of the line. The phase is a hash of the mover's key and the protocol, so a scan
-        is reproducible and its noise-free twin is defined. No spin history, no inflow, nothing through the plane."""
+        is reproducible and its noise-free twin is defined. No spin history, no inflow, nothing through the plane.
+        ``times`` [lines_full, averages] (s): the time of every line where it is not one line per cycle (an echo
+        train, ``served.line_times``); ``of_class``: class index -> the k-space of that class alone, where the image
+        is not formed by ``kspace`` (``served.form``)."""
         k_pe, k_ro = ks.shape
         offset = te_ms + (rp["tr_ms"] if rp["sequence"] == "afi" and contrast == 1 else 0.0)
-        t = self._line_times(rp, offset)
+        t = self._line_times(rp, offset) if times is None else times
         out = ks.copy()
         rot = np.deg2rad(self.w.get("rot_deg", 0.0))
         for mv in self.w["motion"]:
@@ -658,7 +661,7 @@ class Engine:
                 ks_m = ks
             else:
                 c = self.w["names"].index(mv["cls"])
-                ks_m = self.kspace(rp, te_ms, [v if i == c else np.zeros_like(v) for i, v in enumerate(amps)])
+                ks_m = self.kspace(rp, te_ms, [v if i == c else np.zeros_like(v) for i, v in enumerate(amps)]) if of_class is None else of_class(c)
             h = hashlib.sha256(repr((mv["phase_key"], key)).encode()).digest()
             arg = 2 * np.pi * (mv["f_hz"] * t + int.from_bytes(h[:4], "big") / 2 ** 32)
             if mv["kind"] == "pulse":

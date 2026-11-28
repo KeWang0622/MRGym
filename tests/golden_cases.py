@@ -12,7 +12,7 @@ and by ``tools/audit/golden.py``, which writes the files (nothing under ``tests/
     prices    lines and scan seconds of a grid of protocols (console arithmetic: equal on every stack)
     array     additive: a world with a receive array: its maps and noise covariance, coil images of both formations, a
               noisy accelerated scan through SENSE, the g map (``array_cases``)
-    core      additive: the sequences served from the block-list core (fse, mese, megre, dwse) on two worlds whose
+    core      additive: the sequences served from the block-list core (fse, mese, megre, dwse, satrec) on two worlds whose
               console lists them: noise-free images, prices and header lines, one noisy session (``core_cases``)
 ``volume_digests.json``   the volume worlds (no scan): see ``VOLUME_WORLDS`` below
 ``compat_2d.json``        the 2D baseline recorded on v1: ``tests/compat_cases.py`` (checked here, written only there)
@@ -208,6 +208,10 @@ CORE_PROTOCOLS = {
     "megre bipolar": dict(sequence="megre", tr_ms=60.0, flip_deg=20.0, n_echoes=3, matrix=64, readout="bipolar", phase_fov=0.75),
     "dwse b 0": dict(sequence="dwse", tr_ms=1500.0, b_value=0.0, matrix=64),
     "dwse b 800": dict(sequence="dwse", tr_ms=1500.0, b_value=800.0, matrix=64, tx_scale=0.9),
+    "satrec": dict(sequence="satrec", tr_ms=700.0, ts_ms=300.0, flip_deg=60.0, matrix=64),
+    "fse with an inversion": dict(sequence="fse", tr_ms=6000.0, etl=8, prep="inversion", ti_ms=2000.0, matrix=64),
+    "fse with a saturation, short TR": dict(sequence="fse", tr_ms=600.0, etl=4, prep="saturation", ti_ms=300.0, matrix=64, refocus_deg=140.0),
+    "mese with a refocusing slice of 1.2": dict(sequence="mese", tr_ms=1500.0, n_echoes=6, matrix=64, refocus_slice_ratio=1.2),
 }
 CORE_WORLDS = (("brain", 3.0), ("qa_oil", 1.5))
 

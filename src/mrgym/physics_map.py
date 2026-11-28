@@ -231,19 +231,25 @@ _BLOCKS = (
         _computed("A13", "Approach to the steady state: dummy cycles and the first lines of a scan", "A10",
                   "the transient is computed by a separate chain of rotations and, in the signal core, by stepping a list of blocks "
                   "from equilibrium or along a prepared train; the scanner serves every line at the steady state",
-                  _X + "12_approach_to_steady_state.py", "design:E9", "core:N8",
+                  _X + "12_approach_to_steady_state.py", "design:E9", "core:N8", "core:N15", "core:N15b",
                   "tests/test_core_evaluators.py::test_the_periodic_state_is_a_fixed_point", needs="core in the console"),
         _partial("A14", "Echo trains: fast (turbo) spin echo, echo train length, effective echo time", "A7 B8",
                  "a console whose card lists them serves a fast spin echo and a multi-echo spin echo from the signal core: echo-train "
                  "length, echo spacing, effective echo time, T2 blurring, the stimulated echoes of the slice profile and of the transmit "
-                 "field, the RF power of the train. One refocusing angle per train, an ideal crusher at the end of the repetition, at "
-                 "most 32 echoes, fat without J coupling. No shipped environment has such a console, and the tool layer of the "
-                 "environments does not offer the sequences yet", "J7 J8 J9 J12 J16 J17 J18 J20 J37 J38", "design:E2 design:E3 design:E4",
-                 "core:N1 core:N1b core:N1c core:N2", "measured:M3b", n=8, needs="core in the console"),
-        _computed("A15", "Magnetisation preparation: saturation recovery, T2 preparation, prepared gradient echo", "A9 A10",
-                  "an inversion-prepared gradient echo exists as a checked formula, and the signal core computes a prepared train of "
-                  "gradient echoes, T2 preparation and saturation recovery from lists of blocks; the console prepares with inversion "
-                  "before a spin echo and with fat saturation only", "S3", "core:Q12 core:N8 core:N9 core:N9b core:N10", needs="core in the console"),
+                 "field, the ratio of the refocusing slice to the excited one, the RF power of the train, and the periodic state of the "
+                 "whole repetition with its real crushers: the gratings along z that reach the next excitation. The transverse "
+                 "magnetisation at the end of a repetition is taken as dephased (it depends on off-resonance and T2'). One refocusing "
+                 "angle per train, at most 32 echoes, fat without J coupling, the carried gratings cut at 16 orders. No shipped "
+                 "environment has such a console", "J7 J8 J9 J12 J16 J17 J18 J20 J24 J37 J38",
+                 "design:E2 design:E3 design:E4", "core:N1 core:N1b core:N1c core:N2 core:N14 core:N14b core:N14c", "measured:M3b", n=8,
+                 needs="core in the console"),
+        _partial("A15", "Magnetisation preparation: saturation recovery, T2 preparation, prepared gradient echo", "A9 A10",
+                  "a console whose card lists them serves saturation recovery with a gradient echo, and an inversion or a saturation "
+                  "in front of the fast spin echo (the null of a fluid, T1 from a series), from the signal core; the preparation is an "
+                  "event on the longitudinal magnetisation of the whole object. An inversion-prepared gradient echo exists as a checked "
+                  "formula, and the signal core computes a prepared train of gradient echoes and T2 preparation from lists of blocks, "
+                  "which no console serves", "S3", "J41 J42 J43 J44 J45 J46 J47", "core:Q12 core:N8 core:N9 core:N9b core:N10",
+                  needs="core in the console"),
     )),
     ("A", "selective signal", (
         _formed("A16", "Chemical shift: fat and water resonate 3.4 ppm apart", "A2", "K3", _X + "05_chemical_shift.py", n=8),
@@ -255,9 +261,12 @@ _BLOCKS = (
         _computed("A20", "Magnetisation transfer and chemical exchange", "A4",
                   "the signal core computes two exchanging pools: magnetisation transfer with a saturation pulse on the bound pool, in "
                   "a gradient echo and under continuous irradiation (the direct effect of the pulse on free water is left out), and "
-                  "chemical exchange between its evaluators only, against no closed form and in no sequence of its library; each "
-                  "tissue of the scanner is one pool of protons and no console sequence saturates a bound pool",
-                  "core:X6 core:X6b core:M2 core:M3", n=4, needs="core in the console"),
+                  "chemical exchange, whose free induction decay equals the closed form of the Bloch-McConnell equations and its two "
+                  "limits, in no sequence of its library. The tissue table holds the bound-pool fraction, exchange rate and bound-pool T2 "
+                  "of seven tissues from one paper; no console sequence reads them or saturates a bound pool",
+                  "core:X6 core:X6b core:X6c core:X6d core:M2 core:M3",
+                  "tests/test_served_prepared.py::test_two_pool_numbers_are_additive_sourced_and_read_by_no_existing_sequence", n=4,
+                  needs="core in the console"),
     )),
     ("A", "contrast beyond relaxation", (
         _partial("A21", "Diffusion weighting: b-value, apparent diffusion coefficient, tensor", "A7 B1",
@@ -449,10 +458,12 @@ _BLOCKS = (
         _partial("C20", "Spoiler and crusher gradients: the moment and what survives it", "A11 B1",
                  "the spoiler moment of a gradient echo is a parameter and acts on the signal; the crushers of a spin echo are "
                  "ideal: what they dephase is gone, so there is no stimulated echo. The echo trains and the diffusion-weighted spin "
-                 "echo of a console that lists them play real crushers inside a repetition, with the stimulated echoes they leave, and "
-                 "an ideal one at its end (what that leaves out is measured: up to 0.16 of an echo for a fluid). A spoiler played "
-                 "as a lobe with its own duration is computed by the signal core and served by no sequence",
-                 "S6 S8", "J8 J20 J23 J24", "core:Q7 core:N1 core:N12 core:N13 core:N5 core:N6 core:N6c", needs="core in the console"),
+                 "echo of a console that lists them play crusher lobes with their duration, area and diffusion weighting, and serve "
+                 "the gratings that survive them, inside a repetition and from one repetition to the next (a sixth of the signal of a "
+                 "fluid at a TR of 0.5 s); what is transverse at the end of a repetition is taken as dephased. A spoiler of a "
+                 "gradient echo played as a lobe with its own duration is computed by the signal core and served by no sequence",
+                 "S6 S8", "J8 J9 J20 J23 J24", "core:Q7 core:N1 core:N12 core:N13 core:N14 core:N14b core:N5 core:N6 core:N6c",
+                 needs="core in the console"),
         _computed("C21", "Gradient programs: lobes, moments and their nulling, the shortest waveform inside the limits", "C15 C20",
                   "the design layer computes moments, k-space and limit checks of a gradient program and the shortest lobe for "
                   "given moments; the console builds its own trapezoids and no waveform can be entered",

@@ -2,7 +2,7 @@
 # Virtual scanner: sequences of the extended console
 
 Supplement to the instrument datasheet. A console offers the six sequences of the datasheet. A console whose card
-lists more (`scanner_info` shows them under `sequences`) also offers the four below. They take every geometry
+lists more (`scanner_info` shows them under `sequences`) also offers the five below. They take every geometry
 parameter of the datasheet (section 3) and the adjustments; none of them has fat saturation. Everything said in the
 datasheet about encoding, slice selection, noise, cost and what is hidden holds for them too.
 
@@ -19,11 +19,15 @@ spacing, ETL = echo-train length.
 | `fse` | `te_ms` | ms, effective echo time: the echo that fills the centre of k-space; realised on the nearest echo | 2 to 3200 | "min" (the first echo) |
 | `fse` | `echo_order` | `centric`: the first echo fills the centre, later echoes alternate outwards; `linear`: the echo at `te_ms` fills the centre, the others follow k-space in order and wrap round | centric, linear | centric |
 | `fse` | `refocus_deg` | degrees (nominal), flip angle of every refocusing pulse | 60 to 180 | 180 |
+| `fse` | `refocus_slice_ratio` | thickness of the slice of the refocusing pulses in excitation slices | 1 to 3 | 1.5 |
+| `fse` | `prep` | preparation of the longitudinal magnetisation before the excitation | none, inversion, saturation | none |
+| `fse` | `ti_ms` | ms, centre of the preparation pulse to centre of the excitation; only with `prep` | 5 to 19000 | left out |
 | `fse` | `matrix` | pixels along the readout (even) | 32 to 256 | 128 |
 | `mese` | `tr_ms` | ms, repetition time | 50 to 20000 | required |
 | `mese` | `n_echoes` | echoes per excitation; one image per echo | 2 to 32 | 8 |
 | `mese` | `echo_spacing_ms` | ms between the echoes; image k is at k x `echo_spacing_ms` | 2 to 100 | "min" |
 | `mese` | `refocus_deg` | degrees (nominal), flip angle of every refocusing pulse | 60 to 180 | 180 |
+| `mese` | `refocus_slice_ratio` | thickness of the slice of the refocusing pulses in excitation slices | 1 to 3 | 1.5 |
 | `mese` | `matrix` | pixels along the readout (even) | 32 to 256 | 128 |
 | `megre` | `tr_ms` | ms, repetition time | 3 to 5000 | required |
 | `megre` | `flip_deg` | degrees (nominal) | 1 to 90 | required |
@@ -37,6 +41,11 @@ spacing, ETL = echo-train length.
 | `dwse` | `te_ms` | ms, echo time | 0.5 to 300 | "min" |
 | `dwse` | `b_value` | s/mm^2, diffusion weighting; 0 plays no diffusion gradients | 0 to 3000 | required |
 | `dwse` | `diffusion_dir` | axis of the diffusion gradients | x, y, z | z |
+| `dwse` | `refocus_slice_ratio` | thickness of the slice of the refocusing pulse in excitation slices | 1 to 3 | 1.5 |
+| `satrec` | `tr_ms` | ms, repetition time | 20 to 20000 | required |
+| `satrec` | `ts_ms` | ms, saturation time: centre of the saturation pulse to centre of the excitation | 1 to 15000 | required |
+| `satrec` | `flip_deg` | degrees (nominal) | 1 to 90 | 90 |
+| `satrec` | `te_ms` | ms, echo time | 0.5 to 300 | "min" |
 
 A value beyond a range is refused with the nearest valid value. Some of these ranges are limits of the simulation
 and not of a scanner (the longest echo train, the largest matrix of `fse` and `mese`, the number of echoes of
@@ -46,12 +55,22 @@ and not of a scanner (the longest echo train, the largest matrix of `fse` and `m
 
 - `fse`: scan time = overhead + one dummy repetition + `tr_ms` x ceil(lines / `etl`) x averages. The lines are those
   of the datasheet (matrix x `phase_fov` x (1 + `phase_oversampling`) x `partial_fourier`).
-- `mese`, `dwse`: overhead + one dummy repetition + `tr_ms` x lines x averages. `megre`: as `spgr`.
+- `mese`, `dwse`, `satrec`: overhead + one dummy repetition + `tr_ms` x lines x averages. `megre`: as `spgr`.
+- `satrec`, and `fse` with `prep`: the saturation or inversion pulse (12 µT for 8 ms, the pulse of `ir`) counts in
+  the RF power of every repetition. The shortest `ts_ms` or `ti_ms` is half that pulse, its spoiler and half the
+  excitation; `tr_ms` must hold the preparation time as well as the rest of the repetition. `plan` prints both minima.
 - RF power: every pulse of the repetition counts. For `fse` and `mese` that is the excitation and every refocusing
   pulse of the train at its nominal angle, so the power grows with the train, with the square of `refocus_deg` and
   with 1 / `tr_ms`; long trains at short repetition times are refused at the limit the datasheet states.
 - Minimum echo spacing of `fse` and `mese`: the minimum echo time of `se` (two half pulses, the crushers, the
   readout). Minimum `tr_ms`: the train, `etl` x `echo_spacing_ms`, plus the readout and a spoiler.
+- Crushers and spoiler of `fse`, `mese` and `dwse`: a gradient pulse of 1 ms at 80 % of the gradient and slew limits
+  (23.5 mT·ms/m, one cycle of phase per 1.0 mm) before and after every refocusing pulse, and one more after the last
+  readout of the repetition. In `dwse` with a `b_value` above 0 the diffusion gradients are the crushers.
+- `refocus_slice_ratio`: the refocusing pulses select a slice this many times as thick as the excitation slice. 1.5
+  is the pulse pair of this console (`se` and `ir` use it and cannot change it). Product sequences use 1.0 to 1.6,
+  relaxometry protocols up to 3. The thinner the refocusing slice, the larger the part of the excited slice that
+  is refocused by less than the nominal angle.
 - `dwse`: the diffusion gradients are two equal trapezoids either side of the refocusing pulse, played at 80 % of
   the gradient and slew limits. The larger `b_value`, the longer they are and the longer the minimum echo time.
   The b-value in the realised protocol and in the header is that of the gradients actually played.
@@ -66,7 +85,7 @@ k x ESP. With refocusing pulses of exactly 180 degrees
     S_k = M0 · f(TR, T1) · exp(-k · ESP / T2)
 
 where f is the recovery of the longitudinal magnetisation over the repetition (every refocusing pulse inverts what
-has recovered, so f is not 1 - E(TR)). Each echo fills one phase-encode line per shot; the image is therefore made
+has recovered, so f is not 1 - E(TR)); the crushers add a diffusion weighting of 0.15 s/mm² per echo. Each echo fills one phase-encode line per shot; the image is therefore made
 of lines with different T2 weighting. The echo that fills the centre of k-space sets the contrast of large structures:
 its time is the effective echo time, `te_ms`. The other lines change the image in two ways. Along the phase-encode
 direction every structure is convolved with the transform of the signal's course over the lines: with `centric`
@@ -85,6 +104,14 @@ signal settles on a level that depends on the angle. For two echoes and one angl
     S_2 ∝ sin⁴(b/2) · exp(-2 ESP / T2) + ½ sin²(b) · exp(-ESP / T2) · exp(-ESP / T1).
 
 Lower refocusing angles lower the RF power with the square of the angle. Fat is not brighter than in `se`.
+
+The repetition does not start from uniform longitudinal magnetisation. What a refocusing pulse stored along the
+longitudinal axis is a fine pattern across the voxel; it is still there at the next excitation if `tr_ms` is not
+long against T1, and the next train recalls it as stimulated echoes. The signal is that of the periodic state with
+these patterns: for tissue it differs from the formulas above by about one percent at a `tr_ms` of 1.5 s and by
+three to six percent at 0.5 s; for a fluid (T1 of seconds) by 9 percent at 1.5 s and by 18 percent at 0.5 s.
+Diffusion erases the finer patterns within a second in water and not in fat. What is still TRANSVERSE when the last
+echo has been read is dephased by the spoiler and is taken as lost.
 
 **`mese`: multi-echo spin echo.** The same train; every echo is read as its own image, image k at k x ESP, one
 phase-encode line of every image per repetition (no blurring, the scan time of `se`). With exact 180 degree
@@ -112,14 +139,48 @@ not low. D follows from two or more b-values at the SAME echo time: D = ln(S(b1)
 signal has fallen to the noise, the magnitude no longer follows exp(-b · D) and D is underestimated. Diffusion is
 the same in every direction here: `diffusion_dir` does not change the image.
 
+S_se here is the spin echo of the periodic state, as for `fse`: when `tr_ms` is not long against T1 it holds the
+stimulated echo of the last repetition, which the crushers of a scan with `b_value` 0 recall and the diffusion
+gradients of a scan with a large `b_value` do not (they dephase it beyond recall). The ratio of two such images is
+then not exp(-b · D) alone: at a `tr_ms` of 3 s a coefficient from b = 0 and b = 1000 is off by up to 2 percent.
+Two scans with `b_value` above about 100, or a `tr_ms` of several T1, do not have this error. A scan with
+`b_value` 0 is weighted by its crushers with 0.15 s/mm². It is not the image of `se`, which keeps the perfect
+crushers of the datasheet.
+
+**`satrec`: saturation recovery.** A saturation pulse sets the longitudinal magnetisation to zero everywhere, and
+`ts_ms` later one gradient echo is excited:
+
+    S = M0 · sin(a) · (1 - exp(-TS / T1)) · exp(-TE / T2*)
+
+Nothing of the earlier repetitions is left after the saturation, so the signal does not depend on `tr_ms` or on what
+the flip angle did to the magnetisation: the ratio of two images at two saturation times depends on T1 alone, for
+any transmit field and any slice profile. (If the saturation of a system is incomplete, a little of the last
+repetition is left and both enter again.) One phase-encode line per repetition; the shortest `tr_ms` is `ts_ms` plus
+the readout.
+
+**`fse` with `prep`.** A pulse `ti_ms` before the excitation prepares the longitudinal magnetisation, and a spoiler
+removes what is transverse at that moment. `inversion` turns Mz into -q · Mz (q: the inversion efficiency of the
+system, as in `ir`); every echo of the train is then multiplied by
+
+    Mz(TI) = 1 - (1 + q · Mz') · exp(-TI / T1)
+
+where Mz' is what the last train and the rest of the repetition left. The signal is signed, as in `ir`: a material
+is dark at the `ti_ms` where Mz(TI) crosses zero, T1 · ln(1 + q) when `tr_ms` is long against T1 (T1 · ln 2 for a
+complete inversion), earlier when it is not. `saturation` sets Mz to zero: Mz(TI) = 1 - exp(-TI / T1), whatever the
+last repetition left. The preparation acts on the whole object (it is not slice-selective), and on everything that
+is stored along the longitudinal axis, the patterns that an imperfect refocusing pulse left there included.
+
 ## 4. What is not simulated in these sequences
 
 Refocusing angles that change along the train; the bright fat of fast spin echo; magnetisation transfer; phase
 errors between odd and even echoes of a bipolar readout; diffusion that depends on direction, diffusion time or
-b-value; the diffusion weighting of the imaging gradients; an echo-planar readout after diffusion weighting; any
-effect of motion (a console that offers these sequences on an object that moves refuses the scan). Between two
-repetitions only the longitudinal magnetisation survives: what an imperfect refocusing pulse stored along the
-longitudinal axis does not return in the next repetition, as it does on a scanner when `tr_ms` is not long against
-T1 (there it changes the echoes of a train by under one percent for T1 below `tr_ms`, and by more than ten percent
-for a fluid whose T1 is several times `tr_ms`).
+b-value; the diffusion weighting of the imaging gradients; an echo-planar readout after diffusion weighting.
+Motion (on a console whose object moves) changes every phase-encode line by the state of the object at the moment
+the line is read, as in the other sequences; in an echo train the lines of one shot are an echo spacing apart. It
+does not change the echoes themselves: there is no loss of signal from moving through a crusher or a diffusion
+gradient, and no inflow. The crushers and the spoiler are taken to dephase by whole cycles inside every voxel.
+The transverse magnetisation that is left at the end of a repetition does not return: in a static fluid whose T2 is
+longer than the repetition it would, by an amount that depends on the off-resonance of the voxel to a fraction of a
+hertz (a quarter of the signal of cerebrospinal fluid at a `tr_ms` of 1.5 s, more at shorter ones), so the signal
+of a fluid at a short `tr_ms` is that of a fluid whose transverse coherence does not survive the repetition.
 The minimum echo time of `dwse` is that of gradients placed next to the refocusing pulse.

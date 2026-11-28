@@ -2,7 +2,7 @@
  "schema": "mrgym-measured/1",
  "engine": "mrgym-engine-0.3.0",
  "command": "python tools/measured/run_all.py --write",
- "tool": "6eae791507e11ff9",
+ "tool": "ddacd1110396c0b1",
  "extracts": {
   "M1_t1_challenge.json": "3c70c0e9133c95abf768dd9c7db15fc356fc6cd9884c375c4cc655912a406df3",
   "M6_acr.json": "18bb6a5aef0eec9cab5acd40e3076de62331750fd9e1a9d976a4973f2c7b0d0f",
@@ -431,57 +431,55 @@
     },
     {
      "id": "M3b.4",
-     "quantity": "the same from the images of the console's `mese` with the published ratio of the two slices (1.2), refocusing 180°",
+     "quantity": "the same from the images of the console's `mese` with the protocol of the paper (`refocus_slice_ratio` 1.2), refocusing 180°",
      "measured": "+50.5 % (SD over the tubes 13.2)",
-     "engine": "+45.2 % (normal pulse, time-bandwidth 4), +53.6 % (fast pulse, time-bandwidth 2)",
-     "difference": "-5.3 and +3.1 points",
+     "engine": "+45.1 % (normal pulse, time-bandwidth 4), +53.6 % (fast pulse, time-bandwidth 2)",
+     "difference": "-5.4 and +3.1 points",
      "tolerance": "the measured mean lies between the two pulse shapes",
      "declared": false,
      "passed": true,
-     "note": "The ratio is `mrgym.core.library.REFOCUS_WIDTH`, set to 1.2 for these rows only; it is not a console parameter."
+     "note": "The ratio of the refocusing slice to the excitation slice is a protocol parameter of the console; 1.2 is the value the paper states for its product sequence, taken from its protocol and not fitted."
     },
     {
      "id": "M3b.5",
-     "quantity": "the same from the images of the console's `mese` with the published ratio of the two slices (1.2), refocusing 150°",
+     "quantity": "the same from the images of the console's `mese` with the protocol of the paper (`refocus_slice_ratio` 1.2), refocusing 150°",
      "measured": "+55.3 % (SD over the tubes 15.7)",
-     "engine": "+51.1 % (normal pulse, time-bandwidth 4), +61.6 % (fast pulse, time-bandwidth 2)",
-     "difference": "-4.2 and +6.3 points",
+     "engine": "+50.9 % (normal pulse, time-bandwidth 4), +61.5 % (fast pulse, time-bandwidth 2)",
+     "difference": "-4.4 and +6.2 points",
      "tolerance": "the measured mean lies between the two pulse shapes",
      "declared": false,
      "passed": true,
-     "note": "The ratio is `mrgym.core.library.REFOCUS_WIDTH`, set to 1.2 for these rows only; it is not a console parameter."
+     "note": "The ratio of the refocusing slice to the excitation slice is a protocol parameter of the console; 1.2 is the value the paper states for its product sequence, taken from its protocol and not fitted."
     },
     {
      "id": "M3b.6",
-     "quantity": "the same from the images of the console's `mese` with the published ratio of the two slices (1.2), refocusing 120°",
+     "quantity": "the same from the images of the console's `mese` with the protocol of the paper (`refocus_slice_ratio` 1.2), refocusing 120°",
      "measured": "+82.6 % (SD over the tubes 20.6)",
-     "engine": "+77.6 % (normal pulse, time-bandwidth 4), +90.4 % (fast pulse, time-bandwidth 2)",
-     "difference": "-5.0 and +7.8 points",
+     "engine": "+77.4 % (normal pulse, time-bandwidth 4), +90.3 % (fast pulse, time-bandwidth 2)",
+     "difference": "-5.2 and +7.7 points",
      "tolerance": "the measured mean lies between the two pulse shapes",
      "declared": false,
      "passed": true,
-     "note": "The ratio is `mrgym.core.library.REFOCUS_WIDTH`, set to 1.2 for these rows only; it is not a console parameter."
+     "note": "The ratio of the refocusing slice to the excitation slice is a protocol parameter of the console; 1.2 is the value the paper states for its product sequence, taken from its protocol and not fitted."
     },
     {
      "id": "M3b.7",
-     "quantity": "the same from the console's `mese` as it is served (refocusing slice 1.5 × the excitation slice), 180° / 150° / 120°",
-     "measured": "+50.5 % / +55.3 % / +82.6 %",
-     "engine": "+32.7 % / +38.6 % / +64.2 % (normal pulse); +41.0 % / +48.6 % / +76.6 % (fast pulse)",
-     "difference": "6.0 to 18.4 points below",
-     "tolerance": "declared difference",
-     "declared": true,
-     "size": 18.38767522252877,
-     "ceiling": 19.0,
+     "quantity": "the same at the console's default ratio (1.5, the pulse pair of its `se` and `ir`), 180° / 150° / 120°",
+     "measured": "+50.5 % / +55.3 % / +82.6 % (measured at ratio 1.2)",
+     "engine": "+32.6 % / +38.4 % / +64.0 % (normal pulse); +41.0 % / +48.6 % / +76.5 % (fast pulse)",
+     "difference": "6.1 to 18.6 points below the measurement; 12.5 to 13.8 points below the console at ratio 1.2",
+     "tolerance": "a wider refocusing slice gives a smaller error, for both pulses and all three angles (another sequence than the measured one, not a difference of the engine from the measurement)",
+     "declared": false,
      "passed": true,
-     "known": 8,
-     "note": "The console refocuses on a wider slice than the product sequence of the measurement: fewer spins of the excited slice see a refocusing angle below the nominal one, and fewer stimulated echoes bias the fit."
+     "note": "Product sequences differ in this ratio: 1.2 on the scanner of the measurement, 1.5 as a manufacturer's default of fast spin echo (Sarlls & Pierpaoli 2008), 1.0 for a preset turbo spin echo (Sammet 2013); see docs/physics/references.md. The wider the refocusing slice, the fewer spins of the excited slice see a refocusing angle below the nominal one, and the fewer stimulated echoes bias the fit."
     }
    ],
    "extracts": [],
    "source": "Ben-Eliezer 2015, Magn Reson Med 73:809, Table 1 (no open licence: the nine tubes' T1 and T2 as the object, and derived means of the measured error)",
    "notes": [
     "Protocol of the paper: 3 T, 18 echoes of 12 ms, TR 1500 ms, 3 mm, refocusing slice 1.2 × the excitation slice. Rows M3b.1 to M3b.3: the block-list EPG of the design layer through the slice profile of the console's windowed-sinc pulses (gratings along z survive between repetitions); nothing is fitted.",
-    "Rows M3b.4 to M3b.7: `Engine.acquire` of the console's `mese` with that protocol (matrix 128, field of view 256 mm) on a world of nine tubes with the published T1 and T2, perfect fields, no noise; the mean of each tube in each of the 18 images, then the same exponential fit. The console calibrates its slice to the width at half maximum of the profile and ends every repetition with an ideal crusher (limits.md, block 8a); the design-layer rows do neither."
+    "Rows M3b.4 to M3b.7: `Engine.acquire` of the console's `mese` with that protocol (matrix 128, field of view 256 mm) on a world of nine tubes with the published T1 and T2 and the diffusion of water (2.0 um^2/ms), perfect fields, no noise; the mean of each tube in each of the 18 images, then the same exponential fit. The console calibrates its slice to the width at half maximum of the profile, plays crusher lobes of 1 ms and a spoiler, and keeps what survives the repetition (the gratings along z, as the design-layer rows do; core.md, section 11).",
+    "What was fixed before the comparison: the ratio of the two slices (from the paper's protocol), and the periodic state of the repetition with its gratings (checked against an isochromat ensemble and the design layer, rows J9 and J20 of `mrgym validate`). Nothing was fitted to the measured means."
    ],
    "engine": "mrgym-engine-0.3.0",
    "date_utc": "2026-11-27"
@@ -1117,16 +1115,20 @@
   },
   {
    "n": 8,
-   "what": "The console's multi-echo spin echo (`mese`, served from the block-list core) refocuses on a slice 1.5 times the excitation slice; the product sequence of the measurement on 1.2 times. The wider refocusing slice leaves fewer stimulated echoes, so the T2 error of an exponential fit is smaller than the measured one. With the published ratio the same code brackets the measurement.",
+   "what": "Closed. The console's multi-echo spin echo refocused on a slice 1.5 times the excitation slice and ended every repetition with an ideal crusher; the product sequence of the measurement refocuses on 1.2 times. The ratio is now a protocol parameter (`refocus_slice_ratio`, 1.0 to 3.0), and the repetition keeps its gratings: with the protocol of the paper the console brackets the measurement, as the design layer does.",
    "rows": [
-    "M3b.7",
-    "M3b.4"
+    "M3b.4",
+    "M3b.5",
+    "M3b.6",
+    "M3b.7"
    ],
    "numbers": [
-    "6.0 to 18.4 points below (M3b.7)",
-    "-5.3 and +3.1 points (M3b.4)"
+    "-5.4 and +3.1 points (M3b.4)",
+    "-4.4 and +6.2 points (M3b.5)",
+    "-5.2 and +7.7 points (M3b.6)",
+    "6.1 to 18.6 points below the measurement; 12.5 to 13.8 points below the console at ratio 1.2 (M3b.7)"
    ],
-   "closes": "the ratio of the two slices as a console parameter (ordinary engine work on `console.py` and `library.REFOCUS_WIDTH`)"
+   "closes": "nothing left: at the console's default ratio the error is smaller for a stated reason (M3b.7)"
   },
   {
    "n": 9,

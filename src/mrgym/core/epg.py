@@ -108,7 +108,9 @@ def run(seq, sp, kmax=None, state=None, frame=False, demodulation=1j, repetition
     ``frame`` runs the RF phase increments of repeats in the pulse frame (``blocks.compile_ops``); the samples are
     the same. ``repetitions`` compiles that many repetitions of a sequence that is one repeat block.
     ``prune``: stop carrying states whose order exceeds the dephasing that the rest of the sequence can undo; they
-    cannot return to order 0, so every sample is unchanged, but the final state is then valid at order 0 only."""
+    cannot return to order 0, so every sample is unchanged, but the final state is then valid at order 0 only. A
+    tuple of orders per axis instead of True keeps what can still return to that box of orders: the final state is
+    then valid inside the box (a sample is taken at order 0, which every box holds)."""
     prog = seq if isinstance(seq, B.Program) else B.compile_ops(seq, frame=frame, repetitions=repetitions)
     axes, unit = prog.axes, prog.unit
     if state is not None and tuple(state.unit) != tuple(unit):
@@ -133,9 +135,10 @@ def run(seq, sp, kmax=None, state=None, frame=False, demodulation=1j, repetition
     flip = (slice(None, None, -1),) * axes
     cache, out = {}, []
     remain = None
-    if prune:                                                           # dephasing still to come after every operation
-        steps = np.array([[abs(m) for m in op.n] if op.kind == "free" else [0] * axes for op in prog.ops])
-        remain = steps[::-1].cumsum(0)[::-1] - steps
+    if prune is not False and prune is not None:                        # dephasing still to come after every operation
+        steps = np.array([[abs(m) for m in op.n] if op.kind == "free" else [0] * axes for op in prog.ops]).reshape(len(prog.ops), axes)
+        box = (0,) * axes if prune is True else tuple(int(b) for b in prune)
+        remain = steps[::-1].cumsum(0)[::-1] - steps + np.asarray(box)
 
     def window():
         return tuple(slice(k - a, k + a + 1) for k, a in zip(kk, act))
@@ -163,26 +166,38 @@ def run(seq, sp, kmax=None, state=None, frame=False, demodulation=1j, repetition
         elif kind == "free":
             t, n = op.ms, op.n
             if t > 0:
-                kax = [_k(act, unit, i, axes) for i in range(axes)]
-                df_exp = dz_rate = None
-                if rate is not None:
-                    m1, m2 = op.shape
-                    df_exp = sum(rate[i] * t * (kax[i] ** 2 + 2 * m1 * kax[i] * (n[i] * unit[i]) + m2 * (n[i] * unit[i]) ** 2) for i in range(axes))
-                    dz_rate = sum(rate[i] * kax[i] ** 2 for i in range(axes))                       # 1/ms, [lattice..., columns]
-                rot = np.exp(2j * math.pi * 1e-3 * sp.df_hz * t) if has_df else 1.0
+                key = ("free", t, n, op.shape)
+                fac = cache.get(key)
+                if fac is None:                                         # the factors of this interval on the whole lattice: equal blocks share them
+                    df_exp = dz_rate = None
+                    if rate is not None:
+                        kax = [_k(kk, unit, i, axes) for i in range(axes)]
+                        m1, m2 = op.shape
+                        df_exp = sum(rate[i] * t * (kax[i] ** 2 + 2 * m1 * kax[i] * (n[i] * unit[i]) + m2 * (n[i] * unit[i]) ** 2) for i in range(axes))
+                        dz_rate = sum(rate[i] * kax[i] ** 2 for i in range(axes))                   # 1/ms, [lattice..., columns]
+                    rot = np.exp(2j * math.pi * 1e-3 * sp.df_hz * t) if has_df else 1.0
+                    fac = dict(df_exp=df_exp, dz_rate=dz_rate, rot=rot)
+                    if not cx:
+                        fac["f"] = (np.exp(-t * r2) * rot) if df_exp is None else np.exp(-t * r2 - df_exp) * rot
+                    if not two:
+                        e1 = np.exp(-t * r1)
+                        fac["z"], fac["grow"] = (e1 if dz_rate is None else np.exp(-t * (r1 + dz_rate))), (1 - e1) * sp.m0
+                    cache[key] = fac
+                df_exp, dz_rate = fac["df_exp"], fac["dz_rate"]
+                on = (lambda a, win=win: a[win]) if rate is not None else (lambda a: a)    # noqa: E731  (a factor of the lattice, or one per column)
                 if cx:
                     w = 2j * math.pi * 1e-3
                     e11, e12, e21, e22 = O.exp2(-r2 - kf + w * sp.df_hz, kr, kf, -1.0 / sp.t2b_ms - kr + w * (sp.df_hz + sp.shift_b_hz), t)
                     fw, gw = f[win], fb[win]
                     f[win], fb[win] = e11 * fw + e12 * gw, e21 * fw + e22 * gw
                     if df_exp is not None:
-                        damp = np.exp(-df_exp)
+                        damp = np.exp(-df_exp[win])
                         f[win] *= damp
                         fb[win] *= damp
                 else:
-                    f[win] *= (np.exp(-t * r2) * rot) if df_exp is None else np.exp(-t * r2 - df_exp) * rot
+                    f[win] *= on(fac["f"])
                 if two:
-                    da = 0.0 if dz_rate is None else dz_rate
+                    da = 0.0 if dz_rate is None else dz_rate[win]
                     e11, e12, e21, e22 = O.exp2(-r1 - kf - da, kr, kf, -r1b - kr - (da if cx else 0.0), t)
                     zw, yw = z[win], zb[win]
                     z[win], zb[win] = e11 * zw + e12 * yw, e21 * zw + e22 * yw
@@ -190,9 +205,8 @@ def run(seq, sp, kmax=None, state=None, frame=False, demodulation=1j, repetition
                     z[centre] += sp.m0 - g11 * sp.m0 - g12 * m0b
                     zb[centre] += m0b - g21 * sp.m0 - g22 * m0b
                 else:
-                    e1 = np.exp(-t * r1)
-                    z[win] *= e1 if dz_rate is None else np.exp(-t * (r1 + dz_rate))
-                    z[centre] += (1 - e1) * sp.m0
+                    z[win] *= on(fac["z"])
+                    z[centre] += fac["grow"]
             if any(n):
                 new = [min(k, a + abs(m)) for k, a, m in zip(kk, act, n)]
                 dst = tuple(slice(max(0, k - a + m), min(2 * k, k + a + m) + 1) for k, a, m in zip(kk, act, n))

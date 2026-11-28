@@ -9,6 +9,14 @@ moves under an unchanged engine version is the defect the file exists to catch (
 ``src/mrgym/scanner/session.py`` first). Adding cases under the same engine is allowed. It also refuses to write from
 a stack other than the recorded one unless ``--new-reference-stack`` is given.
 
+One exception, which has to be asked for and is checked: ``--write --additive-core``. The section ``core`` holds the
+sequences that only a console whose card lists them serves (``console.EXTENDED``). The engine version protects stored
+results; while NO registered environment has such a console, no stored gate, log, fingerprint or number of an id can
+depend on those sequences, and a change of their data is not a change of the engine any result was measured on. The
+flag rewrites the file when (a) every changed number lies in the section ``core`` and (b) no registered id, at any
+level, has a console that lists a sequence (every id is reset once and its console card read; ``--check`` of the id
+fingerprints says the same from the other side). It prints both findings; CHANGELOG.md must say why the numbers moved.
+
 Task snapshots (instances, statements, cards, constants, reference episodes) are rewritten by ``--write`` and the
 changed ids are listed: a changed snapshot of a released id needs a new ``-vN`` (CONTRIBUTING.md).
 
@@ -45,11 +53,33 @@ def changed(old: dict, new: dict) -> tuple[list, list, list]:
     return (sorted(k for k in a if k in b and a[k] != b[k]), sorted(set(b) - set(a)), sorted(set(a) - set(b)))
 
 
+def consoles_with_core_sequences() -> list:
+    """Registered ids (with the level) whose console card lists a sequence served from the block-list core: every id
+    is made at every level and reset once."""
+    import importlib
+
+    import mrgym
+    registry = importlib.import_module("mrgym.registry")
+    console = importlib.import_module("mrgym.scanner.console")
+    out = []
+    for env_id in registry.list_envs():
+        spec = registry.spec(env_id)
+        for level in spec.levels:
+            env = mrgym.make(env_id, level=level)
+            env.reset(seed=0)
+            card = env.hidden_world().get("console") or {}
+            if card.get("sequences") and any(console.REGISTRY[n].serves == "core" for n in console.offered(card)):
+                out.append(f"{env_id} level {level}")
+    return out
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--write", action="store_true")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--new-reference-stack", action="store_true", help="record the digests of this numpy / scipy / machine")
+    ap.add_argument("--additive-core", action="store_true", help="with --write: accept changed numbers of the section core under the same engine "
+                                                                 "version, if no registered id has a console that lists its sequences")
     a = ap.parse_args(argv)
     if a.write == a.check:
         ap.error("give exactly one of --write, --check")
@@ -78,9 +108,18 @@ def main(argv=None) -> int:
             print("refused: this is not the stack the file was recorded on (give --new-reference-stack to move it)")
             return 1
         if same_engine and same_stack and (diff or removed):
-            print(f"refused: scan data or prices changed while ENGINE_VERSION is still {new_e['engine']}. Bump it in "
-                  "src/mrgym/scanner/session.py (and add an 'Engine' line to CHANGELOG.md), then run --write again.")
-            return 1
+            outside = [k for k in diff + removed if not k.startswith("core.")]
+            users = consoles_with_core_sequences() if a.additive_core and not outside else None
+            if a.additive_core and not outside and not users:
+                print(f"--additive-core: all {len(diff) + len(removed)} changed numbers lie in the section core, and no registered id has a console "
+                      "that lists a sequence of it: rewritten without an engine bump (say why in CHANGELOG.md)")
+            else:
+                if a.additive_core:
+                    print("--additive-core does not apply: " + (f"numbers outside the section core changed ({', '.join(outside[:4])})" if outside
+                                                                else f"these ids have a console that lists the sequences: {', '.join(users)}"))
+                print(f"refused: scan data or prices changed while ENGINE_VERSION is still {new_e['engine']}. Bump it in "
+                      "src/mrgym/scanner/session.py (and add an 'Engine' line to CHANGELOG.md), then run --write again.")
+                return 1
         G.dump(G.ENGINE_FILE, new_e)
         print("wrote", os.path.relpath(G.ENGINE_FILE, ROOT))
 

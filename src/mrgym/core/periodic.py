@@ -19,6 +19,15 @@ Two methods
                Mz, so the fixed point and the samples at it follow from those runs, whatever the length of an echo
                train. States above half the reach of the period cannot return to order 0 before the crusher and
                are not carried.
+  ``carry``    the period is taken as written and the state at its START is restricted to a box of low orders
+               (``carry``: the largest order per axis): the longitudinal gratings Z_k of the box, and with
+               ``carry_transverse`` the transverse states F_k of the box too. Inside the period every state the
+               gradients can reach is carried. The period is stepped with ``epg`` once from nothing and once from
+               each real basis state of the box; the map of the box into itself is a small dense matrix per column
+               and the fixed point one dense solve. This is the periodic state of a repetition that ends with a REAL
+               spoiler: what a state above the box would have added is the truncation (a state of order k that has
+               to survive the interval before the next excitation has decayed by exp(-t / T1 or T2) and by diffusion,
+               exp(-D (2 pi k / cycle)^2 t); ``carry_orders`` gives the box for a tolerance on that factor).
 ``auto`` takes ``reduced`` when it applies. Truncation: ``kmax``, or for the matrix method the rule of
 ``operators.auto_kmax`` per tissue (states of high order have decayed by exp(-t / T2) below ``tol``).
 
@@ -58,14 +67,19 @@ def _reducible(prog):
     return any(op.kind == "crush" for op in prog.ops[last + 1:])
 
 
-def steady_state(seq, sp, kmax=None, tol=1e-6, method="auto", demodulation=1j):
+def steady_state(seq, sp, kmax=None, tol=1e-6, method="auto", demodulation=1j, carry=None, carry_transverse=True):
     """Samples of one period in the periodic state: ``epg.Result`` with ``signal`` [samples, columns] in the order of
     the adc blocks of the period, and ``state`` = the periodic state at the start of the period (pulse frame).
     A sample that an RF-spoiled repeat takes away from zero dephasing has a periodic magnitude and a phase that
-    advances from repetition to repetition (``blocks`` docstring); the value returned is that of the first period."""
+    advances from repetition to repetition (``blocks`` docstring); the value returned is that of the first period.
+    ``carry``, ``carry_transverse``: the box of method "carry" (module docstring)."""
     prog, _ = period(seq)
-    if method not in ("auto", "matrix", "reduced"):
-        raise ValueError("method is auto, matrix or reduced")
+    if method not in ("auto", "matrix", "reduced", "carry"):
+        raise ValueError("method is auto, matrix, reduced or carry")
+    if method == "carry":
+        if carry is None:
+            raise ValueError("carry: give the largest order per axis that is kept at the start of the period")
+        return _carried(prog, sp, carry, carry_transverse, demodulation)
     if method == "reduced" or (method == "auto" and _reducible(prog)):
         if not _reducible(prog):
             raise ValueError("reduced: the period must end with an ideal crusher after its last pulse and gradient")
@@ -155,6 +169,137 @@ def _reduced(prog, sp, kmax, demodulation):
     if tail:                                                # the state at the START of the period as written
         start = epg.run(B.Program(tail, prog.unit, prog.reach, prog.cycle_mm, (), prog.frame, 0.0), sp, kmax=kk, state=start).state
     return epg.Result(signal[order], prog.labels, start, prog)
+
+
+# ---------------------------------------------------------------------------------------------- carry: a box of states
+CARRY_BYTES = 192e6                  # working memory of one chunk of columns
+
+
+def carry_box(carry, transverse=True, mt=False):
+    """The real coordinates of the states of a box of orders: dict(index [P, axes]: the lattice points; neg [P]: the
+    point -k of every point; zero: the point 0; reps: one point of every pair (k, -k), k != 0; d: the number of real
+    coordinates; kinds: "Z" or "F" per coordinate). Order of the coordinates: Z_0, Re Z_k and Im Z_k of the pairs
+    (Z_-k is the complex conjugate), then with ``mt`` the same for the bound pool, then with ``transverse`` Re F_k and
+    Im F_k of every point."""
+    k = tuple(int(c) for c in carry)
+    sizes = tuple(2 * c + 1 for c in k)
+    index = np.stack([g.ravel() for g in np.indices(sizes)], 1) - np.asarray(k)
+    neg = np.ravel_multi_index(tuple((-index + np.asarray(k)).T), sizes)
+    zero = int(np.flatnonzero(np.all(index == 0, 1))[0])
+    reps = np.flatnonzero(np.arange(index.shape[0]) > neg)
+    n_z = 1 + 2 * reps.size
+    d = n_z * (2 if mt else 1) + (2 * index.shape[0] if transverse else 0)
+    kinds = ("Z",) * (n_z * (2 if mt else 1)) + ("F",) * (d - n_z * (2 if mt else 1))
+    return dict(k=k, sizes=sizes, index=index, neg=neg, zero=zero, reps=reps, d=d, n_z=n_z, kinds=kinds, transverse=bool(transverse), mt=bool(mt))
+
+
+def box_states(box):
+    """(f, z, zb) [P, d]: the state of every real coordinate of ``box`` set to one (zb None without a bound pool)."""
+    p, d, reps, neg, n_z = box["index"].shape[0], box["d"], box["reps"], box["neg"], box["n_z"]
+    f, z = np.zeros((p, d), complex), np.zeros((p, d), complex)
+    zb = np.zeros((p, d), complex) if box["mt"] else None
+    for arr, off in ((z, 0),) + (((zb, n_z),) if box["mt"] else ()):
+        arr[box["zero"], off] = 1.0
+        j = off + 1 + np.arange(reps.size)
+        arr[reps, j], arr[neg[reps], j] = 1.0, 1.0
+        arr[reps, j + reps.size], arr[neg[reps], j + reps.size] = 1.0j, -1.0j
+    if box["transverse"]:
+        off = n_z * (2 if box["mt"] else 1)
+        f[np.arange(p), off + np.arange(p)] = 1.0
+        f[np.arange(p), off + p + np.arange(p)] = 1.0j
+    return f, z, zb
+
+
+def box_coordinates(box, f, z, zb=None):
+    """The real coordinates [d, ...] of states given on the points of the box, f, z (and zb) [P, ...]."""
+    reps = box["reps"]
+    out = [z[box["zero"]].real[None], z[reps].real, z[reps].imag]
+    if box["mt"]:
+        out += [zb[box["zero"]].real[None], zb[reps].real, zb[reps].imag]
+    if box["transverse"]:
+        out += [f.real, f.imag]
+    return np.concatenate(out, 0)
+
+
+def box_state(box, x):
+    """(f, z, zb) [P, ...] of the real coordinates ``x`` [d, ...]: the inverse of ``box_coordinates``."""
+    p, reps, neg, n_z = box["index"].shape[0], box["reps"], box["neg"], box["n_z"]
+    rest = x.shape[1:]
+    f, z = np.zeros((p,) + rest, complex), np.zeros((p,) + rest, complex)
+    zb = np.zeros((p,) + rest, complex) if box["mt"] else None
+    for arr, off in ((z, 0),) + (((zb, n_z),) if box["mt"] else ()):
+        arr[box["zero"]] = x[off]
+        v = x[off + 1:off + 1 + reps.size] + 1j * x[off + 1 + reps.size:off + n_z]
+        arr[reps], arr[neg[reps]] = v, np.conj(v)
+    if box["transverse"]:
+        off = n_z * (2 if box["mt"] else 1)
+        f[:] = x[off:off + p] + 1j * x[off + p:off + 2 * p]
+    return f, z, zb
+
+
+def carry_orders(seq, sp, tol=1e-6, cap=64, transverse=None):
+    """(largest order per axis, whether transverse states are needed) at the start of the period for a tolerance:
+    a state that has to cross the interval between the last pulse of the period and its end (duration t) arrives
+    with at most exp(-t / T1) exp(-D (2 pi k / cycle)^2 t) of its size when it is longitudinal and exp(-t / T2) times
+    the same diffusion factor when it is transverse (a lower bound of its diffusion: the order it has before the
+    gradients of that interval). Orders whose factor is below ``tol`` for every column are left out; without
+    diffusion, or when relaxation alone does not reach ``tol``, the box ends at ``cap``. The cost of the box is
+    measured, not bounded, by solving with a larger one. ``transverse`` False: the box of the gratings alone."""
+    prog = seq if isinstance(seq, B.Program) else period(seq)[0]
+    last = max([i for i, op in enumerate(prog.ops) if op.kind == "rf"], default=-1)
+    t = float(sum(op.ms for op in prog.ops[last + 1:] if op.kind == "free"))
+    e1, e2 = np.exp(-t / sp.t1_ms), np.exp(-t / sp.t2_ms)
+    rate = O.diffusion_rate(prog, sp)
+    transverse = bool(np.any(e2 >= tol)) if transverse is None else bool(transverse)
+    worst = np.maximum(e1, e2) if transverse else e1
+    out = []
+    for a in range(prog.axes):
+        if prog.reach[a] == 0 or not np.any(worst >= tol):
+            out.append(0)
+            continue
+        if rate is None or np.any((rate[a] <= 0) & (worst >= tol)):
+            out.append(int(cap))
+            continue
+        need = np.where(worst >= tol, np.sqrt(np.maximum(np.log(np.maximum(worst, 1e-300) / tol), 0.0) / (np.maximum(rate[a], 1e-300) * t)) / prog.unit[a], 0.0)
+        out.append(int(min(cap, math.floor(float(need.max())))))
+    return tuple(out), transverse
+
+
+def _carried(prog, sp, carry, transverse, demodulation):
+    if sp.pool == "cx":
+        raise ValueError("carry: one pool, or a bound pool without transverse magnetisation")
+    carry = tuple(int(c) for c in (carry if isinstance(carry, (tuple, list)) else (carry,) * prog.axes))
+    if len(carry) != prog.axes or min(carry) < 0:
+        raise ValueError(f"carry: one order >= 0 per axis; the sequence dephases on {prog.axes}")
+    carry = tuple(c if r else 0 for c, r in zip(carry, prog.reach))
+    box = carry_box(carry, transverse, sp.pool == "mt")
+    d, sizes = box["d"], box["sizes"]
+    f0, z0, zb0 = box_states(box)
+    lead = np.zeros((f0.shape[0], 1), complex)                          # the first run starts from nothing
+    f0, z0 = np.concatenate([lead, f0], 1), np.concatenate([lead, z0], 1)
+    zb0 = None if zb0 is None else np.concatenate([lead, zb0], 1)
+    big = int(np.prod([2 * (c + r) + 1 for c, r in zip(carry, prog.reach)]))
+    chunk = max(1, int(CARRY_BYTES / (16.0 * 6 * big * (d + 1))))
+    signal = np.zeros((len(prog.labels), sp.n), complex)
+    start = np.zeros((d, sp.n))
+    for lo in range(0, sp.n, chunk):
+        part = np.arange(lo, min(sp.n, lo + chunk))
+        cols = O.take(sp, np.repeat(part, d + 1))
+        tile = lambda a, m=part.size: None if a is None else np.tile(a, (1, m)).reshape(sizes + (m * (d + 1),))      # noqa: E731
+        st = epg.State(tile(f0), tile(z0), None, tile(zb0), carry, prog.unit, carry)
+        res = epg.run(prog, cols, state=st, demodulation=demodulation, prune=carry)
+        end = epg._embed(res.state, carry)
+        flat = lambda a, m=part.size: None if a is None else a.reshape(-1, m, d + 1)           # noqa: E731
+        out = box_coordinates(box, flat(end.f), flat(end.z), flat(end.zb))                      # [d, column, run]
+        const = out[:, :, 0].T                                                                  # [column, d]
+        step = np.moveaxis(out[:, :, 1:] - out[:, :, :1], 1, 0)                                 # [column, d, d]
+        x = np.linalg.solve(np.eye(d)[None] - step, const[..., None])[..., 0]
+        sig = res.signal.reshape(len(prog.labels), part.size, d + 1)
+        signal[:, part] = sig[:, :, 0] + np.einsum("scj,cj->sc", sig[:, :, 1:] - sig[:, :, :1], x)
+        start[:, part] = x.T
+    f, z, zb = box_state(box, start)
+    lat = lambda a: None if a is None else a.reshape(sizes + (sp.n,))                           # noqa: E731
+    return epg.Result(signal, prog.labels, epg.State(lat(f), lat(z), None, lat(zb), carry, prog.unit, carry), prog)
 
 
 # ---------------------------------------------------------------------------------------------- matrix method
@@ -385,4 +530,4 @@ def _matrix(prog, sp, kmax, demodulation):
     return np.array(out).reshape(len(out), ncol), state
 
 
-__all__ = ["approach", "period", "steady_state"]
+__all__ = ["approach", "box_coordinates", "box_state", "box_states", "carry_box", "carry_orders", "period", "steady_state"]

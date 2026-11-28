@@ -3,8 +3,8 @@
 `mrgym.core` computes the signal of a pulse sequence that is written as a list of blocks. It is a library next to the
 scanner engine. `mrgym.scanner` still computes each of its six sequences from that sequence's own closed-form steady
 state; the core reproduces those six from block lists (section 9, group "engine"; in shadow at the console, section
-11) and holds eleven more sequences. Four of them (`fse`, `mese`, `megre`, `dwse`) are served by a console whose card
-lists them: section 11 says how. The core holds no state and serves no task.
+11) and holds eleven more sequences. Five of them (`fse`, `mese`, `megre`, `dwse`, `satrec`) are served by a console
+whose card lists them: section 11 says how. The core holds no state and serves no task.
 
 Read [conventions.md](conventions.md) and [design.md](design.md) first; the sign conventions here are theirs
 (section 8).
@@ -121,8 +121,18 @@ point and the samples (`method="reduced"`, used for echo trains and prepared seq
 reach of the gradients cannot return to order 0 before the crusher and are not carried; nothing is lost by that
 (row X5).
 
+When a period ends with a REAL spoiler nothing is set to zero: the gratings stored along z, and what is still
+transverse, reach the next excitation. `method="carry"` solves this periodic state. The state at the start of the
+period is restricted to a box of low orders (the gratings Z_k, and optionally the transverse states F_k); inside the
+period every state the gradients can reach is carried. The period is stepped once from nothing and once from every
+real coordinate of the box, which gives the map of the box into itself as a small dense matrix per column and the
+fixed point as one dense solve. What a state above the box would have added is the truncation: a state of order k
+that has to cross the interval before the next excitation has decayed by exp(-t / T1) or exp(-t / T2) and by
+diffusion, exp(-D (2 pi k / cycle)^2 t); `periodic.carry_orders` gives the box for a tolerance on that factor. Row
+N14b: with 8, 12, 20, 36 orders the distance from the isochromat ensemble is 3e-5, 2e-7, 9e-11, 2e-16.
+
 `periodic.approach` returns the transient: the samples of every period stepped from equilibrium, next to the
-periodic ones.
+periodic ones (rows N15, N15b).
 
 ## 5. Three evaluators of one block list
 
@@ -146,13 +156,13 @@ compares them on seeded random block lists to 1e-10.
 | `epi` | one excitation per TR | ideal spoiler |
 | `se`, `ir` | spin echo; with an inversion | crushed refocusing pulse and ideal spoiler (the engine's model), or real crushers |
 | `bssfp` | balanced SSFP | sample at TR / 2, linear phase cycle; a selective pulse has half its rewinder before and half after |
-| `fse`, `mese` | echo train; multi-echo spin echo | constant or variable refocusing angles, real or ideal crushers, ideal crusher at the end of the TR |
+| `fse`, `mese` | echo train; multi-echo spin echo | constant or variable refocusing angles, real or ideal crushers (lobes with a duration and a shape), an ideal crusher at the end of the TR or a real spoiler (`Tail`), an inversion or saturation before the excitation (`prep`) |
 | `megre` | several gradient echoes | ideal spoiler |
 | `spgr_lobe` | RF-spoiled gradient echo | a real spoiler lobe after the sample, any phase increment |
 | `dess` | free induction decay and echo of one steady state | one cycle per TR |
 | `mprage` | inversion, a train of small pulses, recovery | ideal spoiler after each pulse |
 | `t2prep`, `satrec` | T2 preparation; saturation recovery | exact preparation pulses; a saturation efficiency |
-| `dwse`, `steam` | Stejskal-Tanner spin echo; stimulated echo | trapezoid lobes with their shape moments; `diffusion_waveform` gives the same program to `design.gradients.b_value` |
+| `dwse`, `steam` | Stejskal-Tanner spin echo; stimulated echo | trapezoid lobes with their shape moments; `diffusion_waveform` gives the same program to `design.gradients.b_value`; `dwse` ends with an ideal crusher or with a real spoiler on a second axis (`Tail`) |
 | `mt_spgr` | gradient echo with a saturation pulse | two pools; the pulse acts on the bound pool only |
 
     from mrgym.core import blocks as B, library, operators, periodic, epg
@@ -231,6 +241,8 @@ paper that was not opened for this work, the row says so and names the independe
 | X5 | a period that ends with an ideal crusher: the fixed point of Mz from two runs of the period that carry only the orders up to half its reach (`reduced`), 12 random lists of 10 blocks: samples and the state at the start of the period | the matrix method on all states the gradients can reach, and the phase graph stepped through 250 periods | 6.7e-16 | ≤ 1.0e-10 | pass |
 | X6 | two pools, magnetisation transfer (bound pool saturated by every pulse and by off-resonance pulses, exchange during every delay): 8 random lists x 3 columns in the phase graph, and their periodic state by the matrix method | isochromat ensemble with `scipy.linalg.expm` of the exchange generator; the phase graph stepped through 300 periods | 4.1e-12 | ≤ 1.0e-10 | pass |
 | X6b | two pools, chemical exchange (both pools transverse, a frequency shift between them): 8 random lists | the same two references | 2.3e-15 | ≤ 1.0e-10 | pass |
+| X6c | two sites in chemical exchange after a 90 degree pulse: the free induction decay at 7 times from 0.5 to 30 ms, 4 cases from slow to fast exchange (exchange rate 200 /s against 1131 rad/s, 1067 /s against 565 rad/s, 105 /s against 1571 rad/s, 5000 /s against 377 rad/s of shift) | the closed form of the Bloch-McConnell equations (McConnell 1958; paper not opened: derived here): the sum of two exponentials whose rates are the roots of the characteristic polynomial of the 2 x 2 generator and whose amplitudes match the signal and its slope at t = 0 (written in this row from the two rate equations; no matrix exponential) | 2.6e-15 | ≤ 1.0e-12 | pass |
+| X6d | the two limits of that decay: fast exchange (rate 3e5 to 6e5 /s against a shift of 1000 rad/s), the rate and the frequency of the one line that is left; slow exchange (1.8 /s against 2500 rad/s), the two lines and their amplitudes | fast: decay rate 1/T2 + pa pb dw^2 / k and frequency pb dw, k the sum of the two rates, pa and pb the populations (the textbook limit; relative error of the complex rate, of the order dw / k). Slow: each line decays with 1/T2 plus its own rate of leaving, amplitudes 1 and the population ratio (residual of the fit, and error of the amplitudes, of the order k / dw) | 4.0e-04 | ≤ 0.005 | pass |
 | X7 | free diffusion in the phase graph (attenuation of every state by its own order during every block; four pulses, gradients of both signs, D 1 and 3 um^2/ms, 60 um per cycle): order of convergence of the reference towards it, 8 to 64 substeps per block | Bloch-Torrey equation on the grid of isochromats: a Gaussian blur in the Fourier domain of the grid, the gradient advanced between half steps (second order); no closed-form factor is used | 0.002182 in the order | ≤ 0.1 | pass |
 | X7b | its distance at 64 substeps | the same reference | 2.0e-05 | ≤ 5.0e-05 | pass |
 | X7c | size of the effect in that test: largest change of a sample by diffusion | it must be large for the test to mean something | 0.5378 | ≥ 0.02 | pass |
@@ -306,7 +318,13 @@ paper that was not opened for this work, the row says so and names the independe
 | N11c | the first program against the Bloch-Torrey grid integration at 64 substeps per block (order 2.00) | no closed-form diffusion factor is used by the reference | 9.2e-06 | ≤ 1.0e-05 | pass |
 | N12 | steam with diffusion lobes, 3 sets of flip angles, TM 100 to 900 ms, 3 tissues | (1/2) sin a1 sin a2 sin a3 exp(-TE / T2) exp(-TM / T1) exp(-b D), b from `gradients.b_value` (the grating is stored along z during TM and keeps diffusing) | 1.1e-16 | ≤ 1.0e-08 | pass |
 | N12b | the same sequences without diffusion | isochromat ensemble on two gradient axes | 3.3e-16 | ≤ 1.0e-12 | pass |
-| N13 | se and ir through the slice with REAL crushers and an ideal spoiler after the echo, so that the grating stored along z by an imperfect refocusing pulse comes back as a stimulated echo in the next TR (5 cases, B1 80 to 115 %): change against the served model, -2.40 to +38.70 % | docs/physics/limits.md, block 8a: -2 to +39 %, from a third, separately written integrator (`tools/external/independent_bloch.py`, row L1.4); measured: distance of the rounded ends of the range | 0 points | ≤ 0 | pass |
+| N13 | se and ir through the slice with REAL crushers and an ideal spoiler after the echo, so that the grating stored along z by an imperfect refocusing pulse comes back as a stimulated echo in the next TR (5 cases, TR 300 to 2000 ms, T1 500 to 1200 ms, B1 80 to 115 %): the periodic echo of every slice column, with the gratings of 40 orders carried (`periodic`, method carry) | isochromat ensemble of 96 spins per crusher cycle and column, stepped from equilibrium until exp(-n TR / T1) < 1e-9 (24 to 86 repetitions) | 2.8e-12 | ≤ 1.0e-08 | pass |
+| N13b | the same five cases: the change of the slice-integrated echo against the model the engine serves for `se` and `ir` (crushed means gone) is -2.40 to +38.70 %; and the matrix method on 8 orders against the 40 orders of row N13; measured: the latter | a size and a truncation, not an equality with a page: docs/physics/limits.md, block 8a, quotes the range from a third, separately written integrator (`tools/external/independent_bloch.py`, row L1.4 of `tools/external/run_all.py`, which compares case by case) | 1.4e-12 | ≤ 1.0e-06 | pass |
+| N14 | a 90 - 180 spin echo and CPMG trains of 6 to 16 exact 180 degree pulses with real crushers and a real spoiler, at a TR that is short against T1 (0.4 to 2.3 T1) and long against T2 (exp(-(TR - train) / T2) < 1e-15): the periodic echoes | (1 - 2 exp(-(TR - TE/2) / T1) + exp(-TR / T1)) exp(-TE / T2) for the spin echo with incomplete recovery (textbook); for the train exp(-k ESP / T2) times Mz = 1 - 2 sum_j (-1)^(n-j) exp(-(TR - (j - 1/2) ESP) / T1) - (-1)^n exp(-TR / T1): with u = 1 - Mz, free evolution multiplies u by exp(-t / T1), an inversion makes it 2 - u, and u = 1 after the 90 (derived here) | 1.1e-15 relative | ≤ 1.0e-10 | pass |
+| N14b | trains of 4 echoes (80 degree excitation; refocusing 150, 120, 180 degrees at B1 100, 90, 80 %) repeated every 1.2 T1: the periodic echoes with what survives the repetition carried (36 orders: the gratings along z and the transverse states); with 8, 12, 20 orders the distance is 3e-05, 2e-07, 9e-11; an ideal crusher at the end of the repetition is off by at least 0.013 | isochromat ensemble of 192 spins per crusher cycle stepped through 60 repetitions (the recursion that the phase graph replaces) | 1.9e-16 | ≤ 1.0e-10 | pass |
+| N14c | a train on a material whose T2 is longer than the repetition (T1 90 ms, T2 80 ms, TR 60 ms): the same; the gratings alone, without the transverse states, are off by 0.071 | the same ensemble (256 spins): transverse magnetisation passes the spoiler dephased, not destroyed, and the next excitation turns part of it into gratings and into Mz | 1.1e-16 | ≤ 1.0e-10 | pass |
+| N15 | `periodic.approach`: every sample of 160 repetitions of an ideally spoiled gradient echo from equilibrium (10 to 90 degrees, TR 8 to 300 ms, T1 400 to 1400 ms, B1 85 to 110 %; the transient lasts 41.3, 7.4, 1.0, 0.0 repetitions to 1 / e) | sin a (Mss + (1 - Mss) (E1 cos a)^n), Mss = (1 - E1) / (1 - E1 cos a): the geometric approach to the Ernst steady state (textbook; it follows from Mz -> E1 cos a Mz + 1 - E1 per repetition) | 4.3e-16 | ≤ 1.0e-12 | pass |
+| N15b | `periodic.approach` of the RF-spoiled gradient echo with its spoiler (25 degrees, TR 10 ms, T1 300 ms, T2 60 ms, increment 117 degrees): every sample of the first 60 repetitions, where the transverse coherences build up; and the periodic value it returns (the last stepped sample is 1.2e-03 from it) | isochromat ensemble of 512 spins per spoiler cycle stepped from equilibrium (no phase graph); the periodic value against the limit of row N15 | 5.9e-15 | ≤ 1.0e-09 | pass |
 | M1 | absorption lines of the bound pool (Lorentzian, Gaussian, super-Lorentzian): integral over the angular frequency | 1 (the formulas are attributed to Morrison & Henkelman 1995, paper not opened; this checks their normalisation only) | 7.1e-05 | ≤ 0.002 | pass |
 | M2 | two pools under continuous off-resonance irradiation (1 to 10 kHz, 3 to 10 uT), as a train of saturation pulses every 4, 2, 1 ms extrapolated to zero spacing (at 1 ms the distance is 3e-05): Mz of free water in the steady state | (Rb kf / Ra + W + Rb + kr) / (kf / Ra (Rb + W) + W + Rb + kr), the closed form of Henkelman et al. 1993 without its direct-saturation term (paper not opened; it equals the linear solve of the two rate equations, which is in this row) | 1.0e-08 | ≤ 1.0e-07 | pass |
 | M2b | the same: order of convergence with the spacing of the pulses, 4 to 1 ms | second order (the saturation is split symmetrically around the delay) | 6.3e-04 in the order | ≤ 0.1 | pass |
@@ -434,33 +452,53 @@ session (`ScannerSession`, log and replay) and the console do. Their manual is t
 
 | Sequence | Block list | How it is solved | Check |
 |---|---|---|---|
-| `fse`, `mese` | `library.fse` / `mese`: real crushers of one cycle either side of every refocusing pulse, an ideal crusher at the end of the repetition | reduced exactly to the refocusing flip angle (below): three single shots of `core.epg` on (echoes + 3) Chebyshev points of its cosine | J7 to J11, J19 to J24 |
-| `dwse` | `library.dwse`: the lobes as gradient blocks with their shape moments; b = 0: `library.se` | `core.periodic` on every slice column | J31 to J36, J15 |
+| `fse`, `mese` | `library.fse` / `mese` with the lobes of the console: a crusher of 1 ms at the derated limits (`console.crusher_lobe`: 23.5 mT ms/m, one cycle per 1.0 mm) either side of every refocusing pulse, one more as the spoiler of the repetition, diffusion across them, and an ideal spoiler of what is transverse as the last block; for `fse` an inversion or saturation before the excitation | reduced exactly to the refocusing flip angle, with the gratings that survive the repetition (below): the train stepped by `core.epg` from every state the last repetition can leave, on (echoes + 1) Chebyshev points of the cosine of the angle; one small dense solve per slice column | J7 to J11, J19 to J24d, J44 to J46 |
+| `dwse` | `library.dwse`: the lobes as gradient blocks with their shape moments, a spoiler on a second axis; b = 0: the console's crushers | the same reduction, a train of one echo on two axes | J31 to J36, J15, J15b |
 | `megre` | `library.spgr` (the steady state of the engine's `spgr`; the echoes are read by the readout stage) | `core.periodic`: ideal spoiling in every slice column, the departure from it on 16 nodes of the flip angle | J25 to J30 |
+| `satrec` | `library.satrec`: saturation, saturation time, one pulse, ideal spoilers | `core.periodic` on every slice column (nothing but Mz crosses an ideal spoiler) | J41 to J43 |
 
-**An echo train reduces to one angle.** In a train with equal delays and equal crushers either side of every
-refocusing pulse, a refocusing rotation (a, b) acts on the sampled echoes as the hard pulse of flip angle
-θ = 2 asin|b| about the transverse axis of phase arg(b) + 90°: the phase of a is a turn about z that is the same
-before and after the pulse, a precession, and every pathway that is sampled at order 0 has refocused it. The states
-split into two families that the pulses never mix, since a pulse couples F_k, conj(F_−k) and Z_k of one |k| and a
-crusher moves every F by one: the family that starts from the transverse magnetisation after the excitation (odd
-orders at the pulses: the echoes and the gratings Z_odd) and the family that starts from the longitudinal
-magnetisation (even orders at the pulses: free induction decays that are never at order 0 when an echo is sampled,
-and Mz itself). With m0 and c0 the transverse and the longitudinal magnetisation right after the excitation per unit
-of Mz before it, in the frame in which the refocusing axis is y,
+**An echo train reduces to one angle, and the repetition to a small linear system.** In a train with equal delays
+and equal crushers either side of every refocusing pulse, a refocusing rotation (a, b) acts as the hard pulse of flip
+angle θ = 2 asin|b| about the transverse axis of phase arg(b) + 90°: the phase of a is a turn about z that is the same
+before and after the pulse, and a turn about z next to a crusher is a translation along the crusher axis, which no
+sample at order 0, no relaxation and no diffusion sees. The repetition is cut in two at the excitation. The
+excitation acts on the state x that the last repetition left (the gratings Z_k of the orders `served.carry_of`
+keeps; the formulation also takes the transverse states F_k, which are not served) and gives y = E x. Everything
+after it is real-linear in y,
 
-    echo_n = Mz (u A_n(θ) + v B_n(θ)),  u = −Im m0, v = Re m0;      Mz of the next repetition = c0 P(θ) Mz + R(θ),
+    x' = K(θ) y + c(θ),        echo_n = L_n(θ) y + l_n(θ),
 
-and A_n, B_n, P, R are polynomials of degree ≤ n in cos θ. Three single shots (excitation about x, about y, none) on
-n + 3 Chebyshev points therefore give them without interpolation error, the periodic Mz is R / (1 − c0 P), and the
-echoes of every slice column and transmit scale follow from the two rotations of that column. Row J8 compares with
-the periodic solve of every column (1.8e-15), row J9 with the isochromat ensemble, row J20 with the phase graph of
-the design layer. An independent review re-derived the statement and confirmed it with its own isochromat ensemble
-for general rotations (3e-15); it does not hold when the refocusing rotation changes along the train, and such a
-train (one angle per echo: the seam for the design layer) is solved on every column instead. What the reduction
-bought: the integral through the slice and the dependence on the transmit scale oscillate with the echo number; on
-the engine's own slice columns a train of 32 echoes was off by 6e-3, and 9 transmit nodes by 5e-4. With the
-reduction 4 times the columns and up to 72 nodes cost nothing (rows J10, J11).
+and an entry of K, c, L, l that connects two states of the same kind (transverse with transverse, longitudinal with
+longitudinal) is a polynomial of degree ≤ n in cos θ, an entry that connects the two kinds sin θ times such a
+polynomial: turning the train by 180° about z changes the sign of θ and of every transverse state and of nothing
+else. The tables are therefore known exactly from stepping the train once from nothing and once from every coordinate
+of y on n + 1 Chebyshev points of cos θ. For a slice column and a transmit scale the two rotations give θ, E and the
+phase of the translation; x = K E x + c is one dense solve, and the echoes follow.
+Row J8 compares with `periodic` (method carry) on every column with its full rotation (2e-15), row J9 with the
+isochromat ensemble stepped to its steady state through the slice at TR 1500, 330 and 200 ms (1e-10 with 45 orders
+carried), row J20 with the phase graph of the design layer (5e-8), row J46 with the ensemble for a prepared train.
+An independent review re-derived the statement (any rotation is a hard pulse between two equal turns about z; a turn
+about z beside equal crushers is a translation) and confirmed it with its own isochromat code, the sign of the
+translation at a spoiler on the crusher axis included. It does not hold when the refocusing rotation changes along
+the train, and such a train (one angle per echo: the seam for the design layer) is solved on every column instead.
+
+Through the slice: the echoes behind an ideal crusher (x = Mz alone) are integrated on 4 times the columns of the
+engine's quadrature and up to 72 transmit nodes (rows J10, J11); what the carried gratings add to them is solved on
+the engine's own columns for trains of up to 4 echoes and on twice as many beyond (row J23c). Both use z ≥ 0 and
+take the mirror column as the complex conjugate. That symmetry holds for gratings; it is lost once transverse
+states are carried past a spoiler on the crusher axis (the translation has the other sign at −z; found by the
+independent review, `tests/test_served_prepared.py`), and `_table_train` then solves both sides.
+
+**What is not carried, and what the cut of the gratings costs.** The transverse magnetisation at the end of the
+repetition is set to zero in the block list that is served (`library.Tail(dephased=True)`): its return depends on
+the off-resonance of the voxel and on T2', which the amplitude does not hold ([limits.md](limits.md), block 8a; row
+J24d: a quarter of the echo of cerebrospinal fluid at TR 1.5 s for a static voxel on resonance). `served.carry_of`
+keeps a grating when relaxation and diffusion across the interval before the next excitation leave at least
+`CARRY_TOL` = 1e-3 of it, up to 16 orders of the crusher. Where diffusion sets the cut (water-like tissue: the
+crushers dephase by one cycle per millimetre) it costs 9e-8 of the largest echo (J23b). Where the limit of 16 orders
+sets it (no diffusion, fat) it costs 4e-4 for the tissues of the table in a train of 16 echoes at TR 500 ms and 1e-5
+at 1500 ms (J24b), and at most 1e-3 over the protocols the console accepts, when a train is repeated without a
+pause (J24c).
 
 **Image formation with an amplitude that changes from line to line** (`served.form_lines`). With a(c, j, s) the
 table (class c, node j, sample s), s(p) the sample that fills line p, g_c(x) the evolution of class c along the
@@ -474,35 +512,48 @@ by line (7e-15); J13: the truncation error is 0.13 to 0.28 of its bound; J14: in
 samples add coherently, a pixel is off by 0.016 of its noise at 64 averages; J16, J17: the T2 blurring of `fse` is
 the point-spread function it should be.
 
-**Seconds per scan.** `mrgym timing --cpu` (processor seconds of one process, brain world at 3 T, noise-free data
-not cached). Measured on a machine that ran some forty other processes on a quota of 32 cores: read the rows
-against `se`, not as absolute numbers.
+**Seconds per scan.** `mrgym timing --cpu` (processor seconds of one process, brain world at 3 T, neither the
+noise-free data nor the amplitude table cached).
 
 <!-- timing of the core sequences: begin -->
 | Sequence | matrix 64 | matrix 128 | matrix 256 |
 |---|---:|---:|---:|
-| spgr | 0.47 | 0.36 | 0.49 |
-| spgr, 4 echoes | 1.31 | 1.44 | 1.53 |
-| afi | 1.23 | 0.85 | 1.01 |
-| se | 0.41 | 0.64 | 0.65 |
-| ir | 0.44 | 0.54 | 0.60 |
-| bssfp | 0.80 | 0.95 | 0.86 |
-| epi | 1.17 | 1.46 | refused |
-| fse, 8 echoes | 1.26 | 1.27 | 1.94 |
-| fse, 16 echoes | 1.52 | 1.76 | 2.54 |
-| fse, 32 echoes | 2.56 | 2.50 | 3.00 |
-| mese, 8 echoes | 1.41 | 1.38 | 2.13 |
-| mese, 32 echoes | 2.73 | 3.12 | 5.33 |
-| megre, 4 echoes | 1.29 | 1.33 | 1.58 |
-| megre, 16 echoes | 4.07 | 4.53 | 5.96 |
-| dwse, b 0 | 0.44 | 0.47 | 0.57 |
-| dwse, b 1000 | 0.40 | 0.42 | 0.49 |
+| spgr | 0.26 | 0.28 | 0.34 |
+| spgr, 4 echoes | 0.67 | 0.73 | 0.89 |
+| afi | 0.42 | 0.46 | 0.54 |
+| se | 0.24 | 0.26 | 0.31 |
+| ir | 0.24 | 0.25 | 0.30 |
+| bssfp | 0.46 | 0.46 | 0.54 |
+| epi | 0.75 | 0.78 | refused |
+| fse, 8 echoes | 0.93 | 1.00 | 1.17 |
+| fse, 16 echoes | 1.45 | 1.51 | 1.76 |
+| fse, 32 echoes | 3.19 | 3.26 | 3.66 |
+| mese, 8 echoes | 1.20 | 1.28 | 1.57 |
+| mese, 32 echoes | 5.22 | 5.53 | 7.02 |
+| megre, 4 echoes | 0.72 | 0.79 | 0.97 |
+| megre, 16 echoes | 2.13 | 2.54 | 3.08 |
+| dwse, b 0 | 0.34 | 0.32 | 0.35 |
+| dwse, b 1000 | 0.24 | 0.24 | 0.28 |
+| satrec | 0.29 | 0.30 | 0.34 |
+| fse, 8 echoes, inversion | 0.72 | 0.81 | 1.01 |
+| fse, 4 echoes, TR 500 ms | 0.80 | 0.84 | 0.94 |
 <!-- timing of the core sequences: end -->
 
-(Median of 2. A second run of the same command gave `fse, 16 echoes` 1.81 to 2.63, `mese, 32 echoes` 3.24 to 5.37
-and `se` 0.40 to 0.61: the load of the machine moves a number by a third. Not re-timed on a quiet machine.) A scan of `dwse` costs what `se` costs;
-`megre` costs what `spgr` costs per echo; an echo train costs 3 to 4 times a spin echo at 16 echoes and 5 to 8 times
-at 32, most of it in the transforms of the 15 to 45 coefficient images.
+(Median of 3, measured on a shared machine with a load average of 14 to 17 on 96 cores: read the rows against `se`,
+not as absolute numbers; a quiet machine was not available.) A scan of `dwse` and of `satrec` costs what `se` costs;
+`megre` costs what `spgr` costs per echo (every echo is an image formation of its own). An echo train costs 4 to 6
+times a spin echo at 8 to 16 echoes and 9 to 20 times at 32. Where the time goes, `fse` with 16 echoes at matrix 128:
+0.56 s in the amplitude table (stepping the train from every state the last repetition can leave: 0.20 s; the
+solve of every slice column: 0.29 s) and 1.0 s in the image (the coefficient images with their displacement by
+off-resonance: 0.55 s; the transforms of 44 terms: 0.34 s). Before the gratings of the last repetition were carried
+the table took 0.05 s: on the same machine the same protocols took 0.7 to 0.9 s (`fse`, 8 echoes), 0.9 to 1.2 s
+(16), 1.4 to 1.9 s (32) and 1.5 to 3.0 s (`mese`, 32 echoes at TR 3 s) where they now take 1.0 to 1.2, 1.5 to 1.8,
+2.2 to 2.7 and 3.3 to 5.0 s. What was done about it: the factors of equal blocks are computed once per train
+(`core.epg`), the classes of one box of carried states are stepped together, the tables are interpolated without
+picking entries one by one, a grating is carried only while relaxation and diffusion leave a thousandth of it, and
+an engine keeps the amplitude tables of its last 6 protocols, so a scan that changes only the geometry (matrix,
+field of view, averages, phase direction) does not solve again. Not done: a train of 32 echoes and a gradient echo
+with 16 echoes do not fit a second; the console still accepts them.
 
 Limits the console sets for these sequences, each refused with its reason: `fse` and `mese` at most 32 echoes and
 matrix 256; `megre` at most 16 echoes.
@@ -511,10 +562,9 @@ matrix 256; `megre` at most 16 echoes.
 
 | Sequence of the library | Why not in this package | What it needs |
 |---|---|---|
-| `mprage` (inversion-prepared gradient-echo train), `satrec`, `t2prep` | not built: time | a timing rule and a sampling plan (lines per shot, order); the amplitude is one number per line and class with ideal spoiling, so `form_lines` takes it as it is |
+| `mprage` (inversion-prepared gradient-echo train), `t2prep` | not built: time | a timing rule and a sampling plan (lines per shot, order). The amplitude is one number per line and class with ideal spoiling, so the table is cheap; the image needs `form_lines` for a GRADIENT echo (the phase map of the off-resonance at the echo time and the dephasing through the slice in the coefficient images), which exists for spin echoes only |
 | `ir` with an inversion that depends on T2 (known difference 13 of [measured.md](measured.md)) | the core has no relaxation during a pulse | a block that carries the result of `design.rotation.bloch`, which is not a rotation |
-| `mt_spgr` | each tissue of the world is one pool | a bound fraction, an exchange rate and a bound-pool T2 per tissue class, with sources; the saturation pulse in the timing and the RF power |
-| `dess`, `spgr_lobe` (a real spoiler) | 0.85 and 1.3 s per 510 columns in the periodic solve | the flip-angle nodes of `megre` (exact for these sequences too); for `dess` the readout evolution of the second echo |
+| `mt_spgr`, and the saturation of the bound pool by the refocusing train of `fse` | the two-pool numbers of seven tissues are in the tissue table since this package (`tissue.mt_table`, from Stanisz 2005); the console does not read them | a saturation pulse in the timing and the RF power of a gradient echo; the direct effect of the pulse on free water, which the core leaves out and a comparison with a published MT ratio needs (2.6 points for cerebrospinal fluid in Smith 2006); an absorption line of the bound pool on resonance for the pulses of a train (the super-Lorentzian diverges there); the bound pool among the carried states of `train_response` |
+| `dess`, `spgr_lobe` (a real spoiler) | 0.85 and 1.3 s per 510 columns in the periodic solve (section 10) | the flip-angle nodes of `megre` (exact for these sequences too: 16 nodes per class instead of 85 columns, about a fifth of the time); for `dess` the readout evolution of the second echo |
 | `steam` | three selective pulses per column: no reduction to one angle | cheap per column; a timing rule (TE, TM) and crushers on a second axis |
-| gratings that survive the repetition in `fse`, `mese`, `dwse` (rows J23, J24: 7e-3 at T1 900 ms, 0.16 for a fluid at TR 1500 ms) | the reduction rests on the ideal crusher | the odd-order gratings as part of the periodic state: a linear system of about 2 n unknowns per column |
 | the six on the core | every served number would move at 1e-12 or more | one engine version with a table of differences |

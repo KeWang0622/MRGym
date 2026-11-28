@@ -105,7 +105,9 @@ def test_declared_differences_have_not_grown(R, table):
     ids = {q["id"] for q in _rows(table)}
     assert all(set(k["rows"]) <= ids for k in known)
     named = {q["known"] for q in declared if q["known"] is not None}
-    assert named == set(range(1, 15)), "every known difference is carried by a declared row, and every such row names one"
+    closed = {k["n"] for k in known if k["what"].startswith("Closed.")}     # 8: the ratio of the two slices is a protocol parameter; its rows have a tolerance now
+    assert closed == {8} and all(not q["declared"] for q in _rows(table) if q["id"].startswith("M3b"))
+    assert named == set(range(1, 15)) - closed, "every open known difference is carried by a declared row, and every such row names one"
     page = (ROOT / "docs" / "physics" / "measured.md").read_text(encoding="utf-8")
     section = page.split("## Known differences from measurement")[1].split("\n## ")[0]
     assert len([ln for ln in section.splitlines() if re.match(r"^\| \d+ \| ", ln)]) == 14

@@ -3,7 +3,7 @@
 
 Which MRI physics this scanner covers, and which task asks for which piece of it.
 
-The list holds 115 pieces of MRI physics and applied MR physics, as textbooks and curricula name them. The scanner forms 64 of them and 15 more in part. The other 36 are not formed yet: 15 of them the package already computes and checks without serving them, and [the last list](#not-formed-yet) says which piece of engine work each one waits for. Statistics of its images and signals have been compared with public phantom measurements on real scanners ([measured](physics/measured.md)); no image of its sequences has been compared pixel by pixel with a scan of the same object.
+The list holds 115 pieces of MRI physics and applied MR physics, as textbooks and curricula name them. The scanner forms 64 of them and 16 more in part. The other 35 are not formed yet: 14 of them the package already computes and checks without serving them, and [the last list](#not-formed-yet) says which piece of engine work each one waits for. Statistics of its images and signals have been compared with public phantom measurements on real scanners ([measured](physics/measured.md)); no image of its sequences has been compared pixel by pixel with a scan of the same object.
 
 ## On one screen
 
@@ -18,11 +18,11 @@ Rows: what you need to know. Columns: what you do with it. A cell holds the task
 
 | Subject | Listed | Formed | Isolated by a task | Used by a task |
 |---|---:|---:|---:|---:|
-| **A** Signal and contrast: what signal a tissue gives | 32 | 17 (+3 in part) | 8 | 14 |
+| **A** Signal and contrast: what signal a tissue gives | 32 | 17 (+4 in part) | 8 | 14 |
 | **B** Spatial encoding and reconstruction: where the signal lands in the image | 26 | 17 (+2 in part) | 4 | 13 |
 | **C** The system: what the machine adds: field, RF, gradients, noise, limits | 36 | 13 (+9 in part) | 6 | 14 |
 | **D** Image quality and artefacts: how good the image is, and what went wrong | 21 | 17 (+1 in part) | 5 | 15 |
-| All | 115 | 64 (+15 in part) | 23 | 56 |
+| All | 115 | 64 (+16 in part) | 23 | 56 |
 
 Listed: items on the map. Formed: an agent meets it at the console, and a check that exists shows it. Isolated by a task: one task is about this item. Used by a task: a task takes it, as its own item or beside it. Tasks in construction are not counted, and neither is what the package computes without serving it.
 
@@ -47,7 +47,7 @@ Kinds 1 to 3 are the knowledge, one piece at a time and then several together. K
 
 ## A · Signal and contrast
 
-What signal a tissue gives. 32 items, 17 (+3 in part) formed, 8 isolated by a task, 14 used by a task.
+What signal a tissue gives. 32 items, 17 (+4 in part) formed, 8 isolated by a task, 14 used by a task.
 
 | | Item | Rests on | Scanner | Task that isolates it | Tasks that use it |
 |---|---|---|---|---|---|
@@ -67,7 +67,7 @@ What signal a tissue gives. 32 items, 17 (+3 in part) formed, 8 isolated by a ta
 | A12 | Balanced steady-state free precession: signal against T2 / T1 and against frequency | A6 A10 | formed | - | [BandFree](../envs/scanner-bandfree-v0/) |
 | A13 | Approach to the steady state: dummy cycles and the first lines of a scan | A10 | computed, not served | - | - |
 | A14 | Echo trains: fast (turbo) spin echo, echo train length, effective echo time | A7 B8 | in part | - | - |
-| A15 | Magnetisation preparation: saturation recovery, T2 preparation, prepared gradient echo | A9 A10 | computed, not served | - | - |
+| A15 | Magnetisation preparation: saturation recovery, T2 preparation, prepared gradient echo | A9 A10 | in part | - | - |
 | | **selective signal** | | | | |
 | A16 | Chemical shift: fat and water resonate 3.4 ppm apart | A2 | formed | - | [FatFraction](../envs/scanner-fatfraction-v0/) · [FatSuppress](../envs/scanner-fatsuppress-v0/) · [FrequencyAdjust](../envs/scanner-frequencyadjust-v0/) · [BandFree](../envs/scanner-bandfree-v0/) · [ShiftFree](../envs/scanner-shiftfree-v0/) |
 | A17 | In-phase and opposed-phase echo times | A6 A16 | formed | - | [FatFraction](../envs/scanner-fatfraction-v0/) |
@@ -208,7 +208,8 @@ How good the image is, and what went wrong. 21 items, 17 (+1 in part) formed, 5 
 
 | | Item | What is missing | Waits for |
 |---|---|---|---|
-| A14 | Echo trains: fast (turbo) spin echo, echo train length, effective echo time | A console whose card lists them serves a fast spin echo and a multi-echo spin echo from the signal core: echo-train length, echo spacing, effective echo time, T2 blurring, the stimulated echoes of the slice profile and of the transmit field, the RF power of the train. One refocusing angle per train, an ideal crusher at the end of the repetition, at most 32 echoes, fat without J coupling. No shipped environment has such a console, and the tool layer of the environments does not offer the sequences yet | core in the console |
+| A14 | Echo trains: fast (turbo) spin echo, echo train length, effective echo time | A console whose card lists them serves a fast spin echo and a multi-echo spin echo from the signal core: echo-train length, echo spacing, effective echo time, T2 blurring, the stimulated echoes of the slice profile and of the transmit field, the ratio of the refocusing slice to the excited one, the RF power of the train, and the periodic state of the whole repetition with its real crushers: the gratings along z that reach the next excitation. The transverse magnetisation at the end of a repetition is taken as dephased (it depends on off-resonance and T2'). One refocusing angle per train, at most 32 echoes, fat without J coupling, the carried gratings cut at 16 orders. No shipped environment has such a console | core in the console |
+| A15 | Magnetisation preparation: saturation recovery, T2 preparation, prepared gradient echo | A console whose card lists them serves saturation recovery with a gradient echo, and an inversion or a saturation in front of the fast spin echo (the null of a fluid, T1 from a series), from the signal core; the preparation is an event on the longitudinal magnetisation of the whole object. An inversion-prepared gradient echo exists as a checked formula, and the signal core computes a prepared train of gradient echoes and T2 preparation from lists of blocks, which no console serves | core in the console |
 | A21 | Diffusion weighting: b-value, apparent diffusion coefficient, tensor | A console whose card lists it serves a diffusion-weighted spin echo from the signal core: the b-value of the lobes it plays, the echo time they cost, signal x exp(-b D) for the one free, isotropic coefficient of a tissue. No tensor (the design layer computes the b-tensor of a gradient program), no kurtosis, no perfusion fraction, no stimulated-echo or echo-planar readout; 16 of the 25 coefficients of the tissue table are declared. No shipped environment has such a console | core in the console |
 | A25 | Susceptibility-weighted imaging: the phase of a gradient echo as contrast | Phase images show the field of air cavities; no tissue of the scanner has a susceptibility of its own (no veins, no iron). The 3D head declares one for venous blood, deep grey matter and a lesion; no scan is formed of it | 3D world |
 | B19 | Segmented acquisition and the order of the lines | The fast spin echo of a console that lists it fills k-space in shots of one line per echo, in centric or linear order, and the image is formed with the amplitude of each line; every other sequence acquires its lines in one order, one per repetition (echo-planar: one shot) | core in the console |
@@ -219,14 +220,14 @@ How good the image is, and what went wrong. 21 items, 17 (+1 in part) formed, 5 
 | C8 | Adiabatic pulses: an inversion that tolerates the transmit field | The console's inversion is one efficiency number; the hyperbolic-secant pulse and its threshold are computed in the design layer and played by no sequence | core in the console |
 | C9 | RF pulse design: shaping a pulse to a profile | A task asks for a slice-selective excitation and the scan rfscan plays a stored design through a modelled transmit chain (scale, amplifier compression, gradient delay, off-resonance); refocusing, inversion and variable-rate designs are generated and simulated only, nothing relaxes during a pulse, and the duration is compared with a reference search because no tight bound is proven | ordinary engine work |
 | C17 | Gradient non-linearity: distortion away from the isocentre | Positions are scaled by one declared term, 1 - g (r / 250 mm)^2, the same along both axes, and the brightness does not change with it; there is no expansion of a real coil, nothing along z and no correction of the distortion | ordinary engine work |
-| C20 | Spoiler and crusher gradients: the moment and what survives it | The spoiler moment of a gradient echo is a parameter and acts on the signal; the crushers of a spin echo are ideal: what they dephase is gone, so there is no stimulated echo. The echo trains and the diffusion-weighted spin echo of a console that lists them play real crushers inside a repetition, with the stimulated echoes they leave, and an ideal one at its end (what that leaves out is measured: up to 0.16 of an echo for a fluid). A spoiler played as a lobe with its own duration is computed by the signal core and served by no sequence | core in the console |
+| C20 | Spoiler and crusher gradients: the moment and what survives it | The spoiler moment of a gradient echo is a parameter and acts on the signal; the crushers of a spin echo are ideal: what they dephase is gone, so there is no stimulated echo. The echo trains and the diffusion-weighted spin echo of a console that lists them play crusher lobes with their duration, area and diffusion weighting, and serve the gratings that survive them, inside a repetition and from one repetition to the next (a sixth of the signal of a fluid at a TR of 0.5 s); what is transverse at the end of a repetition is taken as dephased. A spoiler of a gradient echo played as a lobe with its own duration is computed by the signal core and served by no sequence | core in the console |
 | C22 | RF power: what raises B1+rms, and its limit | The console prices RF as B1+rms against a limit, from the nominal flip angle times the transmit factor of the scan (`tx_scale`); it has no figure in W/kg. The field model computes the power a body absorbs for a given B1+ and how it grows with the square of the frequency; the console does not use it | field model |
 | C33 | Agreement with measurement: a phantom on a real scanner against the same phantom here | Statistics of images, region signals and fitted values of public phantom sessions are compared with the engine's model of the same protocol (for an echo train with the design layer and with the multi-echo spin echo of the console), and the differences found are listed; no image of the console's sequences has been compared pixel by pixel with a scan of the same object | measured data |
 | D16 | Ghosts of periodic motion along the phase-encode axis | One tissue class pulses or shifts periodically; no irregular motion, and nothing moves through the slice | 3D world |
 
 ## Not formed yet
 
-36 items. 25 of them wait for one of 6 pieces of engine work; the other 11 take only ordinary work on the present engine. "Computed" in the third column: the package already computes the item and checks it against a closed form or a second method, and no console sequence, parameter or task reaches it yet; [the checks](#the-check-behind-every-item-that-is-formed-formed-in-part-or-computed) name the rows.
+35 items. 24 of them wait for one of 6 pieces of engine work; the other 11 take only ordinary work on the present engine. "Computed" in the third column: the package already computes the item and checks it against a closed form or a second method, and no console sequence, parameter or task reaches it yet; [the checks](#the-check-behind-every-item-that-is-formed-formed-in-part-or-computed) name the rows.
 
 | Waits for | What it is | Items |
 |---|---|---:|
@@ -234,7 +235,7 @@ How good the image is, and what went wrong. 21 items, 17 (+1 in part) formed, 5 
 | **receive array** | several receive channels with sensitivity maps and noise correlation, the multi-channel data, coil combination and SENSE exist as a library; still to do: the console serving them (a coil to choose, an acceleration factor, what a scan returns), and the methods that work in k-space | 2 |
 | **spin systems** | the density-matrix simulator for coupled spins, with its spectroscopy sequences, metabolite basis and quantification, exists as a library; still to do: a voxel that holds metabolites in the scanner world and a spectroscopy sequence in the console | 3 |
 | **field model** | Maxwell's equations on the slice for a body and a coil (B1+, B1-, SAR, RF shimming) exist as a library, in two dimensions; still to do: the scanner imaging and pricing RF with these fields instead of its declared patterns, and the third dimension | 5 |
-| **core in the console** | the signal core over lists of blocks (Bloch ensemble, phase graphs, periodic solve) is behind the console: a sequence registry, image formation with an amplitude that changes from line to line, and four sequences (fast and multi-echo spin echo, multi-echo gradient echo, diffusion-weighted spin echo) on a console whose card lists them; still to do: the tool layer of the environments offering them to an agent, the other sequences of the core's library (prepared trains, two pools, real spoilers, what survives a repetition), and the six sequences of every console on the core | 7 |
+| **core in the console** | the signal core over lists of blocks (Bloch ensemble, phase graphs, periodic solve) is behind the console: a sequence registry, image formation with an amplitude that changes from line to line, and four sequences (fast and multi-echo spin echo, multi-echo gradient echo, diffusion-weighted spin echo) on a console whose card lists them; still to do: the tool layer of the environments offering them to an agent, the other sequences of the core's library (prepared trains, two pools, real spoilers, what survives a repetition), and the six sequences of every console on the core | 6 |
 | **realistic anatomy** | textured digital anatomy instead of classes of one value each | 1 |
 | **measured data** | statistics of public phantom sessions on real scanners are compared with the engine in a table that anyone can rebuild; still to do: a scan of the same object with the console's sequences, compared pixel by pixel | 0 |
 | ordinary engine work | nothing new: a term, a parameter or an option of the present engine | 11 |
@@ -291,9 +292,8 @@ The signal core over lists of blocks (Bloch ensemble, phase graphs, periodic sol
 | | Item | In the package | What is missing |
 |---|---|---|---|
 | A13 | Approach to the steady state: dummy cycles and the first lines of a scan | computed | The transient is computed by a separate chain of rotations and, in the signal core, by stepping a list of blocks from equilibrium or along a prepared train; the scanner serves every line at the steady state |
-| A15 | Magnetisation preparation: saturation recovery, T2 preparation, prepared gradient echo | computed | An inversion-prepared gradient echo exists as a checked formula, and the signal core computes a prepared train of gradient echoes, T2 preparation and saturation recovery from lists of blocks; the console prepares with inversion before a spin echo and with fat saturation only |
 | A19 | Spatial saturation bands | - | There is no spatial saturation pulse |
-| A20 | Magnetisation transfer and chemical exchange | computed | The signal core computes two exchanging pools: magnetisation transfer with a saturation pulse on the bound pool, in a gradient echo and under continuous irradiation (the direct effect of the pulse on free water is left out), and chemical exchange between its evaluators only, against no closed form and in no sequence of its library; each tissue of the scanner is one pool of protons and no console sequence saturates a bound pool |
+| A20 | Magnetisation transfer and chemical exchange | computed | The signal core computes two exchanging pools: magnetisation transfer with a saturation pulse on the bound pool, in a gradient echo and under continuous irradiation (the direct effect of the pulse on free water is left out), and chemical exchange, whose free induction decay equals the closed form of the Bloch-McConnell equations and its two limits, in no sequence of its library. The tissue table holds the bound-pool fraction, exchange rate and bound-pool T2 of seven tissues from one paper; no console sequence reads them or saturates a bound pool |
 | A22 | Flow: inflow, time-of-flight angiography, velocity encoding | - | Nothing flows: blood is a static tissue |
 | C21 | Gradient programs: lobes, moments and their nulling, the shortest waveform inside the limits | computed | The design layer computes moments, k-space and limit checks of a gradient program and the shortest lobe for given moments; the console builds its own trapezoids and no waveform can be entered |
 | C24 | Nerve stimulation: the limit on dB/dt | computed | The design layer computes a stimulation figure of a gradient program from a declared model; the console plays gradients at one fixed slew rate and has no such limit |
@@ -371,13 +371,13 @@ Rows of `mrgym validate` ([validation](physics/validation.md)), of `python -m mr
 | A10 | `mrgym validate` S1, S4; `examples/textbook/01_ernst_angle.py` |
 | A11 | `mrgym validate` S5, S9 |
 | A12 | `mrgym validate` S14, S18; `python -m mrgym.core.validate` Q10, Q10b |
-| A13 | `python -m mrgym.design.validate` E9; `python -m mrgym.core.validate` N8; `examples/textbook/12_approach_to_steady_state.py`; `tests/test_core_evaluators.py::test_the_periodic_state_is_a_fixed_point` |
-| A14 | `mrgym validate` J7, J8, J9, J12, J16, J17, J18, J20, J37, J38; `python -m mrgym.design.validate` E2, E3, E4; `python -m mrgym.core.validate` N1, N1b, N1c, N2; `python tools/measured/run_all.py`, the rows of rungs M3b ([measured](physics/measured.md)) |
-| A15 | `mrgym validate` S3; `python -m mrgym.core.validate` Q12, N8, N9, N9b, N10 |
+| A13 | `python -m mrgym.design.validate` E9; `python -m mrgym.core.validate` N8, N15, N15b; `examples/textbook/12_approach_to_steady_state.py`; `tests/test_core_evaluators.py::test_the_periodic_state_is_a_fixed_point` |
+| A14 | `mrgym validate` J7, J8, J9, J12, J16, J17, J18, J20, J24, J37, J38; `python -m mrgym.design.validate` E2, E3, E4; `python -m mrgym.core.validate` N1, N1b, N1c, N2, N14, N14b, N14c; `python tools/measured/run_all.py`, the rows of rungs M3b ([measured](physics/measured.md)) |
+| A15 | `mrgym validate` S3, J41, J42, J43, J44, J45, J46, J47; `python -m mrgym.core.validate` Q12, N8, N9, N9b, N10 |
 | A16 | `mrgym validate` K3; `examples/textbook/05_chemical_shift.py` |
 | A17 | `mrgym validate` K18; `examples/textbook/11_in_opposed_phase.py` |
 | A18 | `mrgym validate` K28, K31, K32, S16, S17; `python -m mrgym.core.validate` Q16, Q16b, Q16c, Q16d; `tests/test_fat_suppress.py::test_physics_the_saturated_band_has_the_width_of_the_hidden_pulse` |
-| A20 | `python -m mrgym.core.validate` X6, X6b, M2, M3 |
+| A20 | `python -m mrgym.core.validate` X6, X6b, X6c, X6d, M2, M3; `tests/test_served_prepared.py::test_two_pool_numbers_are_additive_sourced_and_read_by_no_existing_sequence` |
 | A21 | `mrgym validate` J31, J32, J33, J35, J36, J15; `python -m mrgym.design.validate` G5, G6, E10; `python -m mrgym.core.validate` X7, N11, N11c, N12 |
 | A25 | `mrgym validate` K20 |
 | A26 | `python -m mrgym.scanner.fields3d_validate` F1, F43, F44 |
@@ -425,7 +425,7 @@ Rows of `mrgym validate` ([validation](physics/validation.md)), of `python -m mr
 | C16 | `tests/test_acr_phantom.py::test_a_gradient_calibration_error_scales_the_image_along_its_axis_and_is_absent_by_default`; `mrgym qa acr --fault gradient_x` |
 | C17 | `tests/test_gradient_cal.py::test_under_non_linear_gradients_the_edge_of_the_disc_is_not_at_the_scale_of_the_isocentre` |
 | C18 | `mrgym validate` K13 |
-| C20 | `mrgym validate` S6, S8, J8, J20, J23, J24; `python -m mrgym.core.validate` Q7, N1, N12, N13, N5, N6, N6c |
+| C20 | `mrgym validate` S6, S8, J8, J9, J20, J23, J24; `python -m mrgym.core.validate` Q7, N1, N12, N13, N14, N14b, N5, N6, N6c |
 | C21 | `python -m mrgym.design.validate` G1, G3, G4, G7, G9 |
 | C22 | `mrgym validate` C1, C5, C9; `python -m mrgym.em.validate` A10, S12 |
 | C23 | `python -m mrgym.em.validate` A10, A10b, A10c, S3e, S7, S12, S13, S13b, S13c, H1 |

@@ -50,7 +50,7 @@ def test_every_formed_item_names_checks_that_exist():
     # of the tables in docs/physics/, which tests/test_core_validate.py, tests/test_spins_validate.py and tests/test_em_validate.py
     # hold equal to what the commands print; the receive arrays and the fields in 3D do not write every id out in their source
     # (a counter, a loop variable), so theirs are read from those tables (tests/test_array.py, tests/test_fields3d.py)
-    for prefix, rows in (("core", 85), ("spins", 69), ("em", 82), ("array", 76), ("fields3d", 54)):      # core: + Q16 to Q16d (fat saturation, engine 0.3.0)
+    for prefix, rows in (("core", 93), ("spins", 69), ("em", 82), ("array", 76), ("fields3d", 54)):      # core: + X6c, X6d, N13b, N14 to N14c, N15, N15b
         table = (ROOT / "docs" / M.EVIDENCE_PACKAGES[prefix][2]).read_text(encoding="utf-8").split(M._TABLE_MARKS[0])[1].split(M._TABLE_MARKS[1])[0]
         assert M.package_ids(prefix) == set(re.findall(r"^\| ([A-Z]+\d+[a-z]?\d?) \|", table, re.M)) and len(M.package_ids(prefix)) == rows, prefix
     assert [p for p, line in M.EVIDENCE_PACKAGES.items() if line[1] is M._ON_THE_PAGE] == ["array", "fields3d"]
@@ -272,10 +272,12 @@ def test_what_the_signal_core_computes_is_computed_or_stays_in_part():
     """Two exchanging pools are computed by the core and served by no sequence; what the console serves in part stays
     "in part" with the core's rows beside it; what no row of the core covers stays "not yet"."""
     by_id = M.items()
-    assert by_id["A20"].status == "computed" and {"core:X6", "core:X6b", "core:M2", "core:M3"} <= set(by_id["A20"].evidence)
-    assert "one pool of protons" in by_id["A20"].reason and "chemical exchange between its evaluators only" in by_id["A20"].reason
-    for i in ("A13", "A15"):                                            # computed before, by the design layer or a formula: further rows
-        assert by_id[i].status == "computed" and any(e.startswith("core:") and M.package_row(e) for e in by_id[i].evidence), i
+    assert by_id["A20"].status == "computed" and {"core:X6", "core:X6b", "core:X6c", "core:X6d", "core:M2", "core:M3"} <= set(by_id["A20"].evidence)
+    assert "no console sequence reads them or saturates a bound pool" in by_id["A20"].reason and "closed form of the Bloch-McConnell equations" in by_id["A20"].reason
+    assert by_id["A13"].status == "computed" and {"core:N15", "core:N15b"} <= set(by_id["A13"].evidence)       # the transient against its closed form
+    # the preparation: saturation recovery and a prepared fast spin echo are served by a console that lists them, the prepared gradient-echo train is not
+    assert by_id["A15"].status == "partial" and {"J41", "J44", "J46"} <= set(" ".join(by_id["A15"].evidence).split()) and "which no console serves" in by_id["A15"].reason
+    assert any(e.startswith("core:") and M.package_row(e) for e in by_id["A15"].evidence)
     # echo trains, diffusion weighting and the order of the lines: served by a console whose card lists the sequences, so "in part",
     # with rows of ``mrgym validate`` (group core) beside the rows of the packages; they still wait for the tool layer of the environments
     for i in ("A14", "A21", "B19"):
@@ -283,7 +285,7 @@ def test_what_the_signal_core_computes_is_computed_or_stays_in_part():
         assert any(re.match(r"^J\d+$", e) for e in by_id[i].evidence), i
     assert all(any(e.startswith("core:") and M.package_row(e) for e in by_id[i].evidence) for i in ("A14", "A21"))
     assert by_id["C20"].status == "partial" and any(e.startswith("core:") and M.package_row(e) for e in by_id["C20"].evidence)
-    assert "an ideal one at its end" in by_id["C20"].reason and "served by no sequence" in by_id["C20"].reason
+    assert "from one repetition to the next" in by_id["C20"].reason and "taken as dephased" in by_id["C20"].reason and "served by no sequence" in by_id["C20"].reason
     for i in ("A19", "A22"):                                            # spatial saturation, flow
         assert by_id[i].status == "absent" and not by_id[i].evidence, i
     cell = M._evidence_text(by_id["A21"].evidence)

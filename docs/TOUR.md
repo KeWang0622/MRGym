@@ -4,7 +4,7 @@ What is in the box: the demo, the scanner, an episode, speed, limits and where t
 [README](../README.md) is the short version; the [scanner manual](scanner.md) is what the agent reads.
 
 <!-- COUNTS:START -->
-| 6 sequences | 5 phantoms | 2 field strengths | 25 tissue rows, each with a source tag | 119 physics checks | 24 environments (admitted, candidate, practice, sandbox) |
+| 6 sequences | 5 phantoms | 2 field strengths | 25 tissue rows, each with a source tag | 135 physics checks | 24 environments (admitted, candidate, practice, sandbox) |
 |---|---|---|---|---|---|
 <!-- COUNTS:END -->
 

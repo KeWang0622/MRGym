@@ -307,6 +307,57 @@ def check_agreement():
     rows.append(_row("X6b", "agreement", "two pools, chemical exchange (both pools transverse, a frequency shift between them): 8 random lists",
                      "the same two references", err_cx, 1e-10))
 
+    # X6c, X6d: a two-site free induction decay against the closed form of the Bloch-McConnell equations and its two limits
+    err_fid, text = 0.0, []
+    t_ms = np.array([0.5, 1.0, 2.0, 4.0, 8.0, 15.0, 30.0])
+    for f_b, kab, shift, t2a, t2b in ((0.25, 40.0, 180.0, 60.0, 25.0), (0.6, 400.0, -90.0, 80.0, 40.0), (0.05, 5.0, 250.0, 120.0, 12.0), (1.0, 2500.0, 60.0, 50.0, 50.0)):
+        spx = O.spins(900.0, t2a, pool="cx", f_b=f_b, k_ab_per_s=kab, t1b_ms=900.0, t2b_ms=t2b, shift_b_hz=shift)
+        seq = [B.rf(90.0, 0.0)]
+        for a_t, b_t in zip(np.concatenate([[0.0], t_ms[:-1]]), t_ms):
+            seq += [B.delay(float(b_t - a_t)), B.adc()]
+        got = epg.run(seq, spx).signal[:, 0]
+        # dMa/dt = (-1/T2a - kab) Ma + kba Mb,  dMb/dt = kab Ma + (-1/T2b - kba + i w) Mb,  kba = kab / f_b: the solution is
+        # two exponentials, with the roots of lambda^2 - (p + s) lambda + (p s - q r) = 0 and the amplitudes that match M(0) and M'(0)
+        kba, w = kab / f_b, 2 * math.pi * shift
+        pp, qq, rr, ss = -1e3 / t2a - kab, kba, kab, -1e3 / t2b - kba + 1j * w                 # 1/s
+        disc = np.sqrt((pp - ss) ** 2 + 4 * qq * rr + 0j)
+        l1, l2 = 0.5 * (pp + ss + disc), 0.5 * (pp + ss - disc)
+        m0, d0 = 1.0 + f_b, (pp + rr) * 1.0 + (qq + ss) * f_b                                   # the sum of the two pools and its slope at t = 0
+        c1 = (d0 - l2 * m0) / (l1 - l2)
+        want = c1 * np.exp(l1 * t_ms * 1e-3) + (m0 - c1) * np.exp(l2 * t_ms * 1e-3)
+        err_fid = max(err_fid, float(np.abs(got - want).max()))
+        text.append(f"{kab + kba:.0f} /s against {abs(w):.0f} rad/s")
+    rows.append(_row("X6c", "agreement", "two sites in chemical exchange after a 90 degree pulse: the free induction decay at 7 times from 0.5 to 30 ms, "
+                     "4 cases from slow to fast exchange (exchange rate " + ", ".join(text) + " of shift)", "the closed form of the Bloch-McConnell "
+                     "equations (McConnell 1958; paper not opened: derived here): the sum of two exponentials whose rates are the roots of the "
+                     "characteristic polynomial of the 2 x 2 generator and whose amplitudes match the signal and its slope at t = 0 (written in this "
+                     "row from the two rate equations; no matrix exponential)", err_fid, 1e-12))
+    limits = []
+    for f_b, kab, shift, t2 in ((0.5, 2.0e5, 150.0, 80.0), (0.3, 8.0e4, -200.0, 60.0)):         # fast exchange: one line
+        spx = O.spins(900.0, t2, pool="cx", f_b=f_b, k_ab_per_s=kab, t1b_ms=900.0, t2b_ms=t2, shift_b_hz=shift)
+        sig = epg.run([B.rf(90.0, 0.0), B.delay(2.0), B.adc(), B.delay(8.0), B.adc()], spx).signal[:, 0]
+        rate = -np.log(sig[1] / sig[0]) / 8e-3                          # 1/s, complex: decay and frequency
+        pa, pb, w = 1 / (1 + f_b), f_b / (1 + f_b), 2 * math.pi * shift
+        want = 1e3 / t2 + pa * pb * w * w / (kab + kab / f_b) - 1j * pb * w
+        limits.append(abs(rate - want) / abs(want))
+    for f_b, kab, shift, t2a, t2b in ((0.4, 0.5, 400.0, 70.0, 30.0),):                           # slow exchange: each line decays with 1/T2 + its rate of leaving
+        spx = O.spins(900.0, t2a, pool="cx", f_b=f_b, k_ab_per_s=kab, t1b_ms=900.0, t2b_ms=t2b, shift_b_hz=shift)
+        tt = np.arange(1, 65) * 0.25
+        seq = [B.rf(90.0, 0.0)]
+        for _ in tt:
+            seq += [B.delay(0.25), B.adc()]
+        sig = epg.run(seq, spx).signal[:, 0]
+        basis = np.stack([np.exp(-(1e3 / t2a + kab) * tt * 1e-3), np.exp((-(1e3 / t2b + kab / f_b) + 2j * math.pi * shift) * tt * 1e-3)], 1)
+        coef = np.linalg.lstsq(basis, sig, rcond=None)[0]
+        limits.append(float(np.abs(basis @ coef - sig).max()))
+        limits.append(float(max(abs(coef[0] - 1.0), abs(coef[1] - f_b))))
+    rows.append(_row("X6d", "agreement", "the two limits of that decay: fast exchange (rate 3e5 to 6e5 /s against a shift of 1000 rad/s), the rate and the "
+                     "frequency of the one line that is left; slow exchange (1.8 /s against 2500 rad/s), the two lines and their amplitudes", "fast: "
+                     "decay rate 1/T2 + pa pb dw^2 / k and frequency pb dw, k the sum of the two rates, pa and pb the populations (the textbook "
+                     "limit; relative error of the complex rate, of the order dw / k). Slow: each line decays with 1/T2 plus its own rate of "
+                     "leaving, amplitudes 1 and the population ratio (residual of the fit, and error of the amplitudes, of the order k / dw)",
+                     max(limits), 5e-3))
+
     # X7 diffusion against a grid integration of the Bloch-Torrey equation
     seq = B.sequence([B.rf(70, 20), B.gradient(2, ms=6.0), B.delay(4.0), B.rf(150, 100), B.gradient(3, ms=5.0), B.rf(60, -40), B.gradient(-2, ms=7.0),
                       B.delay(2.0), B.rf(120, 10), B.gradient(1, ms=3.0), B.adc("a"), B.gradient(-2, ms=4.0), B.adc("b")], cycle_mm=0.06)
@@ -1120,7 +1171,7 @@ def check_sequences():
 
     # ---------------- spin echo with the grating kept (what the served `se` leaves out)
     from ..scanner import kspace
-    change = []
+    change, err_ens, err_box = [], 0.0, 0.0
     for scale, tbw, tr, te, t1v, ti, kap in ((1.0, 4.0, 500.0, 20.0, 800.0, None, 1.0), (0.8, 4.0, 300.0, 15.0, 1200.0, None, 1.0),
                                              (1.15, 2.0, 600.0, 20.0, 500.0, None, 1.0), (1.0, 8.0, 400.0, 20.0, 900.0, None, 1.0),
                                              (0.9, 4.0, 2000.0, 20.0, 1000.0, 400.0, 0.93)):
@@ -1130,14 +1181,91 @@ def check_sequences():
         head = [] if ti is None else [B.mz(-kap), B.delay(ti)]
         body = head + [B.rf(90, 0, selective=sel), B.delay(te / 2), B.gradient(1), B.rf(180, 90, selective=B.Selective(tbw, rephase=0.0, width=L.REFOCUS_WIDTH)),
                        B.gradient(1), B.delay(te / 2), B.adc("echo"), B.spoil(), B.delay(tr - te - (ti or 0.0))]
-        got = np.sum(wz * periodic.steady_state([B.repeat(body, 1)], sps, kmax=8, method="matrix").signal[0]).real
+        per_column = periodic.steady_state([B.repeat(body, 1)], sps, method="carry", carry=(40,), carry_transverse=False).signal[0]
+        got = np.sum(wz * per_column).real
         served = kspace.slice_signal(dict(sequence="se" if ti is None else "ir", tr_ms=tr, te_ms=te, ti_ms=ti), dict(t1_ms=t1v), scale * math.pi / 2, tbw, inv_eff=kap)[0][0].real
         change.append(100 * (got / served - 1))
+        reps = int(math.ceil(21.0 * t1v / tr)) + 2                      # exp(-reps TR / T1) < 1e-9
+        ens = bloch.run(B.compile_ops([B.repeat(body, 1)], repetitions=reps), sps, n_sub=96).signal[-1]
+        err_ens = max(err_ens, float(np.abs(ens - per_column).max()))
+        err_box = max(err_box, float(np.abs(periodic.steady_state([B.repeat(body, 1)], sps, kmax=8, method="matrix").signal[0] - per_column).max()))
     rows.append(_row("N13", "sequences", "se and ir through the slice with REAL crushers and an ideal spoiler after the echo, so that the grating "
-                     "stored along z by an imperfect refocusing pulse comes back as a stimulated echo in the next TR (5 cases, B1 80 to 115 %): "
-                     f"change against the served model, {min(change):+.2f} to {max(change):+.2f} %", "docs/physics/limits.md, block 8a: -2 to +39 %, "
-                     "from a third, separately written integrator (`tools/external/independent_bloch.py`, row L1.4); measured: distance of the "
-                     "rounded ends of the range", max(abs(round(min(change)) + 2), abs(round(max(change)) - 39)), 0, unit="points"))
+                     "stored along z by an imperfect refocusing pulse comes back as a stimulated echo in the next TR (5 cases, TR 300 to 2000 ms, T1 500 "
+                     "to 1200 ms, B1 80 to 115 %): the periodic echo of every slice column, with the gratings of 40 orders carried (`periodic`, method "
+                     "carry)", "isochromat ensemble of 96 spins per crusher cycle and column, stepped from equilibrium until exp(-n TR / T1) < 1e-9 (24 to "
+                     "86 repetitions)", err_ens, 1e-8))
+    rows.append(_row("N13b", "sequences", f"the same five cases: the change of the slice-integrated echo against the model the engine serves for `se` "
+                     f"and `ir` (crushed means gone) is {min(change):+.2f} to {max(change):+.2f} %; and the matrix method on 8 orders against the 40 "
+                     "orders of row N13; measured: the latter", "a size and a truncation, not an equality with a page: docs/physics/limits.md, block 8a, "
+                     "quotes the range from a third, separately written integrator (`tools/external/independent_bloch.py`, row L1.4 of "
+                     "`tools/external/run_all.py`, which compares case by case)", err_box, 1e-6))
+
+    # ---------------- what survives a repetition of a spin-echo train (the periodic state behind a REAL spoiler)
+    err = 0.0
+    tail = L.Tail(cycles=1, ms=1.0, after_ms=2.0)
+    for t1v, t2v, tr, te in ((900.0, 40.0, 1500.0, 30.0), (300.0, 20.0, 700.0, 24.0), (2500.0, 60.0, 2200.0, 80.0)):
+        got = periodic.steady_state(L.se(tr, te, crusher_cycles=1, tail=tail), O.spins(t1v, t2v), method="carry", carry=(3,)).signal[0, 0]
+        err = max(err, abs(got / ((1 - 2 * math.exp(-(tr - te / 2) / t1v) + math.exp(-tr / t1v)) * math.exp(-te / t2v)) - 1))
+    for t1v, t2v, esp, n, tr in ((1200.0, 15.0, 8.0, 6, 600.0), (500.0, 10.0, 6.0, 9, 420.0), (3000.0, 20.0, 10.0, 16, 900.0)):
+        got = periodic.steady_state(L.fse(tr, esp, n, 180.0, tail=tail), O.spins(t1v, t2v), method="carry", carry=(4,)).signal[:, 0]
+        mz = 1 - 2 * sum((-1) ** (n - j) * math.exp(-(tr - (j - 0.5) * esp) / t1v) for j in range(1, n + 1)) - (-1) ** n * math.exp(-tr / t1v)
+        err = max(err, float(np.abs(got / (mz * np.exp(-np.arange(1, n + 1) * esp / t2v)) - 1).max()))
+    rows.append(_row("N14", "sequences", "a 90 - 180 spin echo and CPMG trains of 6 to 16 exact 180 degree pulses with real crushers and a real spoiler, "
+                     "at a TR that is short against T1 (0.4 to 2.3 T1) and long against T2 (exp(-(TR - train) / T2) < 1e-15): the periodic echoes",
+                     "(1 - 2 exp(-(TR - TE/2) / T1) + exp(-TR / T1)) exp(-TE / T2) for the spin echo with incomplete recovery (textbook); for the "
+                     "train exp(-k ESP / T2) times Mz = 1 - 2 sum_j (-1)^(n-j) exp(-(TR - (j - 1/2) ESP) / T1) - (-1)^n exp(-TR / T1): with u = 1 - Mz, "
+                     "free evolution multiplies u by exp(-t / T1), an inversion makes it 2 - u, and u = 1 after the 90 (derived here)", err, 1e-10,
+                     unit="relative"))
+    err_g, err_f, size_g, size_f, conv = 0.0, 0.0, 1.0, 1.0, []
+    tail = L.Tail(cycles=1, ms=1.0, after_ms=1.0)
+    for refocus, b1v, t1v, t2v, n, tr, n_sub in ((150.0, 1.0, 60.0, 30.0, 4, 70.0, 192), (120.0, 0.9, 60.0, 30.0, 4, 70.0, 192), (180.0, 0.8, 60.0, 30.0, 4, 70.0, 192),
+                                                 (160.0, 0.9, 90.0, 80.0, 3, 60.0, 256)):
+        spv = O.spins(t1v, t2v, b1=b1v)
+        make = lambda reps: L.fse(tr, 6.0, n, refocus, excitation_deg=80.0, tail=tail, repetitions=reps)     # noqa: E731, B023
+        want = bloch.run(make(60), spv, n_sub=n_sub).signal[-n:, 0]
+        got = periodic.steady_state(make(1), spv, method="carry", carry=(36,)).signal[:, 0]
+        ideal = periodic.steady_state(L.fse(tr, 6.0, n, refocus, excitation_deg=80.0), spv).signal[:, 0]
+        z_only = periodic.steady_state(make(1), spv, method="carry", carry=(36,), carry_transverse=False).signal[:, 0]
+        if t2v < 50:
+            err_g, size_g = max(err_g, float(np.abs(got - want).max())), min(size_g, float(np.abs(ideal - want).max()))
+            conv.append([float(np.abs(periodic.steady_state(make(1), spv, method="carry", carry=(k,)).signal[:, 0] - want).max()) for k in (8, 12, 20)])
+        else:
+            err_f, size_f = max(err_f, float(np.abs(got - want).max())), min(size_f, float(np.abs(z_only - want).max()))
+    conv = np.max(np.array(conv), 0)
+    rows.append(_row("N14b", "sequences", "trains of 4 echoes (80 degree excitation; refocusing 150, 120, 180 degrees at B1 100, 90, 80 %) repeated every "
+                     "1.2 T1: the periodic echoes with what survives the repetition carried (36 orders: the gratings along z and the transverse "
+                     f"states); with 8, 12, 20 orders the distance is {conv[0]:.0e}, {conv[1]:.0e}, {conv[2]:.0e}; an ideal crusher at the end of the "
+                     f"repetition is off by at least {size_g:.3f}", "isochromat ensemble of 192 spins per crusher cycle stepped through 60 repetitions "
+                     "(the recursion that the phase graph replaces)", err_g, 1e-10))
+    rows.append(_row("N14c", "sequences", "a train on a material whose T2 is longer than the repetition (T1 90 ms, T2 80 ms, TR 60 ms): the same; the "
+                     f"gratings alone, without the transverse states, are off by {size_f:.3f}", "the same ensemble (256 spins): transverse "
+                     "magnetisation passes the spoiler dephased, not destroyed, and the next excitation turns part of it into gratings and into Mz",
+                     err_f, 1e-10))
+
+    # ---------------- the approach to the steady state of a gradient echo
+    err, err_lim, text = 0.0, 0.0, []
+    for fl, tr, t1v, b1v in ((10.0, 8.0, 900.0, 1.0), (30.0, 20.0, 600.0, 0.85), (60.0, 100.0, 1400.0, 1.1), (90.0, 300.0, 400.0, 1.0)):
+        spv = O.spins(t1v, 70.0, b1=b1v)
+        n = 160
+        stepped, fixed = periodic.approach(L.spgr(tr, fl, spoiling="ideal"), spv, n)
+        e1, ca, sa = math.exp(-tr / t1v), math.cos(D(fl) * b1v), math.sin(D(fl) * b1v)
+        mss = (1 - e1) / (1 - e1 * ca)
+        want = sa * (mss + (1 - mss) * (e1 * ca) ** np.arange(n))       # Mz before pulse n: the pulse leaves cos a of it, the interval recovers
+        err = max(err, float(np.abs(stepped[:, 0, 0] - want).max()))
+        err_lim = max(err_lim, abs(fixed[0, 0] - sa * mss))
+        text.append(f"{-1 / math.log(abs(e1 * ca) + 1e-300):.1f}")
+    rows.append(_row("N15", "sequences", "`periodic.approach`: every sample of 160 repetitions of an ideally spoiled gradient echo from equilibrium (10 to 90 "
+                     "degrees, TR 8 to 300 ms, T1 400 to 1400 ms, B1 85 to 110 %; the transient lasts " + ", ".join(text) + " repetitions to 1 / e)",
+                     "sin a (Mss + (1 - Mss) (E1 cos a)^n), Mss = (1 - E1) / (1 - E1 cos a): the geometric approach to the Ernst steady state (textbook; "
+                     "it follows from Mz -> E1 cos a Mz + 1 - E1 per repetition)", err, 1e-12))
+    spv = O.spins(300.0, 60.0, b1=0.9)
+    seq = L.spgr(10.0, 25.0, spoiling="rf", phase_inc_deg=117.0)
+    stepped, fixed = periodic.approach(seq, spv, 60, kmax=40)
+    ens = bloch.run(B.compile_ops(seq, repetitions=60), spv, n_sub=512).signal[:, 0]
+    rows.append(_row("N15b", "sequences", "`periodic.approach` of the RF-spoiled gradient echo with its spoiler (25 degrees, TR 10 ms, T1 300 ms, T2 60 ms, "
+                     "increment 117 degrees): every sample of the first 60 repetitions, where the transverse coherences build up; and the periodic value "
+                     f"it returns (the last stepped sample is {abs(stepped[-1, 0, 0] - fixed[0, 0]):.1e} from it)", "isochromat ensemble of 512 spins per "
+                     "spoiler cycle stepped from equilibrium (no phase graph); the periodic value against the limit of row N15", max(float(np.abs(stepped[:, 0, 0] - ens).max()), err_lim), 1e-9))
 
     # ---------------- magnetisation transfer
     f_b, kab, t1a, t1b, t2b = 0.139, 3.2, 1000.0, 1000.0, 0.012          # white-matter-like sizes (not sourced)

@@ -1,7 +1,7 @@
 """``rfscan``: a spoiled gradient echo whose excitation is a stored design. How a designed pulse meets the hidden scanner.
 
 A console offers it when its card lists it (``console_sequences`` of the world spec) and holds a table of designs
-(``exam["designs"]``, filled by ``ScannerSession.design``). The six sequences every console offers, and the four served
+(``exam["designs"]``, filled by ``ScannerSession.design``). The six sequences every console offers, and those served
 from the block-list core, are not touched: their parameter tables, plans and images are what they were.
 
 What is played. The stored waveform, as designed, through the transmit chain of this scanner (``design.hardware``):
