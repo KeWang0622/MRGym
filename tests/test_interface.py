@@ -841,15 +841,20 @@ def test_total_sizes_of_the_tool_schemas(env_id):
     size = {t["function"]["name"]: len(json.dumps(t)) for t in env.tools("openai")}
     terminal = next(t.name for t in env._tool_specs() if t.terminal)
     # engine 0.3.0: + 550 in all, + 380 in plan, + 150 in scan for the four adjustment parameters (cf_shift_hz, tx_scale, shim_y / shim_x_hz_per_mm)
+    # a console whose card lists further sequences (one id, which lists the one its task needs): their parameters in plan and scan,
+    # their topics in scanner_info; measured: 420 characters in all for mese (280 in plan, 90 in scan), about as much for dwse
+    more = len([q for q in env._session.exam.get("sequences") or () if q in console.EXTENDED])       # the sequences of the supplement
+    assert more == (1 if env_id == "Scanner/T2Echoes-v0" else 0)
     # a design family: + 4,300 for its two tools (design, simulate) and + 350 in plan for the scan that plays a design
     design = {"design", "simulate"} <= set(size)
-    assert design == (env_id == "Scanner/RFPulse-v0")
-    assert sum(v for k, v in size.items() if k != terminal) < 11950 + (4300 if design else 0), size   # the scanner tools; the terminal tool is the family's
-    assert size["plan"] < 4380 + (350 if design else 0) and size["scan"] < 2600 and size["profile"] < 1500
+    assert design == (env_id in ("Scanner/RFPulse-v0", "Scanner/RFPulse-v1"))
+    assert sum(v for k, v in size.items() if k != terminal) < 11950 + (4300 if design else 0) + 450 * more, size   # the scanner tools; the terminal tool is the family's
+    assert size["plan"] < 4380 + (350 if design else 0) + 300 * more and size["scan"] < 2600 + 100 * more and size["profile"] < 1500 + 10 * more
     assert len(obs.text[obs.text.index("Limits. "):].splitlines()[0]) < 360 and "Tools:" not in obs.text
     specs = {t.name: t for t in env._tool_specs()}
     props = {name: t.parameters["properties"] for name, t in specs.items()}
-    assert max(len(p["description"]) for p in props["plan"].values()) < 160
+    assert max(len(p["description"]) for k, p in props["plan"].items() if k != "sequence") < 160
+    assert len(props["plan"]["sequence"]["description"]) < 160 + 35 * more     # one name and three words per sequence
     # scan lists the parameters of plan by name and type; plan documents them (ToolSpec.see), ranges included, in words
     assert specs["scan"].see == "plan" and all("description" not in p and k in props["plan"] for k, p in props["scan"].items() if k not in ("regions", "circles"))
     assert not [k for name in ("plan", "scan") for k, p in props[name].items() if "minimum" in p]

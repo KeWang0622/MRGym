@@ -14,6 +14,41 @@ Three versions travel with every number:
 
 ## Unreleased
 
+### The core sequences are open to tasks; one candidate family uses one of them
+
+No engine bump, no existing id touched: the tool schemas, statements, fingerprints and golden snapshots of the ids
+of before are those of before (`python -m mrgym.compat.fingerprint --check`, `python tools/audit/golden.py --check`,
+`tests/test_compat_2d_unchanged.py`).
+
+- **The tool layer offers what a console lists.** A family names the sequences its console has beyond the six (world
+  spec `console_sequences`). The schemas of `plan` and `scan`, the topics of `scanner_info` (one per listed sequence:
+  the paragraphs of the supplement, parameters with ranges and defaults, an example call; the cost bullets and the
+  "not simulated" section of the supplement under `cost` and `hidden`), the refusals and the answers of `plan` and
+  `scan` then know them (`envs/scanner_env.py`, `interface.py`: the tables of `console.offered` instead of the table
+  of the six; `tests/test_console_sequences_offered.py`, on consoles that list `mese`, `dwse` and all of them). A
+  refusal at a limit of the simulation says so (32 echoes, matrix 256). One sequence adds 300 to 500 characters to
+  the tool definitions; a family lists only what it needs.
+- **The supplement** (`scanner/datasheet_core.md`): the paragraph of `mese` stands on its own (it began "The same
+  train" and pointed at "the stimulated echoes described above", which a console that lists `mese` alone does not
+  show); what a train carries into the next repetition is served under `mese` as well.
+- `Scanner/T2Echoes-v0` (candidate): T2 of three vials from one multi-echo spin echo on a scanner whose transmit scale
+  is off. A straight line through the echoes reads T2 4 to 76 % long (slice profile, transmit scale, stimulated
+  echoes); the echo train with one free refocusing angle, fitted with `calc`, is within the tolerance on the sharp
+  pulse. The console charges 40 s of adjustments per scan and the budget pays one scan of useful length: a `mese`
+  scan costs what an `se` scan costs, so with the 3 s of the default console two single echoes at half the repetition
+  time fit the same scan time and pass as often. What stays open is in the task module (two single echoes of 10 s of
+  scanning still pass at levels 1 and 2 in four of five instances on the engine before this merge; not measured
+  again), as is `refocus_slice_ratio`, which this family does not use. The cost topic of `scanner_info` states a
+  console's own overhead next to the datasheet's 3 s when the console lists further sequences (the topic of
+  `Scanner/ProtocolToSpec-v0`, whose console charges 30 s, is not touched and still prints 3 s).
+- **Parked, not registered** (branch `b/famE-parked`): `Scanner/LesionADC-v0` and `Scanner/EchoTrain-v0`, built on the
+  engine before the cross-TR work. With the signal carried across repetitions, b = 0 and b > 0 at one echo time
+  differ by more than diffusion at the repetition time of the LesionADC method (its stated pair reads ADC 20 to 66 %
+  high at TR 800 ms; b of 200 and more as the low b-value, or a TR of 3 s, reads within 2 %); the search of EchoTrain
+  re-implements the echo-train table of `scanner/served.py`, which was rewritten.
+- `mrgym.coverage`: echo train length, effective TE and b-value are served (`now`, each with its check).
+  `mrgym.physics_map`: T2Echoes has its row (A29).
+
 ### Spin-echo trains with what survives the repetition; prepared sequences; the tissue sources opened
 
 No engine bump, no environment id touched, no fingerprint moved: every protocol of the six sequences gives the bytes
@@ -84,6 +119,35 @@ entry (development gates of families that are being built on them) are NOT compa
 - **Cost.** A cold scan of `fse` or `mese` computes the periodic state of every tissue class with its carried
   states: see the table of core.md, section 11. The amplitude table of a protocol is kept per engine and reused when
   only the geometry of the scan changes.
+
+### `Scanner/RFPulse-v1`: a design task whose pass rule has a proven bound in it
+
+A new id. `Scanner/RFPulse-v0` stays registered and served as it was (its fingerprint is unchanged; whether it is
+deprecated or retired is a release decision, docs/VERSIONING.md). No engine number changes: the two switches of the
+transmit chain are off unless a world's `rf_hardware` turns them on.
+
+- **`mrgym.design.bound`: a lower bound on the duration of a slice-selective pulse that meets a flip-angle mask**,
+  for pulses of raster samples played as hard sub-pulses under one constant gradient. It is a theorem for that class
+  (docs/physics/design.md, section 4a): certificates of infeasibility that hold for every gradient up to the limit,
+  the Bernstein-Szegő slope of the flip angle below them, and Jensen's formula for the RF energy and peak limits.
+  `python -m mrgym.design.bound` prints how close the built pulse comes; rows B1 to B11 of
+  `python -m mrgym.design.validate` hold it against decimal arithmetic, a linear programme and the generators.
+- **Generator `minphase`** (`pulses.minphase`, kind `minphase` of the `design` tool): the weighted-Chebyshev-optimal
+  `|B|²` for a mask, its minimum-phase factor, the inverse Shinnar-Le Roux transform; with a frequency offset and a
+  rephasing fraction. Offered by `-v1` only.
+- **`hardware.Chain` gets `model` and `guard`** (defaults: what it was). `model="split"`: hard sub-pulses; `guard`: the
+  plateau of the slice gradient outlasts the pulse, so a late gradient tilts the phase and changes no flip angle. A
+  world spec sets them through `rf_hardware` (two lines in `scanner/world.py`, one in `scanner/rfscan.py`).
+- **The family** `envs/rf_pulse_v1`: transmit scale, off-resonance of the slice and gradient delay are hidden; the
+  amplifier compression of `-v0` is not (a peak cap is bounded only through the energy, and no level with it could
+  have a tight factor). Pass: limits, mask, refocused signal, and duration at most x_k times the bound on the hidden
+  scanner; x_k is derived on the split `tune` (`python -m mrgym.envs.rf_pulse_v1.factors`) and stored next to the gate.
+  `envs/design_tools_v1.py` holds its tool texts; `envs/design_tools.py` is untouched.
+- **`mrgym records <id>`** (`mrgym/bestknown.py`): the record table of a design family, never paid; a claim that
+  passes below the bound is quarantined as a defect of the bound or the simulator.
+- **Golden data**: an additive section `design` in `tests/golden/engine_digests.json` (the scan `rfscan` on both
+  chains). Shared tests that list ids name the new one (`tests/test_env.py`, `test_interface.py`,
+  `test_interface_clarity.py`, `test_observation_budget.py`: one line each).
 
 ### Runner processes that share a run folder; the memory bound of `calc` is measured on the process itself
 

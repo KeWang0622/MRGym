@@ -584,35 +584,45 @@ def canonicalise(spec: T.ToolSpec, raw: dict) -> tuple[dict, list, list]:
     return ordered, run.log, run.problems
 
 
+def _table(props: dict) -> dict:
+    """The parameter tables of the sequences a protocol tool offers: those its ``sequence`` parameter lists (the six
+    of every console, and what the card of the session's console adds: ``console.offered``)."""
+    names = (props.get("sequence") or {}).get("enum")
+    if not names or list(names) == sorted(console.SEQUENCES):
+        return console.SEQUENCES
+    return {q: console.REGISTRY[q].parameters for q in list(console.SEQUENCES) + [n for n in names if n not in console.SEQUENCES] if q in console.REGISTRY}
+
+
 def _sequence_rules(run: _Run, args: dict, props: dict):
     """C11 and the two vocabulary refusals of a protocol: a parameter of another sequence, an unknown name."""
-    seq = args.get("sequence")
-    if not isinstance(seq, str) or seq not in console.SEQUENCES:
+    seq, table = args.get("sequence"), _table(props)
+    if not isinstance(seq, str) or seq not in table:
         return
-    own = console.SEQUENCES[seq]
-    for key in [k for k in args if k in props and k != "sequence" and k not in own and any(k in s for s in console.SEQUENCES.values())]:
+    own = table[seq]
+    for key in [k for k in args if k in props and k != "sequence" and k not in own and any(k in s for s in table.values())]:
         fixed = console.FIXED.get(seq, {}).get(key)
         if fixed is not None and T._is_number(args[key]) and float(args[key]) == fixed:
             run.note("C11", key, args[key], "omitted")
             del args[key]
             continue
-        used = sorted(q for q, s in console.SEQUENCES.items() if key in s)
+        used = sorted(q for q, s in table.items() if key in s)
         why = f"{key} is fixed at {fixed:g} for {seq}" if fixed is not None else f"{seq} has no {key} (it belongs to {', '.join(used)})"
         run.problems.append(problem("not_applicable", key, why,
                                     requested=args[key] if isinstance(args[key], (str, int, float, bool)) else None,
-                                    allowed={"values": [k for k in console.parameter_names() if k in own]}, fix={key: None}))
+                                    allowed={"values": [k for k in console.parameter_names(table) if k in own]}, fix={key: None}))
 
 
 def schema_problems(spec: T.ToolSpec, args: dict) -> list:
     """The problems of canonical arguments against the tool's schema, in the error vocabulary."""
     props = spec.parameters.get("properties", {})
     seq = args.get("sequence") if spec.protocol else None
-    seq = seq if isinstance(seq, str) and seq in console.SEQUENCES else None
-    own = [k for k in props if seq is None or k in console.SEQUENCES[seq] or k in ("sequence", "regions", "circles", "verbose")]
+    table = _table(props) if spec.protocol else console.SEQUENCES
+    seq = seq if isinstance(seq, str) and seq in table else None
+    own = [k for k in props if seq is None or k in table[seq] or k in ("sequence", "regions", "circles", "verbose")]
     out = []
     found = T.problems(args, spec.parameters)
     if spec.protocol:
-        found += _range_problems(args, "")
+        found += _range_problems(args, "", table)
     for key, schema in props.items():                                    # a protocol delivered as one argument
         if schema.get("type") == "object" and {"sequence", "tr_ms"} <= set(schema.get("properties", {})) and isinstance(args.get(key), dict):
             found += _range_problems(args[key], key)
@@ -661,20 +671,23 @@ def schema_problems(spec: T.ToolSpec, args: dict) -> list:
     return out
 
 
-def _range_problems(protocol: dict, path: str) -> list:
+def _range_problems(protocol: dict, path: str, table: dict | None = None) -> list:
     """The fixed ranges of the console's parameters, as problems of the form ``tools.problems`` gives. The schema a
     model reads states these ranges in words (one line per parameter); they are checked here, for ``plan``, ``scan``
-    and a delivered protocol alike. A range that depends on the rest of the protocol is the console's to check."""
+    and a delivered protocol alike. A range that depends on the rest of the protocol is the console's to check.
+    ``table``: the sequences of the console (``console.offered``); None: the six."""
     out = []
     for name, value in protocol.items():
-        specs = [s[name] for s in console.SEQUENCES.values() if name in s]
+        specs = [s[name] for s in (console.SEQUENCES if table is None else table).values() if name in s]
         if not specs or specs[0][2] not in "fi" or name in console.PROTOCOL_DEPENDENT or not T._is_number(value):
             continue
         lo, hi = min(s[0] for s in specs), max(s[1] for s in specs)
         if value < lo or value > hi:
             near = lo if value < lo else hi
+            limit = value > hi and any(console.REASONS.get(q, {}).get(name) for q, s in (table or {}).items() if name in s and s[name][1] == hi)
             out.append(dict(parameter=T._join(path, name), kind="range", requested=value, allowed={"min": lo, "max": hi}, nearest_valid=near,
-                            message=f"{value:g} is {'below the minimum' if value < lo else 'above the maximum'} {near:g}"))
+                            message=f"{value:g} is {'below the minimum' if value < lo else 'above the maximum'} {near:g}"
+                                    + (" (a limit of the simulation, not of a scanner)" if limit else "")))
     return out
 
 
@@ -699,7 +712,7 @@ def console_problems(violations: list, protocol: dict | None = None, exam: dict 
     that need another of its values (the field of view for a resolution limit, the repetition time for RF power)."""
     protocol, exam = protocol if isinstance(protocol, dict) else {}, exam or {}
     seq = protocol.get("sequence")
-    spec = console.SEQUENCES.get(seq, {}) if isinstance(seq, str) else {}
+    spec = console.offered(exam).get(seq, {}) if isinstance(seq, str) else {}
     out = []
     for v in violations:
         code, name, msg = v.get("code"), v.get("parameter"), v.get("message", "")
@@ -728,8 +741,10 @@ def console_problems(violations: list, protocol: dict | None = None, exam: dict 
             near = v.get("nearest_valid")
             if "low" in v:
                 slip = unit_slip(name, v.get("requested"), v["low"], v["high"])
-                if T._is_number(v.get("requested")):                    # the fact in a few words (the console adds the parameter's meaning)
-                    msg = f"{v['requested']:g} is outside {v['low']:g} to {v['high']:g}" + (f" for {seq}" if isinstance(seq, str) else "")
+                if T._is_number(v.get("requested")) and v["low"] != v["high"]:   # the fact in a few words (the console adds the parameter's meaning);
+                    msg = f"{v['requested']:g} is outside {v['low']:g} to {v['high']:g}" + (f" for {seq}" if isinstance(seq, str) else "")   # one allowed value: the console's reason
+                    if v["requested"] > v["high"] and isinstance(seq, str) and console.REASONS.get(seq, {}).get(name):
+                        msg += " (a limit of the simulation, not of a scanner)"
                 out.append(problem("invalid_value", name, msg + (f"; {slip[0]}" if slip else ""), "task", code=code, requested=v.get("requested"),
                                    allowed={"min": v["low"], "max": v["high"]}, nearest_valid=near, fix={name: slip[1] if slip else near}))
             elif isinstance(near, list) and near:

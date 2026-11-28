@@ -310,7 +310,7 @@ of the main fat line, T1 of sphere 5 of the NIST plate: `tests/test_cited_tables
 ## 8. Echo trains (`fse`, `mese`): only on a console that lists them, and idealised
 
 - **Simplified.** A console offers the six sequences of before unless its card lists more (`console.offered`;
-  world spec `console_sequences`). No shipped environment lists any, so there `se` and `ir` still acquire one
+  world spec `console_sequences`). One environment lists one (`Scanner/T2Echoes-v0`: `mese`); in every other one `se` and `ir` still acquire one
   phase-encode line per TR and the words of real consoles for an echo train are refused as before. A console that
   lists `fse` or `mese` serves them from the block-list core ([core.md](core.md), section 11): 90 degree
   excitation, a train of refocusing pulses of ONE nominal angle, every pulse the rotation of the console's windowed

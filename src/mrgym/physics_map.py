@@ -139,7 +139,7 @@ ENABLERS = (
     ("core in the console", "the signal core over lists of blocks (Bloch ensemble, phase graphs, periodic solve) is behind the console: a "
                             "sequence registry, image formation with an amplitude that changes from line to line, and four sequences (fast "
                             "and multi-echo spin echo, multi-echo gradient echo, diffusion-weighted spin echo) on a console whose card "
-                            "lists them; still to do: the tool layer of the environments offering them to an agent, the other sequences "
+                            "lists them, offered to an agent by the tool layer of an environment whose world lists them; still to do: the other sequences "
                             "of the core's library (prepared trains, two pools, real spoilers, what survives a repetition), and the six "
                             "sequences of every console on the core"),
     ("realistic anatomy", "textured digital anatomy instead of classes of one value each"),
@@ -239,8 +239,9 @@ _BLOCKS = (
                  "field, the ratio of the refocusing slice to the excited one, the RF power of the train, and the periodic state of the "
                  "whole repetition with its real crushers: the gratings along z that reach the next excitation. The transverse "
                  "magnetisation at the end of a repetition is taken as dephased (it depends on off-resonance and T2'). One refocusing "
-                 "angle per train, at most 32 echoes, fat without J coupling, the carried gratings cut at 16 orders. No shipped "
-                 "environment has such a console", "J7 J8 J9 J12 J16 J17 J18 J20 J24 J37 J38",
+                 "angle per train, at most 32 echoes, fat without J coupling, the carried gratings cut at 16 orders. The family "
+                 "T2Echoes has such a console (multi-echo spin echo); on a 2D slice it fits the echoes of a train with one effective "
+                 "refocusing angle, not with the slice profile. No shipped environment offers the fast spin echo", "J7 J8 J9 J12 J16 J17 J18 J20 J24 J37 J38",
                  "design:E2 design:E3 design:E4", "core:N1 core:N1b core:N1c core:N2 core:N14 core:N14b core:N14c", "measured:M3b", n=8,
                  needs="core in the console"),
         _partial("A15", "Magnetisation preparation: saturation recovery, T2 preparation, prepared gradient echo", "A9 A10",
@@ -274,7 +275,7 @@ _BLOCKS = (
                  "it plays, the echo time they cost, signal x exp(-b D) for the one free, isotropic coefficient of a tissue. No tensor "
                  "(the design layer computes the b-tensor of a gradient program), no kurtosis, no perfusion fraction, no stimulated-echo "
                  "or echo-planar readout; 16 of the 25 coefficients of the tissue table are declared. No shipped environment has such "
-                 "a console", "J31 J32 J33 J35 J36 J15", "design:G5 design:G6 design:E10", "core:X7 core:N11 core:N11c core:N12", n=9,
+                 "a console; the tool layer of an environment offers the sequence when its world lists it", "J31 J32 J33 J35 J36 J15", "design:G5 design:G6 design:E10", "core:X7 core:N11 core:N11c core:N12", n=9,
                  needs="core in the console"),
         _absent("A22", "Flow: inflow, time-of-flight angiography, velocity encoding", "A10 B1 B2",
                 "nothing flows: blood is a static tissue", n=8, needs="core in the console"),
@@ -409,13 +410,16 @@ _BLOCKS = (
                  "the console's inversion is one efficiency number; the hyperbolic-secant pulse and its threshold are computed in "
                  "the design layer and played by no sequence", "S11", "design:P6 design:P7", needs="core in the console"),
         _partial("C9", "RF pulse design: shaping a pulse to a profile", "B3 C7",
-                 "a task asks for a slice-selective excitation and the scan rfscan plays a stored design through a modelled "
+                 "two tasks ask for a slice-selective excitation and the scan rfscan plays a stored design through a modelled "
                  "transmit chain (scale, amplifier compression, gradient delay, off-resonance); refocusing, inversion and "
-                 "variable-rate designs are generated and simulated only, nothing relaxes during a pulse, and the duration is "
-                 "compared with a reference search because no tight bound is proven",
-                 "design:P3 design:P4 design:P9 design:F1 design:F4",
+                 "variable-rate designs are generated and simulated only and nothing relaxes during a pulse. The first task "
+                 "compares the duration with a reference search; the second with a bound that is proven for hard sub-pulses "
+                 "under one constant gradient, tight where the gradient limit decides and loose where the RF power limit does",
+                 "design:P3 design:P4 design:P9 design:F1 design:F4 design:B1 design:B3 design:B4",
                  "tests/test_rf_pulse.py::test_the_rotation_of_the_verifier_is_the_bloch_equation",
-                 "tests/test_rf_pulse.py::test_the_stripe_of_rfscan_is_the_sine_of_the_flip_angle_and_the_log_replays", n=1),
+                 "tests/test_rf_pulse.py::test_the_stripe_of_rfscan_is_the_sine_of_the_flip_angle_and_the_log_replays",
+                 "tests/test_rf_pulse_v1.py::test_the_rotation_of_the_verifier_is_a_train_of_hard_pulses",
+                 "tests/test_design_bound.py::test_the_bound_is_reached_by_the_minimum_phase_pulse_and_not_beaten", n=1),
         _formed("C10", "Receive coil: sensitivity profile and shading", "B23", "mrgym qa acr --fault receive_coil", n=9),
         _computed("C11", "Receive arrays: coil elements, their combination, the choice of coil", "C10",
                   "the array library gives a world several receive elements, each with a sensitivity map (loops, in the quasi-static "
@@ -595,6 +599,7 @@ FAMILIES = {
     "T1Vial": _f(1, "A4", "A9"),
     "ErnstFlip": _f(2, "A10", "A4 B3 C6"),
     "EPISetup": _f(3, "D11", "B18 C2 C18 D1 D17", "FrequencyAdjust"),
+    "T2Echoes": _f(1, "A29", "A5 A14 C6 C20", "T2Decay"),
     "RFPulse": _f(5, "C9", "B3 C6 C7", "TransmitAdjust"),
 }
 # Families that are being built: the cell each is meant for. A line moves to FAMILIES when its family is registered.

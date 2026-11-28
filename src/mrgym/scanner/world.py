@@ -373,6 +373,9 @@ def _build(seed, sp, layout_only=False, rot_deg=0.0, base=None):
             w["system"]["tx_gain"] = float(np.exp(r.uniform(np.log(lo), np.log(hi))))
         if hw.get("grad_delay_sign"):                                    # the delay may be an advance: the sign is drawn too
             w["system"]["rf_grad_delay_us"] *= 1.0 if r.uniform() < 0.5 else -1.0
+        for key in ("model", "guard"):                                   # how a sample is played and whether the slice plateau outlasts the pulse (``design.hardware.Chain``)
+            if hw.get(key) is not None:
+                w["system"]["rf_" + key] = hw[key]
         w["console"]["designs"] = {}
     w.setdefault("regions", [])
     if sp.get("motion"):

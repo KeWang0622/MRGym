@@ -26,6 +26,15 @@ a sample (``model="piecewise"``, what a digital-to-analogue converter with a hol
 is taken as that mean; a delay that is not a whole number of samples is then exact in area and first order within the
 sample.
 
+Two further switches of a chain, both off by default (``Scanner/RFPulse-v1`` turns both on):
+  ``model``        how one raster sample is played: ``piecewise`` (B1 held during the sample, the default) or ``split``
+                   (a hard sub-pulse in the middle of the sample: the model of the Shinnar-Le Roux transform, in which
+                   the duration bound of ``mrgym.design.bound`` is a theorem).
+  ``guard``        the plateau of the slice gradient begins before the pulse and ends after it, by more than any delay.
+                   The gradient is then constant during the pulse whatever the delay, and a gradient that is late by
+                   tau leaves the area G tau behind the pulse that the rephasing lobe of the design does not take
+                   back: a rotation about z by 2 pi gamma G tau z after the pulse, a tilt of the phase across the slice.
+
 Not here, and so in neither the ideal simulator nor the scanner: relaxation during the pulse, the finite bandwidth of
 the gradient chain (eddy currents, a slew-dependent lag), a phase distortion of the amplifier, more than one transmit
 channel.
@@ -77,8 +86,12 @@ class Chain:
     amp_sat_ut: float | None = None
     grad_delay_us: float = 0.0
     df_hz: float = 0.0
+    model: str = MODEL
+    guard: bool = False
 
     def __post_init__(self):
+        if self.model not in rotation.MODELS:
+            raise ValueError(f"model must be one of {rotation.MODELS}")
         if not (self.tx_scale > 0 and np.isfinite(self.tx_scale)):
             raise ValueError("tx_scale must be positive")
         if not np.isfinite(self.grad_delay_us) or not np.isfinite(self.df_hz):
@@ -96,16 +109,20 @@ def played(pulse, chain: Chain = IDEAL):
     return b1, pulse.dt_ms, delayed_gradient(pulse.g_mt_m, pulse.dt_ms, chain.grad_delay_us)
 
 
-def rotate(pulse, chain: Chain = IDEAL, pos_mm=None, rephase: bool = True, model: str = MODEL):
+def rotate(pulse, chain: Chain = IDEAL, pos_mm=None, rephase: bool = True, model: str | None = None):
     """Cayley-Klein parameters (a, b) of the pulse as played through ``chain`` at positions ``pos_mm`` along the slice
-    axis, after the rephasing lobe when ``rephase`` (a rotation about z by the lobe's area: no time passes in it)."""
+    axis, after the rephasing lobe when ``rephase`` (a rotation about z by the lobe's area: no time passes in it).
+    ``model``: the chain's own unless given."""
     b1, dt, g = played(pulse, chain)
-    a, b = rotation.rotate(b1, dt, g, pos_mm, chain.df_hz, 1.0, model)
-    if rephase and pulse.rephase_mt_ms_m and pos_mm is not None:
-        a, b = rotation.z_rotation(a, b, RAD_PER_MT_M_MM_MS * pulse.rephase_mt_ms_m * np.asarray(pos_mm, float))
+    a, b = rotation.rotate(b1, dt, g, pos_mm, chain.df_hz, 1.0, model or chain.model)
+    area = pulse.rephase_mt_ms_m if rephase else 0.0
+    if rephase and chain.guard and chain.grad_delay_us:                 # what a late plateau leaves behind the pulse
+        area += float(pulse.g_mt_m[-1]) * chain.grad_delay_us * 1e-3
+    if area and pos_mm is not None:
+        a, b = rotation.z_rotation(a, b, RAD_PER_MT_M_MM_MS * area * np.asarray(pos_mm, float))
     return a, b
 
 
-def flip_deg(pulse, chain: Chain = IDEAL, pos_mm=0.0, model: str = MODEL):
+def flip_deg(pulse, chain: Chain = IDEAL, pos_mm=0.0, model: str | None = None):
     """Flip angle (degrees) at positions ``pos_mm``."""
     return np.degrees(rotation.flip_angle(rotate(pulse, chain, pos_mm, rephase=False, model=model)[1]))

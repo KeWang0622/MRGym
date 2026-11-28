@@ -444,8 +444,9 @@ block list of each with `core.periodic` and compare with `Engine.amplitudes`.
 **A console offers what its card lists.** `console.offered(exam)`: the six, and the sequences named by
 `exam["sequences"]` (world spec `console_sequences`, a list or "all"). A card without the key is the console of
 before: its schema, its refusals and its scanner card do not change, so no environment id moves. The tool layer of
-the environments (`envs/scanner_env.py`: help topics, examples) does not know the four yet; `Engine.scan`, the
-session (`ScannerSession`, log and replay) and the console do. Their manual is the supplement
+the environments (`envs/scanner_env.py`) offers what the card lists: the schemas of `plan` and `scan`, the topics of
+`scanner_info` (one per listed sequence, with the paragraphs of the supplement), the refusals. One family has
+such a console and lists only what it needs (`Scanner/T2Echoes-v0`: `mese`). Their manual is the supplement
 [scanner-core.md](../scanner-core.md) (`scanner/datasheet_core.md`).
 
 **Amplitudes** (`scanner/served.py::table`), per tissue class on Chebyshev nodes of the transmit scale:

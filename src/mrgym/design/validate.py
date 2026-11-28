@@ -30,7 +30,7 @@ from .units import (
 )
 
 GROUPS = dict(rotation="RF rotation", pulses="Pulse generators", profile="Profile figures and bounds",
-              sequence="Sequences (extended phase graph)", gradients="Gradient programs and limits")
+              sequence="Sequences (extended phase graph)", gradients="Gradient programs and limits", bound="The duration bound")
 
 
 def _row(id, group, quantity, reference, measured, tolerance, kind="max", unit=""):
@@ -919,7 +919,144 @@ def check_gradients():
 
 
 # ---------------------------------------------------------------------------------------------- run and print
-CHECKS = dict(rotation=check_rotation, pulses=check_pulses, profile=check_profile, sequence=check_sequence, gradients=check_gradients)
+# ---------------------------------------------------------------------------------------------- the duration bound
+def _cos_decimal(x, digits=50):
+    """cos(x) of a decimal number to ``digits`` digits: the Taylor series after the reduction modulo 2 pi."""
+    import decimal
+    with decimal.localcontext() as ctx:
+        ctx.prec = digits + 10
+        pi = decimal.Decimal("3.14159265358979323846264338327950288419716939937510582097494459230781640628620899")
+        x = x - (x / (2 * pi)).to_integral_value() * 2 * pi
+        term, total, k, x2 = decimal.Decimal(1), decimal.Decimal(1), 0, x * x
+        while abs(term) > decimal.Decimal(10) ** -(digits + 5):
+            k += 2
+            term = -term * x2 / ((k - 1) * k)
+            total += term
+        return +total
+
+
+def certificate_margin_decimal(c):
+    """The margin of a ``bound.Certificate`` in 50-digit decimal arithmetic: no code shared with ``bound.check``, no
+    rounding budget (the stored points and weights are binary numbers and convert exactly)."""
+    import decimal
+    with decimal.localcontext() as ctx:
+        ctx.prec = 60
+        psi = [decimal.Decimal(float(v)) for v in c.psi]
+        lam = [decimal.Decimal(float(v)) for v in c.weight]
+        total = sum(abs(v) for v in lam)
+        residual = decimal.Decimal(0)
+        for k in range(c.n):
+            r = sum(w * _cos_decimal(k * v) for w, v in zip(lam, psi)) / total
+            residual += abs(r) * (1 if k == 0 else 2)
+        u = sum(w * decimal.Decimal(float(up if w > 0 else low)) for w, low, up in zip(lam, c.lower, c.upper)) / total
+        return float(-u - residual)
+
+
+def _lp_feasible(n, p, extra=()):
+    """Independent of ``bound.best``: is there an even trigonometric polynomial of degree n - 1 with 0 <= P <= 1 inside
+    the mask ``p`` on a grid of 12 points per pi / n (and the points ``extra``)? A linear programme (HiGHS)."""
+    import scipy.optimize
+    step = math.pi / (12 * n)
+    psi = np.unique(np.concatenate([np.arange(0.0, math.pi, step), [p.a, p.b, math.pi], np.asarray(extra, float)]))
+    cos = np.cos(np.outer(psi, np.arange(n)))
+    low = np.where(psi <= p.a, p.lo, 0.0)
+    high = np.where(psi <= p.a, p.hi, np.where(psi >= p.b, p.stop, 1.0))
+    res = scipy.optimize.linprog(np.zeros(n), A_ub=np.vstack([cos, -cos]), b_ub=np.concatenate([high, -low]), bounds=[(None, None)] * n, method="highs")
+    return res.status == 0
+
+
+def check_bound():
+    from . import bound, hardware
+    rows = []
+    g = "bound"
+    specs = bound.grid(tolerances=((0.04, 0.03),))                       # 27 specifications
+    table = bound.tightness(specs)
+    # B1, B2: certificates in decimal arithmetic
+    short = sorted(table, key=lambda r: r["samples"])[:2]                # the two masks with the fewest samples
+    certs = [c for r in short for *_, c in bound.duration_bound(r["spec"], 32.0)["cells"][-2:]]
+    exact = [certificate_margin_decimal(c) for c in certs]
+    rows.append(_row("B1", g, f"margin of {len(certs)} certificates of infeasibility (no pulse of N* - 1 samples meets the mask at n + 1 pairs of positions)",
+                     "50-digit decimal arithmetic with its own cosine series", min(exact), bound.MARGIN, "min"))
+    rows.append(_row("B2", g, "`bound.check` (floating point, rounding charged) minus that margin: never larger",
+                     "the same", max(bound.check(c) - e for c, e in zip(certs, exact)), 0.0))
+    # B3: an independent linear programme
+    wrong = 0
+    for r in short:
+        b = bound.duration_bound(r["spec"], 32.0)
+        m = b["mask"]
+        wrong += sum(_lp_feasible(b["samples"] - 1, m.on_circle(lo, hi), c.psi) for lo, hi, c in b["cells"][:1] + b["cells"][-3:])
+    rows.append(_row("B3", g, "two masks: the first and the last three certified cells are infeasible for N* - 1 samples",
+                     "a linear programme on a grid of 12 points per extremum and the certificate's points (HiGHS), written without `bound.best`",
+                     wrong, 0.0, unit="disagreements"))
+    # B4, B5: tightness against the constructive design
+    rows.append(_row("B4", g, f"{len(table)} specifications at 32 mT/m: samples of the shortest `minphase` pulse that meets the mask / bound, largest",
+                     "the built pulse through `hardware.rotate` on the positions of the pass rule", max(r["ratio"] for r in table), 1.02))
+    rows.append(_row("B5", g, "the same ratio, smallest: no built pulse is shorter than the bound", "the same", min(r["ratio"] for r in table), 1.0, "min"))
+    rows.append(_row("B6", g, "refocused in-slice signal of those pulses with their own rephasing lobe, smallest", "sum of Mxy over the slice",
+                     min(r["refocused"] for r in table), 0.95, "min"))
+    # B7: the slope of the flip angle
+    rng = np.random.default_rng(3)
+    worst = 0.0
+    for n in (8, 24, 60):
+        for _ in range(6):
+            theta = rng.uniform(0, 0.5, n) * np.exp(2j * np.pi * rng.uniform(size=n))
+            psi = np.linspace(-np.pi, np.pi, 40001)
+            b = np.polyval(pulses.forward_slr(theta)[1][::-1], np.exp(1j * psi))
+            flip = 2 * np.arcsin(np.clip(np.abs(b), 0, 1))
+            worst = max(worst, float(np.abs(np.diff(flip) / np.diff(psi)).max()) / (n - 1))
+    rows.append(_row("B7", g, "|d flip / d psi| / (n - 1) of 18 random pulses of 8, 24 and 60 samples (Bernstein-Szego: at most 1)",
+                     "finite differences of the profile on 40 001 points", worst, 1.0))
+    # B8, B9: Jensen
+    gaps, tight = [], []
+    for r in table[::3]:
+        p = r["pulse"]
+        theta = RAD_PER_UT_MS * np.abs(p.b1_ut) * p.dt_ms
+        left = float(np.sum(-2 * np.log(np.cos(theta / 2))))
+        tight.append(abs(left / (2 * profile.jensen_integral(p)) - 1))
+    for n in (8, 24, 60):
+        for _ in range(4):
+            theta = rng.uniform(0, 0.6, n) * np.exp(2j * np.pi * rng.uniform(size=n))
+            p = pulses.Pulse(theta / (RAD_PER_UT_MS * 0.01), 0.01, 10.0, thickness_mm=5.0)
+            gaps.append(float(np.sum(-2 * np.log(np.cos(np.abs(theta) / 2)))) - 2 * profile.jensen_integral(p))
+    rows.append(_row("B8", g, "sum of -ln cos^2(theta_j / 2) minus the integral of -ln(1 - |B|^2) / (2 pi), 12 random pulses: never negative",
+                     "`profile.jensen_integral` (quadrature of the forward transform)", min(gaps), -1e-9, "min"))
+    rows.append(_row("B9", g, "the same two numbers for 9 `minphase` pulses (minimum-phase A: equal), relative difference", "the same", max(tight), 1e-5))
+    # B10: the gradient cap
+    over = 0.0
+    for r in table:
+        p, m = r["pulse"], bound.Mask.of(r["spec"])
+        cap = bound.gradient_cap(p.n, m, 1.0, p.peak_b1_ut * (1 + 1e-9), p.energy_ut2_ms * (1 + 1e-9))
+        over = max(over, bound.precession(float(p.g_mt_m[0])) / cap)
+    rows.append(_row("B10", g, "precession of every built pulse / `gradient_cap` for its own peak and energy as the limits: at most 1",
+                     "energy and peak recomputed from the samples", over, 1.0))
+    # B11: no generator output beats the bound
+    beaten, tried = 0, 0
+    chain = hardware.Chain(model="split", guard=True)
+    for spec in specs[::6]:
+        need = bound.duration_bound(spec, 32.0)
+        for n in range(max(need["samples"] - 9, 8), need["samples"] + 10, 3):
+            t = round(n * 0.01, 6)
+            tbw = math.floor(42.577478518e-3 * 32.0 * spec["thickness_mm"] * t * 1e6) / 1e6
+            for kind in ("minphase", "slr_flip", "sinc"):
+                try:
+                    if kind == "minphase":
+                        p = pulses.minphase(spec["flip_deg"], t, tbw, spec["thickness_mm"], spec["transition"], spec["tol_in_deg"], spec["max_out_deg"])
+                    elif kind == "slr_flip":
+                        p = pulses.slr_flip(spec["flip_deg"], t, tbw, spec["thickness_mm"], spec["tol_in_deg"], spec["max_out_deg"])
+                    else:
+                        p = pulses.sinc(spec["flip_deg"], t, tbw, spec["thickness_mm"])
+                except ValueError:
+                    continue
+                tried += 1
+                cells = need["cells"] if p.n < need["samples"] else ()
+                beaten += bool(p.n < need["samples"] and all(bound.mask_met(p, spec, chain, cells)))
+    rows.append(_row("B11", g, f"{tried} outputs of `minphase`, `slr_flip` and `sinc` from 9 samples below the bound to 9 above: those below that meet the mask",
+                     "the mask on the positions of the pass rule, with the certificate's positions", beaten, 0.0, unit="pulses"))
+    return rows
+
+
+CHECKS = dict(rotation=check_rotation, pulses=check_pulses, profile=check_profile, sequence=check_sequence, gradients=check_gradients,
+              bound=check_bound)
 
 
 def run(groups=None):

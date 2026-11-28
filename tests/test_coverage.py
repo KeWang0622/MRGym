@@ -32,7 +32,11 @@ def test_the_computed_column_comes_from_the_registry_and_the_families():
     rows = {r["id"]: r for r in t["rows"]}
     assert rows["parameter.ti"]["environments"] == ["Scanner/FatSuppress-v0", "Scanner/NullTissue-v0", "Scanner/T1Vial-v0"]
     assert "Scanner/SNRSpec-v0" in rows["qc.snr"]["environments"] and "Scanner/ErnstFlip-v0" in rows["parameter.flip_angle"]["environments"]
-    assert rows["qc.geometric_accuracy"]["environments"] == ["Scanner/GradientCal-v0", "Scanner/PhantomQA-v0"] and rows["parameter.etl"]["environments"] == []
+    assert rows["qc.geometric_accuracy"]["environments"] == ["Scanner/GradientCal-v0", "Scanner/PhantomQA-v0"] and rows["parameter.venc"]["environments"] == []
+    # the echo train, the effective echo time and the b-value: served on a console whose card lists the sequence (each row names its check);
+    # one family has such a console
+    assert rows["parameter.etl"]["environments"] == ["Scanner/T2Echoes-v0"] and rows["parameter.etl"]["engine"] == "now"
+    assert rows["parameter.b_value"]["environments"] == [] == rows["parameter.effective_te"]["environments"] and rows["parameter.b_value"]["engine"] == "now"
     for g, c in t["counts"].items():
         assert c["exercised"] == sum(bool(r["environments"]) for r in t["rows"] if r["group"] == g and r["id"] not in coverage.EXTRA and r["engine"] != "n/a")
     checks = {r["check"] for r in t["rows"] if r["check"] and not r["check"].startswith("mrgym")}

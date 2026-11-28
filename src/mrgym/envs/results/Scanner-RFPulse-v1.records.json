@@ -1,0 +1,292 @@
+{
+ "schema": "mrgym-records/1",
+ "env_id": "Scanner/RFPulse-v1",
+ "engine": "mrgym-engine-0.3.0",
+ "command": "mrgym records Scanner/RFPulse-v1 --run --n 180 --write",
+ "figure_of_merit": "duration / bound (1 is the bound; never paid)",
+ "worlds": {
+  "split": "dev",
+  "seeds": "records:0:0 .. records:0:179",
+  "n_per_level": 180,
+  "epoch": 0
+ },
+ "rule": {
+  "yield_lower95_min": 0.9,
+  "paired_margin": 0.01,
+  "bound_eps": 1e-09
+ },
+ "note": "constructive: the design rule with the scanner's true chain (verifier side, no scan); reference: the scripted policy that measures.",
+ "classes": {
+  "level 1 | thickness 4 mm": {
+   "record": "constructive",
+   "record_ratio_median": 1.0,
+   "claimants": {
+    "constructive": {
+     "n": 61,
+     "passed": 61,
+     "yield_lower95": 0.9521,
+     "ratio_median": 1.0,
+     "ratio_q95": 1.0,
+     "ratio_best": 1.0
+    },
+    "reference": {
+     "n": 61,
+     "passed": 61,
+     "yield_lower95": 0.9521,
+     "ratio_median": 1.0602,
+     "ratio_q95": 1.2041,
+     "ratio_best": 1.0204
+    }
+   },
+   "decisions": {
+    "reference": {
+     "accepted": false,
+     "reason": "margin: the paired gain has a lower bound of -0.0967, not above 0.01",
+     "quarantined": false,
+     "margin_lower95": -0.0967
+    }
+   }
+  },
+  "level 1 | thickness 5 mm": {
+   "record": "constructive",
+   "record_ratio_median": 1.0,
+   "claimants": {
+    "constructive": {
+     "n": 71,
+     "passed": 71,
+     "yield_lower95": 0.9587,
+     "ratio_median": 1.0,
+     "ratio_q95": 1.0,
+     "ratio_best": 1.0
+    },
+    "reference": {
+     "n": 71,
+     "passed": 71,
+     "yield_lower95": 0.9587,
+     "ratio_median": 1.0968,
+     "ratio_q95": 1.1951,
+     "ratio_best": 1.0179
+    }
+   },
+   "decisions": {
+    "reference": {
+     "accepted": false,
+     "reason": "margin: the paired gain has a lower bound of -0.1141, not above 0.01",
+     "quarantined": false,
+     "margin_lower95": -0.1141
+    }
+   }
+  },
+  "level 1 | thickness 6 mm": {
+   "record": "constructive",
+   "record_ratio_median": 1.0,
+   "claimants": {
+    "constructive": {
+     "n": 48,
+     "passed": 48,
+     "yield_lower95": 0.9395,
+     "ratio_median": 1.0,
+     "ratio_q95": 1.0,
+     "ratio_best": 1.0
+    },
+    "reference": {
+     "n": 48,
+     "passed": 48,
+     "yield_lower95": 0.9395,
+     "ratio_median": 1.0541,
+     "ratio_q95": 1.1747,
+     "ratio_best": 1.0213
+    }
+   },
+   "decisions": {
+    "reference": {
+     "accepted": false,
+     "reason": "margin: the paired gain has a lower bound of -0.0851, not above 0.01",
+     "quarantined": false,
+     "margin_lower95": -0.0851
+    }
+   }
+  },
+  "level 2 | thickness 4 mm": {
+   "record": "constructive",
+   "record_ratio_median": 1.0,
+   "claimants": {
+    "constructive": {
+     "n": 70,
+     "passed": 70,
+     "yield_lower95": 0.9581,
+     "ratio_median": 1.0,
+     "ratio_q95": 1.0,
+     "ratio_best": 1.0
+    },
+    "reference": {
+     "n": 70,
+     "passed": 70,
+     "yield_lower95": 0.9581,
+     "ratio_median": 1.0588,
+     "ratio_q95": 1.1805,
+     "ratio_best": 1.029
+    }
+   },
+   "decisions": {
+    "reference": {
+     "accepted": false,
+     "reason": "margin: the paired gain has a lower bound of -0.0925, not above 0.01",
+     "quarantined": false,
+     "margin_lower95": -0.0925
+    }
+   }
+  },
+  "level 2 | thickness 5 mm": {
+   "record": "constructive",
+   "record_ratio_median": 1.0,
+   "claimants": {
+    "constructive": {
+     "n": 49,
+     "passed": 49,
+     "yield_lower95": 0.9407,
+     "ratio_median": 1.0,
+     "ratio_q95": 1.0,
+     "ratio_best": 1.0
+    },
+    "reference": {
+     "n": 49,
+     "passed": 49,
+     "yield_lower95": 0.9407,
+     "ratio_median": 1.0597,
+     "ratio_q95": 1.1905,
+     "ratio_best": 1.0179
+    }
+   },
+   "decisions": {
+    "reference": {
+     "accepted": false,
+     "reason": "margin: the paired gain has a lower bound of -0.1002, not above 0.01",
+     "quarantined": false,
+     "margin_lower95": -0.1002
+    }
+   }
+  },
+  "level 2 | thickness 6 mm": {
+   "record": "constructive",
+   "record_ratio_median": 1.0,
+   "claimants": {
+    "constructive": {
+     "n": 61,
+     "passed": 61,
+     "yield_lower95": 0.9521,
+     "ratio_median": 1.0,
+     "ratio_q95": 1.0,
+     "ratio_best": 1.0
+    },
+    "reference": {
+     "n": 61,
+     "passed": 61,
+     "yield_lower95": 0.9521,
+     "ratio_median": 1.0597,
+     "ratio_q95": 1.2,
+     "ratio_best": 1.0213
+    }
+   },
+   "decisions": {
+    "reference": {
+     "accepted": false,
+     "reason": "margin: the paired gain has a lower bound of -0.0968, not above 0.01",
+     "quarantined": false,
+     "margin_lower95": -0.0968
+    }
+   }
+  },
+  "level 3 | thickness 4 mm": {
+   "record": "constructive",
+   "record_ratio_median": 1.2642,
+   "claimants": {
+    "constructive": {
+     "n": 57,
+     "passed": 57,
+     "yield_lower95": 0.9488,
+     "ratio_median": 1.2642,
+     "ratio_q95": 1.4199,
+     "ratio_best": 1.0
+    },
+    "reference": {
+     "n": 57,
+     "passed": 57,
+     "yield_lower95": 0.9488,
+     "ratio_median": 1.3117,
+     "ratio_q95": 1.5169,
+     "ratio_best": 1.0349
+    }
+   },
+   "decisions": {
+    "reference": {
+     "accepted": false,
+     "reason": "margin: the paired gain has a lower bound of -0.0794, not above 0.01",
+     "quarantined": false,
+     "margin_lower95": -0.0794
+    }
+   }
+  },
+  "level 3 | thickness 5 mm": {
+   "record": "constructive",
+   "record_ratio_median": 1.2727,
+   "claimants": {
+    "constructive": {
+     "n": 75,
+     "passed": 75,
+     "yield_lower95": 0.9608,
+     "ratio_median": 1.2727,
+     "ratio_q95": 1.4271,
+     "ratio_best": 1.0
+    },
+    "reference": {
+     "n": 75,
+     "passed": 75,
+     "yield_lower95": 0.9608,
+     "ratio_median": 1.3547,
+     "ratio_q95": 1.5464,
+     "ratio_best": 1.0189
+    }
+   },
+   "decisions": {
+    "reference": {
+     "accepted": false,
+     "reason": "margin: the paired gain has a lower bound of -0.0931, not above 0.01",
+     "quarantined": false,
+     "margin_lower95": -0.0931
+    }
+   }
+  },
+  "level 3 | thickness 6 mm": {
+   "record": "constructive",
+   "record_ratio_median": 1.2853,
+   "claimants": {
+    "constructive": {
+     "n": 48,
+     "passed": 48,
+     "yield_lower95": 0.9395,
+     "ratio_median": 1.2853,
+     "ratio_q95": 1.4123,
+     "ratio_best": 1.0
+    },
+    "reference": {
+     "n": 48,
+     "passed": 48,
+     "yield_lower95": 0.9395,
+     "ratio_median": 1.3584,
+     "ratio_q95": 1.5316,
+     "ratio_best": 1.0213
+    }
+   },
+   "decisions": {
+    "reference": {
+     "accepted": false,
+     "reason": "margin: the paired gain has a lower bound of -0.0915, not above 0.01",
+     "quarantined": false,
+     "margin_lower95": -0.0915
+    }
+   }
+  }
+ },
+ "quarantined": []
+}

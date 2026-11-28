@@ -242,9 +242,42 @@ def core_cases(worlds=CORE_WORLDS, noisy=True) -> dict:
     return out
 
 
+# The additive section ``design``: the scan ``rfscan`` that plays a stored design through the transmit chain of a world
+# whose spec gives ``rf_hardware``, for the chain of ``Scanner/RFPulse-v0`` (samples held, an amplifier that compresses)
+# and for the chain of ``Scanner/RFPulse-v1`` (hard sub-pulses, a plateau that outlasts the pulse, a late gradient, an
+# off-resonance). Nothing above depends on it: a world without ``rf_hardware`` stores no design and offers no ``rfscan``.
+DESIGN_CHAINS = {
+    "held samples, amplifier": dict(cf_offset_hz=3.0, rf_hardware=dict(tx_scale=(0.8, 0.8), amp_sat_ut=(13.0, 13.0))),
+    "hard sub-pulses, late plateau": dict(cf_offset_hz=300.0, rf_hardware=dict(tx_scale=(1.3, 1.3), grad_delay_us=(90.0, 90.0), model="split", guard=True)),
+}
+DESIGN_CALLS = {
+    "sinc": dict(kind="sinc", flip_deg=30.0, duration_ms=2.0, tbw=16.0, thickness_mm=50.0),
+    "slr": dict(kind="slr", flip_deg=45.0, duration_ms=1.2, tbw=5.0, thickness_mm=5.0, tol_in_deg=2.0, max_out_deg=1.5, amplitude=1.1),
+    "minphase": dict(kind="minphase", flip_deg=30.0, duration_ms=0.6, tbw=4.08, thickness_mm=5.0, transition=0.3, tol_in_deg=1.2, max_out_deg=0.9,
+                     freq_hz=300.0, rephase_fraction=0.35),
+}
+DESIGN_SCANS = (("sinc", dict(tr_ms=500.0, te_ms=8.0, matrix=96)), ("slr", dict(tr_ms=300.0, matrix=64)),
+                ("minphase", dict(tr_ms=300.0, matrix=64)), ("slr", dict(tr_ms=300.0, matrix=64, rf_axis="slice")))
+
+
+def design_cases() -> dict:
+    out = {}
+    for chain, spec in DESIGN_CHAINS.items():
+        cfg = dict(task_id="golden-design", seed=SEED, budget_s=1e5, max_requests=32, task=dict(regions=[]),
+                   world_spec=dict(kind="qa", n=GRID, b0_t=3.0, b0_hz=2.0, console_sequences=["rfscan"], **spec))
+        s = session.ScannerSession(cfg)
+        numbers = {name: s.design(call)["index"] for name, call in DESIGN_CALLS.items()}
+        for name, protocol in DESIGN_SCANS:
+            s.scan({"protocol": dict(protocol, sequence="rfscan", rf_design=numbers[name])})
+            ev = s.events[-1]
+            out[f"{chain}/{name} on {protocol.get('rf_axis', 'readout')}"] = dict(shape=ev["shape"], sha256=ev["data_sha256"], fingerprint=ev["fingerprint"])
+        out[f"{chain}/chain_head"] = s.chain
+    return out
+
+
 def engine_digests() -> dict:
     return dict(engine=mrgym.ENGINE_VERSION, stack=stack(), images={k: image_case(k) for k in image_keys()},
-                noisy=noisy_session(), prices=prices(), array=array_cases(), core=core_cases())
+                noisy=noisy_session(), prices=prices(), array=array_cases(), core=core_cases(), design=design_cases())
 
 
 # ---------------------------------------------------------------------------------------------- volume worlds

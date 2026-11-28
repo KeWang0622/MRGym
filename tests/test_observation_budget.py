@@ -270,7 +270,11 @@ CEILING = {"Scanner/ArtefactClinic-v0": 18500, "Scanner/BandFree-v0": 16650, "Sc
            "Scanner/T2Decay-v0": 14650, "Scanner/FatFraction-v0": 15450, "Scanner/ShiftFree-v0": 16850, "Scanner/GhostAside-v0": 16850,
            "Scanner/FoldAway-v0": 18250, "Scanner/Resolve-v0": 18050, "Scanner/NoiseSNR-v0": 15150, "Scanner/GradientCal-v0": 14650,
            "Scanner/ErnstFlip-v0": 16350, "Scanner/T1Vial-v0": 15150, "Scanner/EPISetup-v0": 18450,
-           "Scanner/RFPulse-v0": 20900}          # two more tools (design 2,830, simulate 1,240 characters) and rfscan in plan and scan
+           # a console that lists one more sequence (mese): its parameters in plan and scan; level 1 prints the recursion of the
+           # echo train as a text for calc
+           "Scanner/T2Echoes-v0": 16550,
+           "Scanner/RFPulse-v0": 20900,          # two more tools (design 2,830, simulate 1,240 characters) and rfscan in plan and scan
+           "Scanner/RFPulse-v1": 18500}          # the same two tools in fewer words: inside the largest ceiling of the other families
 
 
 def _budget_tool():

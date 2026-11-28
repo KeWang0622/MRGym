@@ -234,7 +234,8 @@ def test_what_is_not_formed_waits_for_one_of_seven_pieces_or_for_ordinary_work()
     assert names == ["3D world", "receive array", "spin systems", "field model", "core in the console", "realistic anatomy", "measured data"]
     # the signal core (``mrgym.core``) is behind the console for four sequences: its piece says what that is and what is left
     what = dict(M.ENABLERS)["core in the console"]
-    assert "is behind the console" in what and "on a console whose card lists them" in what and "still to do: the tool layer of the environments" in what
+    assert "is behind the console" in what and "on a console whose card lists them" in what and "offered to an agent by the tool layer" in what
+    assert "still to do: the other sequences of the core's library" in what and "the tool layer of the environments offering them" not in what
     assert "block-list core" not in M.doc_page() + M.text_table(M.table(str(ROOT)))
     # so do the spin systems (``mrgym.spins``): what is left is the voxel and the sequence
     what = dict(M.ENABLERS)["spin systems"]

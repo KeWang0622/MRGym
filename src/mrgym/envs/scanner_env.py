@@ -69,6 +69,13 @@ SEQUENCE_EXAMPLES = dict(
     ir={"sequence": "ir", "tr_ms": 2000, "ti_ms": 500, "matrix": 96},
     bssfp={"sequence": "bssfp", "tr_ms": 8, "flip_deg": 40, "matrix": 128},
     epi={"sequence": "epi", "tr_ms": 2000, "matrix": 64})
+# The same for the sequences of a console whose card lists them (``console.offered``).
+SEQUENCE_EXAMPLES_EXTENDED = dict(
+    fse={"sequence": "fse", "tr_ms": 3000, "etl": 16, "te_ms": 84, "echo_order": "linear", "matrix": 128},
+    mese={"sequence": "mese", "tr_ms": 1500, "n_echoes": 16, "echo_spacing_ms": 10, "matrix": 64},
+    megre={"sequence": "megre", "tr_ms": 60, "flip_deg": 20, "n_echoes": 6, "matrix": 96},
+    dwse={"sequence": "dwse", "tr_ms": 1500, "b_value": 800, "matrix": 64},
+    satrec={"sequence": "satrec", "tr_ms": 1500, "ts_ms": 600, "matrix": 64})
 PLAN_EXAMPLE = {"sequence": "se", "tr_ms": 500, "te_ms": "min", "fov_mm": 240, "matrix": 120, "phase_fov": 0.75}
 SCAN_EXAMPLE = {"sequence": "spgr", "tr_ms": 12, "flip_deg": 10, "fov_mm": 288, "matrix": 96}
 # What a parameter is, in the fewest words (the schema of ``plan``). Range, sequences and default are generated from
@@ -83,9 +90,14 @@ WHAT = dict(
     spoiler_mt_ms_per_m="spoiler moment per TR", rf_phase_increment_deg="RF spoiling increment", n_echoes="", echo_spacing_ms="",
     tr_ratio="TR2 / TR1", phase_cycle_deg="RF phase advance per TR", pe_polarity="sign of the phase blips",
     cf_shift_hz="centre-frequency shift", tx_scale="factor on every flip angle",
-    shim_y_hz_per_mm="linear shim along y", shim_x_hz_per_mm="linear shim along x")
+    shim_y_hz_per_mm="linear shim along y", shim_x_hz_per_mm="linear shim along x",
+    etl="echoes per excitation", echo_order="echo that fills the centre of k-space: centric = the first, linear = the one at te_ms",
+    refocus_deg="nominal refocusing flip angle", readout="readout direction from echo to echo", b_value="diffusion weighting, s/mm^2",
+    diffusion_dir="axis of the diffusion gradients", refocus_slice_ratio="refocusing slice / excited slice",
+    prep="preparation ti_ms before the excitation", ts_ms="saturation time")
 SEQUENCE_WORDS = dict(spgr="spoiled gradient echo", afi="flip-angle map (dual TR)", se="spin echo", ir="inversion recovery", bssfp="balanced SSFP",
-                      epi="gradient-echo EPI")
+                      epi="gradient-echo EPI", fse="fast spin echo", mese="multi-echo spin echo", megre="multi-echo gradient echo",
+                      dwse="diffusion-weighted spin echo", satrec="saturation recovery")
 
 
 def datasheet() -> str:
@@ -122,14 +134,59 @@ def datasheet_parts() -> dict:
     return parts
 
 
+def datasheet_core() -> str:
+    """The supplement of the datasheet for a console that lists more sequences (the same text as docs/scanner-core.md)."""
+    return importlib.resources.files("mrgym.scanner").joinpath("datasheet_core.md").read_text(encoding="utf-8")
+
+
+def datasheet_core_parts() -> dict:
+    """The supplement cut into the pieces ``scanner_info`` serves on a console that offers its sequences: one piece per
+    sequence (the paragraphs of section 3), ``cost`` (the bullets of section 2, as a list: a bullet is served when it
+    names an offered sequence or a parameter only such a sequence has) and ``hidden`` (section 4)."""
+    md = datasheet_core()
+    cut = lambda a, b: md[md.index(a):md.index(b) if b else len(md)].split("\n", 1)[1].strip()       # noqa: E731
+    parts = dict(cost=[b.strip() for b in ("\n" + cut("## 2.", "## 3.")).split("\n- ") if b.strip()],
+                 hidden="\n".join(line.strip() for line in cut("## 4.", None).split("\n")))
+    for para in cut("## 3.", "## 4.").split("\n\n"):
+        if para.startswith("**`"):
+            key = para[3:para.index("`", 3)]
+            parts[key] = (parts[key] + "\n\n" if key in parts else "") + para.replace("**", "")      # a second paragraph on a sequence joins the first
+        else:
+            parts[key] += "\n\n" + para
+    # what the two echo trains share and the supplement says once, under ``fse``: the signal carried into the next repetition
+    carried = [p for p in parts.get("fse", "").split("\n\n") if p.startswith("The repetition does not start")]
+    if carried and "mese" in parts:
+        parts["mese"] += "\n\n" + carried[0]
+    return parts
+
+
+def manual_table(exam: dict | None = None) -> dict:
+    """The sequences ``scanner_info`` documents on the console of ``exam``, with their parameter tables: the six of the
+    datasheet and, of what the card lists, the sequences of the supplement (``console.EXTENDED``). A sequence a card
+    lists for a design (``rfscan``) is documented by the design topic of its family, not here."""
+    table = console.offered(exam)
+    return table if table is console.SEQUENCES else {q: p for q, p in table.items() if q in console.SEQUENCES or q in console.EXTENDED}
+
+
+def sequence_topics(exam: dict | None = None) -> tuple:
+    """The sequences of the console of ``exam``, as topics of ``scanner_info``: the six, and those of the supplement its card lists."""
+    return tuple(manual_table(exam))
+
+
+def topics(exam: dict | None = None) -> tuple:
+    """The topics of ``scanner_info`` on the console of ``exam`` (``TOPICS`` when its card lists no further sequence)."""
+    return ("overview", "task", "presets", "sequences") + sequence_topics(exam) + ("geometry", "cost", "outputs", "physics") + PHYSICS_TOPICS
+
+
 def _object(properties: dict, required=()) -> dict:
     return {"type": "object", "additionalProperties": False, "required": list(required), "properties": properties}
 
 
-def _range_text(name: str, used: list) -> str:
+def _range_text(name: str, used: list, table: dict | None = None) -> str:
     """The fixed range of a parameter over the sequences that have it, in a few characters; '' for a time whose
-    minimum depends on the rest of the protocol, a switch or an enum."""
-    specs = console.SEQUENCES
+    minimum depends on the rest of the protocol, a switch or an enum. ``table``: the sequences of the console
+    (``console.offered``); None: the six."""
+    specs = console.SEQUENCES if table is None else table
     if specs[used[0]][name][2] not in "fi" or name in console.PROTOCOL_DEPENDENT:
         return ""
     by = {}
@@ -148,7 +205,8 @@ def protocol_properties(exam: dict | None = None, bare: bool = False) -> dict:
     ``plan``, ``scan`` and a delivered protocol alike. ``bare``: name, type and the values of an enum only (the
     ``scan`` tool and a delivered protocol take the parameters ``plan`` documents)."""
     full = console.protocol_schema(exam, brief=True)["properties"]
-    seqs = sorted(console.SEQUENCES)
+    table = console.offered(exam)                                        # the six, and what else the card of this console lists
+    seqs = sorted(table)
     out = {}
     for name, schema in full.items():
         prop = {k: v for k, v in schema.items() if k != "description"}
@@ -156,12 +214,12 @@ def protocol_properties(exam: dict | None = None, bare: bool = False) -> dict:
             out[name] = prop
             continue
         if name == "sequence":
-            out[name] = dict(prop, description=", ".join(f"{k} = {SEQUENCE_WORDS[k]}" for k in console.SEQUENCES))
+            out[name] = dict(prop, description=", ".join(f"{k} = {SEQUENCE_WORDS[k]}" for k in table))
             continue
-        used = [q for q in seqs if name in console.SEQUENCES[q]]
+        used = [q for q in seqs if name in table[q]]
         fixed = [q for q in seqs if name in console.FIXED.get(q, {})]
         others = [q for q in seqs if q not in used and q not in fixed]
-        parts = [", ".join(x for x in (WHAT.get(name, ""), _range_text(name, used)) if x)]
+        parts = [", ".join(x for x in (WHAT.get(name, ""), _range_text(name, used, table)) if x)]
         if others:
             parts.append(("not " + ", ".join(others)) if len(others) < len(used) else ("only " + ", ".join(used)))
         by_default = {}
@@ -173,7 +231,7 @@ def protocol_properties(exam: dict | None = None, bare: bool = False) -> dict:
         if by_default:
             (main, most), *rest = sorted(by_default.items(), key=lambda kv: -len(kv[1]))
             text = f"default {main}" + ("".join(f" ({', '.join(qs)}: {d})" for d, qs in rest) if not required or rest else f" for {', '.join(most)}")
-            if console.accepts_min(name):
+            if console.accepts_min(name, table):
                 text += " = the shortest" + (" (a smaller number is raised to it)" if name == "te_ms" else "")
             parts.append(text)
         out[name] = dict(prop, description="; ".join(x for x in parts if x) or "required")
@@ -195,6 +253,9 @@ def scanner_tools(obs_mode: str = "text", exam: dict | None = None, region_ids=(
     models, the cost rule) is behind ``scanner_info``."""
     view_kind = "a PNG with the task regions outlined" if obs_mode == "vision" else "a digit map (block means, 0-9)"
     required = ["sequence", "tr_ms"]
+    more = [q for q in ("mese", "megre") if q in console.offered(exam)]  # sequences of this console's card with one image per echo
+    image_index = dict(_IMAGE_INDEX, description=_IMAGE_INDEX["description"].replace("spgr: one per echo", f"spgr, {', '.join(more)}: one per echo")) \
+        if more else _IMAGE_INDEX
     readouts = {}
     if region_ids:
         readouts["regions"] = {"type": "array", "maxItems": session.MAX_ROIS, "items": {"type": "string"},
@@ -204,7 +265,7 @@ def scanner_tools(obs_mode: str = "text", exam: dict | None = None, region_ids=(
     verbose = {"verbose": {"type": "boolean", "description": "also print every realised parameter and the timing; default false"}}
     tools = [
         ToolSpec("scanner_info", "Datasheet of the instrument, one topic per call; overview lists the topics. Free.",
-                 _object({"topic": {"type": "string", "enum": list(TOPICS), "description": "default overview"},
+                 _object({"topic": {"type": "string", "enum": list(topics(exam)), "description": "default overview"},
                           "parameter": {"type": "string", "description": "a protocol parameter: range, default, meaning"}}),
                  examples=({"topic": "se"},)),
         ToolSpec("status", "Every limit with what is used and left, the stored scans, how to deliver. Free.",
@@ -222,7 +283,7 @@ def scanner_tools(obs_mode: str = "text", exam: dict | None = None, region_ids=(
                  _object(dict(scan_index=_SCAN_INDEX, **readouts)), aliases=dict(_STORED),
                  examples=({"scan_index": 0, "circles": [circle]},)),
         ToolSpec("view", f"A stored image as {view_kind}, with its geometry. A picture: profile and read_regions give numbers. Free.",
-                 _object({"scan_index": _SCAN_INDEX, "image_index": _IMAGE_INDEX, "kind": _KIND,
+                 _object({"scan_index": _SCAN_INDEX, "image_index": image_index, "kind": _KIND,
                           "size": {"type": "integer", "minimum": 8, "maximum": VIEW_MAX, "description": f"blocks along the longer side; default {VIEW_SIZE}"}}),
                  aliases=dict(_STORED), examples=({"scan_index": 0},)),
         ToolSpec("profile", "Values along a line through a stored image, as position (mm) and value: for an edge, a shift, a width. "
@@ -230,7 +291,7 @@ def scanner_tools(obs_mode: str = "text", exam: dict | None = None, region_ids=(
                  "line when there are more than samples, are combined by reduce (max over the full width: a projection). Free.",
                  _object({"scan_index": _SCAN_INDEX,
                           "axis": {"type": "string", "enum": ["y", "x"], "description": "direction of the line"},
-                          "image_index": _IMAGE_INDEX, "kind": _KIND,
+                          "image_index": image_index, "kind": _KIND,
                           "position_mm": {"type": "number", "description": "the line's place on the other axis; default centre"},
                           "start_mm": {"type": "number", "description": "default: one edge of the image"},
                           "stop_mm": {"type": "number", "description": "default: the other edge"},
@@ -372,7 +433,8 @@ class ScannerEnv(Env):
             return []
         protocol = self._protocol(a)
         seq, te = protocol.get("sequence"), protocol.get("te_ms")
-        if seq in console.SEQUENCES and "te_ms" in console.SEQUENCES[seq] and I.T._is_number(te) and 0 <= te < console.SEQUENCES[seq]["te_ms"][0]:
+        table = console.offered(self._session.exam)
+        if isinstance(seq, str) and seq in table and "te_ms" in table[seq] and I.T._is_number(te) and 0 <= te < table[seq]["te_ms"][0]:
             protocol = dict(protocol, te_ms=console.MIN)                 # a short echo time is raised, never refused (``_adjust``)
         return I.console_problems(console.validate(protocol, self._session.exam)[2], protocol, self._session.exam)
 
@@ -493,6 +555,9 @@ class ScannerEnv(Env):
         """One topic of the datasheet per call. ``data`` of the overview is the whole instrument card (what a scripted
         policy reads); the text of every topic is the short form of it."""
         card, topic, exam = self._session.info(), a.get("topic"), self._session.exam
+        table, seq_topics = manual_table(exam), sequence_topics(exam)     # the six (``SEQUENCE_TOPICS``), and the sequences of the supplement this card lists
+        listed = tuple(q for q in seq_topics if q in console.EXTENDED)   # of these, the sequences of the supplement (served from the core)
+        extended = bool(listed)
         if a.get("parameter") is not None:
             got = self._parameter_info(a["parameter"])
             if topic is None or got.is_error:
@@ -506,18 +571,18 @@ class ScannerEnv(Env):
             lines = [f"{s}: {d['description']}" for s, d in card["sequences"].items()]
             lines.append("topic = one of them: its signal model, its parameters and an example call")
             return Observation(text="\n".join(lines), data=card["sequences"])
-        if topic in SEQUENCE_TOPICS:
+        if topic in seq_topics:
             return Observation(text=self._sequence_text(topic, card), data={topic: card["sequences"][topic]})
         if topic == "geometry":
-            names = [k for k in console.parameter_names() if self._shared(k) and k not in console.PROTOCOL_DEPENDENT]
+            names = [k for k in console.parameter_names(table) if self._shared(k, table) and k not in console.PROTOCOL_DEPENDENT]
             rows = []
             for k in names:
-                usual = next(s for s in SEQUENCE_TOPICS if self._common(s, k))
-                differs = [f"{s}: {self._range(s, k)}, default {console.default_text(s, k, exam)}" for s in SEQUENCE_TOPICS if not self._common(s, k)]
+                usual = next(s for s in seq_topics if self._common(s, k, table))
+                differs = [f"{s}: {self._range(s, k)}, default {console.default_text(s, k, exam)}" for s in seq_topics if not self._common(s, k, table)]
                 rows.append([k, self._range(usual, k), console.default_text(usual, k, exam),
                              console.PARAMETER_UNITS[k] + (f" ({'; '.join(differs)})" if differs else "")])
             text = "parameters every sequence takes: parameter, range, default: meaning\n" + "\n".join(f"{k}, {r}, {d}: {m}" for k, r, d, m in rows)
-            return Observation(text=text, data={"parameters": {k: {s: card["sequences"][s]["parameters"][k] for s in SEQUENCE_TOPICS} for k in names}})
+            return Observation(text=text, data={"parameters": {k: {s: card["sequences"][s]["parameters"][k] for s in seq_topics} for k in names}})
         if topic == "presets":
             from ..scanner import presets
             rows = presets.presets(exam["b0_t"], exam)
@@ -526,10 +591,20 @@ class ScannerEnv(Env):
             lines += [f"{k}: {json.dumps(_plain(v['protocol']), separators=(', ', ': '))}   [{v['rule']}]" for k, v in rows.items()]
             return Observation(text="\n".join(lines), data={"presets": rows})
         parts = datasheet_parts()
+        if extended:                                                     # the supplement: what a scan of the further sequences costs, what they leave out
+            more = datasheet_core_parts()
+            words = set(listed) | ({k for q in listed for k in table[q]} - set(console.parameter_names()))    # the listed sequences and their own parameters
+            named = [b for b in more["cost"] if any(f"`{w}`" in b for w in words)]
+            if "overhead_s" in (exam.get("system") or {}):               # a console with its own adjustment time: the datasheet states the default
+                named.append(f"Overhead of this console: {exam['system']['overhead_s']:g} s per scan (the adjustments before every scan); the "
+                             f"{console.SYSTEM['overhead_s']:g} s stated above are those of the default console.")
+            parts = dict(parts, cost=parts["cost"] + "\n" + "\n".join(f"- {b}" for b in named),
+                         hidden=parts["hidden"] + "\n\nNot simulated in the further sequences of this console ("
+                                + ", ".join(listed) + "): " + more["hidden"][0].lower() + more["hidden"][1:])
         if topic == "physics":
             text = "\n".join([
                 "signal mechanisms, one topic each (scanner_info(topic=...)):",
-                f"  {' | '.join(SEQUENCE_TOPICS)}   the signal model of that sequence, with its parameters",
+                f"  {' | '.join(seq_topics)}   the signal model of that sequence, with its parameters",
                 "  encoding        wrap-around, ringing, displacement of off-resonant spins and of fat along the readout",
                 "  slice_profile   what a selective pulse does to the flip angle through the slice (it biases flip-angle and T1 methods)",
                 "  fat             fat saturation: band, lines, steady state",
@@ -537,7 +612,7 @@ class ScannerEnv(Env):
                 "  motion          periodic motion and its ghosts",
                 "  hidden          what is hidden and what is not simulated",
                 parts["notation"]])
-            return Observation(text=text, data={"topics": list(SEQUENCE_TOPICS + PHYSICS_TOPICS), "notation": parts["notation"]})
+            return Observation(text=text, data={"topics": list(seq_topics + PHYSICS_TOPICS), "notation": parts["notation"]})
         if topic in ("cost", "outputs") + PHYSICS_TOPICS:
             return Observation(text=parts[topic], data={"markdown": parts[topic]})
         cost, hw = card["cost"], card["hardware"]
@@ -547,11 +622,13 @@ class ScannerEnv(Env):
             "images [n_images, ny, nx]: row = y, column = x; the readout runs along x when pe_dir = y (default); pixel positions, a shifted "
             "or turned field of view: topic=outputs",
             f"scan time: {cost['rule']}; overhead {cost['overhead_s_per_scan']:g} s; dummy cycles: {cost['dummy_time_ms_steady_state_sequences'] / 1000:g} s "
-            f"(spgr, afi, bssfp), {cost['dummy_cycles_se_ir']} cycle (se, ir), {cost['dummy_shots_epi']} shots (epi)",
+            f"(spgr, afi, bssfp{', megre' if 'megre' in table else ''}), {cost['dummy_cycles_se_ir']} cycle "
+            f"({', '.join(['se', 'ir'] + [q for q in listed if console.REGISTRY[q].spin_echo])}), {cost['dummy_shots_epi']} shots (epi)"
+            + ("; fse: one repetition fills etl lines" if "fse" in table else ""),
             f"hardware: gradient {hw['gradient_max_mt_per_m']:g} mT/m, slew {hw['slew_max_t_per_m_s']:g} T/m/s, B1rms limit {hw['b1rms_limit_ut']:g} uT, "
             f"peak B1 {hw['b1_peak_limit_ut']:g} uT, time raster {hw['time_raster_ms']:g} ms",
             "topics (scanner_info(topic=...)):",
-            f"  {' | '.join(SEQUENCE_TOPICS)}   signal model, parameters and an example call of that sequence",
+            f"  {' | '.join(seq_topics)}   signal model, parameters and an example call of that sequence",
             "  geometry   the parameters every sequence takes: range, default, meaning",
             "  cost       scan time, minimum TE and TR, RF power and gradient limits, noise",
             "  outputs    images, read-outs, view, profile; positions on a turned field of view",
@@ -561,42 +638,45 @@ class ScannerEnv(Env):
         return Observation(text=text, data=card)
 
     @staticmethod
-    def _shared(name: str) -> bool:
-        """A parameter that every sequence takes."""
-        return all(name in spec for spec in console.SEQUENCES.values())
+    def _shared(name: str, table: dict | None = None) -> bool:
+        """A parameter that every sequence takes (``table``: the sequences of the console; None: the six)."""
+        return all(name in spec for spec in (console.SEQUENCES if table is None else table).values())
 
     @staticmethod
-    def _common(seq: str, name: str) -> bool:
+    def _common(seq: str, name: str, table: dict | None = None) -> bool:
         """A shared parameter with a default, whose range and default in ``seq`` are those of most sequences."""
-        if not ScannerEnv._shared(name) or name in console.PROTOCOL_DEPENDENT or console.SEQUENCES[seq][name][3] is None:
+        table = console.SEQUENCES if table is None else table
+        if not ScannerEnv._shared(name, table) or name in console.PROTOCOL_DEPENDENT or table[seq][name][3] is None:
             return False
-        specs = [spec[name] for spec in console.SEQUENCES.values()]
-        return console.SEQUENCES[seq][name] == max(specs, key=specs.count)
+        specs = [spec[name] for spec in table.values()]
+        return table[seq][name] == max(specs, key=specs.count)
 
     @staticmethod
     def _range(seq: str, name: str) -> str:
-        lo, hi, kind, _ = console.SEQUENCES[seq][name]
+        lo, hi, kind, _ = console.REGISTRY[seq].parameters[name]
         return "true / false" if kind == "b" else " / ".join(map(str, lo)) if kind == "c" else f"{lo:g} to {hi:g}"
 
     def _sequence_text(self, seq: str, card: dict) -> str:
         """Signal model, own parameters, the shared parameters with their defaults in one line, one example call."""
         parts, exam = datasheet_parts(), self._session.exam
+        table = manual_table(exam)
         default = lambda k: console.default_text(seq, k, exam)             # noqa: E731
-        own = [k for k in console.parameter_names() if k in console.SEQUENCES[seq] and not self._common(seq, k)]
-        rest = [k for k in console.parameter_names() if k in console.SEQUENCES[seq] and self._common(seq, k)]
+        own = [k for k in console.parameter_names(table) if k in table[seq] and not self._common(seq, k, table)]
+        rest = [k for k in console.parameter_names(table) if k in table[seq] and self._common(seq, k, table)]
         fixed = "".join(f"{k} is fixed at {v:g}. " for k, v in console.FIXED.get(seq, {}).items())
-        lines = [parts[seq]]
+        lines = [parts[seq] if seq in parts else datasheet_core_parts()[seq]]   # a sequence of the supplement: its own paragraph says what its echo carries
         if seq in _ECHO:
             lines.append(parts[_ECHO[seq]])
         lines += [(fixed + f"Parameters of {seq} (range; default):").strip(),
                   "\n".join(f"  {k}: {self._range(seq, k)}; " + ("required" if default(k) is None else f"default {default(k)}") for k in own),
                   "taken by every sequence (default): " + ", ".join(f"{k} {default(k)}" for k in rest) + "; range and meaning: topic=geometry",
-                  f"example: plan {json.dumps(SEQUENCE_EXAMPLES[seq], separators=(', ', ': '))}"]
+                  f"example: plan {json.dumps((SEQUENCE_EXAMPLES.get(seq) or SEQUENCE_EXAMPLES_EXTENDED[seq]), separators=(', ', ': '))}"]
         return "\n".join(lines)
 
     def _parameter_info(self, name):
         """Range, default and meaning of one protocol parameter, per sequence where they differ."""
-        names = console.parameter_names()
+        table = manual_table(self._session.exam)
+        names = console.parameter_names(table)
         key = console.ALIASES.get(name, name) if isinstance(name, str) else name
         if key not in names:
             guess = I.did_you_mean(key, names + list(console.ALIASES))
@@ -604,7 +684,7 @@ class ScannerEnv(Env):
             return self._error([I.problem("invalid_value", "parameter", f"no protocol parameter {I._show(name, 40)}" + (f"; did you mean {guess}?" if guess else "")
                                           + ("" if guess else f"; parameters: {', '.join(names)}"), "vocabulary", did_you_mean=guess,
                                           allowed={"values": names}, fix={"parameter": guess} if guess else None)])
-        used = [s for s in console.SEQUENCES if key in console.SEQUENCES[s]]
+        used = [s for s in table if key in table[s]]
         by = {}
         for s in used:
             by.setdefault((self._range(s, key), console.default_text(s, key, self._session.exam) or "required"), []).append(s)
@@ -612,7 +692,7 @@ class ScannerEnv(Env):
         lines = [f"{key}: {console.PARAMETER_UNITS[key]}" + (f" (unit: {unit})" if unit and unit not in console.PARAMETER_UNITS[key] else "")]
         lines += [f"  {', '.join(ss)}: range {r}, default {d}" for (r, d), ss in by.items()]
         fixed = [f"{s}: fixed at {v[key]:g}" for s, v in console.FIXED.items() if key in v]
-        missing = [s for s in console.SEQUENCES if s not in used and not any(f.startswith(s + ":") for f in fixed)]
+        missing = [s for s in table if s not in used and not any(f.startswith(s + ":") for f in fixed)]
         if fixed or missing:
             lines.append("  " + "; ".join(fixed + ([f"not a parameter of {', '.join(missing)}"] if missing else [])))
         return Observation(text="\n".join(lines), data={"parameter": {key: {s: self._session.info()["sequences"][s]["parameters"][key] for s in used}}})
@@ -668,7 +748,8 @@ class ScannerEnv(Env):
         enforced = lambda k: max(t[k], low[k[:-len("_min_ms")] + "_ms"][0]) if k[:-len("_min_ms")] + "_ms" in low else t[k]   # noqa: E731
         mins = ", ".join(f"{k[:-len('_min_ms')]}_ms {enforced(k):g}" for k in t if k.endswith("_min_ms"))
         changed = [f"{k} {v:g} -> {real[k]:g}" for k, v in protocol.items()
-                   if I.T._is_number(v) and I.T._is_number(real.get(k)) and abs(real[k] - v) > 1e-9]
+                   if I.T._is_number(v) and I.T._is_number(real.get(k)) and abs(real[k] - v) > 1e-9
+                   and not (k == "b_value" and f"{v:g}" == f"{real[k]:g}")]    # the b-value of the lobes played: the request to six digits
         asked = protocol.get("phase_fov")                                # the phase side is a whole, even number of pixels
         if I.T._is_number(asked) and abs(real["matrix_pe"] - real["matrix"] * asked) > 1e-6:
             changed.append(f"phase_fov {asked:g} -> {real['matrix_pe'] / real['matrix']:g} ({real['matrix_pe']} px, an even number)")
@@ -721,8 +802,15 @@ class ScannerEnv(Env):
 
     @staticmethod
     def _echo(real: dict) -> str:
-        """The echo time the console realised (every echo of a multi-echo scan)."""
+        """The echo time the console realised (every echo of a multi-echo scan; of a train of more than eight echoes
+        the first three, the last and the count: they are equally spaced). A fast spin echo: the effective echo time,
+        the echo that carries it and the spacing, which a request may leave to the console."""
         times = real.get("echo_times_ms") or [real["te_ms"]]
+        if real["sequence"] == "fse":
+            return (f"te_ms {real['te_ms']:g} (effective: echo {round(real['te_ms'] / real['echo_spacing_ms'])} of {real['etl']}, "
+                    f"echo_spacing_ms {real['echo_spacing_ms']:g}), {real['shots']} repetitions per average")
+        if len(times) > 8:
+            return "te_ms " + ", ".join(f"{x:g}" for x in times[:3]) + f", ... {times[-1]:g} ({len(times)} echoes, {times[1] - times[0]:g} apart)"
         return "te_ms " + ", ".join(f"{x:g}" for x in times)
 
     @staticmethod

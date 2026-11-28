@@ -13,6 +13,9 @@ Generators
                       the polynomial B, the minimum-phase A is found from |A|^2 = 1 - |B|^2, and the inverse transform
                       gives the sub-pulse angles. Types: excitation, refocusing, inversion, saturation.
   ``slr_flip``        the same design with its ripples stated on the flip angle (degrees) instead of on |Mxy|.
+  ``minphase``        the shortest kind of excitation for a flip-angle mask: the equiripple |B|^2 of ``mrgym.design.bound``
+                      (a Remez exchange on the squared magnitude), its minimum-phase factor B, the minimum-phase A and
+                      the inverse transform. The main lobe lies near the end and the rephasing lobe is short.
   ``sech``            hyperbolic-secant adiabatic inversion (Silver, Joseph, Hoult 1985): B1 = B1max sech(beta t)^(1 + i mu).
   ``control_points``  at most 64 complex control points, interpolated onto the raster (rule in the docstring).
   ``verse``           variable-rate rescaling of a pulse and its gradient (Conolly et al. 1988) under a peak-B1 limit.
@@ -445,6 +448,56 @@ def slr_flip(flip_deg, duration_ms, tbw, thickness_mm=None, tol_in_deg=1.0, max_
     return Pulse(theta / (RAD_PER_UT_MS * dt), dt, g, "excitation", _rephase("excitation", g, duration_ms, 0.5), bw, thickness_mm,
                  dict(generator="slr_flip", flip_deg=float(flip_deg), duration_ms=float(duration_ms), tbw=float(tbw), thickness_mm=thickness_mm,
                       tol_in_deg=float(tol_in_deg), max_out_deg=float(max_out_deg), n=n, design=record))
+
+
+def refocused(mxy, pos_mm, area_mt_ms_m=0.0):
+    """Part of the transverse magnetisation ``mxy`` at positions ``pos_mm`` that adds up after a further gradient lobe
+    of the given area: |sum Mxy exp(i phase)| / sum |Mxy|."""
+    total = float(np.abs(mxy).sum())
+    return float(abs((mxy * np.exp(1j * RAD_PER_MT_M_MM_MS * area_mt_ms_m * np.asarray(pos_mm, float))).sum()) / total) if total > 0 else 0.0
+
+
+def minphase(flip_deg, duration_ms, tbw, thickness_mm, transition, tol_in_deg, max_out_deg, rephase_fraction=None, freq_hz=0.0,
+             n=None, raster_ms=RASTER_MS):
+    """Minimum-phase equiripple excitation for a flip-angle mask (``mrgym.design.bound.equiripple_b``).
+
+    The mask: flip angle within ``flip_deg`` +- ``tol_in_deg`` for |z| <= (1 - transition) thickness / 2, at most
+    ``max_out_deg`` from (1 + transition) thickness / 2 to half the repeat distance of the profile, free between.
+    The result is the best pulse of this many samples under this gradient (bandwidth tbw / duration over the
+    thickness) for the mask: when one fits, it fits. ``call["design"]["use"]``: its largest deviation in units of the two
+    tolerances; at most 1: the mask is met. Above 1 the pulse is the best for tolerances widened until one fits.
+    ``rephase_fraction``  area of the rephasing lobe / selection area. Default: the value at which most of the in-slice
+                          signal adds up on the ideal model (``call["design"]["rephase_fraction"]``, to 0.001).
+    ``freq_hz``           the pulse is played this far off the transmitter frequency: sample j is multiplied by
+                          exp(2 pi i freq t_j), t_j its centre. The slice then lies where spins precess ``freq_hz`` faster.
+    Raises ValueError when no polynomial of this length stays between 0 and 1 (far too short for the mask)."""
+    from . import bound
+    n = _n_samples(duration_ms, n, raster_ms)
+    if not (tbw > 0 and thickness_mm is not None and thickness_mm > 0):
+        raise ValueError("tbw and thickness_mm must be positive")
+    dt = duration_ms / n
+    bw = 1e3 * tbw / duration_ms
+    g = _gradient(bw, thickness_mm)
+    spec = dict(thickness_mm=float(thickness_mm), transition=float(transition), flip_deg=float(flip_deg), tol_in_deg=float(tol_in_deg),
+                max_out_deg=float(max_out_deg))
+    b, record = bound.equiripple_b(n, spec, bound.precession(g, dt))
+    theta = inverse_slr(b)
+    record["inverse_error"] = float(np.abs(np.fft.fft(forward_slr(theta)[1] - b, 1 << int(math.ceil(math.log2(64 * n))))).max())
+    record["transition_fraction"] = float(transition)
+    b1 = theta / (RAD_PER_UT_MS * dt)
+    z = np.linspace(-(1 - transition) * thickness_mm / 2, (1 - transition) * thickness_mm / 2, 201)
+    a_, b_ = rotation.rotate(b1, dt, g, z)
+    mxy = 2 * np.conj(a_) * b_
+    fractions = np.round(np.arange(0.0, 1.0005, 0.001), 3)
+    kept = [refocused(mxy, z, -f * g * duration_ms) for f in fractions]
+    record["rephase_fraction"] = float(fractions[int(np.argmax(kept))])
+    fraction = record["rephase_fraction"] if rephase_fraction is None else float(rephase_fraction)
+    if freq_hz:
+        b1 = b1 * np.exp(2j * np.pi * freq_hz * 1e-3 * (np.arange(n) + 0.5) * dt)
+    return Pulse(b1, dt, g, "excitation", -fraction * g * duration_ms, bw, thickness_mm,
+                 dict(generator="minphase", flip_deg=float(flip_deg), duration_ms=float(duration_ms), tbw=float(tbw), thickness_mm=float(thickness_mm),
+                      transition=float(transition), tol_in_deg=float(tol_in_deg), max_out_deg=float(max_out_deg), rephase_fraction=fraction,
+                      freq_hz=float(freq_hz), n=n, design=record))
 
 
 # ---------------------------------------------------------------------------------------------- hyperbolic secant

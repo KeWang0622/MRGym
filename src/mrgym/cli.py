@@ -561,6 +561,8 @@ def main(argv=None) -> int:
     qa.add_parser(sub)
     coverage.add_parser(sub)
     physics_map.add_parser(sub)
+    from . import bestknown
+    bestknown.add_parser(sub)
 
     a = ap.parse_args(argv)
     return int(a.fn(a) or 0)

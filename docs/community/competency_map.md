@@ -7,12 +7,12 @@ What the field examines (the Image Production outline of the ARRT MRI content sp
 ```
 Competency map · source: ARRT Examination Content Specifications, Magnetic Resonance Imaging (board approved January 2024, implemented February 1, 2025), Image Production: 1.C Artifacts, 1.D Quality Control, 2.A Imaging Parameters, 2.C Imaging Options
 
-== imaging parameters (2.A): 18 items · engine forms 11 fully, 1 partly, 6 not · exercised by a scored environment: 11 (threshold for an A: 15)
+== imaging parameters (2.A): 18 items · engine forms 14 fully, 1 partly, 3 not · exercised by a scored environment: 12 (threshold for an A: 15)
   2.A.1         parameter.tr                         now      BandFree-v0, FatSuppress-v0, GhostAside-v0, NullTissue-v0, SNRSpec-v0, T1Vial-v0, T2Decay-v0 repetition time (TR)
-  2.A.2         parameter.te                         now      EPISetup-v0, FatFraction-v0, FrequencyAdjust-v0, SNRSpec-v0, T2Decay-v0 echo time (TE)
+  2.A.2         parameter.te                         now      EPISetup-v0, FatFraction-v0, FrequencyAdjust-v0, SNRSpec-v0, T2Decay-v0, T2Echoes-v0 echo time (TE)
   2.A.3         parameter.ti                         now      FatSuppress-v0, NullTissue-v0, T1Vial-v0 inversion time (TI)
   2.A.4         parameter.averages                   now      EPISetup-v0, SNRSpec-v0            number of signal averages (NSA, NEX)
-  2.A.5         parameter.flip_angle                 now      ErnstFlip-v0, FatFraction-v0, RFPulse-v0, TransmitAdjust-v0 flip angle
+  2.A.5         parameter.flip_angle                 now      ErnstFlip-v0, FatFraction-v0, RFPulse-v0, RFPulse-v1, T2Echoes-v0, TransmitAdjust-v0 flip angle
   2.A.6         parameter.fov                        now      EPISetup-v0, FoldAway-v0, Resolve-v0 field of view (FOV)
   2.A.7         parameter.matrix                     now      EPISetup-v0, PhantomQA-v0, Resolve-v0, SNRSpec-v0 matrix
   2.A.8         parameter.pixel                      now      EPISetup-v0, GradientCal-v0, Resolve-v0, SNRSpec-v0 pixel
@@ -20,11 +20,11 @@ Competency map · source: ARRT Examination Content Specifications, Magnetic Reso
   2.A.10        parameter.number_of_slices           absent   -                                  number of slices
   2.A.11        parameter.slice_thickness_gap        partial  -                                  slice thickness and gap
   2.A.12        parameter.phase_frequency_direction  now      EPISetup-v0, FoldAway-v0, GhostAside-v0, GradientCal-v0, PhantomQA-v0, Resolve-v0, ShiftFree-v0 phase and frequency
-  2.A.13        parameter.etl                        absent   -                                  echo train length (ETL)
-  2.A.14        parameter.effective_te               absent   -                                  effective TE
+  2.A.13        parameter.etl                        now      T2Echoes-v0                        echo train length (ETL)
+  2.A.14        parameter.effective_te               now      -                                  effective TE
   2.A.15        parameter.receive_bandwidth          now      BandFree-v0, EPISetup-v0, GradientCal-v0, PhantomQA-v0, SNRSpec-v0, ShiftFree-v0 bandwidth (transmit, receive)
   2.A.16        parameter.concatenations             absent   -                                  concatenations (number of acquisitions per TR)
-  2.A.17        parameter.b_value                    absent   -                                  b-value
+  2.A.17        parameter.b_value                    now      -                                  b-value
   2.A.18        parameter.venc                       absent   -                                  velocity encoding (VENC)
 
 == imaging options (2.C): 11 items · engine forms 5 fully, 0 partly, 6 not · exercised by a scored environment: 5
@@ -63,7 +63,7 @@ Competency map · source: ARRT Examination Content Specifications, Magnetic Reso
   1.D.3         qc.contrast_resolution               now      -                                  contrast resolution
   1.D.4         qc.snr                               now      EPISetup-v0, NoiseSNR-v0, SNRSpec-v0, T2Decay-v0 signal to noise
   1.D.5         qc.centre_frequency                  now      BandFree-v0, EPISetup-v0, FatSuppress-v0, FrequencyAdjust-v0 center frequency
-  1.D.6         qc.transmit_gain                     now      ErnstFlip-v0, RFPulse-v0, TransmitAdjust-v0 transmit gain
+  1.D.6         qc.transmit_gain                     now      ErnstFlip-v0, RFPulse-v0, RFPulse-v1, T2Echoes-v0, TransmitAdjust-v0 transmit gain
   1.D.7         qc.geometric_accuracy                now      GradientCal-v0, PhantomQA-v0       geometric accuracy
   1.D.8         qc.equipment_inspection              n/a      -                                  equipment inspection (e.g., coils, cables, door seals)
   1.D (ACR 5)   qc.signal_uniformity                 now      PhantomQA-v0                       image intensity uniformity (ACR phantom test 5; with 1.D) *
@@ -89,16 +89,18 @@ scored environments and what their families declare:
   Scanner/PhantomQA-v0       10 rows
   Scanner/ProtocolToSpec-v0  declares none
   Scanner/RFPulse-v0         2 rows
+  Scanner/RFPulse-v1         2 rows
   Scanner/Resolve-v0         6 rows
   Scanner/SNRSpec-v0         8 rows
   Scanner/ShiftFree-v0       3 rows
   Scanner/T1Transmit-v1      declares none
   Scanner/T1Vial-v0          2 rows
   Scanner/T2Decay-v0         3 rows
+  Scanner/T2Echoes-v0        4 rows
   Scanner/TransmitAdjust-v0  4 rows
 
 thresholds and consistency: 8 not met (enforced by --assert)
-  - imaging parameters (2.A): 11 of 18 exercised by a scored environment; the threshold is 15
+  - imaging parameters (2.A): 12 of 18 exercised by a scored environment; the threshold is 15
   - artefacts (1.C): 8 of 14 exercised by a scored environment; the threshold is 10
   - quality control (1.D): 4 of 7 exercised by a scored environment; the threshold is 6
   - Scanner/ArtefactClinic-v0 declares no competency (task.COMPETENCIES)

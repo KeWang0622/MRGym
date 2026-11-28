@@ -65,6 +65,7 @@ The agent sees the task text and the results of its own tool calls, nothing else
 | [`Scanner/T2Decay-v0`](envs/scanner-t2decay-v0/) | measure the T2 of each vial | measure | ready |
 | [`Scanner/FatFraction-v0`](envs/scanner-fatfraction-v0/) | measure the fat fraction of each mixture | measure | ready |
 | [`Scanner/T1Vial-v0`](envs/scanner-t1vial-v0/) | measure the T1 of each vial | measure | ready |
+| [`Scanner/T2Echoes-v0`](envs/scanner-t2echoes-v0/) | measure T2 from an echo train despite imperfect refocusing | measure | experimental |
 | [`Scanner/T1Transmit-v1`](envs/scanner-t1transmit-v1/) | measure T1 when the transmit field is miscalibrated | measure | experimental |
 | [`Scanner/NullTissue-v0`](envs/scanner-nulltissue-v0/) | find the inversion time that makes each vial dark | set | ready |
 | [`Scanner/ErnstFlip-v0`](envs/scanner-ernstflip-v0/) | find the flip angle that gives each vial most signal | set | ready |
@@ -81,6 +82,7 @@ The agent sees the task text and the results of its own tool calls, nothing else
 | [`Scanner/TransmitAdjust-v0`](envs/scanner-transmitadjust-v0/) | measure the real flip angle against the nominal one | measure | ready |
 | [`Scanner/NoiseSNR-v0`](envs/scanner-noisesnr-v0/) | measure the signal-to-noise ratio the way the standards do | measure | ready |
 | [`Scanner/GradientCal-v0`](envs/scanner-gradientcal-v0/) | measure the gradient scale error with a known phantom | measure | ready |
+| [`Scanner/RFPulse-v1`](envs/scanner-rfpulse-v1/) | design the shortest slice pulse that works on this scanner | design | ready |
 | [`Scanner/RFPulse-v0`](envs/scanner-rfpulse-v0/) | design a slice-selective pulse for a scanner with hidden hardware | design | experimental |
 | **D · Image quality and artefacts**: how good the image is, and what went wrong | | | |
 | [`Scanner/SNRSpec-v0`](envs/scanner-snrspec-v0/) | reach a required signal-to-noise ratio in the least scan time | set | ready |

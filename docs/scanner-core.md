@@ -113,13 +113,15 @@ three to six percent at 0.5 s; for a fluid (T1 of seconds) by 9 percent at 1.5 s
 Diffusion erases the finer patterns within a second in water and not in fat. What is still TRANSVERSE when the last
 echo has been read is dephased by the spoiler and is taken as lost.
 
-**`mese`: multi-echo spin echo.** The same train; every echo is read as its own image, image k at k x ESP, one
-phase-encode line of every image per repetition (no blurring, the scan time of `se`). With exact 180 degree
-pulses the images decay as exp(-TE / T2). In a slice they do not: the refocusing angle falls towards the edges of
-the slice profile and scales with the transmit field, and the stimulated echoes described above make the decay
-slower than exp(-TE / T2) after a first echo that is too low. A single exponential fitted to all echoes then
-overestimates T2, by an amount that depends on `refocus_deg`, on `rf_pulse`, on the transmit field and on T1 and T2
-of the material; leaving out the first echo reduces the error and does not remove it.
+**`mese`: multi-echo spin echo.** The train of `fse`: a 90 degree excitation and `n_echoes` refocusing pulses
+`echo_spacing_ms` apart, 90 degrees out of phase with the excitation. Every echo is read as its own image, image k
+at k x ESP, one phase-encode line of every image per repetition (no blurring, the scan time of `se`). With exact 180
+degree pulses the images decay as exp(-TE / T2). In a slice they do not: the refocusing angle falls towards the edges
+of the slice profile and scales with the transmit field. A pulse that is not 180 degrees stores part of the
+magnetisation along the longitudinal axis, where it decays with T1 and not T2, and later pulses bring it back as
+stimulated echoes: the decay is slower than exp(-TE / T2) after a first echo that is too low. A single exponential
+fitted to all echoes then overestimates T2, by an amount that depends on `refocus_deg`, on `rf_pulse`, on the
+transmit field and on T1 and T2 of the material; leaving out the first echo reduces the error and does not remove it.
 
 **`megre`: multi-echo gradient echo.** The steady state of `spgr` (datasheet, section 5) read at `n_echoes` echo
 times `te_ms` + k x `echo_spacing_ms`, one image each: the magnitude falls as exp(-TE / T2*), the phase advances by

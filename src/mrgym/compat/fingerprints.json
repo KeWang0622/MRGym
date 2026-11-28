@@ -378,6 +378,27 @@
     "scoring_source": "b4881544b1f1948fb6eed2bbdb397bca4cdca0ccd916b5de82d01744712bdadb"
    }
   },
+  "Scanner/RFPulse-v1": {
+   "engine": "mrgym-engine-0.3.0",
+   "fingerprint": "b622a58d48da9375d2eadf783ef549c7a1e37d481d3bc5b02379de6782edc324",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "c3bbe909fdc9554815a9e5670823b9068631997ca096529a94132a6ecf8311c6",
+    "L1.tools": "8fdc056041ae0e1b58ce3b4ef84faa96a7d6619e402971edd31ab6ae8a2d9a5c",
+    "L1.transcript": "ac49586586e39e113c7733958bc20bcc370d85555430f4a6cd10cd52d445a766",
+    "L2.statement": "2faa1b3ce7197a48800e950a4a6ef8e118a19cc765a91fa974932fd42b1e1fda",
+    "L2.tools": "8fdc056041ae0e1b58ce3b4ef84faa96a7d6619e402971edd31ab6ae8a2d9a5c",
+    "L2.transcript": "573170ef36d139ef8faa2bbef0351028cf8457bcd41208679f6ea396bca67c68",
+    "L3.statement": "fb27849bff985f08af77e867c0e1c7cff57cd8f810bd80777127307993820356",
+    "L3.tools": "8fdc056041ae0e1b58ce3b4ef84faa96a7d6619e402971edd31ab6ae8a2d9a5c",
+    "L3.transcript": "03e1f791df126d4c485c620b0b4b78b827d98041d021d7a6d9419e34bf082f1f",
+    "engine": "a30bb8fa683f09bcfc718b1d4d2869d7368dd5120f1dadb3e85c3919a0d4b21d",
+    "registration": "8dd640ee9d381e1ad7e7d0fdb7b3b4debc1be8e31a4d5d2755afe44aeff42c54",
+    "rules": "66072ea4b698dbcc50ad765d7295c9a850071d05a0345e77e2468a5bc19f9289",
+    "scoring_source": "00745c93e915f4ba1b70bd9cecf5ad491b64d9a5b41e776a982b86d0f86cb88b"
+   }
+  },
   "Scanner/Resolve-v0": {
    "engine": "mrgym-engine-0.3.0",
    "fingerprint": "4f28ccfa9f339810e1ac9e038b71dcf26b4d233caf1fbdb875cbf918a0486209",
@@ -523,6 +544,27 @@
     "registration": "71d6cb13268406534e526ea9ed0fd912c92d371c78599c186ffaf44329eafee5",
     "rules": "2e0fd9424c75d5441e34dba680df978b833f94afee69acac689c2654817a5729",
     "scoring_source": "8f705fc3d43ff32c5191ab8fdffaf97faddf4062da9ea8ceaba5aecfb1e98aa1"
+   }
+  },
+  "Scanner/T2Echoes-v0": {
+   "engine": "mrgym-engine-0.3.0",
+   "fingerprint": "12a08e2287a8fb5182cc57be1c50e93525e867fda29bf163d17ea1604b70e0bd",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "34a8f0f15bfcb339c35f432b2d2893dfba6e4136ba6d76ac09917918f64521a7",
+    "L1.tools": "5f433fdc4e37697bc5bdc62f465b6a464f79930c2fe5628b23f48865988b38a4",
+    "L1.transcript": "b955ac1b742eac4d5a1bb401abe740eae6a1108ab4fcf8aa1289ff20ab9c6868",
+    "L2.statement": "735c76aea0a98f51f2a96e4e2562305797b9ee36d01a38233eef1420254dffce",
+    "L2.tools": "5f433fdc4e37697bc5bdc62f465b6a464f79930c2fe5628b23f48865988b38a4",
+    "L2.transcript": "e6efe564e411da065a9a782f989afa7e3dc730cb2db9bafd7b83bc5c568bbc5b",
+    "L3.statement": "e52a2d5f8b23351bda957023d007972b7520c18745a99d720b1830244837d743",
+    "L3.tools": "5f433fdc4e37697bc5bdc62f465b6a464f79930c2fe5628b23f48865988b38a4",
+    "L3.transcript": "42b151e534c2c0b2e1ce68fb4ac0a2a9cfc4cfd07955b7051182e257cfb15c45",
+    "engine": "a30bb8fa683f09bcfc718b1d4d2869d7368dd5120f1dadb3e85c3919a0d4b21d",
+    "registration": "8dd640ee9d381e1ad7e7d0fdb7b3b4debc1be8e31a4d5d2755afe44aeff42c54",
+    "rules": "4332b7d1b0ac2dd8d25c06e8707a2380c36e41a91ca55cad519bda23a0bd7636",
+    "scoring_source": "a0acb8a254e717bafe3a787ca57837e3f0a87bd9df1442c90a6e591824486f69"
    }
   },
   "Scanner/TransmitAdjust-v0": {

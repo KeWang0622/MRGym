@@ -130,7 +130,7 @@ def chain_of(world, tx_scale, df_hz):
     from ..design import hardware
     sy = world["system"]
     return hardware.Chain(tx_scale=float(tx_scale), amp_sat_ut=sy.get("rf_amp_sat_ut"), grad_delay_us=float(sy.get("rf_grad_delay_us", 0.0)),
-                          df_hz=float(df_hz))
+                          df_hz=float(df_hz), model=sy.get("rf_model", hardware.MODEL), guard=bool(sy.get("rf_guard", False)))
 
 
 def _nodes(values, kspace):

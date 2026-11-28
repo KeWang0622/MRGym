@@ -52,6 +52,7 @@ WHAT_YOU_DO = {
     "Scanner/TransmitAdjust-v0": "measure the real flip angle against the nominal one",
     "Scanner/ErnstFlip-v0": "find the flip angle that gives each vial most signal",
     "Scanner/RFPulse-v0": "design a slice-selective pulse for a scanner with hidden hardware",
+    "Scanner/RFPulse-v1": "design the shortest slice pulse that works on this scanner",
     "Scanner/T1Vial-v0": "measure the T1 of each vial",
     "Scanner/T2Decay-v0": "measure the T2 of each vial",
     "Scanner/FatFraction-v0": "measure the fat fraction of each mixture",
@@ -63,6 +64,7 @@ WHAT_YOU_DO = {
     "Scanner/GradientCal-v0": "measure the gradient scale error with a known phantom",
     "Scanner/Conspicuity-v0": "choose the protocol that makes a lesion stand out most",
     "Scanner/EPISetup-v0": "set up echo-planar imaging within distortion and ghost limits",
+    "Scanner/T2Echoes-v0": "measure T2 from an echo train despite imperfect refocusing",
 }
 # The front page uses plain words for the kind of the registry; envs/README.md and docs/ADDING_A_TASK.md define the kinds.
 STATUS = dict(admitted="ready", candidate="experimental", practice="experimental", sandbox="no score")

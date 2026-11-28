@@ -1,6 +1,6 @@
 """Designs as an agent makes them: a generator call with a handful of numbers, never samples and never code.
 
-``build(call, limits)``     a call ``{"kind": "sinc" | "slr" | "sech" | "points" | "verse", ...}`` -> ``pulses.Pulse``.
+``build(call, limits)``     a call ``{"kind": "sinc" | "slr" | "minphase" | "sech" | "points" | "verse", ...}`` -> ``pulses.Pulse``.
                             Every parameter has a unit and a range (``PARAMETERS``); a value outside it is refused
                             with the parameter and the nearest valid value (``Refusal``), as the console refuses a
                             protocol. Nothing is clipped silently.
@@ -20,7 +20,8 @@ A slice specification (``spec``) is a dict: ``thickness_mm``, ``flip_deg``, ``to
 slice is within flip_deg +- tol_in_deg), ``max_out_deg`` (at most that outside), ``transition`` (fraction W of the
 thickness: the slice is |z| <= (1 - W) thickness / 2, outside is |z| >= (1 + W) thickness / 2), ``extent_mm`` (how far
 outside is looked at, on either side) and optionally ``refocused_min`` (the part of the in-slice signal that must
-survive the phase left after the rephasing lobe).
+survive the phase left after the rephasing lobe). ``extent_mm`` may be the word ``"repeat"``: outside then reaches to
+half the repeat distance of the pulse's profile, 1 / (2 gamma G raster), the mask of ``mrgym.design.bound``.
 """
 from __future__ import annotations
 
@@ -31,9 +32,9 @@ import math
 import numpy as np
 
 from . import hardware, pulses
-from .units import HZ_PER_MT_M_MM, RASTER_MS
+from .units import HZ_PER_MT_M_MM, RAD_PER_MT_M_MM_MS, RASTER_MS
 
-KINDS = ("sinc", "slr", "sech", "points", "verse")
+KINDS = ("sinc", "slr", "minphase", "sech", "points", "verse")
 MAX_DESIGNS = 32                                     # stored designs per episode
 MAX_DURATION_MS = 20.0
 PROFILE_BINS, PROFILE_STEP = 24, 0.125               # the printed row: flip angle every 0.125 thickness from the centre outwards
@@ -56,16 +57,22 @@ PARAMETERS = dict(
     amplitude=(0.2, 5.0, "", "factor on every sample of the pulse; default 1. What corrects a transmit scale s: 1 / s"),
     g_max_mt_m=(1.0, 80.0, "mT/m", "verse: the gradient no sample may pass"),
     slew_t_m_s=(1.0, 400.0, "T/m/s", "verse: the slew rate between neighbouring samples"),
+    transition=(0.05, 0.95, "", "minphase: W; the slice is |z| <= (1 - W) thickness / 2, outside starts at (1 + W) thickness / 2"),
+    freq_hz=(-5000.0, 5000.0, "Hz", "minphase: frequency offset of the pulse; the slice lies where spins precess this much faster"),
 )
+# A range that differs for one generator: (kind, name) -> (low, high). The rephasing lobe of a minimum-phase pulse is
+# short, and a slice gradient that is EARLY asks for less of it than nothing: a lobe of the gradient's own sign.
+KIND_RANGES = {("minphase", "rephase_fraction"): (-1.0, 1.0)}
 WINDOWS = pulses.WINDOWS
 INTERPS = ("cubic", "linear")
 POINT_RANGE_UT = 40.0
 REQUIRED = dict(sinc=("flip_deg", "duration_ms", "tbw", "thickness_mm"),
                 slr=("flip_deg", "duration_ms", "tbw", "thickness_mm", "tol_in_deg", "max_out_deg"),
+                minphase=("flip_deg", "duration_ms", "tbw", "thickness_mm", "transition", "tol_in_deg", "max_out_deg"),
                 sech=("b1_peak_ut", "duration_ms", "beta_rad_per_ms", "mu"),
                 points=("amplitude_ut", "duration_ms", "bandwidth_hz", "thickness_mm"),
                 verse=("of", "b1_peak_ut"))
-OPTIONAL = dict(sinc=("window", "amplitude"), slr=("amplitude",), sech=("thickness_mm",), points=("phase_deg", "interp", "rephase_fraction"),
+OPTIONAL = dict(sinc=("window", "amplitude"), slr=("amplitude",), minphase=("amplitude", "freq_hz", "rephase_fraction"), sech=("thickness_mm",), points=("phase_deg", "interp", "rephase_fraction"),
                 verse=("g_max_mt_m", "slew_t_m_s"))
 
 
@@ -92,9 +99,15 @@ class Limits:
 
 
 # ---------------------------------------------------------------------------------------------- the call
-def _number(call, name):
+def range_of(kind, name) -> tuple:
+    """(low, high) of a numeric parameter for a generator."""
+    return KIND_RANGES.get((kind, name), PARAMETERS[name][:2])
+
+
+def _number(call, name, kind=None):
     v = call[name]
-    lo, hi, unit, _ = PARAMETERS[name]
+    unit = PARAMETERS[name][2]
+    lo, hi = range_of(kind, name)
     if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
         raise Refusal(f"{name} must be a number" + (f" [{unit}]" if unit else ""), name, low=lo, high=hi)
     if not lo <= v <= hi:
@@ -138,7 +151,7 @@ def canonical(call, lookup=None) -> dict:
         if call.get(name) is None:
             continue
         if name in PARAMETERS:
-            out[name] = _number(call, name)
+            out[name] = _number(call, name, kind)
     if "duration_ms" in out:
         n = out["duration_ms"] / RASTER_MS
         if abs(n - round(n)) > 1e-6:
@@ -146,13 +159,15 @@ def canonical(call, lookup=None) -> dict:
             raise Refusal(f"duration_ms = {out['duration_ms']:g} is not a multiple of the raster {RASTER_MS:g} ms", "duration_ms",
                           requested=out["duration_ms"], nearest_valid=near)
         out["duration_ms"] = round(round(n) * RASTER_MS, 6)
-    if kind in ("sinc", "slr"):
+    if kind in ("sinc", "slr", "minphase"):
         out.setdefault("amplitude", 1.0)
+    if kind == "minphase":
+        out.setdefault("freq_hz", 0.0)
     if kind == "sinc":
         out["window"] = call.get("window") or "hann"
         if out["window"] not in WINDOWS:
             raise Refusal(f"window must be one of {', '.join(WINDOWS)}", "window", allowed=list(WINDOWS))
-    elif kind == "slr":
+    elif kind in ("slr", "minphase"):
         if out["tol_in_deg"] >= out["flip_deg"] or out["flip_deg"] + out["tol_in_deg"] > 180.0:
             raise Refusal("tol_in_deg must be smaller than flip_deg and flip_deg + tol_in_deg at most 180", "tol_in_deg",
                           requested=out["tol_in_deg"], nearest_valid=round(min(0.5 * out["flip_deg"], 180.0 - out["flip_deg"]), 3))
@@ -199,7 +214,10 @@ def build(call, limits: Limits | None = None, lookup=None):
             p = pulses.sinc(c["flip_deg"], c["duration_ms"], c["tbw"], c["thickness_mm"], window=c["window"])
         elif kind == "slr":
             p = pulses.slr_flip(c["flip_deg"], c["duration_ms"], c["tbw"], c["thickness_mm"], c["tol_in_deg"], c["max_out_deg"])
-        if kind in ("sinc", "slr") and c["amplitude"] != 1.0:            # the designed shape, played c["amplitude"] times as strong
+        elif kind == "minphase":
+            p = pulses.minphase(c["flip_deg"], c["duration_ms"], c["tbw"], c["thickness_mm"], c["transition"], c["tol_in_deg"], c["max_out_deg"],
+                                c.get("rephase_fraction"), c["freq_hz"])
+        if kind in ("sinc", "slr", "minphase") and c["amplitude"] != 1.0:   # the designed shape, played c["amplitude"] times as strong
             p = p.replace(b1_ut=p.b1_ut * c["amplitude"])
         if kind == "sech":
             p = pulses.sech(c["b1_peak_ut"], c["duration_ms"], c["beta_rad_per_ms"], c["mu"], c.get("thickness_mm"))
@@ -220,6 +238,8 @@ def build(call, limits: Limits | None = None, lookup=None):
         name = next((k for k in ("tbw", "duration_ms", "thickness_mm", "tol_in_deg", "max_out_deg") if k.split("_")[0] in text.lower()), None)
         if kind == "slr" and "ripples" in text:
             name = "tbw"
+        if kind == "minphase":
+            name = "tbw" if "gradient is too strong" in text else "duration_ms"
         raise Refusal(f"{kind} cannot be built from these numbers: {text[:220]}", name) from None
     if len(_BUILT) >= 512:                           # a cache, not a store: emptied when full (clear is atomic under threads)
         _BUILT.clear()
@@ -240,6 +260,9 @@ def facts(pulse, limits: Limits | None = None) -> dict:
                bandwidth_hz=None if pulse.bandwidth_hz is None else round(pulse.bandwidth_hz, 3),
                rephase_mt_ms_m=round(pulse.rephase_mt_ms_m, 6), variable_rate=bool(np.ptp(dt) > 1e-12),
                transition=pulse.call.get("design", {}).get("transition_fraction"))
+    if pulse.call.get("generator") == "minphase":                        # the part of its two tolerances the pulse uses, and its rephasing lobe
+        out.update(mask_use=round(pulse.call["design"]["use"], 4), rephase_fraction=round(pulse.call["rephase_fraction"], 4),
+                   rephase_best=pulse.call["design"]["rephase_fraction"])
     bad = []
     tol = 1 + 1e-9
     if pulse.duration_ms > limits.duration_max_ms * tol:
@@ -274,6 +297,8 @@ def call_text(c: dict) -> str:
     if kind == "sech":
         return f"sech {c['b1_peak_ut']:g} uT, {c['duration_ms']:g} ms, beta {c['beta_rad_per_ms']:g} rad/ms, mu {c['mu']:g}"
     tail = f", {c['window']}" if kind == "sinc" else f", flip within +-{c['tol_in_deg']:g}, outside below {c['max_out_deg']:g} deg"
+    if kind == "minphase":
+        tail += f", transition {c['transition']:g}" + (f", {c['freq_hz']:+g} Hz" if c["freq_hz"] else "")
     if c["amplitude"] != 1.0:
         tail += f", amplitude x {c['amplitude']:g}"
     return f"{kind} flip {c['flip_deg']:g} deg, {c['duration_ms']:g} ms, tbw {c['tbw']:g}, slice {c['thickness_mm']:g} mm{tail}"
@@ -294,7 +319,10 @@ def summary(index: int, c: dict, f: dict) -> str:
             row.append(f"slew {f['slew_t_m_s']:.4g} T/m/s (limit {lim['slew_t_m_s']:g})")
         if f["bandwidth_hz"] is not None:
             row.append(f"bandwidth {f['bandwidth_hz']:.5g} Hz")
-        if f.get("transition") is not None:
+        if f.get("mask_use") is not None:
+            row.append(f"largest deviation {f['mask_use']:.3f} of its tolerances ({'met' if f['mask_use'] <= 1 else 'NOT met: too short'})")
+            row.append(f"rephasing {f['rephase_fraction']:g} (best on the ideal model {f['rephase_best']:g})")
+        elif f.get("transition") is not None:
             row.append(f"transition {f['transition']:.3f} of the thickness")
         lines.append(" · ".join(row))
     if lim["ok"]:
@@ -335,6 +363,8 @@ def figures(pulse, chain: hardware.Chain = hardware.IDEAL, spec: dict | None = N
     own = dict(thickness_mm=pulse.thickness_mm, transition=pulse.call.get("design", {}).get("transition_fraction") or 0.5,
                extent_mm=DEFAULT_EXTENT * pulse.thickness_mm)
     s = dict(own, **(spec or {}))
+    if s["extent_mm"] == "repeat":                                       # half the repeat distance of a sampled pulse under its gradient
+        s["extent_mm"] = round(math.pi / (RAD_PER_MT_M_MM_MS * abs(float(pulse.g_mt_m[0])) * float(pulse.dt_ms[0])), 3)
     z_in, z_out = positions(s, abs(pulse.selection_area_mt_ms_m))
     a, b = hardware.rotate(pulse, chain, np.concatenate([z_in, z_out]))
     flip = np.degrees(2 * np.arcsin(np.clip(np.abs(b), 0, 1)))
@@ -362,9 +392,42 @@ def chain_text(chain: hardware.Chain) -> str:
                       "on resonance" if not chain.df_hz else f"off resonance {chain.df_hz:g} Hz"])
 
 
-def simulate(pulse, chain: hardware.Chain = hardware.IDEAL, spec: dict | None = None, index=None) -> tuple[str, dict]:
-    """(text, data) of a design on the model. ``data`` holds the figures and the printed row at full precision."""
+BRIEF_BINS, BRIEF_EVERY = 12, 2                      # the printed row of the short answer: out to 1.5 thicknesses, every second position
+
+
+def _brief(pulse, chain, spec, index, f) -> str:
+    """The short answer of ``simulate``: one line per requirement and one row of seven flip angles (two rows when the
+    profile is not symmetric), below 220 tokens. The data of the answer hold the profile at all 25 positions."""
+    said = ([f"b1_scale {chain.tx_scale:g}"] if chain.tx_scale != 1.0 else []) \
+        + ([f"amplifier saturating at {chain.amp_sat_ut:g} uT"] if chain.amp_sat_ut is not None else []) \
+        + ([f"delay {chain.grad_delay_us:g} us"] if chain.grad_delay_us else []) + ([f"off resonance {chain.df_hz:g} Hz"] if chain.df_hz else [])
+    lines = [f"design {index} on the model, {', '.join(said) or 'ideal'}"]
+    d, w = f["thickness_mm"], f["transition"]
+    word = lambda key: "" if "checks" not in f else ": met" if f["checks"][key] else ": NOT met"   # noqa: E731
+    asked = (f" (asked {f['in_low_deg']:g} to {f['in_high_deg']:g}{word('in_slice')})", f" (asked {spec['max_out_deg']:g}{word('out_of_slice')})",
+             f" (asked {100 * spec['refocused_min']:g}{word('phase')})" if "checks" in f and "phase" in f["checks"] else "") if "checks" in f else ("", "", "")
+    lines.append(f"slice |z| <= {(1 - w) * d / 2:.4g} mm: {f['in_min_deg']:.2f} to {f['in_max_deg']:.2f} deg{asked[0]}")
+    lines.append(f"outside, to {f['extent_mm']:.4g} mm: max {f['out_max_deg']:.2f} deg at z = {f['out_max_at_mm']:.2f}{asked[1]}")
+    lines.append(f"refocused {100 * f['refocused']:.1f} %{asked[2]}")
+    right, left = np.array(f["profile"]["flip_deg"][:BRIEF_BINS + 1:BRIEF_EVERY]), f["profile"].get("flip_deg_negative_z")
+    fmt = lambda v: " ".join(f"{x:.0f}" if x >= 10 else f"{x:.1f}" for x in v)   # noqa: E731
+    lines.append(f"flip deg every {BRIEF_EVERY * PROFILE_STEP * d:g} mm, centre {'to +z' if left else 'outwards'}: {fmt(right)}")
+    if left:
+        lines.append(f"to -z: {fmt(left[:BRIEF_BINS + 1:BRIEF_EVERY])}")
+    return "\n".join(lines)
+
+
+def simulate(pulse, chain: hardware.Chain = hardware.IDEAL, spec: dict | None = None, index=None, brief: bool = False) -> tuple[str, dict]:
+    """(text, data) of a design on the model. ``data`` holds the figures and the printed row at full precision.
+    ``brief``: the short text (``_brief``); the data are the same."""
     f = figures(pulse, chain, spec)
+    if brief and f["slice"]:
+        z = np.arange(PROFILE_BINS + 1) * PROFILE_STEP * f["thickness_mm"]
+        right, left = hardware.flip_deg(pulse, chain, z), hardware.flip_deg(pulse, chain, -z)
+        f["profile"] = dict(z_mm=[round(float(x), 4) for x in z], flip_deg=[float(x) for x in right])
+        if np.abs(right - left).max() > 0.05:
+            f["profile"]["flip_deg_negative_z"] = [float(x) for x in left]
+        return _brief(pulse, chain, spec, index, f), f
     head = f"design {index} on the model" if index is not None else "on the model"
     lines = [f"{head} ({chain_text(chain)})"]
     if not f["slice"]:

@@ -106,6 +106,90 @@ the hidden scanner". The search is over one generator (equiripple Shinnar-Le Rou
 another kind may be shorter, passes, and is recorded with `merit_reference` > 1. The hard-pulse floor stays in the
 rule as the line below which a delivered design is an engine defect.
 
+## 4a. A proven bound on the duration for a flip-angle mask (`bound`)
+
+`Scanner/RFPulse-v1` compares the duration of a delivered pulse with a bound, not with a reference. The third row of
+the table above is now built, with the step it lacked: one finite list of certificates that holds for every gradient.
+
+**The class.** `n` samples on one raster `dt`, played as hard sub-pulses (`rotation.rotate`, model `split`) under one
+constant slice gradient `G ≤ G_max` that the design chooses. With `ψ = u z + 2π f dt`, `u = 2π γ G dt`, the rotation of a
+spin at position `z` has `|b|² = P(ψ)`, a trigonometric polynomial of degree at most `n − 1` with `0 ≤ P ≤ 1`
+(Shinnar-Le Roux; `pulses` docstring). A transmit scale changes the sub-pulse angles, an off-resonance `f` shifts ψ, a
+gradient that is late by a constant time while its plateau outlasts the pulse acts after the pulse: none leaves the
+class. A variable-rate pulse is not in the class, and neither is the `piecewise` model of a sample (there `|b|²` is
+band-limited, not a polynomial): for these the statement is not made.
+
+**The mask**, on the flip angle `θ = 2 asin √P`: `θ_lo ≤ θ ≤ θ_hi` for `|z| ≤ z_in`; `θ ≤ θ_out` for `z_out ≤ |z| ≤ π/u`
+(half the repeat distance of the profile); the band between is free. The verifier looks at finitely many positions
+(`bound.positions`): in the slice a grid that contains `±z_in`, at most `2η / ((n − 1) u)` apart (`η = 0.002` rad);
+outside a grid from `z_out` to `π/u` on both sides; and, for a pulse with fewer samples than the bound, the positions of
+the certificate of the cell that holds its `u`.
+
+**1. One mask on the circle** (`Certificate`, `check`). Points `ψ_0 … ψ_n` in the two bands and weights `λ_i`,
+`Σ|λ_i| = 1`. For every even `P = Σ q_k cos kψ` of degree `n − 1`: `Σ_i λ_i P(ψ_i) = Σ_k q_k r_k`, `r_k = Σ_i λ_i cos kψ_i`.
+`0 ≤ P ≤ 1` gives `0 ≤ q_0 ≤ 1` and `|q_k| ≤ 2`, so the sum is at least `−R`, `R = |r_0| + 2 Σ|r_k|`. The mask gives at most
+`U = Σ_{λ>0} λ_i upper_i + Σ_{λ<0} λ_i lower_i`. When `U < −R` no polynomial meets the mask at the points `±ψ_i` (a `P`
+that is not even would meet it with its even part). The weights are a null vector of the `(n + 1) × n` cosine matrix at
+the alternation points of a Remez exchange (`best`); the proof does not depend on how they were found. `R` holds what
+the computed null vector lacks of being exact. `check` charges three more things against the margin: the rounding
+of every cosine (`8e-13`: the product `kψ` rounds by half a unit in the last place of a number below 6434), the
+rounding of the sums, and `1e-10` for the difference between the polynomial and the value of `|b|²` the verifier
+computes at a position (a product of `n` rotations, a division, a comparison in degrees). A certificate counts when
+what is left exceeds `1e-9`.
+
+**2. Every gradient** (`cover`). Below `u_slope = (θ_lo − θ_out) / ((n − 1)(z_out − z_in))` the transition is impossible:
+`T = 2P − 1 = −cos θ` is bounded by 1, the Bernstein-Szegő inequality `T′² + (n − 1)² T² ≤ (n − 1)²` gives
+`|dθ/dψ| ≤ n − 1` wherever `sin θ ≠ 0`; θ is continuous and the exceptions are finitely many (or θ is constant), so θ
+changes by at most `(n − 1)|Δψ|` between any two points; and `±z_in`, `±z_out` are positions of the verifier. From there to the largest allowed `u` the axis is
+covered by cells `[u_lo, u_hi]`. The mask of a cell is weakened to the pass edge `u_lo z_in` and the stop edge
+`u_hi z_out`; for every `u` in the cell a point `ψ_i ≤ u_lo z_in` is a position `ψ_i / u ≤ z_in` in the slice and a point
+`ψ_i ≥ u_hi z_out` a position between `z_out` and `π/u` outside, so the certificate of the weakened mask holds for the
+cell. A cell without a certificate is halved, down to the ratio 1.00001; if one is still missing the bound is
+lowered by a sample and the cover is made again.
+
+**3. RF limits** (`gradient_cap`). Jensen's formula for the polynomial `A` (`|A|² = 1 − P`, `A(0) = Π cos(θ_j/2)`):
+`Σ_j g(θ_j) ≥ −(1/2π) ∫ ln(1 − P) dψ`, `g(t) = −ln cos²(t/2)`. The right side is at least
+`(u z_in g(θ_lo − η) + I(θ_lo)/(n − 1)) / π`, `I(t) = ∫₀ᵗ g`: in the slice the flip angle cannot dip more than `η` below
+the mask between two positions of the verifier, and next to the slice it falls no faster than `n − 1` per unit of ψ.
+The left side is at most `n g(x)` (peak limit on the nominal samples, `x = γ′ s B_peak dt`, `s` the transmit scale) and
+at most `(c/4) γ′² s² dt E_max` (energy limit `E_max = B1rms² TR` on the nominal samples; `c = g(x)/(x²/4)`, because
+`g(t)/t²` increases). Both cap `u`. The argument needs the slice to fit on the circle (`u z_in ≤ π`) and, for the tail
+term, the two tails to fit beside it; where they do not, the term or the cap is not claimed.
+
+**The bound** (`duration_bound`). `N*` is returned only when, for `m = N* − 1` samples, statements 1 to 3 leave no
+gradient: the cover reaches the smaller of `u_max` and the cap for `m`. A pulse with `n < N*` samples is a pulse of
+`m` samples with zeros appended: its polynomial has degree at most `n − 1 ≤ m − 1`, so the slope bound, the
+certificates and the two RF inequalities hold for it with `m` (its own positions in the slice are at most
+`2η / ((n − 1) u)` apart, which gives the slack η for its own degree; `n g(x) ≤ m g(x)`). It therefore violates a limit
+or fails the mask at a position the verifier evaluates. The three limits and the raster enter the bound `2e-7` wider
+than stated, so that a limit check with a relative tolerance of `1e-9` and a raster within `1e-7` are inside the
+hypotheses: a pulse the verifier lets through its limit checks is a pulse the theorem speaks about. **Assumed, not
+proven:** nothing beyond the class and the model named above. **Not covered:** the refocusing requirement of the task
+(it can only remove pulses; the built pulse meets it, row B6), relaxation during the pulse, the `piecewise` model.
+
+**How tight.** `python -m mrgym.design.bound` builds, for 54 specifications at 32 mT/m, the `minphase` pulse of exactly
+`N*` samples and plays it on the verifier's positions: <!-- tightness: begin -->built / bound in samples: smallest 1.000, median 1.000, largest 1.000 (54 of 54 specifications reach the bound exactly; bounds of 33 to 105 samples, each with 6 to 21 certificates; refocused signal of the built pulses 0.993 to 0.999).<!-- tightness: end -->
+The RF part is not tight: the energy argument uses the slice and a narrow tail beside it, and the built pulse has 1.2
+to 1.7 times that energy (most of the difference lies in the transition band), so on a scanner whose transmit scale
+makes the RF power limit bind the shortest known pulse stands that much above the bound (`envs/rf_pulse_v1`:
+`results/Scanner-RFPulse-v1.factors.json` holds the measured ratios). A linear programme over the feasible `|B|²`
+with a linear minorant of the Jensen integral would close most of this gap; it is not built.
+
+**Review.** A second reader derived statements 1 to 3 independently (the derivation was given before the code),
+verified five certificates in 90-digit arithmetic with a cosine of their own, compared the smallest feasible sample
+count with a linear programme of their own, and attacked the pass rule with pulses built outside the package. Found
+and corrected: (1) the limit checks let a gradient one part in 10⁹ above the limit through, where the cover ended and
+no certificate position was evaluated; outside the specifications of the task (transition 0.05) pulses of up to six
+samples below the bound then met the mask on the grid alone (the verifier would have reported them as a defect, not
+passed them); the hypotheses are now as wide as the checks. (2) The rounding charged per cosine was too small for
+long pulses (measured up to 4.4e-13 against 2e-13 charged); no certificate was unsound, the budget is corrected.
+(3) The exchange stopped at the optimum of its grid, up to 0.4 % in the error above the true optimum, so the count it
+"found" was one or two above the true minimum for two of the specifications tried; it now moves its points off the
+grid and reproduces the linear programme's optimum to six digits. (4) Two steps of the proof were stated more
+strongly than needed or shown (the cap is not monotone in the sample count at n = 1 and where the tail term switches;
+the slice must fit on the circle): the text above is the corrected one. Not verified by the reviewer: the
+Bernstein-Szegő inequality itself (a classical theorem, tested numerically), the refocusing check, `score` end to end.
+
 ### The transmit chain of a scanner (`hardware`)
 
 `hardware.Chain` holds what a scanner does to a designed pulse and the ideal simulator does not: a transmit scale,
@@ -155,7 +239,7 @@ stated equations. They do not show that the equations describe a scanner.
 | D10bo | the same (model piecewise): order of convergence with the raster, 200 to 1,600 samples | second order (symmetric splitting, samples at interval centres) | 2.3e-05 in the order | ≤ 0.02 | pass |
 | D11 | `bloch` without relaxation, from a tilted start | `apply(rotate(...))` | 5.6e-15 | ≤ 1.0e-12 | pass |
 | D12 | a time-varying gradient along an oblique direction on three axes | the same waveform on one axis at the projected positions | 4.7e-16 | ≤ 1.0e-12 | pass |
-| D13 | time of one rotation: 512 samples x 2,000 positions (best of 3) | requirement | 0.009009 s | ≤ 0.1 | pass |
+| D13 | time of one rotation: 512 samples x 2,000 positions (best of 3) | requirement | 0.00883 s | ≤ 0.1 | pass |
 
 ### Pulse generators
 
@@ -214,7 +298,7 @@ stated equations. They do not show that the equations describe a scanner.
 | E10b | `bd_of_b` for that lobe | bd = D kappa^2 t | 0 relative | ≤ 1.0e-12 | pass |
 | E11 | spoiled gradient echo of a slice-selective pulse (fast, normal, sharp): one column per position of the engine's quadrature, each with its own (a, b), summed | the engine's slice integral `scanner/kspace.py::slice_signal` (ideal spoiling) | 3.3e-14 relative | ≤ 1.0e-09 | pass |
 | E12 | the whole state after three pulses with positive and negative dephasing, read back as the magnetisation of single isochromats | the isochromat ensemble | 1.2e-15 | ≤ 1.0e-12 | pass |
-| E13 | time of a train of 400 refocusing pulses with 64 states (best of 3) | requirement | 0.02882 s | ≤ 0.1 | pass |
+| E13 | time of a train of 400 refocusing pulses with 64 states (best of 3) | requirement | 0.02804 s | ≤ 0.1 | pass |
 
 ### Gradient programs and limits
 
@@ -237,6 +321,21 @@ stated equations. They do not show that the equations describe a scanner.
 | G9c | the same results: moments recomputed from the returned samples; amplitude and slew rechecked | the targets; the limits | 1.9e-15 relative | ≤ 1.0e-09 | pass |
 | G9d | flow-compensated lobe (area 5 mT/m ms, first moment zero at an echo 1 ms after it): residual moments; one raster step shorter is infeasible; it is longer than the lobe without compensation | the targets; the certificate | 6.1e-16 | ≤ 1.0e-09 | pass |
 
+### The duration bound
+
+| # | Quantity | Closed form or independent method | Largest error | Tolerance | |
+|---|---|---|---|---|---|
+| B1 | margin of 4 certificates of infeasibility (no pulse of N* - 1 samples meets the mask at n + 1 pairs of positions) | 50-digit decimal arithmetic with its own cosine series | 5.5e-07 | ≥ 1.0e-09 | pass |
+| B2 | `bound.check` (floating point, rounding charged) minus that margin: never larger | the same | -1.5e-10 | ≤ 0 | pass |
+| B3 | two masks: the first and the last three certified cells are infeasible for N* - 1 samples | a linear programme on a grid of 12 points per extremum and the certificate's points (HiGHS), written without `bound.best` | 0 disagreements | ≤ 0 | pass |
+| B4 | 27 specifications at 32 mT/m: samples of the shortest `minphase` pulse that meets the mask / bound, largest | the built pulse through `hardware.rotate` on the positions of the pass rule | 1 | ≤ 1.02 | pass |
+| B5 | the same ratio, smallest: no built pulse is shorter than the bound | the same | 1 | ≥ 1 | pass |
+| B6 | refocused in-slice signal of those pulses with their own rephasing lobe, smallest | sum of Mxy over the slice | 0.9934 | ≥ 0.95 | pass |
+| B7 | |d flip / d psi| / (n - 1) of 18 random pulses of 8, 24 and 60 samples (Bernstein-Szego: at most 1) | finite differences of the profile on 40 001 points | 0.8242 | ≤ 1 | pass |
+| B8 | sum of -ln cos^2(theta_j / 2) minus the integral of -ln(1 - |B|^2) / (2 pi), 12 random pulses: never negative | `profile.jensen_integral` (quadrature of the forward transform) | -4.4e-16 | ≥ -1.0e-09 | pass |
+| B9 | the same two numbers for 9 `minphase` pulses (minimum-phase A: equal), relative difference | the same | 2.7e-13 | ≤ 1.0e-05 | pass |
+| B10 | precession of every built pulse / `gradient_cap` for its own peak and energy as the limits: at most 1 | energy and peak recomputed from the samples | 0.794 | ≤ 1 | pass |
+| B11 | 105 outputs of `minphase`, `slr_flip` and `sinc` from 9 samples below the bound to 9 above: those below that meet the mask | the mask on the positions of the pass rule, with the certificate's positions | 0 pulses | ≤ 0 | pass |
 <!-- validation table: end -->
 
 ## 6. Limits

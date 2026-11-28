@@ -12233,6 +12233,634 @@
    },
    "submit_doc": "Deliver the number of one stored design: the excitation pulse for the specification."
   },
+  "Scanner/RFPulse-v1": {
+   "card": {
+    "competencies": ["qc.transmit_gain", "parameter.flip_angle"],
+    "controls": [
+     {
+      "must": "pass",
+      "name": "reference",
+      "what": "three calibration scans give the transmit scale, the off-resonance and the gradient delay; then the shortest minphase pulse within the limits"
+     },
+     {
+      "must": "fail",
+      "name": "prior",
+      "what": "no scan; the shortest design of the rule for an ideal chain"
+     },
+     {
+      "must": "fail",
+      "name": "ideal_tuned",
+      "what": "one token scan, then the shortest design of the rule for an ideal chain"
+     },
+     {
+      "must": "fail",
+      "name": "default_pulse",
+      "what": "one token scan, then the console's own pulse: a Hann sinc of time-bandwidth 4 at the gradient limit"
+     },
+     {
+      "must": "fail",
+      "name": "fixed_recipe",
+      "what": "one token scan, then one constant amplitude, frequency, delay and gradient for every scanner, tuned on other worlds"
+     },
+     {
+      "must": "fail",
+      "name": "random_search",
+      "what": "one token scan, then random generator parameters within the call limit, judged by the simulator"
+     },
+     {
+      "must": "fail",
+      "name": "wrong_units",
+      "what": "the reference's design with the slice thickness in centimetres"
+     },
+     {
+      "must": "ablation",
+      "name": "ignores_transmit",
+      "what": "the reference with the transmit scale taken as 1"
+     },
+     {
+      "must": "ablation",
+      "name": "ignores_offset",
+      "what": "the reference with the off-resonance taken as 0"
+     },
+     {
+      "must": "ablation",
+      "name": "ignores_delay",
+      "what": "the reference with the gradient delay taken as 0"
+     },
+     {
+      "must": "ablation",
+      "name": "v0_reference",
+      "what": "the reference of Scanner/RFPulse-v0: the transmit scale is measured, the off-resonance and the delay are not"
+     },
+     {
+      "must": "reported",
+      "name": "open_loop",
+      "what": "the reference's fixed scans; the corrections by formula; one gradient chosen from the task card, not from the measurement"
+     }
+    ],
+    "deliver": "The number of one stored design",
+    "deliverable": {
+     "format": {
+      "design": "<number of a stored design>"
+     },
+     "tool": "submit"
+    },
+    "determinism": "same (seed, level, tool calls) -> same observations, log hash chain and reward; a repeated scan draws new noise; the verifier computes rotations, it scans nothing",
+    "given": "A flip-angle mask for a slice (thickness, angle, tolerances, a free transition band), the class of pulses (0.01 ms samples, one constant gradient), hardware limits (gradient, peak B1, RF power at a stated repetition time), an ideal simulator, and a scan-time budget of two or three calibration scans",
+    "hidden": ["the transmit scale (0.6 to 1.6)", "levels 2 and 3: the off-resonance of the slice (up to 400 Hz)", "levels 2 and 3: the delay of the slice gradient (60 to 150 us, either sign)", "noise level", "the 128-bit world seed"],
+    "id": "Scanner/RFPulse-v1",
+    "learnability": {
+     "calibration": [],
+     "check": null,
+     "trainable_by": []
+    },
+    "levels": {
+     "1": {
+      "budget_s": [130.0, 130.0],
+      "summary": "one hidden quantity, the transmit scale; the method is stated: two calibration scans, the generator and its parameters"
+     },
+     "2": {
+      "budget_s": [185.0, 185.0],
+      "summary": "the method is withheld; transmit scale, off-resonance of the slice and gradient delay are hidden; the gradient limit decides the duration"
+     },
+     "3": {
+      "budget_s": [185.0, 185.0],
+      "summary": "as level 2 with an RF power limit that binds on scanners with a low transmit scale: which limit decides the gradient is known only after the scale is measured"
+     }
+    },
+    "limits": {
+     "max_scanner_requests": 40,
+     "max_tool_calls": 40
+    },
+    "practice_levels": [1],
+    "reward": {
+     "error": "duration / bound - 1",
+     "gates": ["the scanner log replays and is within budget", "at least one accepted scan", "the delivered number is a stored design of the class that violates no limit"],
+     "passing": "all gates, the limits, the mask (in slice, outside), the refocused signal, duration >= the bound and <= factor x bound",
+     "range": [0.0, 1.0],
+     "score": "none paid: the reward is 1 for a pass and 0 otherwise; duration_over_bound and the energy are stored",
+     "when": "only at submit; 0 on every other step"
+    },
+    "scored_by": "The exact rotation of the delivered samples through the hidden scanner's transmit chain: the limits and the mask hold, the in-slice signal refocuses, and the pulse is at most 1.3 / 1.3 / 1.7 times (levels 1 / 2 / 3) as long as a proven lower bound on the duration of any pulse of the class on that scanner",
+    "summary": "A design task whose pass rule has no reference in it. Designs are generator calls, never samples or code. The scanner's transmit scale, the off-resonance of the slice and the delay of the slice gradient are hidden and have to be measured with calibration pulses, or the design misses the mask. The duration is compared with a bound that is a theorem for the stated class of pulses (mrgym.design.bound): certificates show that no shorter pulse meets the mask at any allowed gradient, and the generator minphase reaches the bound on an ideal scanner where the gradient limit decides; where the RF power limit decides, the bound is proven but not tight, and the factor of that level is wider. A pass means the design meets this specification on the modelled scanner, nothing more. By level: level 2 is a measurement task, level 3 is a decision task, in this sense: the control open_loop keeps the reference's scan list, which is fixed, puts what it measured into the three corrections by their formulas, and takes its gradient from the task card alone; 25 points or more below the reference make a decision task (reference minus open_loop, points of pass rate: 0 at level 2, 49.3 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)). The decision is which limit sets the gradient on this scanner. No level asks for the next scan to be chosen from the last result: the reference itself plays a fixed list of scans.",
+    "task_kind": "mixed",
+    "task_kind_levels": {
+     "2": "measurement",
+     "3": "decision"
+    },
+    "task_kind_why": "reference minus open_loop, points of pass rate: 0 at level 2, 49.3 at level 3 (n = 300 per level, engine mrgym-engine-0.3.0)",
+    "title": "Design the shortest slice-selective excitation pulse for this scanner",
+    "told": ["the specification, the class of pulses and the limits", "the duration factor and that the bound exists (its value on this scanner depends on the hidden transmit scale through the RF limits)", "which quantities are hidden, with their ranges", "the object", "level 1: the calibration pulses, the scans, the formula and the generator call", "the manual of designed pulses (scanner_info topic design)"],
+    "world": {
+     "agent_side_formulas": "G = tbw / (gamma x thickness x duration); slice shift = offset / (gamma G); phase tilt = 2 pi gamma G delay per mm; double angle: S2 / S1 = 2 cos(s a); energy and peak B1 of a pulse are proportional to G",
+     "phantom": "QA phantom at 3 T with a cylinder of doped water at the isocentre",
+     "sequences_useful": ["rfscan"]
+    }
+   },
+   "constants": {
+    "B1RMS_LOOSE_UT": 6.0,
+    "BASE": {
+     "b0_hz": 2.0,
+     "b0_t": 3.0,
+     "b1_shape_amp": [0.0, 0.0],
+     "cf_offset_hz": 3.0,
+     "console_sequences": ["rfscan"],
+     "kind": "qa",
+     "qa": {
+      "inserts": [
+       {
+        "radius_mm": 25.0,
+        "tissue": {
+         "adc_um2_ms": 2.0,
+         "pd": 0.9,
+         "t1_ms": 83.7,
+         "t2_ms": 60.0,
+         "t2p_ms": 150.0
+        },
+        "x_mm": 0.0,
+        "y_mm": 0.0
+       }
+      ],
+      "p_centre": 0.0
+     }
+    },
+    "CAL": {
+     "duration_ms": 2.0,
+     "flip_deg": 30.0,
+     "kind": "sinc",
+     "tbw": 16.0,
+     "thickness_mm": 50.0
+    },
+    "CAL_AMPLITUDES": [1.0, 2.0],
+    "CAL_CIRCLES": [
+     {
+      "id": "centre",
+      "radius_mm": 4.0,
+      "x_mm": 0.0,
+      "y_mm": 0.0
+     }
+    ],
+    "CAL_SCAN": {
+     "matrix": 96,
+     "sequence": "rfscan",
+     "te_ms": 8.0,
+     "tr_ms": 500.0
+    },
+    "CAL_TE2_MS": 8.4,
+    "CHAIN": {
+     "guard": true,
+     "model": "split"
+    },
+    "COMPETENCIES": ["qc.transmit_gain", "parameter.flip_angle"],
+    "DELAY_US": [60.0, 150.0],
+    "DESIGN_MANUAL": "Designed pulses on this console (Scanner/RFPulse-v1)\n\nA design is a generator call; `design` stores it under a number and prints its record, `simulate` its flip-angle\nprofile on the model, `scan` with sequence rfscan plays it (rf_axis readout: the image is the profile along x).\n\nHow a design is played. Every sample of 0.01 ms is a hard sub-pulse; the slice gradient is constant, G = tbw /\n(0.042577 x thickness_mm x duration_ms) mT/m, and its plateau begins before the pulse and ends after it.\nThe profile of a sampled pulse repeats every 2348.7 / G mm. After the pulse a rephasing lobe of\nrephase_fraction x G x duration is played.\n\nWhat a scanner does to a design, and the correction\n  transmit scale s        every B1 is multiplied by s                              amplitude = 1 / s\n  off-resonance f (Hz)    the slice moves by f / (42.577 x G) mm                     freq_hz = f\n  gradient late by t      the area G x t stays behind the pulse: the phase of the  rephase_fraction = best + t / duration\n                          signal tilts by 2 pi x 42.577 x G x t[s] rad per mm          (t negative: early)\n\nGenerators\n  sinc      windowed sinc; flip_deg at the slice centre\n  minphase  for a mask (thickness, transition W, tol_in_deg, max_out_deg): the best pulse of its duration and\n            gradient; when a pulse of that length fits the mask, this one does. The record prints its largest\n            deviation in units of the two tolerances (at most 1: met on the ideal model) and the best\n            rephase_fraction. Shorter duration or weaker gradient: a larger deviation. Its energy and peak B1 are\n            proportional to the gradient.\n\nThe duration bound. For samples of 0.01 ms under one constant gradient the flip angle is a function of\n|B|^2, a trigonometric polynomial of degree (samples - 1) in the precession per sample. Whether such a polynomial\nfits a mask is decided exactly; the bound is the smallest number of samples for which one fits at some gradient\nthat the limits allow. The gradient limit is stated. The RF power and the peak limit are on the design's samples, which\nare 1 / s times what the spins need, so they cap the gradient at a value that grows with s^2 (energy is proportional\nto the gradient). The bound is therefore N(largest allowed gradient) x 0.01 ms: it is the duration of minphase at\nthe gradient limit when the RF limits leave that gradient, and longer when they do not.\n\nMeasuring. At tr_ms of five T1 the signal of a spin is sin(flip angle). The same pulse twice as strong turns twice as far.\nThe phase of a circle's complex mean runs by 2 pi x off-resonance x te_ms / 1000 between two echo times. Across the stripe of a\npulse that is symmetric in time the phase is flat on an ideal scanner.",
+    "DESIGN_TOOLS": {
+     "chain": {
+      "guard": true,
+      "model": "split"
+     },
+     "kinds": ["sinc", "minphase"]
+    },
+    "ENV_ID": "Scanner/RFPulse-v1",
+    "FACTORS": {
+     "1": 1.3,
+     "2": 1.3,
+     "3": 1.7
+    },
+    "FAMILY": "rf_pulse_v1",
+    "HIDDEN_TEXT": {
+     "gradient_delay": "the slice gradient is early or late against the RF by 60 to 150 us: its plateau outlasts the pulse, so the area G x delay stays behind the pulse and tilts the phase across the slice",
+     "off_resonance": "off-resonance of the slice, up to +-400 Hz: it moves the slice by offset / (42.577 x G) mm",
+     "transmit_scale": "transmit scale s, 0.6 to 1.6: a spin gets s times the B1 of the design"
+    },
+    "HZ_PER_MT_M_MM": 42.57747851800001,
+    "INSERT": {
+     "radius_mm": 25.0,
+     "t1_ms": 83.7,
+     "t2_ms": 60.0
+    },
+    "LEVELS": {
+     "1": {
+      "hidden": ["transmit_scale"],
+      "kind": "practice",
+      "method": true,
+      "power": "loose",
+      "scans": 2,
+      "summary": "one hidden quantity, the transmit scale; the method is stated: two calibration scans, the generator and its parameters",
+      "transitions": [0.2, 0.25, 0.3, 0.4],
+      "world_spec": {
+       "b0_hz": 2.0,
+       "b0_t": 3.0,
+       "b1_shape_amp": [0.0, 0.0],
+       "cf_offset_hz": 3.0,
+       "console_sequences": ["rfscan"],
+       "kind": "qa",
+       "qa": {
+        "inserts": [
+         {
+          "radius_mm": 25.0,
+          "tissue": {
+           "adc_um2_ms": 2.0,
+           "pd": 0.9,
+           "t1_ms": 83.7,
+           "t2_ms": 60.0,
+           "t2p_ms": 150.0
+          },
+          "x_mm": 0.0,
+          "y_mm": 0.0
+         }
+        ],
+        "p_centre": 0.0
+       },
+       "rf_hardware": {
+        "guard": true,
+        "model": "split",
+        "tx_scale": [0.6, 1.6]
+       }
+      }
+     },
+     "2": {
+      "hidden": ["transmit_scale", "off_resonance", "gradient_delay"],
+      "method": false,
+      "power": "loose",
+      "scans": 3,
+      "summary": "the method is withheld; transmit scale, off-resonance of the slice and gradient delay are hidden; the gradient limit decides the duration",
+      "transitions": [0.2, 0.25, 0.3, 0.4],
+      "world_spec": {
+       "b0_hz": 2.0,
+       "b0_t": 3.0,
+       "b1_shape_amp": [0.0, 0.0],
+       "cf_offset_hz": 400.0,
+       "console_sequences": ["rfscan"],
+       "kind": "qa",
+       "qa": {
+        "inserts": [
+         {
+          "radius_mm": 25.0,
+          "tissue": {
+           "adc_um2_ms": 2.0,
+           "pd": 0.9,
+           "t1_ms": 83.7,
+           "t2_ms": 60.0,
+           "t2p_ms": 150.0
+          },
+          "x_mm": 0.0,
+          "y_mm": 0.0
+         }
+        ],
+        "p_centre": 0.0
+       },
+       "rf_hardware": {
+        "grad_delay_sign": true,
+        "grad_delay_us": [60.0, 150.0],
+        "guard": true,
+        "model": "split",
+        "tx_scale": [0.6, 1.6]
+       }
+      }
+     },
+     "3": {
+      "hidden": ["transmit_scale", "off_resonance", "gradient_delay"],
+      "method": false,
+      "power": "binding",
+      "scans": 3,
+      "summary": "as level 2 with an RF power limit that binds on scanners with a low transmit scale: which limit decides the gradient is known only after the scale is measured",
+      "transitions": [0.2, 0.25, 0.3],
+      "world_spec": {
+       "b0_hz": 2.0,
+       "b0_t": 3.0,
+       "b1_shape_amp": [0.0, 0.0],
+       "cf_offset_hz": 400.0,
+       "console_sequences": ["rfscan"],
+       "kind": "qa",
+       "qa": {
+        "inserts": [
+         {
+          "radius_mm": 25.0,
+          "tissue": {
+           "adc_um2_ms": 2.0,
+           "pd": 0.9,
+           "t1_ms": 83.7,
+           "t2_ms": 60.0,
+           "t2p_ms": 150.0
+          },
+          "x_mm": 0.0,
+          "y_mm": 0.0
+         }
+        ],
+        "p_centre": 0.0
+       },
+       "rf_hardware": {
+        "grad_delay_sign": true,
+        "grad_delay_us": [60.0, 150.0],
+        "guard": true,
+        "model": "split",
+        "tx_scale": [0.6, 1.6]
+       }
+      }
+     }
+    },
+    "LIMITS": {
+     "b1_peak_ut": 40.0,
+     "g_max_mt_m": 32.0,
+     "slew_t_m_s": 120.0,
+     "tr_ms": 10.0
+    },
+    "OFFSET_HZ": 400.0,
+    "OUTCOMES": ["limit_violated", "mask_in_slice", "mask_out_of_slice", "mask_phase", "below_bound", "too_long"],
+    "POWER_SCALE": [1.0, 1.35],
+    "PROVISIONAL_FACTOR": 2.0,
+    "RASTER_MS": 0.01,
+    "REFOCUSED_MIN": 0.95,
+    "SCAN_S": 55.0,
+    "SUBMIT_DOC": "Deliver the number of one stored design: the excitation pulse for the specification.",
+    "T1_TOLD_BELOW_MS": 100.0,
+    "TX_RANGE": [0.6, 1.6]
+   },
+   "episode": {
+    "chain_head": "b2ade8a326a9b336dcfcaacc3b544cc5cda4defade6ac5bc88c7af3701d3cd01",
+    "passed": true,
+    "policy_error": null,
+    "reward": 1.0,
+    "steps": 9,
+    "texts_sha256": "1c4488ec6c6c7719e536a1139773b3687de26d6e63dd7f5b392796442edb1d78",
+    "used_s": 165.0
+   },
+   "levels": {
+    "1": {
+     "instance": {
+      "budget_s": 130.0,
+      "family": "rf_pulse_v1",
+      "level": 1,
+      "max_requests": 40,
+      "seed": "328d9ab0c7024f5777370d6ceba62558",
+      "task": {
+       "deliverable": {
+        "design": "<number of a stored design>"
+       },
+       "design": {
+        "hidden": ["transmit_scale"],
+        "limits": {
+         "b1_peak_ut": 40.0,
+         "b1rms_ut": 6.0,
+         "duration_max_ms": 20.0,
+         "g_max_mt_m": 32.0,
+         "slew_t_m_s": 120.0,
+         "tr_ms": 10.0
+        },
+        "specification": {
+         "extent_mm": "repeat",
+         "flip_deg": 27.0,
+         "max_out_deg": 0.8,
+         "refocused_min": 0.95,
+         "thickness_mm": 4.0,
+         "tol_in_deg": 1.1,
+         "transition": 0.4
+        }
+       },
+       "duration_factor": 1.3,
+       "family": "rf_pulse_v1",
+       "method": {
+        "duration_ms": 0.62,
+        "max_out_deg": 0.72,
+        "tbw": 3.378948,
+        "tol_in_deg": 0.77
+       },
+       "object": {
+        "insert_radius_mm": 25.0,
+        "insert_t1_below_ms": 100.0
+       },
+       "raster_ms": 0.01,
+       "regions": []
+      },
+      "task_id": "snapshot",
+      "world_spec": {
+       "b0_hz": 2.0,
+       "b0_t": 3.0,
+       "b1_shape_amp": [0.0, 0.0],
+       "cf_offset_hz": 3.0,
+       "console_sequences": ["rfscan"],
+       "kind": "qa",
+       "qa": {
+        "inserts": [
+         {
+          "radius_mm": 25.0,
+          "tissue": {
+           "adc_um2_ms": 2.0,
+           "pd": 0.9,
+           "t1_ms": 83.7,
+           "t2_ms": 60.0,
+           "t2p_ms": 150.0
+          },
+          "x_mm": 0.0,
+          "y_mm": 0.0
+         }
+        ],
+        "p_centre": 0.0
+       },
+       "rf_hardware": {
+        "guard": true,
+        "model": "split",
+        "tx_scale": [0.6, 1.6]
+       }
+      }
+     },
+     "statement": "# Design the shortest slice-selective excitation pulse for this scanner\nMake designs with `design`, look at one on the ideal model with `simulate`, play one with `scan` (sequence rfscan,\nrf_design = its number), deliver one number with `submit`.\n\nSpecification: flip angle against the position z along the slice axis, on THIS scanner, at the isocentre\n  in the slice, |z| <= 1.2 mm: 27 +- 1.1 degrees\n  outside, |z| >= 2.8 mm, out to half the repeat distance of the profile: at most 0.8 degrees\n  between the two: free\n  after the rephasing lobe at least 95 % of the in-slice signal adds up\nClass of pulses: samples of 0.01 ms played as hard sub-pulses under one constant slice gradient\nG = tbw / (0.042577 x thickness_mm x duration_ms) mT/m; the profile repeats every 2348.7 / G mm.\nLimits on the samples of the design: gradient 32 mT/m, peak B1 40 uT, B1rms 6 uT over a repetition\ntime of 10 ms, duration 20 ms.\nDuration: at most 1.3 times the bound, the shortest duration any pulse of this class can have on this scanner\nwithin the limits (proven; scanner_info topic design). A longer pulse fails although it meets the mask.\n\nThis scanner is not ideal. Unknown until measured:\n  transmit scale s, 0.6 to 1.6: a spin gets s times the B1 of the design\nThe object: a gel phantom, doped water at the isocentre (radius 25 mm, T1 below 100 ms). The scan-time budget pays 2 scans of 55 s (rfscan, tr_ms 500, matrix 96), not 3.\nWith rf_axis readout the image shows the pulse's profile along x; magnitudes of two scans compare only at the same te_ms.\nYour scans may use any sequence and any parameters the console accepts; only the delivered design is evaluated.\n\nPassing: on the scanner the design meets the specification and the limits and is short enough. The scanner's log\nmust show that you measured. An answer in the wrong unit is wrong.\n\nHow to do it (this level states the procedure).\n  1. `design` {\"kind\": \"sinc\", \"flip_deg\": 30.0, \"duration_ms\": 2.0, \"tbw\": 16.0, \"thickness_mm\": 50.0} and the same with \"amplitude\": 2. Note \"flip on resonance\" of the first: a.\n  2. `scan` each: {\"sequence\": \"rfscan\", \"tr_ms\": 500.0, \"te_ms\": 8.0, \"matrix\": 96, \"rf_design\": \"<number>\", \"circles\": [{\"y_mm\": 0.0, \"x_mm\": 0.0, \"radius_mm\": 4.0}]}. |complex mean| of the circle: S1, S2.\n  3. The second pulse turns twice as far: S2 / S1 = 2 cos(s a), so s = arccos(S2 / (2 S1)) [degrees] / a.\n  4. `design` {\"kind\": \"minphase\", \"flip_deg\": 27.0, \"thickness_mm\": 4.0, \"transition\": 0.4, \"duration_ms\": 0.62, \"tbw\": 3.378948, \"tol_in_deg\": 0.77, \"max_out_deg\": 0.72, \"amplitude\": 1 / s}\n  5. `submit` its number.",
+     "submit_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "design": {
+        "description": "number of a stored design",
+        "maximum": 32,
+        "minimum": 1,
+        "type": "integer"
+       }
+      },
+      "required": ["design"],
+      "type": "object"
+     }
+    },
+    "2": {
+     "instance": {
+      "budget_s": 185.0,
+      "family": "rf_pulse_v1",
+      "level": 2,
+      "max_requests": 40,
+      "seed": "a68fa58a8f822dc30e952eef464bde9b",
+      "task": {
+       "deliverable": {
+        "design": "<number of a stored design>"
+       },
+       "design": {
+        "hidden": ["transmit_scale", "off_resonance", "gradient_delay"],
+        "limits": {
+         "b1_peak_ut": 40.0,
+         "b1rms_ut": 6.0,
+         "duration_max_ms": 20.0,
+         "g_max_mt_m": 32.0,
+         "slew_t_m_s": 120.0,
+         "tr_ms": 10.0
+        },
+        "specification": {
+         "extent_mm": "repeat",
+         "flip_deg": 33.0,
+         "max_out_deg": 1.3,
+         "refocused_min": 0.95,
+         "thickness_mm": 4.0,
+         "tol_in_deg": 1.7,
+         "transition": 0.2
+        }
+       },
+       "duration_factor": 1.3,
+       "family": "rf_pulse_v1",
+       "object": {
+        "insert_radius_mm": 25.0,
+        "insert_t1_below_ms": 100.0
+       },
+       "raster_ms": 0.01,
+       "regions": []
+      },
+      "task_id": "snapshot",
+      "world_spec": {
+       "b0_hz": 2.0,
+       "b0_t": 3.0,
+       "b1_shape_amp": [0.0, 0.0],
+       "cf_offset_hz": 400.0,
+       "console_sequences": ["rfscan"],
+       "kind": "qa",
+       "qa": {
+        "inserts": [
+         {
+          "radius_mm": 25.0,
+          "tissue": {
+           "adc_um2_ms": 2.0,
+           "pd": 0.9,
+           "t1_ms": 83.7,
+           "t2_ms": 60.0,
+           "t2p_ms": 150.0
+          },
+          "x_mm": 0.0,
+          "y_mm": 0.0
+         }
+        ],
+        "p_centre": 0.0
+       },
+       "rf_hardware": {
+        "grad_delay_sign": true,
+        "grad_delay_us": [60.0, 150.0],
+        "guard": true,
+        "model": "split",
+        "tx_scale": [0.6, 1.6]
+       }
+      }
+     },
+     "statement": "# Design the shortest slice-selective excitation pulse for this scanner\nMake designs with `design`, look at one on the ideal model with `simulate`, play one with `scan` (sequence rfscan,\nrf_design = its number), deliver one number with `submit`.\n\nSpecification: flip angle against the position z along the slice axis, on THIS scanner, at the isocentre\n  in the slice, |z| <= 1.6 mm: 33 +- 1.7 degrees\n  outside, |z| >= 2.4 mm, out to half the repeat distance of the profile: at most 1.3 degrees\n  between the two: free\n  after the rephasing lobe at least 95 % of the in-slice signal adds up\nClass of pulses: samples of 0.01 ms played as hard sub-pulses under one constant slice gradient\nG = tbw / (0.042577 x thickness_mm x duration_ms) mT/m; the profile repeats every 2348.7 / G mm.\nLimits on the samples of the design: gradient 32 mT/m, peak B1 40 uT, B1rms 6 uT over a repetition\ntime of 10 ms, duration 20 ms.\nDuration: at most 1.3 times the bound, the shortest duration any pulse of this class can have on this scanner\nwithin the limits (proven; scanner_info topic design). A longer pulse fails although it meets the mask.\n\nThis scanner is not ideal. Unknown until measured:\n  transmit scale s, 0.6 to 1.6: a spin gets s times the B1 of the design\n  off-resonance of the slice, up to +-400 Hz: it moves the slice by offset / (42.577 x G) mm\n  the slice gradient is early or late against the RF by 60 to 150 us: its plateau outlasts the pulse, so the area G x delay stays behind the pulse and tilts the phase across the slice\nThe object: a gel phantom, doped water at the isocentre (radius 25 mm, T1 below 100 ms). The scan-time budget pays 3 scans of 55 s (rfscan, tr_ms 500, matrix 96), not 4.\nWith rf_axis readout the image shows the pulse's profile along x; magnitudes of two scans compare only at the same te_ms.\nYour scans may use any sequence and any parameters the console accepts; only the delivered design is evaluated.\n\nPassing: on the scanner the design meets the specification and the limits and is short enough. The scanner's log\nmust show that you measured. An answer in the wrong unit is wrong.",
+     "submit_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "design": {
+        "description": "number of a stored design",
+        "maximum": 32,
+        "minimum": 1,
+        "type": "integer"
+       }
+      },
+      "required": ["design"],
+      "type": "object"
+     }
+    },
+    "3": {
+     "instance": {
+      "budget_s": 185.0,
+      "family": "rf_pulse_v1",
+      "level": 3,
+      "max_requests": 40,
+      "seed": "363205811b6bdb209aa2a8c8acb5216f",
+      "task": {
+       "deliverable": {
+        "design": "<number of a stored design>"
+       },
+       "design": {
+        "hidden": ["transmit_scale", "off_resonance", "gradient_delay"],
+        "limits": {
+         "b1_peak_ut": 40.0,
+         "b1rms_ut": 1.63,
+         "duration_max_ms": 20.0,
+         "g_max_mt_m": 32.0,
+         "slew_t_m_s": 120.0,
+         "tr_ms": 10.0
+        },
+        "specification": {
+         "extent_mm": "repeat",
+         "flip_deg": 37.0,
+         "max_out_deg": 1.1,
+         "refocused_min": 0.95,
+         "thickness_mm": 5.0,
+         "tol_in_deg": 1.9,
+         "transition": 0.25
+        }
+       },
+       "duration_factor": 1.7,
+       "family": "rf_pulse_v1",
+       "object": {
+        "insert_radius_mm": 25.0,
+        "insert_t1_below_ms": 100.0
+       },
+       "raster_ms": 0.01,
+       "regions": []
+      },
+      "task_id": "snapshot",
+      "world_spec": {
+       "b0_hz": 2.0,
+       "b0_t": 3.0,
+       "b1_shape_amp": [0.0, 0.0],
+       "cf_offset_hz": 400.0,
+       "console_sequences": ["rfscan"],
+       "kind": "qa",
+       "qa": {
+        "inserts": [
+         {
+          "radius_mm": 25.0,
+          "tissue": {
+           "adc_um2_ms": 2.0,
+           "pd": 0.9,
+           "t1_ms": 83.7,
+           "t2_ms": 60.0,
+           "t2p_ms": 150.0
+          },
+          "x_mm": 0.0,
+          "y_mm": 0.0
+         }
+        ],
+        "p_centre": 0.0
+       },
+       "rf_hardware": {
+        "grad_delay_sign": true,
+        "grad_delay_us": [60.0, 150.0],
+        "guard": true,
+        "model": "split",
+        "tx_scale": [0.6, 1.6]
+       }
+      }
+     },
+     "statement": "# Design the shortest slice-selective excitation pulse for this scanner\nMake designs with `design`, look at one on the ideal model with `simulate`, play one with `scan` (sequence rfscan,\nrf_design = its number), deliver one number with `submit`.\n\nSpecification: flip angle against the position z along the slice axis, on THIS scanner, at the isocentre\n  in the slice, |z| <= 1.875 mm: 37 +- 1.9 degrees\n  outside, |z| >= 3.125 mm, out to half the repeat distance of the profile: at most 1.1 degrees\n  between the two: free\n  after the rephasing lobe at least 95 % of the in-slice signal adds up\nClass of pulses: samples of 0.01 ms played as hard sub-pulses under one constant slice gradient\nG = tbw / (0.042577 x thickness_mm x duration_ms) mT/m; the profile repeats every 2348.7 / G mm.\nLimits on the samples of the design: gradient 32 mT/m, peak B1 40 uT, B1rms 1.63 uT over a repetition\ntime of 10 ms, duration 20 ms.\nDuration: at most 1.7 times the bound, the shortest duration any pulse of this class can have on this scanner\nwithin the limits (proven; scanner_info topic design). A longer pulse fails although it meets the mask.\n\nThis scanner is not ideal. Unknown until measured:\n  transmit scale s, 0.6 to 1.6: a spin gets s times the B1 of the design\n  off-resonance of the slice, up to +-400 Hz: it moves the slice by offset / (42.577 x G) mm\n  the slice gradient is early or late against the RF by 60 to 150 us: its plateau outlasts the pulse, so the area G x delay stays behind the pulse and tilts the phase across the slice On a scanner with a low s the shortest pulse passes the B1rms limit when played 1 / s times as strong; the energy is proportional to the gradient.\nThe object: a gel phantom, doped water at the isocentre (radius 25 mm, T1 below 100 ms). The scan-time budget pays 3 scans of 55 s (rfscan, tr_ms 500, matrix 96), not 4.\nWith rf_axis readout the image shows the pulse's profile along x; magnitudes of two scans compare only at the same te_ms.\nYour scans may use any sequence and any parameters the console accepts; only the delivered design is evaluated.\n\nPassing: on the scanner the design meets the specification and the limits and is short enough. The scanner's log\nmust show that you measured. An answer in the wrong unit is wrong.",
+     "submit_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "design": {
+        "description": "number of a stored design",
+        "maximum": 32,
+        "minimum": 1,
+        "type": "integer"
+       }
+      },
+      "required": ["design"],
+      "type": "object"
+     }
+    }
+   },
+   "submit_doc": "Deliver the number of one stored design: the excitation pulse for the specification."
+  },
   "Scanner/Resolve-v0": {
    "card": {
     "competencies": ["parameter.matrix", "parameter.pixel", "parameter.fov", "parameter.phase_frequency_direction", "option.rectangular_fov", "artefact.gibbs"],
@@ -16662,6 +17290,517 @@
       }
      },
      "statement": "# Measure T2 of each marked vial\nA test object with vials of unknown materials lies in the field of view.\nDeliver the transverse relaxation time T2 of each marked region, in milliseconds, with `submit`.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y -46.25, x 29.67, radius 11.5\n  R2: y 14.13, x 55.23, radius 11.5\n  R3: y 26.26, x -50.99, radius 11.5\nT2 values lie between 15 and 400 ms, T1 values between 300 and 2500 ms.\nNothing else about the object or the system is known.\nOne `se` scan gives one echo time: the scanner has no multi-echo spin echo.\n\nPassing: for every region the delivered T2 lies within a factor 1.1 of the true T2 (between T2 / 1.1 and 1.1 x T2).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
+     "submit_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "t2_ms": {
+        "additionalProperties": false,
+        "description": "T2 of every marked region in milliseconds, by region id",
+        "properties": {
+         "R1": {
+          "maximum": 5000.0,
+          "minimum": 2.0,
+          "type": "number"
+         },
+         "R2": {
+          "maximum": 5000.0,
+          "minimum": 2.0,
+          "type": "number"
+         },
+         "R3": {
+          "maximum": 5000.0,
+          "minimum": 2.0,
+          "type": "number"
+         }
+        },
+        "required": ["R1", "R2", "R3"],
+        "type": "object"
+       }
+      },
+      "required": ["t2_ms"],
+      "type": "object"
+     }
+    }
+   },
+   "submit_doc": "Deliver T2 of every marked region, in milliseconds."
+  },
+  "Scanner/T2Echoes-v0": {
+   "card": {
+    "controls": [
+     {
+      "must": "pass",
+      "name": "reference",
+      "what": "one echo train with the sharp pulse; the echo-train model fitted per region with amplitude, T2 and refocusing angle free"
+     },
+     {
+      "must": "fail",
+      "name": "prior",
+      "what": "no scan; the geometric mean of the told T2 range in every region"
+     },
+     {
+      "must": "fail",
+      "name": "fixed_recipe",
+      "what": "one token scan, then one constant T2 tuned on other worlds"
+     },
+     {
+      "must": "fail",
+      "name": "mono_exp",
+      "what": "one echo train with the default pulse; a straight line through ln(signal) of the echoes"
+     },
+     {
+      "must": "fail",
+      "name": "single_echoes",
+      "what": "the reference of Scanner/T2Decay: a series of single-echo spin echoes, which the budget does not pay"
+     },
+     {
+      "must": "fail",
+      "name": "wrong_units",
+      "what": "the reference's T2 in seconds"
+     },
+     {
+      "must": "ablation",
+      "name": "line_fit",
+      "what": "the reference's train; a straight line through ln(signal) instead of the echo-train model"
+     },
+     {
+      "must": "reported",
+      "name": "open_loop",
+      "what": "the reference (one scan, a fixed estimator)"
+     },
+     {
+      "must": "reported",
+      "name": "drop_first",
+      "what": "the reference's train; a straight line through ln(signal) without the first echo"
+     },
+     {
+      "must": "reported",
+      "name": "even_echoes",
+      "what": "the reference's train; a straight line through ln(signal) of the even echoes"
+     },
+     {
+      "must": "reported",
+      "name": "default_pulse",
+      "what": "the reference's fit on a train with the console's default pulse"
+     }
+    ],
+    "deliver": "T2 of every marked vial, in ms",
+    "deliverable": {
+     "format": {
+      "t2_ms": {
+       "<region id>": "<milliseconds>"
+      }
+     },
+     "tool": "submit"
+    },
+    "determinism": "same (seed, level, tool calls) -> same observations, log hash chain and reward; a repeated scan draws new noise; the verifier reads the hidden T2 and scans nothing",
+    "given": "A QA phantom with 4 to 6 vials, three of them marked; a scanner with a multi-echo spin echo and a hidden transmit scale; a scan-time budget that pays one scan",
+    "hidden": ["T2, T1, proton density of every material", "geometry of body and vials", "transmit gain (off either way; level 1: 8 to 22 %; level 2: 8 to 22 %; level 3: 25 to 45 %) and B1 pattern", "receive profile", "noise level", "the 128-bit world seed"],
+    "id": "Scanner/T2Echoes-v0",
+    "kind": "candidate",
+    "learnability": {
+     "calibration": [],
+     "check": null,
+     "trainable_by": []
+    },
+    "levels": {
+     "1": {
+      "budget_s": [90.0, 90.0],
+      "summary": "the method is stated: one echo train with the sharp pulse, the echo-train model fitted with the refocusing angle free"
+     },
+     "2": {
+      "budget_s": [90.0, 90.0],
+      "summary": "no method: a line through ln(signal) of the echoes reads T2 4 to 35 % long, by an amount that depends on the pulse and on the hidden transmit scale"
+     },
+     "3": {
+      "budget_s": [90.0, 90.0],
+      "summary": "the transmit scale is off by 25 to 45 %: no straight line through the echoes comes close (5 to 76 % long, with or without the first echo); the echo-train model still fits"
+     }
+    },
+    "limits": {
+     "max_scanner_requests": 40,
+     "max_tool_calls": 40
+    },
+    "practice_levels": [],
+    "reward": {
+     "error": "largest over the regions of |ln(T2_delivered / T2_true)|",
+     "gates": ["the scanner log replays and is within budget", "at least one accepted scan", "deliverable valid: exactly the region ids, values in 2 to 5000 ms"],
+     "passing": "all gates and, for every region, error <= ln(1.1)",
+     "range": [0.0, 1.0],
+     "score": "none: the reward is 1 for a pass and 0 otherwise",
+     "when": "only at submit; 0 on every other step"
+    },
+    "scored_by": "The hidden T2 of every marked vial: each delivered value within a factor 1.1 of it",
+    "summary": "Subject A (signal and contrast), a single-skill measurement: the stimulated echoes of an echo train. The refocusing angle is not 180 degrees (slice profile, transmit scale), so the echoes do not decay as exp(-TE / T2) and a line through their logarithm reads T2 long. The echoes follow a known recursion; fitted with the refocusing angle free it gives T2. Scanner/T2Decay measures the same quantity with one spin echo per echo time; here the budget pays one scan.",
+    "task_kind": "undetermined",
+    "task_kind_why": "no stored gate result",
+    "title": "T2 of marked vials from a multi-echo spin echo",
+    "told": ["region centres and radii", "the range of T2 (level 1: 40 to 200 ms; level 2: 40 to 200 ms; level 3: 40 to 200 ms) and of T1 (400 to 2000 ms)", "by how much the transmit scale is off at most and at least", "the pass tolerance", "level 1: the method", "the instrument datasheet with its supplement for `mese`", "budget and request limits", "realised protocol, timing and cost of every plan and scan"],
+    "world": {
+     "agent_side_formulas": "the recursion of an echo train with one refocusing angle (level 1 prints it as a text for `calc`; the datasheet gives the first two echoes in closed form); the served echoes are that train integrated over the profiles of both pulses of the 2D slice",
+     "console": "offers `mese` beyond the six sequences of every console; adjustments take 40 s before every scan",
+     "phantom": "QA phantom (a disc of gel with vials), 1.5 T",
+     "sequences_useful": ["mese"]
+    }
+   },
+   "constants": {
+    "ADJUST_S": 40.0,
+    "BASE": {
+     "b0_t": 1.5,
+     "console_sequences": ["mese"],
+     "console_system": {
+      "overhead_s": 40.0
+     },
+     "kind": "qa",
+     "sigma0": 0.1,
+     "tx_gain_dev": [0.08, 0.22]
+    },
+    "BUDGET_S": 90.0,
+    "COMPETENCIES": ["parameter.te", "parameter.etl", "parameter.flip_angle", "qc.transmit_gain"],
+    "ENV_ID": "Scanner/T2Echoes-v0",
+    "FAMILY": "t2_echoes",
+    "ISOLATES": "stimulated echoes of an echo train: T2 from a multi-echo spin echo with the echo-train model",
+    "KIND": "measure",
+    "LEVELS": {
+     "1": {
+      "budget_s": 90.0,
+      "hints": ["method"],
+      "summary": "the method is stated: one echo train with the sharp pulse, the echo-train model fitted with the refocusing angle free",
+      "t2_range_ms": [40.0, 200.0],
+      "world_spec": {
+       "b0_t": 1.5,
+       "console_sequences": ["mese"],
+       "console_system": {
+        "overhead_s": 40.0
+       },
+       "kind": "qa",
+       "qa": {
+        "n_ring": [4, 5],
+        "t2_over_t1_max": 0.4,
+        "vial_t1_ms": [400.0, 2000.0]
+       },
+       "sigma0": 0.1,
+       "tx_gain_dev": [0.08, 0.22]
+      }
+     },
+     "2": {
+      "budget_s": 90.0,
+      "summary": "no method: a line through ln(signal) of the echoes reads T2 4 to 35 % long, by an amount that depends on the pulse and on the hidden transmit scale",
+      "t2_range_ms": [40.0, 200.0],
+      "world_spec": {
+       "b0_t": 1.5,
+       "console_sequences": ["mese"],
+       "console_system": {
+        "overhead_s": 40.0
+       },
+       "kind": "qa",
+       "qa": {
+        "n_ring": [4, 5],
+        "t2_over_t1_max": 0.4,
+        "vial_t1_ms": [400.0, 2000.0]
+       },
+       "sigma0": 0.1,
+       "tx_gain_dev": [0.08, 0.22]
+      }
+     },
+     "3": {
+      "budget_s": 90.0,
+      "summary": "the transmit scale is off by 25 to 45 %: no straight line through the echoes comes close (5 to 76 % long, with or without the first echo); the echo-train model still fits",
+      "t2_range_ms": [40.0, 200.0],
+      "world_spec": {
+       "b0_t": 1.5,
+       "console_sequences": ["mese"],
+       "console_system": {
+        "overhead_s": 40.0
+       },
+       "kind": "qa",
+       "qa": {
+        "n_ring": [4, 5],
+        "t2_over_t1_max": 0.4,
+        "vial_t1_ms": [400.0, 2000.0]
+       },
+       "sigma0": 0.1,
+       "tx_gain_dev": [0.25, 0.45]
+      }
+     }
+    },
+    "METHOD": {
+     "min_echoes": 4,
+     "min_share": 0.08,
+     "scan": {
+      "matrix": 48,
+      "n_echoes": 16,
+      "partial_fourier": 0.75,
+      "rf_pulse": "sharp",
+      "sequence": "mese",
+      "tr_ms": 1150.0
+     },
+     "start": [80.0, 140.0],
+     "t2_bounds_ms": [5.0, 2000.0],
+     "theta_bounds_deg": [60.0, 180.0]
+    },
+    "N_REGIONS": 3,
+    "OUTCOMES": ["no_region_within", "some_regions_within"],
+    "QA": {
+     "n_ring": [4, 5],
+     "t2_over_t1_max": 0.4,
+     "vial_t1_ms": [400.0, 2000.0]
+    },
+    "SEQUENCES": ["mese"],
+    "SUBJECT": "A",
+    "SUBMIT_DOC": "Deliver T2 of every marked region, in milliseconds.",
+    "T1_RANGE_MS": [400.0, 2000.0],
+    "T2_VALID_MS": [2.0, 5000.0],
+    "TOLERANCE": 0.1,
+    "TX_BANDS": {
+     "1": "8-22",
+     "2": "8-22",
+     "3": "25-45"
+    }
+   },
+   "episode": {
+    "chain_head": "38475a0cef34cdce34c432b91f932d7ca6c0eff3639c9ed064a29a4726ed74bd",
+    "passed": true,
+    "policy_error": null,
+    "reward": 1.0,
+    "steps": 3,
+    "texts_sha256": "a4fe3f07ec8d92ba2c731c787d76a2417ff1b2b0d4aedb996ae9bccd161eb39c",
+    "used_s": 82.55
+   },
+   "levels": {
+    "1": {
+     "instance": {
+      "budget_s": 90.0,
+      "family": "t2_echoes",
+      "level": 1,
+      "max_requests": 40,
+      "seed": "24f62f48031d4328c95ac4925322047a",
+      "task": {
+       "deliverable": {
+        "t2_ms": {
+         "<region id>": "<number, milliseconds>"
+        }
+       },
+       "family": "t2_echoes",
+       "hints": ["method"],
+       "regions": [
+        {
+         "id": "R1",
+         "radius_mm": 11.5,
+         "x_mm": -31.44,
+         "y_mm": 46.01
+        },
+        {
+         "id": "R2",
+         "radius_mm": 11.5,
+         "x_mm": 35.09,
+         "y_mm": 41.23
+        },
+        {
+         "id": "R3",
+         "radius_mm": 11.5,
+         "x_mm": -54.35,
+         "y_mm": -14.7
+        }
+       ],
+       "t1_range_ms": [400.0, 2000.0],
+       "t2_range_ms": [40.0, 200.0],
+       "tolerance": 0.1,
+       "transmit_off_percent": [8, 22]
+      },
+      "task_id": "snapshot",
+      "world_spec": {
+       "b0_t": 1.5,
+       "console_sequences": ["mese"],
+       "console_system": {
+        "overhead_s": 40.0
+       },
+       "kind": "qa",
+       "qa": {
+        "n_ring": [4, 5],
+        "t2_over_t1_max": 0.4,
+        "vial_t1_ms": [400.0, 2000.0]
+       },
+       "sigma0": 0.1,
+       "tx_gain_dev": [0.08, 0.22]
+      }
+     },
+     "statement": "# Measure T2 of each marked vial from an echo train\nA test object with vials of unknown materials lies in the field of view.\nDeliver the transverse relaxation time T2 of each marked region, in milliseconds, with `submit`.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y 46.01, x -31.44, radius 11.5\n  R2: y 41.23, x 35.09, radius 11.5\n  R3: y -14.7, x -54.35, radius 11.5\nT2 values lie between 40 and 200 ms, T1 values between 400 and 2000 ms.\nThe transmit scale of this scanner is off by 8 to 22 %, up or down: every flip angle is that much larger or\nsmaller than nominal (`tx_scale` multiplies it for one scan).\nNothing else about the object or the system is known.\nThis console has a multi-echo spin echo, `mese`: up to 32 echoes per scan, one image each (scanner_info(topic=\"mese\")).\nEvery scan of this console starts with 40 s of adjustments, which are part of its scan time: the scan time pays one scan of useful length.\n\nPassing: for every region the delivered T2 lies within a factor 1.1 of the true T2 (between T2 / 1.1 and 1.1 x T2).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.\n\nHow to do it (this level states the method).\n  1. Run one `mese` scan: rf_pulse \"sharp\", n_echoes 16, tr_ms 1150, matrix 48, partial_fourier 0.75,\n     echo_spacing_ms left at its minimum. Image k is the echo at k x echo spacing. (With the sharp pulse the refocusing angle\n     is nearly the same through the slice; with the default pulse the model of step 3 leaves T2 up to 10 % long.)\n  2. For each region take `|complex_mean|` of the images in order. Keep the echoes from the first one down to the last\n     that is at least 8 % of the largest (at least 4): `echoes`.\n  3. Do not fit a line to ln(echoes): the refocusing angle is not 180 degrees, the first echo is low and the later ones\n     are raised by stimulated echoes, and the line reads T2 4 to 24 % long. Fit the echoes of a train with one\n     refocusing angle theta instead, with `calc` (esp = the echo spacing in ms; T1 is set to 1000 ms, the echoes\n     depend on it weakly):\n     def train(n, esp, t2, theta, t1=1000):\n         th = radians(theta)\n         c2 = cos(th / 2) ** 2; s2 = sin(th / 2) ** 2; s = sin(th); c = cos(th)\n         e2 = exp(-esp / (2 * t2)); e1 = exp(-esp / (2 * t1))\n         fp = concatenate([[1.0], zeros(n + 1)]); fm = fp; z = zeros(n + 2)\n         out = []\n         for i in range(n):\n             fp = fp * e2; fm = fm * e2; z = z * e1\n             fp, fm = concatenate([[fm[1]], fp[:-1]]), concatenate([[fm[1]], fm[2:], [0.0]])\n             fp, fm, z = c2 * fp + s2 * fm + s * z, s2 * fp + c2 * fm - s * z, -0.5 * s * fp + 0.5 * s * fm + c * z\n             fp, fm = concatenate([[fm[1]], fp[:-1]]), concatenate([[fm[1]], fm[2:], [0.0]])\n             fp = fp * e2; fm = fm * e2; z = z * e1\n             out = out + [fp[0]]\n         return array(out)\n     p, cov = curve_fit(lambda k, a, t2, theta: a * train(len(k), esp, t2, theta), arange(len(echoes)), echoes, [echoes[0], 80, 140], bounds=([0, 5, 60], [inf, 2000, 180]))\n     T2 = p[1]. (p[2] is an effective angle of the slice, not the transmit scale.)",
+     "submit_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "t2_ms": {
+        "additionalProperties": false,
+        "description": "T2 of every marked region in milliseconds, by region id",
+        "properties": {
+         "R1": {
+          "maximum": 5000.0,
+          "minimum": 2.0,
+          "type": "number"
+         },
+         "R2": {
+          "maximum": 5000.0,
+          "minimum": 2.0,
+          "type": "number"
+         },
+         "R3": {
+          "maximum": 5000.0,
+          "minimum": 2.0,
+          "type": "number"
+         }
+        },
+        "required": ["R1", "R2", "R3"],
+        "type": "object"
+       }
+      },
+      "required": ["t2_ms"],
+      "type": "object"
+     }
+    },
+    "2": {
+     "instance": {
+      "budget_s": 90.0,
+      "family": "t2_echoes",
+      "level": 2,
+      "max_requests": 40,
+      "seed": "cbcc38eb8f52db5052250ceedd37eaad",
+      "task": {
+       "deliverable": {
+        "t2_ms": {
+         "<region id>": "<number, milliseconds>"
+        }
+       },
+       "family": "t2_echoes",
+       "regions": [
+        {
+         "id": "R1",
+         "radius_mm": 11.5,
+         "x_mm": 49.4,
+         "y_mm": 29.8
+        },
+        {
+         "id": "R2",
+         "radius_mm": 11.5,
+         "x_mm": -54.97,
+         "y_mm": -0.09
+        },
+        {
+         "id": "R3",
+         "radius_mm": 11.5,
+         "x_mm": -12.46,
+         "y_mm": 54.06
+        }
+       ],
+       "t1_range_ms": [400.0, 2000.0],
+       "t2_range_ms": [40.0, 200.0],
+       "tolerance": 0.1,
+       "transmit_off_percent": [8, 22]
+      },
+      "task_id": "snapshot",
+      "world_spec": {
+       "b0_t": 1.5,
+       "console_sequences": ["mese"],
+       "console_system": {
+        "overhead_s": 40.0
+       },
+       "kind": "qa",
+       "qa": {
+        "n_ring": [4, 5],
+        "t2_over_t1_max": 0.4,
+        "vial_t1_ms": [400.0, 2000.0]
+       },
+       "sigma0": 0.1,
+       "tx_gain_dev": [0.08, 0.22]
+      }
+     },
+     "statement": "# Measure T2 of each marked vial from an echo train\nA test object with vials of unknown materials lies in the field of view.\nDeliver the transverse relaxation time T2 of each marked region, in milliseconds, with `submit`.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y 29.8, x 49.4, radius 11.5\n  R2: y -0.09, x -54.97, radius 11.5\n  R3: y 54.06, x -12.46, radius 11.5\nT2 values lie between 40 and 200 ms, T1 values between 400 and 2000 ms.\nThe transmit scale of this scanner is off by 8 to 22 %, up or down: every flip angle is that much larger or\nsmaller than nominal (`tx_scale` multiplies it for one scan).\nNothing else about the object or the system is known.\nThis console has a multi-echo spin echo, `mese`: up to 32 echoes per scan, one image each (scanner_info(topic=\"mese\")).\nEvery scan of this console starts with 40 s of adjustments, which are part of its scan time: the scan time pays one scan of useful length.\n\nPassing: for every region the delivered T2 lies within a factor 1.1 of the true T2 (between T2 / 1.1 and 1.1 x T2).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
+     "submit_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "t2_ms": {
+        "additionalProperties": false,
+        "description": "T2 of every marked region in milliseconds, by region id",
+        "properties": {
+         "R1": {
+          "maximum": 5000.0,
+          "minimum": 2.0,
+          "type": "number"
+         },
+         "R2": {
+          "maximum": 5000.0,
+          "minimum": 2.0,
+          "type": "number"
+         },
+         "R3": {
+          "maximum": 5000.0,
+          "minimum": 2.0,
+          "type": "number"
+         }
+        },
+        "required": ["R1", "R2", "R3"],
+        "type": "object"
+       }
+      },
+      "required": ["t2_ms"],
+      "type": "object"
+     }
+    },
+    "3": {
+     "instance": {
+      "budget_s": 90.0,
+      "family": "t2_echoes",
+      "level": 3,
+      "max_requests": 40,
+      "seed": "343a6f3e3ebe4511560f8217537a2f64",
+      "task": {
+       "deliverable": {
+        "t2_ms": {
+         "<region id>": "<number, milliseconds>"
+        }
+       },
+       "family": "t2_echoes",
+       "regions": [
+        {
+         "id": "R1",
+         "radius_mm": 11.5,
+         "x_mm": -5.32,
+         "y_mm": 54.44
+        },
+        {
+         "id": "R2",
+         "radius_mm": 11.5,
+         "x_mm": -53.02,
+         "y_mm": -8.97
+        },
+        {
+         "id": "R3",
+         "radius_mm": 11.5,
+         "x_mm": 59.81,
+         "y_mm": 1.13
+        }
+       ],
+       "t1_range_ms": [400.0, 2000.0],
+       "t2_range_ms": [40.0, 200.0],
+       "tolerance": 0.1,
+       "transmit_off_percent": [25, 45]
+      },
+      "task_id": "snapshot",
+      "world_spec": {
+       "b0_t": 1.5,
+       "console_sequences": ["mese"],
+       "console_system": {
+        "overhead_s": 40.0
+       },
+       "kind": "qa",
+       "qa": {
+        "n_ring": [4, 5],
+        "t2_over_t1_max": 0.4,
+        "vial_t1_ms": [400.0, 2000.0]
+       },
+       "sigma0": 0.1,
+       "tx_gain_dev": [0.25, 0.45]
+      }
+     },
+     "statement": "# Measure T2 of each marked vial from an echo train\nA test object with vials of unknown materials lies in the field of view.\nDeliver the transverse relaxation time T2 of each marked region, in milliseconds, with `submit`.\nRegions (circles; centre and radius in mm from the isocentre; each lies inside one homogeneous material):\n  R1: y 54.44, x -5.32, radius 11.5\n  R2: y -8.97, x -53.02, radius 11.5\n  R3: y 1.13, x 59.81, radius 11.5\nT2 values lie between 40 and 200 ms, T1 values between 400 and 2000 ms.\nThe transmit scale of this scanner is off by 25 to 45 %, up or down: every flip angle is that much larger or\nsmaller than nominal (`tx_scale` multiplies it for one scan).\nNothing else about the object or the system is known.\nThis console has a multi-echo spin echo, `mese`: up to 32 echoes per scan, one image each (scanner_info(topic=\"mese\")).\nEvery scan of this console starts with 40 s of adjustments, which are part of its scan time: the scan time pays one scan of useful length.\n\nPassing: for every region the delivered T2 lies within a factor 1.1 of the true T2 (between T2 / 1.1 and 1.1 x T2).\nThe scanner's log must show that you measured. An answer in the wrong unit is wrong.",
      "submit_schema": {
       "additionalProperties": false,
       "properties": {

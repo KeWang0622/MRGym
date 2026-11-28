@@ -1,0 +1,83 @@
+{
+ "env_id": "Scanner/RFPulse-v1",
+ "engine": "mrgym-engine-0.3.0",
+ "date_utc": "2026-11-28",
+ "command": "python -m mrgym.envs.rf_pulse_v1.factors --write --n 200",
+ "split": "tune",
+ "seeds": "factor:0 .. factor:199",
+ "rule": "x = ceil(1.05 x max(duration / bound of the reference's designs that meet every hard requirement) / 0.05) x 0.05",
+ "levels": {
+  "1": {
+   "factor": 1.3,
+   "n": 200,
+   "hard_met": 200,
+   "ratio_min": 1.0179,
+   "ratio_median": 1.0621,
+   "ratio_q95": 1.1961,
+   "ratio_max": 1.2121,
+   "rf_limited": 0,
+   "outcomes_not_hard": [],
+   "policy_errors": [],
+   "constant": {
+    "recipes": 9,
+    "best": {
+     "amplitude": 1.01,
+     "freq_hz": 0.0,
+     "delay_us": 0.0,
+     "part": 1.0
+    },
+    "passed": 10,
+    "rate": 0.05,
+    "any_recipe_passed_on": 49
+   }
+  },
+  "2": {
+   "factor": 1.3,
+   "n": 200,
+   "hard_met": 200,
+   "ratio_min": 1.0179,
+   "ratio_median": 1.0609,
+   "ratio_q95": 1.1907,
+   "ratio_max": 1.2121,
+   "rf_limited": 0,
+   "outcomes_not_hard": [],
+   "policy_errors": [],
+   "constant": {
+    "recipes": 81,
+    "best": {
+     "amplitude": 0.683,
+     "freq_hz": 150.0,
+     "delay_us": -90.0,
+     "part": 1.0
+    },
+    "passed": 1,
+    "rate": 0.005,
+    "any_recipe_passed_on": 5
+   }
+  },
+  "3": {
+   "factor": 1.7,
+   "n": 200,
+   "hard_met": 200,
+   "ratio_min": 1.0185,
+   "ratio_median": 1.3631,
+   "ratio_q95": 1.5253,
+   "ratio_max": 1.5893,
+   "rf_limited": 106,
+   "outcomes_not_hard": [],
+   "policy_errors": [],
+   "constant": {
+    "recipes": 162,
+    "best": {
+     "amplitude": 0.778,
+     "freq_hz": -150.0,
+     "delay_us": -90.0,
+     "part": 1.0
+    },
+    "passed": 1,
+    "rate": 0.005,
+    "any_recipe_passed_on": 1
+   }
+  }
+ }
+}
