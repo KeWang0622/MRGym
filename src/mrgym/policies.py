@@ -66,6 +66,14 @@ class ToolScanner:
     def scan(self, protocol, rois=None, out=None) -> dict:
         return self._step("scan", **self._flat(protocol), **self._readouts(rois)).data
 
+    def design(self, call) -> dict:
+        """A family with the design tools: store a design; ``dict(design=<number>, call, facts)``."""
+        return self._step("design", **call).data
+
+    def simulate(self, design, **model) -> dict:
+        """A family with the design tools: the figures of a stored design on the public model."""
+        return self._step("simulate", design=design, **{k: v for k, v in model.items() if v is not None}).data
+
     def read_regions(self, scan, rois) -> list:
         return self._step("read_regions", scan_index=scan, **self._readouts(rois)).data["roi_readouts"]
 

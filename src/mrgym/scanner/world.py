@@ -361,6 +361,19 @@ def _build(seed, sp, layout_only=False, rot_deg=0.0, base=None):
         w["console"]["system"] = dict(sp["console_system"])
     if sp.get("console_sequences"):                                     # sequences this console offers beyond the six: a list of names, or "all"
         w["console"]["sequences"] = sp["console_sequences"] if isinstance(sp["console_sequences"], str) else list(sp["console_sequences"])
+    if sp.get("rf_hardware"):
+        # additive: what the transmit chain does to a DESIGNED pulse (``mrgym.design.hardware``), drawn from a sub-stream of
+        # its own, and the console's table of stored designs (``scanner/rfscan.py``). Sizes are choices of this package.
+        hw, r = sp["rf_hardware"], rng_for(seed, "system", 4)
+        for key in ("amp_sat_ut", "grad_delay_us"):                      # a (low, high) range, a number, or absent
+            if hw.get(key) is not None:
+                w["system"]["rf_" + key] = float(_draw(r, hw[key]))
+        if hw.get("tx_scale") is not None:                               # an uncalibrated transmitter: (low, high), drawn log-uniformly
+            lo, hi = hw["tx_scale"]
+            w["system"]["tx_gain"] = float(np.exp(r.uniform(np.log(lo), np.log(hi))))
+        if hw.get("grad_delay_sign"):                                    # the delay may be an advance: the sign is drawn too
+            w["system"]["rf_grad_delay_us"] *= 1.0 if r.uniform() < 0.5 else -1.0
+        w["console"]["designs"] = {}
     w.setdefault("regions", [])
     if sp.get("motion"):
         w["motion"] = make_motion(sp["motion"], w, s)

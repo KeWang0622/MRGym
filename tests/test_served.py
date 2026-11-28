@@ -43,11 +43,18 @@ def engine(world):
     return kspace.Engine(world)
 
 
+# The sequences this file is about: the six with a closed form and the four of the block-list core. ``rfscan`` (a
+# designed excitation, ``scanner/rfscan.py``) is in the registry too; a card lists it by name and tests/test_rf_pulse.py holds it.
+SERVED = sorted(n for n in console.REGISTRY if console.REGISTRY[n].serves != "design")
+
+
 # ---------------------------------------------------------------------------------------------- the console of before
 def test_a_card_without_sequences_offers_the_six_and_nothing_else():
     assert console.offered(None) is console.SEQUENCES and console.offered(EXAM) is console.SEQUENCES
     assert console.CLASSIC == tuple(console.SEQUENCES) == ("spgr", "afi", "se", "ir", "bssfp", "epi")
-    assert set(console.REGISTRY) == set(console.SEQUENCES) | set(console.EXTENDED)
+    # the six, the four of the block-list core, and the scan that plays a stored design (a card lists it by name; "all" does not)
+    assert set(console.REGISTRY) == set(console.SEQUENCES) | set(console.EXTENDED) | {"rfscan"}
+    assert "rfscan" not in console.offered(dict(EXAM, sequences="all")) and "rfscan" in console.offered(dict(EXAM, sequences=["rfscan"]))
     for name, prot in PROTOCOLS.items():
         pl = console.plan(prot, EXAM)
         assert not pl["accept"] and pl["violations"][0]["code"] == "UNKNOWN_SEQUENCE" and name not in pl["violations"][0]["message"]
@@ -61,11 +68,11 @@ def test_a_card_without_sequences_offers_the_six_and_nothing_else():
 
 def test_a_card_lists_the_sequences_it_offers():
     assert list(console.offered(dict(sequences=["fse"]))) == list(console.SEQUENCES) + ["fse"]
-    assert set(console.offered(ALL)) == set(console.REGISTRY)
+    assert set(console.offered(ALL)) == set(SERVED)                              # "all": the six and the block-list core; rfscan by name
     with pytest.raises(ValueError):
         console.offered(dict(sequences=["haste"]))
     schema = console.protocol_schema(ALL)
-    assert schema["properties"]["sequence"]["enum"] == sorted(console.REGISTRY)
+    assert schema["properties"]["sequence"]["enum"] == SERVED
     names = {k for spec in console.offered(ALL).values() for k in spec}
     assert set(schema["properties"]) == names | {"sequence"} and names <= set(console.PARAMETER_UNITS) and names <= set(console.PARAMETER_MEANING)
     assert console.plan(PROTOCOLS["fse"], dict(EXAM, sequences=["fse"]))["accept"]
@@ -73,7 +80,7 @@ def test_a_card_lists_the_sequences_it_offers():
 
 
 # ---------------------------------------------------------------------------------------------- one source
-@pytest.mark.parametrize("name", sorted(console.REGISTRY))
+@pytest.mark.parametrize("name", SERVED)
 def test_every_entry_plans_and_has_a_block_list_and_a_sampling_plan(name):
     entry = console.REGISTRY[name]
     prot = PROTOCOLS.get(name) or dict(dict(sequence=name, tr_ms=dict(bssfp=8.0, afi=25.0, spgr=30.0).get(name, 1500.0), matrix=64),
@@ -145,7 +152,7 @@ def test_session_scans_and_replays_core_sequences(world):
     cfg = episode_cfg(seed="c0" * 16, budget_s=4000.0, kind="brain", n=256, console_sequences="all")
     s = session.ScannerSession(cfg, engine=kspace.Engine(world))
     card = s.info()
-    assert set(card["sequences"]) == set(console.REGISTRY)
+    assert set(card["sequences"]) == set(SERVED)
     for name in ("fse", "dwse", "megre"):
         s.scan({"protocol": PROTOCOLS[name], "rois": [dict(id="c", y_mm=0, x_mm=0, radius_mm=20)]})
     with pytest.raises(session.InvalidRequest):

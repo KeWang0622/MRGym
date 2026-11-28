@@ -44,6 +44,32 @@ cause outside the test.
   for days: a test run that is killed runs no teardown. The fixture also stops its process on every way out of its
   set-up, and no longer reads the error output of a process that is still running (that read never returns).
 
+### The first design task: `Scanner/RFPulse-v0`, two design tools, and a scan that plays a designed pulse
+
+No engine bump, no existing environment id touched. What is new is reachable only on a console whose card lists
+`rfscan` and holds a design table (world spec `console_sequences=["rfscan"]`, `rf_hardware`), which no world of before
+has, and through an environment class of its own (`mrgym.envs.design_tools:DesignFamilyEnv`); the code of
+`mrgym.envs.family` is not changed by one statement.
+
+- **Design actions** (`docs/DESIGN.md`, rule 2 amended): a generator call with its parameters or at most 64 control
+  points; never samples, never code. Tools `design` (sinc, Shinnar-Le Roux in the flip angle, hyperbolic secant,
+  control points, variable rate; a stored design gets a number and never changes) and `simulate` (the flip-angle
+  profile on the public model, ideal unless the caller puts in what was measured).
+- **`mrgym.design.hardware`**: what a scanner does to a designed pulse. A transmit scale, the amplifier law
+  a / (1 + (a / A)^6)^(1/6), a delay of the slice-select gradient, an off-resonance. `mrgym.design.tool`: calls, limits
+  recomputed from the samples, the mask on the flip angle. `pulses.slr_flip`: ripples stated on the flip angle.
+- **`rfscan`** (`scanner/rfscan.py`): a spoiled gradient echo whose excitation is a stored design, played through the
+  hidden chain; with the slice-select gradient on the readout axis the image is the pulse's profile. Designs are log
+  records (`type: design`), so a log replays and a recorded session rebuilds them.
+- **`Scanner/RFPulse-v0`** (candidate): deliver a slice-selective excitation for a flip-angle specification under
+  limits on peak B1, gradient, slew rate and RF power, within a factor of the duration a stated reference search
+  finds on the hidden scanner. The pass rule has a reference in it: no bound tighter than the hard-pulse floor is
+  proven (`docs/physics/design.md`). Level 1 states the method and is a practice level.
+- Small additive edits outside the new files: `console._prescribe` (a sequence without `flip_deg`), `console.offered`
+  ("all" lists the block-list sequences, not `rfscan`), `kspace.FORMATION["design"]`, `world._build` (`rf_hardware`),
+  `session` (design records), `scanner_env` (the minimum of `plan` from the console's own table; section 8 of the
+  datasheet is not part of the topic `hidden`), `policies.ToolScanner` (`design`, `simulate`).
+
 ### The signal core behind the console: a sequence registry, and four sequences served from block lists
 
 No engine bump, no environment id touched, no fingerprint moved. The rule (docs/VERSIONING.md): the engine id changes

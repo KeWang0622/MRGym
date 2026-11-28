@@ -50,10 +50,15 @@ def test_datasheet_every_paragraph_is_behind_a_topic():
     assert set(parts) == {"cost", "outputs", "hidden", "notation", "encoding", "slice_profile", "gradient_echo", "spin_echo", "fat", "adjustments",
                           "motion"} | set(console.SEQUENCES)
     served = "\n\n".join(parts.values())
-    for a, b in (("## 4.", "## 5."), ("## 5.", "## 6."), ("## 6.", "## 7."), ("## 7.", None)):          # sections 4 to 7: nothing in no piece
+    for a, b in (("## 4.", "## 5."), ("## 5.", "## 6."), ("## 6.", "## 7."), ("## 7.", "## 8.")):       # sections 4 to 7: nothing in no piece
         section = md[md.index(a):md.index(b) if b else len(md)].split("\n", 1)[1]
         for para in [p.strip() for p in section.split("\n\n") if p.strip()]:
             assert para.replace("**", "") in served, para[:80]
+    design = make("Scanner/RFPulse-v0")                                 # section 8: the topic ``design`` of a design task, and of no other
+    served = body(call(design, "scanner_info", topic="design"))
+    for para in [p.strip() for p in md[md.index("## 8."):].split("\n", 1)[1].split("\n\n") if p.strip()]:
+        assert para.replace("**", "") in served, para[:80]
+    assert call(make(T1), "scanner_info", topic="design").is_error
     env = make(T1)
     texts = {topic: call(env, "scanner_info", topic=topic) for topic in scanner_env.TOPICS}
     assert not [t for t, o in texts.items() if o.is_error or len(body(o)) < 100]
@@ -264,7 +269,8 @@ CEILING = {"Scanner/ArtefactClinic-v0": 18500, "Scanner/BandFree-v0": 16650, "Sc
            "Scanner/PhantomQA-v0": 17050, "Scanner/ProtocolToSpec-v0": 16450, "Scanner/SNRSpec-v0": 15750, "Scanner/T1Transmit-v1": 14450,
            "Scanner/T2Decay-v0": 14650, "Scanner/FatFraction-v0": 15450, "Scanner/ShiftFree-v0": 16850, "Scanner/GhostAside-v0": 16850,
            "Scanner/FoldAway-v0": 18250, "Scanner/Resolve-v0": 18050, "Scanner/NoiseSNR-v0": 15150, "Scanner/GradientCal-v0": 14650,
-           "Scanner/ErnstFlip-v0": 16350, "Scanner/T1Vial-v0": 15150, "Scanner/EPISetup-v0": 18450}
+           "Scanner/ErnstFlip-v0": 16350, "Scanner/T1Vial-v0": 15150, "Scanner/EPISetup-v0": 18450,
+           "Scanner/RFPulse-v0": 20900}          # two more tools (design 2,830, simulate 1,240 characters) and rfscan in plan and scan
 
 
 def _budget_tool():

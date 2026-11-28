@@ -399,10 +399,14 @@ _BLOCKS = (
         _partial("C8", "Adiabatic pulses: an inversion that tolerates the transmit field", "A9 C6",
                  "the console's inversion is one efficiency number; the hyperbolic-secant pulse and its threshold are computed in "
                  "the design layer and played by no sequence", "S11", "design:P6 design:P7", needs="core in the console"),
-        _computed("C9", "RF pulse design: shaping a pulse to a profile", "B3 C7",
-                  "the design layer generates pulses (windowed sinc, Shinnar-Le Roux, variable rate), simulates them and scores the "
-                  "profile against bounds on energy and duration; the console plays three fixed shapes and no task asks for a pulse",
-                  "design:P3 design:P4 design:P9 design:F1 design:F4", n=1, needs="core in the console"),
+        _partial("C9", "RF pulse design: shaping a pulse to a profile", "B3 C7",
+                 "a task asks for a slice-selective excitation and the scan rfscan plays a stored design through a modelled "
+                 "transmit chain (scale, amplifier compression, gradient delay, off-resonance); refocusing, inversion and "
+                 "variable-rate designs are generated and simulated only, nothing relaxes during a pulse, and the duration is "
+                 "compared with a reference search because no tight bound is proven",
+                 "design:P3 design:P4 design:P9 design:F1 design:F4",
+                 "tests/test_rf_pulse.py::test_the_rotation_of_the_verifier_is_the_bloch_equation",
+                 "tests/test_rf_pulse.py::test_the_stripe_of_rfscan_is_the_sine_of_the_flip_angle_and_the_log_replays", n=1),
         _formed("C10", "Receive coil: sensitivity profile and shading", "B23", "mrgym qa acr --fault receive_coil", n=9),
         _computed("C11", "Receive arrays: coil elements, their combination, the choice of coil", "C10",
                   "the array library gives a world several receive elements, each with a sensitivity map (loops, in the quasi-static "
@@ -580,6 +584,7 @@ FAMILIES = {
     "T1Vial": _f(1, "A4", "A9"),
     "ErnstFlip": _f(2, "A10", "A4 B3 C6"),
     "EPISetup": _f(3, "D11", "B18 C2 C18 D1 D17", "FrequencyAdjust"),
+    "RFPulse": _f(5, "C9", "B3 C6 C7", "TransmitAdjust"),
 }
 # Families that are being built: the cell each is meant for. A line moves to FAMILIES when its family is registered.
 PLANNED = {

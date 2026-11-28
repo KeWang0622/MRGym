@@ -40,6 +40,7 @@ in its report. The hash chain itself covers only logged text, so it never depend
 """
 from __future__ import annotations
 
+import copy
 import hashlib
 import hmac
 import json
@@ -61,7 +62,7 @@ TORN_NAME = "scan_log.torn"
 LOCK_NAME = ".lock"
 HEAD_SUFFIX = ".head"
 HEAD_FIELDS = ("v", "handle", "engine", "events", "used_s", "scans", "restarts", "mac", "sealed", "reason")
-REQUEST_TYPES = ("plan", "scan", "refused")
+REQUEST_TYPES = ("plan", "scan", "refused", "design")
 MAX_BODY_BYTES = 65536
 MAX_ROIS = 16
 MAX_POSITION_MM = 300.0
@@ -407,6 +408,7 @@ class ScannerSession:
         self.exam = self.world["console"]
         self.lock = threading.Lock()
         self.events, self.used, self.n_scans, self.n_requests, self.restarts, self.sealed = [], 0.0, 0, 0, 0, None
+        self.n_designs = 0
         receipt = read_head(resume_from) if isinstance(resume_from, (str, os.PathLike)) else resume_from
         self.handle = str(receipt["handle"]) if receipt else (handle or keys.episode_handle())
         if receipt:
@@ -566,6 +568,8 @@ class ScannerSession:
         if rec["type"] == "scan":
             self.used += rec["cost_s"]
             self.n_scans += 1
+        if rec["type"] == "design":                                      # a stored design: rebuilt from the logged call
+            self._store_design(rec)
         if rec["type"] in REQUEST_TYPES:
             self.n_requests += 1
         elif rec["type"] == "restart":
@@ -626,6 +630,52 @@ class ScannerSession:
         h = int(_sha(_canon(realised).encode())[:32], 16)
         key = (W.STREAMS["noise"], self.noise_draw, scan_index) + tuple((h >> (32 * i)) & 0xFFFFFFFF for i in range(4))
         return np.random.default_rng(np.random.SeedSequence(entropy=W.seed_int(self.seed), spawn_key=key))
+
+    # ------------------------------------------------------------------ designs (a console whose card holds a design table)
+    def design_limits(self):
+        """What a design is checked against on this console: the derated gradient limits, the peak B1, and the RF
+        power limit of the task when it states one (``cfg["task"]["design"]["limits"]``: ``b1_peak_ut``, ``b1rms_ut``
+        over ``tr_ms``)."""
+        from ..design import tool
+        s = dict(console.SYSTEM, **(self.exam.get("system") or {}))
+        stated = ((self.cfg.get("task") or {}).get("design") or {}).get("limits") or {}
+        return tool.Limits(b1_peak_ut=float(stated.get("b1_peak_ut", s["b1_peak_ut"])), g_max_mt_m=s["g_max_mt_m"] * s["derate"],
+                           slew_t_m_s=s["slew_t_m_s"] * s["derate"], b1rms_ut=stated.get("b1rms_ut"), tr_ms=stated.get("tr_ms"))
+
+    def _store_design(self, rec):
+        """Put the design of a log record into the console's table. The pulse is rebuilt from the logged canonical call,
+        so the table of a resumed, replayed or recorded session is the table of the live one."""
+        from ..design import tool
+        table = self.exam.get("designs")
+        if table is None:
+            raise ValueError("this console stores no designs")
+        pulse, call = tool.build(rec["call"], self.design_limits())
+        table[int(rec["index"])] = dict(index=int(rec["index"]), call=call, call_json=_canon(call), facts=tool.facts(pulse, self.design_limits()))
+        self.n_designs = max(self.n_designs, int(rec["index"]))
+
+    def design(self, call):
+        """Store a design made from a generator call (``mrgym.design.tool``). Free, logged, counted as a request.
+        Returns the table entry ``dict(index, call, call_json, facts)``. The same call again returns the entry it
+        made the first time. Raises ``InvalidRequest`` for a call that cannot be built (nothing is logged for it)."""
+        from ..design import tool
+        with self.lock:
+            t0 = time.time()
+            self._open_for_request()
+            table = self.exam.get("designs")
+            if table is None:
+                raise InvalidRequest("this console stores no designs")
+            try:
+                _, canonical = tool.build(call, self.design_limits(), lambda k: (table.get(k) or {}).get("call"))
+            except tool.Refusal as e:
+                raise InvalidRequest(e.message, parameter=e.parameter, **e.extra) from None
+            text = _canon(canonical)
+            same = next((d for d in table.values() if d["call_json"] == text), None)
+            if same is not None:
+                return copy.deepcopy(same)
+            if self.n_designs >= tool.MAX_DESIGNS:
+                raise InvalidRequest(f"{tool.MAX_DESIGNS} designs are stored, the most a session holds", stored=self.n_designs)
+            self._append(dict(type="design", index=self.n_designs + 1, call=canonical), t0)
+            return copy.deepcopy(table[self.n_designs])
 
     # ------------------------------------------------------------------ the two request types
     def plan(self, request):
@@ -806,6 +856,11 @@ class RecordedSession(ScannerSession):
                 self.n_scans += 1
             if isinstance(rec, dict) and rec.get("type") in REQUEST_TYPES:
                 self.n_requests += 1
+            if isinstance(rec, dict) and rec.get("type") == "design":       # the designs the scans and the deliverable refer to
+                try:
+                    self._store_design(rec)
+                except (KeyError, TypeError, ValueError):
+                    pass                                                 # replay judges a malformed record
         self.sealed = "recorded"
 
     def head(self):
@@ -846,6 +901,11 @@ class LocalScanner:
 
     def plan(self, protocol) -> dict:
         return self.session.plan({"protocol": protocol})
+
+    def design(self, call) -> dict:
+        """Store a design: ``dict(design=<number>, call, facts)``, what the ``design`` tool answers."""
+        d = self.session.design(call)
+        return dict(design=d["index"], call=d["call"], facts=d["facts"])
 
     def scan(self, protocol, rois=None, out=None) -> dict:
         resp, arrays = self.session.scan({"protocol": protocol, "rois": rois or []})

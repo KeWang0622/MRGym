@@ -400,7 +400,7 @@ def offered(exam=None):
     more = (exam or {}).get("sequences")
     if not more:
         return SEQUENCES
-    names = list(REGISTRY) if more == "all" else list(more)
+    names = [n for n in REGISTRY if REGISTRY[n].serves != "design"] if more == "all" else list(more)   # rfscan needs a design table: by name only
     unknown = [n for n in names if n not in REGISTRY]
     if unknown:
         raise ValueError(f"console card: unknown sequences {unknown}; known: {sorted(REGISTRY)}")
@@ -607,7 +607,7 @@ def _prescribe(seq, p, s, exam, bad):
     selective = p["excitation"] == "selective"
     spin_echo = entry.spin_echo
     tx = p["tx_scale"]                                                   # the amplitude the console plays: nominal x tx_scale
-    flip = (90.0 if spin_echo else p["flip_deg"]) * tx
+    flip = (90.0 if spin_echo else p.get("flip_deg", 90.0)) * tx   # rfscan has no flip_deg: its design carries the angle
     g_lim, slew = s["g_max_mt_m"] * 1e-3 * s["derate"], s["slew_t_m_s"] * s["derate"]
     if selective:
         rf_ms, tbw = RF.PULSES[p["rf_pulse"]]
@@ -1107,3 +1107,6 @@ def protocol_schema(exam=None, brief=False):
                 props[name] = dict(number, description=doc)
     required = ["sequence"] + [n for n in parameter_names(table) if all(n in spec and spec[n][3] is None for spec in table.values())]
     return {"type": "object", "additionalProperties": False, "required": required, "properties": props}
+
+
+from . import rfscan  # noqa: E402,F401  (registers ``rfscan``, the scan that plays a stored design; it needs the registry above)

@@ -22,6 +22,10 @@ A family is a package with two modules:
     LEVELS[lv]["hints"], prefill(cfg, scanner), statement(cfg, given)
                                            hint tiers of the task text; scans a level acquires at reset (logged, charged)
     potential(cfg, events)                 the potential of ``mrgym.learn.shaping`` (trainer side)
+  optional, for a design family (registered with the class ``mrgym.envs.design_tools:DesignFamilyEnv``)
+    DESIGN_TOOLS = dict(kinds=(...))       the generators the ``design`` tool offers; the family then gets ``design`` and
+                                           ``simulate``, and its task card holds ``design = dict(limits, specification)``.
+                                           The designs of an episode are in ``world["console"]["designs"]`` when ``score`` runs
   optional, for ``mrgym coverage`` (``mrgym.coverage``)
     COMPETENCIES                           ids of the examined competencies the family exercises (rows of the map)
 

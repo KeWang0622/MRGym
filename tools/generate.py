@@ -51,6 +51,7 @@ WHAT_YOU_DO = {
     "Scanner/FrequencyAdjust-v0": "find how far off resonance the water is",
     "Scanner/TransmitAdjust-v0": "measure the real flip angle against the nominal one",
     "Scanner/ErnstFlip-v0": "find the flip angle that gives each vial most signal",
+    "Scanner/RFPulse-v0": "design a slice-selective pulse for a scanner with hidden hardware",
     "Scanner/T1Vial-v0": "measure the T1 of each vial",
     "Scanner/T2Decay-v0": "measure the T2 of each vial",
     "Scanner/FatFraction-v0": "measure the fat fraction of each mixture",

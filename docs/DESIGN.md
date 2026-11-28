@@ -17,10 +17,42 @@ looking at the object is not an episode in this sense, whatever it is called.
 | Rule | Reason |
 |---|---|
 | 1. The world stays with whoever runs the episode. The agent gets tools, and no tool resets the world, reads it, or returns anything derived from the seed except measurements. | The generator is public, so a known seed is a stored answer. |
-| 2. The interface is the console: a free `plan` that returns timing, cost and limits and never signal, and a priced `scan`. | Tools at the level of waveforms or code turn the task into programming. |
+| 2. The interface is the console: a free `plan` that returns timing, cost and limits and never signal, and a priced `scan`. A design task adds design actions as parameters: a generator call with a handful of numbers, or a bounded table of at most 64 control points. Raw sample arrays and free code are not actions. | Tools at the level of samples or code turn the task into programming. |
 | 3. The engine that serves and scores data models more than the formulas the agent is given. | If both sides use one closed form, the task is to invert that formula. |
 | 4. Every scan has a price: overhead, dummy cycles, lines, averages, and noise that depends on the protocol. | With a loose budget, a sweep or a slow safe scan replaces the decision. |
 | 5. A level of an environment is admitted by control policies, not by its description. | A hidden world and a budget do not, by themselves, force a measurement. |
+
+### Rule 2 and design tasks (amended 2026-11-27)
+
+Until 2026-11-27 rule 2 excluded every tool below the console ("tools at the level of waveforms or code turn the task
+into programming"). The destination of the project is pulse-sequence design, and a console parameter cannot express a
+design: at console depth the verifier computes the optimum by exhaustive search, so nothing better than the reference
+can be delivered. The rule now allows design actions, in three forms only:
+
+| Allowed | Not allowed | Why the line is there |
+|---|---|---|
+| a generator and its parameters (`design`: `slr`, `sinc`, `sech`, `verse`) | an array of samples | 512 samples are 1,800 to 8,600 tokens per call, more than a reply holds; a generator call is 50 to 70 |
+| a bounded table of control points (`points`: at most 64 numbers, a stated interpolation) | code that returns a waveform | code makes the task programming, and its reward a property of the sandbox |
+| the number of a stored, immutable design (`simulate`, `scan`, `submit`) | editing a design in place | an old answer must keep describing the same waveform |
+
+What does not change: the hidden world stays with whoever runs the episode (rule 1); the simulator an agent is
+given is the public model and the scanner models more (rule 3: the transmit chain of `mrgym.design.hardware`); playing
+a design on the scanner is a priced scan (rule 4); a design level is admitted by control policies, among them
+`ideal_tuned`, the best design of the simulator delivered without a measurement, which must fail (rule 5).
+A family opts in; the tools, schemas and answers of every other family are byte for byte what they were
+(`python -m mrgym.compat.fingerprint --check`).
+
+How a family opts in (the template is `src/mrgym/envs/rf_pulse/`):
+
+- `spec.py` names the class with the design tools: `entry_point="mrgym.envs.design_tools:DesignFamilyEnv"`.
+- `task.py` declares the generators it offers: `DESIGN_TOOLS = dict(kinds=("sinc", "slr", "points"))`, and puts
+  `design = dict(specification=..., limits=dict(b1_peak_ut=..., g_max_mt_m=..., slew_t_m_s=..., b1rms_ut=..., tr_ms=...))`
+  into the task card of every instance.
+- The world spec lists the scan that plays a design, `console_sequences=["rfscan"]`, and gives the transmit chain,
+  `rf_hardware=dict(tx_scale=(low, high), amp_sat_ut=(low, high))`.
+- When `score` runs, the designs of the episode are in `world["console"]["designs"]` (number → call and facts; the
+  pulse is `mrgym.design.tool.build(call)`).
+- `controls.py` includes `ideal_tuned`. A design task whose `ideal_tuned` passes hides nothing that matters.
 
 ## Admission by control policies
 

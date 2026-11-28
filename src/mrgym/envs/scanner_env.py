@@ -105,7 +105,8 @@ def datasheet_parts() -> dict:
     ``spin_echo``, ``fat``, ``adjustments``, ``motion`` and one per sequence). Nothing of sections 4 to 7 is in no piece."""
     md = datasheet()
     cut = lambda a, b: md[md.index(a):md.index(b) if b else len(md)].split("\n", 1)[1].strip()       # noqa: E731
-    parts = {k: v.replace("**", "") for k, v in dict(cost=cut("## 4.", "## 5."), outputs=cut("## 6.", "## 7."), hidden=cut("## 7.", None)).items()}
+    parts = {k: v.replace("**", "") for k, v in dict(cost=cut("## 4.", "## 5."), outputs=cut("## 6.", "## 7."),
+                                                   hidden=cut("## 7.", "## 8." if "\n## 8." in md else None)).items()}
     key = None
     for para in cut("## 5.", "## 6.").split("\n\n"):
         if para.startswith("**"):
@@ -663,7 +664,7 @@ class ScannerEnv(Env):
         alone = own["scan_s"] if own["accept"] and abs(own["scan_s"] - p["scan_s"]) > 1e-9 else None
         if alone is not None:
             first += f" (reuses the adjustments of the scan before) · as a scan of its own: {alone:.2f} s"
-        low = console.SEQUENCES[real["sequence"]]                        # the minimum the console enforces: the timing's or the range's
+        low = console.offered(self._session.exam)[real["sequence"]]      # the minimum the console enforces: the timing's or the range's
         enforced = lambda k: max(t[k], low[k[:-len("_min_ms")] + "_ms"][0]) if k[:-len("_min_ms")] + "_ms" in low else t[k]   # noqa: E731
         mins = ", ".join(f"{k[:-len('_min_ms')]}_ms {enforced(k):g}" for k in t if k.endswith("_min_ms"))
         changed = [f"{k} {v:g} -> {real[k]:g}" for k, v in protocol.items()

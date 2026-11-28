@@ -117,6 +117,9 @@ class HttpSession:
     def plan(self, request) -> dict:
         return self._call("POST", "/v1/plan", self._canonical(request))
 
+    def design(self, call) -> dict:
+        return self._call("POST", "/v1/design", call)
+
     def scan(self, request):
         import base64
 

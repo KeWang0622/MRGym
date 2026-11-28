@@ -33,6 +33,7 @@ TARGET_SCAN = (NOWRAP, NULL, FAT, BAND, SNR, SPEC, CLINIC)                # the 
 TARGET_SCAN += ("Scanner/ShiftFree-v0", "Scanner/GhostAside-v0", "Scanner/Resolve-v0", "Scanner/FoldAway-v0", ERNST, "Scanner/EPISetup-v0")   # single-skill families of subject B
 FREQ, TRANSMIT = "Scanner/FrequencyAdjust-v0", "Scanner/TransmitAdjust-v0"
 OWN_SCAN = (QA, T1, EXPLORE, FREQ, TRANSMIT, "Scanner/T2Decay-v0", "Scanner/FatFraction-v0", "Scanner/NoiseSNR-v0", "Scanner/GradientCal-v0", T1VIAL)   # the deliverable is a measurement on the agent's own scans
+DESIGN = ("Scanner/RFPulse-v0",)                                         # the deliverable is a design: no scan of anyone is evaluated
 IR = {"sequence": "ir", "tr_ms": 800, "ti_ms": 100, "matrix": 64, "partial_fourier": 0.6}
 LOCALISER = {"sequence": "spgr", "tr_ms": 12, "flip_deg": 10, "fov_mm": 288, "matrix": 96}
 CLAUSE_MAX = 160                                                          # characters of a clause that is printed only when its condition holds
@@ -56,7 +57,7 @@ def body(obs):
 
 # ------------------------------------------------------------------------------------------------ 1. the rules of the game
 def test_own_scans_sentence_is_the_same_wherever_a_target_scan_is_delivered_and_nowhere_else():
-    assert set(TARGET_SCAN) | set(OWN_SCAN) == set(mrgym.list_envs())
+    assert set(TARGET_SCAN) | set(OWN_SCAN) | set(DESIGN) == set(mrgym.list_envs())
     both = F.OWN_SCANS + " " + F.NOT_CHARGED
     for env_id in mrgym.list_envs():
         levels = mrgym.spec(env_id).levels                                # every hint tier where a level adds text; else one level (the text is one template)

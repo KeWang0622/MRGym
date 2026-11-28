@@ -11,6 +11,8 @@ the token selects the episode.
   GET  /v1/budget   total / used / remaining scan seconds
   POST /v1/plan     {"protocol": {...}} -> realised protocol, timing, scan seconds, limits, accept / reject. Free.
   POST /v1/scan     {"protocol": {...}, "rois": [{"id", "y_mm", "x_mm", "radius_mm"}, ...]} -> ROI read-outs + images
+  POST /v1/design   a generator call {"kind": ..., ...} -> the stored design (number, canonical call, facts). Free. Only on
+                    a console that stores designs (a design task); otherwise refused.
   POST /v1/submit   the deliverable -> {"received": true}. Seals the log and ends the episode. The score is not returned.
 Refusals return {"error": {"type": ..., "message": ...}} with status 422 (invalid_request, invalid_deliverable),
 409 (budget_exhausted, episode_over) or 429 (request_limit); they cost nothing. A body that is not JSON, or is nested or
@@ -61,7 +63,7 @@ from . import session as core
 
 MAX_DEPTH, MAX_NODES = 16, 4000
 EPISODE_KEYS = ("env_id", "level", "split", "seed", "obs", "epoch")
-AGENT_ROUTES = "GET /v1/info, /v1/task, /v1/budget; POST /v1/plan, /v1/scan, /v1/submit"
+AGENT_ROUTES = "GET /v1/info, /v1/task, /v1/budget; POST /v1/plan, /v1/scan, /v1/design, /v1/submit"
 
 
 class StartupRefused(Exception):
@@ -273,7 +275,7 @@ def make_handler(service: Service, plane: str, request_timeout: float = 30.0):
 
         # -------------------------------------------------------------- agent plane
         def _agent(self, method, path):
-            routes = {"GET": ("/v1/info", "/v1/task", "/v1/budget"), "POST": ("/v1/plan", "/v1/scan", "/v1/submit")}
+            routes = {"GET": ("/v1/info", "/v1/task", "/v1/budget"), "POST": ("/v1/plan", "/v1/scan", "/v1/design", "/v1/submit")}
             if path not in routes.get(method, ()):
                 if method == "POST":
                     self.close_connection = True                         # an unread body must not be parsed as a request
@@ -296,6 +298,8 @@ def make_handler(service: Service, plane: str, request_timeout: float = 30.0):
             try:
                 if path == "/v1/plan":
                     return self._send(200, ep.session.plan(request))
+                if path == "/v1/design":
+                    return self._send(200, ep.session.design(request))
                 if path == "/v1/submit":
                     return self._send(200, service.submit(ep, request))
                 resp, arrays = ep.session.scan(request)

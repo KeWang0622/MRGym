@@ -12,6 +12,7 @@ Generators
                       (equiripple by ``scipy.signal.remez`` or least squares by ``scipy.signal.firls``) is taken as
                       the polynomial B, the minimum-phase A is found from |A|^2 = 1 - |B|^2, and the inverse transform
                       gives the sub-pulse angles. Types: excitation, refocusing, inversion, saturation.
+  ``slr_flip``        the same design with its ripples stated on the flip angle (degrees) instead of on |Mxy|.
   ``sech``            hyperbolic-secant adiabatic inversion (Silver, Joseph, Hoult 1985): B1 = B1max sech(beta t)^(1 + i mu).
   ``control_points``  at most 64 complex control points, interpolated onto the raster (rule in the docstring).
   ``verse``           variable-rate rescaling of a pulse and its gradient (Conolly et al. 1988) under a peak-B1 limit.
@@ -413,6 +414,37 @@ def slr(flip_deg, duration_ms, tbw, thickness_mm=None, kind="excitation", filter
     return Pulse(b1, dt, g, kind, _rephase(kind, g, duration_ms, 0.5), bw, thickness_mm,
                  dict(generator="slr", flip_deg=float(flip_deg), duration_ms=float(duration_ms), tbw=float(tbw), thickness_mm=thickness_mm,
                       kind=kind, filter=filter, d1=float(d1), d2=float(d2), n=n, design=record))
+
+
+def flip_ripples(flip_deg, tol_in_deg, max_out_deg):
+    """(d1, d2) of a saturation profile (the cosine of the flip angle) for tolerances stated on the flip angle: see
+    ``slr_flip``."""
+    if not (0 < flip_deg < 180 and tol_in_deg > 0 and max_out_deg > 0 and flip_deg + tol_in_deg <= 180 and tol_in_deg < flip_deg):
+        raise ValueError("flip_deg in (0, 180), tolerances positive, flip_deg - tol_in_deg > 0 and flip_deg + tol_in_deg <= 180")
+    t, e = math.radians(flip_deg), math.radians(tol_in_deg)
+    return (min(abs(math.cos(t + e) - math.cos(t)), abs(math.cos(t - e) - math.cos(t))), 1.0 - math.cos(math.radians(max_out_deg)))
+
+
+def slr_flip(flip_deg, duration_ms, tbw, thickness_mm=None, tol_in_deg=1.0, max_out_deg=1.0, n=None, raster_ms=RASTER_MS, oversample=256):
+    """Shinnar-Le Roux excitation whose ripples are stated on the FLIP ANGLE: within ``flip_deg`` +- ``tol_in_deg`` in
+    the slice and at most ``max_out_deg`` outside (``slr`` states them on |Mxy|, which does not move with the flip
+    angle at 90 degrees). An equiripple filter; everything else as ``slr``.
+
+    |b| = sin(flip / 2) is one-to-one with the flip angle, so the two tolerances are ripples of the filter B. They
+    are handed to ``slr_filter`` in the units it knows, those of a saturation pulse, whose profile 1 - 2 |b|^2 is the
+    cosine of the flip angle:  d1 = the smaller of |cos(flip +- tol_in) - cos(flip)|,  d2 = 1 - cos(max_out)."""
+    n = _n_samples(duration_ms, n, raster_ms)
+    b, record = slr_filter(n, tbw, "saturation", flip_deg, "pm", *flip_ripples(flip_deg, tol_in_deg, max_out_deg))
+    theta = inverse_slr(b, oversample=oversample)
+    record["inverse_error"] = float(np.abs(np.fft.fft(forward_slr(theta)[1] - b, 1 << int(math.ceil(math.log2(64 * n))))).max())
+    record["pass_edge_hz"] = 1e3 * record.pop("pass_edge") * n / duration_ms
+    record["stop_edge_hz"] = 1e3 * record.pop("stop_edge") * n / duration_ms
+    dt = duration_ms / n
+    bw = 1e3 * tbw / duration_ms
+    g = _gradient(bw, thickness_mm)
+    return Pulse(theta / (RAD_PER_UT_MS * dt), dt, g, "excitation", _rephase("excitation", g, duration_ms, 0.5), bw, thickness_mm,
+                 dict(generator="slr_flip", flip_deg=float(flip_deg), duration_ms=float(duration_ms), tbw=float(tbw), thickness_mm=thickness_mm,
+                      tol_in_deg=float(tol_in_deg), max_out_deg=float(max_out_deg), n=n, design=record))
 
 
 # ---------------------------------------------------------------------------------------------- hyperbolic secant

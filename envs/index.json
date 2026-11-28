@@ -489,6 +489,34 @@
    }
   },
   {
+   "id": "Scanner/RFPulse-v0",
+   "folder": "scanner-rfpulse-v0",
+   "kind": "candidate",
+   "levels": [
+    1,
+    2,
+    3
+   ],
+   "claim_levels": [
+    2,
+    3
+   ],
+   "practice_levels": [
+    1
+   ],
+   "title": "Design a slice-selective excitation pulse for this scanner",
+   "status": "ADMITTED: on 300 fresh instances per level the reference passes >= 96 %, no policy that ignores the object passes more than 6 % (95 % bounds)",
+   "task_kind": "measurement",
+   "gate": {
+    "engine": "mrgym-engine-0.3.0",
+    "instances_per_level": 300,
+    "verdicts": {
+     "2": "admitted",
+     "3": "admitted"
+    }
+   }
+  },
+  {
    "id": "Scanner/Resolve-v0",
    "folder": "scanner-resolve-v0",
    "kind": "admitted",

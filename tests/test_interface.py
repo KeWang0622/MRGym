@@ -841,8 +841,11 @@ def test_total_sizes_of_the_tool_schemas(env_id):
     size = {t["function"]["name"]: len(json.dumps(t)) for t in env.tools("openai")}
     terminal = next(t.name for t in env._tool_specs() if t.terminal)
     # engine 0.3.0: + 550 in all, + 380 in plan, + 150 in scan for the four adjustment parameters (cf_shift_hz, tx_scale, shim_y / shim_x_hz_per_mm)
-    assert sum(v for k, v in size.items() if k != terminal) < 11950, size             # the scanner tools; the terminal tool is the family's
-    assert size["plan"] < 4380 and size["scan"] < 2600 and size["profile"] < 1500
+    # a design family: + 4,300 for its two tools (design, simulate) and + 350 in plan for the scan that plays a design
+    design = {"design", "simulate"} <= set(size)
+    assert design == (env_id == "Scanner/RFPulse-v0")
+    assert sum(v for k, v in size.items() if k != terminal) < 11950 + (4300 if design else 0), size   # the scanner tools; the terminal tool is the family's
+    assert size["plan"] < 4380 + (350 if design else 0) and size["scan"] < 2600 and size["profile"] < 1500
     assert len(obs.text[obs.text.index("Limits. "):].splitlines()[0]) < 360 and "Tools:" not in obs.text
     specs = {t.name: t for t in env._tool_specs()}
     props = {name: t.parameters["properties"] for name, t in specs.items()}

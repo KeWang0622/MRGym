@@ -321,3 +321,69 @@ line modulation above (no inflow, nothing through the plane), more than one slic
 parallel imaging, eddy currents, gradient non-linearity, magnetisation transfer. The scanner has never been
 compared with data from a real MR scanner: it computes a stated model. `docs/physics/limits.md` gives the size of
 each simplification where it was measured.
+
+## 8. Designed pulses (design tasks only)
+
+A design task offers two more tools and one more sequence. Other tasks do not have them.
+
+**`design`** makes an RF pulse from a generator and its parameters and stores it under a number. A stored design
+never changes; the same call again returns the same number. Generators: `slr` (Shinnar-Le Roux, equiripple in the flip
+angle: the flip angle stays within `flip_deg` +- `tol_in_deg` in the slice and below `max_out_deg` outside, exactly
+for a train of hard sub-pulses and within about 1 % of each tolerance more on the model of `simulate`; `flip_deg` is
+the middle of that ripple, and the slice centre sits on the ripple, not on its middle; its transition, as a
+fraction of the thickness, is printed), `sinc` (windowed sinc), `points` (1 to 64 control points,
+interpolated), and where a task offers them `sech` (adiabatic inversion) and `verse` (variable-rate version of a
+stored design). There are no sample arrays and no code. `amplitude` multiplies every sample. The slice-select
+gradient is constant: time-bandwidth / (0.042577 x thickness in mm x duration in ms) mT/m. An excitation is followed
+by a rephasing lobe of half the selection area. The answer lists duration, peak B1, energy (the integral of B1
+squared), B1rms over the task's repetition time, the gradient and the limit check, first violated limit first. A
+design that violates a hardware limit (peak B1, gradient, slew rate, duration) is stored but not played; one that
+violates only the RF power limit of the task can be scanned (a scan has its own repetition time) and not delivered.
+
+**`simulate`** gives the flip-angle profile of a stored design on the public model: every raster sample is a
+constant B1 under its gradient, spins rotate about the effective field, nothing relaxes. It prints the flip angle
+at the slice centre, its range in the slice, its maximum outside, the part of the in-slice signal that survives the
+phase left after the rephasing lobe, the verdict against the task's specification, and one row of flip angles from
+the centre outwards. It is ideal unless told otherwise: `b1_scale`, `amp_sat_ut`, `grad_delay_us` and
+`off_resonance_hz` put in what you have measured. It never sees this scanner.
+
+**`rfscan`** (a sequence of `plan` and `scan`) plays a stored design on this scanner: a spoiled gradient echo whose
+excitation is design number `rf_design`. With `rf_axis` readout (the default) the slice-select gradient lies on the
+readout axis, so the pulse selects a stripe through the isocentre across the readout direction and the image shows
+its profile: each column holds the spins the pulse turned by the flip angle of that position. With `rf_axis` slice
+the pulse selects through the plane as in any 2D scan. The steady state is that of `spgr`; at a repetition time of
+five T1 the signal is sin(flip angle) to within 1 %, with the transverse phase the pulse leaves. Along the slice axis the object
+reaches 40 mm either side of the isocentre; `rfscan` takes no `slice_mm`, `rf_pulse`, `excitation`, `tx_scale` or
+`rotation_deg`. The echo time is counted from the middle of the pulse, so a longer pulse has a longer minimum echo
+time: compare the signals of two scans only at the same `te_ms`.
+
+**What this scanner does to a design.** The simulator is ideal; the scanner's transmit chain is not. Each of the
+following exists; its size is unknown until it is measured.
+- Transmit scale. The B1 a spin receives is the designed B1 times a factor s (the transmit calibration times the
+  transmit pattern at that place). Every flip angle of a small pulse is multiplied by s.
+- Amplifier. Large amplitudes are compressed: an amplitude a comes out as a / (1 + (a / A)^6)^(1/6), with the
+  saturation level A a property of the scanner. Half of A loses 0.3 %, 0.8 A loses 4 %, A itself 11 %. The phase is
+  not changed. The main lobe of a pulse is compressed and its side lobes are not, so the profile changes shape, not
+  only size. The scale s acts after the amplifier.
+- Gradient delay. The slice-select gradient arrives later (or earlier) than the RF. A pulse under a constant
+  gradient is not changed by it; a variable-rate pulse is.
+- Off-resonance. The error of the frequency adjustment and the local field shift a slice by
+  off-resonance / (gamma x gradient): more for a long pulse with a weak gradient.
+The console's own pulses do not pass through the amplifier law or the delay: the manufacturer has linearised and
+timed them. A designed waveform is played as it is.
+
+**The reference duration of a design task.** The duration of a delivered pulse is compared with the shortest pulse
+a stated search finds for this scanner, with its transmit chain known. The search looks at `slr` designs only. For
+three ways of dividing the two tolerances between the ripple of the design and a margin (0.9 and 0.95, 0.7 and 0.9,
+0.5 and 0.85 of the in-slice and the out-of-slice tolerance) it takes the smallest time-bandwidth product whose
+design meets the mask, at the shortest duration the limits allow, with the amplitude set so that the flip angles in
+the slice are centred on the specified one. Where the amplifier compresses, it lengthens that pulse by the smallest
+factor at which the mask holds again, and tries a time-bandwidth product 12 % larger as well. The shortest valid
+candidate is the reference. It is a search over one generator, not a bound: a shorter pulse that meets the
+specification passes.
+
+**What the simulator and the scanner both leave out:** relaxation during the pulse, eddy currents and the finite
+bandwidth of the gradient chain, any phase distortion of the amplifier, more than one transmit channel. A design
+that passes here meets its specification on this modelled scanner. That says nothing about a real system, and the
+limits are prices of this package, not an assessment for a person.
+

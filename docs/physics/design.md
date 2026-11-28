@@ -89,6 +89,39 @@ only; it is not tight (row F5 gives the closest any generator output comes), and
 variable-rate pulse, for which only the hard-pulse floor and `profile.variable_rate_floor_ms` apply. A design that
 beats a floor means the floor or the simulator is wrong; rows F4 to F7 test this on every generator.
 
+### What was tried for a tighter bound, and why the first design task compares with a reference
+
+`Scanner/RFPulse-v0` asks for the shortest pulse that meets a flip-angle mask under limits. Its pass rule needs a
+number to compare the duration with. Three candidates for a bound were derived for it; none is usable, and the task
+compares with a stated reference search instead (`envs/rf_pulse/model.py::search`) and says so.
+
+| Candidate | Statement | Status | Size |
+|---|---|---|---|
+| hard-pulse floor | flip angle ≤ 2π γ × transmit scale × B1 limit × duration | theorem: any gradient, any off-resonance, the amplifier law (it only lowers B1), the piecewise model (a sample turns +z by at most its nominal angle) | 3 to 18 times below the reference search on about 70 instances of the three levels: `floor_ms` of every score |
+| slope of the profile | for a train of n hard sub-pulses under a constant gradient, \|dθ/dψ\| ≤ n − 1 (ψ the precession per sample): the Bernstein-Szegő inequality on 2\|B\|² − 1 = −cos θ, a trigonometric polynomial of degree n − 1 bounded by 1. A transition from θ₀ − tolerance to the stop-band angle over the width W × thickness then needs duration ≥ (θ₀ − tol − out) / (2π γ G_max W × thickness) | proven for the hard-pulse model on a uniform raster (also for a variable-rate pulse on resonance, whose samples have equal gradient area); not for the piecewise model, off resonance, or a delayed gradient | looser than the hard-pulse floor: 0.06 ms against 0.10 ms for 30° over 5 mm, W = 0.2 (the fastest growth ignores the ripples) |
+| the mask as a linear programme | \|B\|² is linear in the autocorrelation of the sub-pulses, so "is there an n-sample pulse that meets the mask" is a linear programme | a certificate for ONE sample spacing. The design chooses its gradient, hence its spacing in position, and a finer spacing is at least as capable (the polynomial in x^m is a polynomial in x); the infimum over spacings is a problem over band-limited functions, for which no finite certificate was found | not built |
+
+So the pass rule has a reference in it: "at most `factor` times the shortest design the reference search finds on
+the hidden scanner". The search is over one generator (equiripple Shinnar-Le Roux, constant gradient); a design of
+another kind may be shorter, passes, and is recorded with `merit_reference` > 1. The hard-pulse floor stays in the
+rule as the line below which a delivered design is an engine defect.
+
+### The transmit chain of a scanner (`hardware`)
+
+`hardware.Chain` holds what a scanner does to a designed pulse and the ideal simulator does not: a transmit scale,
+the amplifier law `a / (1 + (a / A)^6)^(1/6)` (Rapp's model of a solid-state amplifier with smoothness 3: a
+declared choice, not a measurement of any amplifier), a delay of the slice-select gradient against the RF, an
+off-resonance. `hardware.rotate` is the rotation of the played waveform in the piecewise model; the verifier, the
+scan `rfscan` and the `simulate` tool all call it, with the hidden chain, the hidden chain at every voxel, and the
+chain the agent assumes. `tests/test_rf_pulse.py` holds it against an integration of the Bloch equations by a
+general-purpose solver (2e-7 on Mxy and Mz, with every element of the chain switched on and for a variable-rate
+pulse) and the amplifier law and the delayed gradient against closed forms. The delay is given per RF sample as the
+mean of the delayed gradient over that sample: exact in area, first order within the sample.
+
+`pulses.slr_flip` states the two ripples of a Shinnar-Le Roux excitation on the flip angle (degrees) instead of on
+|Mxy|, which does not move with the flip angle at 90°: |b| = sin(θ / 2) is one-to-one with θ, and the two
+tolerances are handed to the filter design through the relations of a saturation pulse, whose profile is cos θ.
+
 ## 5. Validation
 
 `python -m mrgym.design.validate` runs the rows below and exits with status 1 if one fails;
@@ -228,6 +261,10 @@ stated equations. They do not show that the equations describe a scanner.
   value that sits on a rounding boundary; ids were not compared between machines.
 - **The limits check** does not rotate logical axes to physical ones, and the slice-select gradient of a pulse is
   checked without the ramps around the pulse.
-- **Not done**: minimum-phase and root-flipped designs, multiband pulses, a tighter duration bound from the profile
-  mask, a time-optimal variable-rate design with gradient ramps, a hardware model with hidden errors, export to a
-  sequence file.
+- **The equiripple generator on the 10 µs raster** designs its filter with one tap per raster sample: a 5 ms pulse is
+  a 500-tap filter, which takes 0.1 to 0.3 s, and its first and last sample keep a fixed flip angle, so the peak B1
+  of a long pulse stops falling with its duration (about 6.5 µT per degree of that sample).
+- **The transmit chain** (`hardware`) is a declared model: one scale, one memoryless amplitude law, one delay. It has
+  no phase distortion, no memory, no eddy currents, and no relaxation during the pulse.
+- **Not done**: minimum-phase and root-flipped designs, multiband pulses, a proven duration bound tighter than the
+  hard-pulse floor, a time-optimal variable-rate design with gradient ramps, export to a sequence file.

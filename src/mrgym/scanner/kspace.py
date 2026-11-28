@@ -75,7 +75,7 @@ import numpy as np
 import scipy.signal
 import scipy.sparse as sp
 
-from . import console, epg, rf, tissue
+from . import console, epg, rf, rfscan, tissue
 from . import signal as S
 from . import world as W
 
@@ -800,3 +800,5 @@ CLOSED_FORMS = dict(
 )
 
 from . import served  # noqa: E402  (registers FORMATION["core"]; it needs the engine above)
+
+FORMATION["design"] = rfscan.form        # a designed excitation (``scanner/rfscan.py``; imported with the console)

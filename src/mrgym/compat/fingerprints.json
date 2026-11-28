@@ -357,6 +357,27 @@
     "scoring_source": "30650dc25bf9db53bf57e7fc22d65897115cc4132e9bc5e429f405617c552031"
    }
   },
+  "Scanner/RFPulse-v0": {
+   "engine": "mrgym-engine-0.3.0",
+   "fingerprint": "693359b040204a4cd2facc719ec3fc5ffc1638c6a0837033bed84121dce9e5dd",
+   "frozen": false,
+   "package": "0.1.0.dev0",
+   "parts": {
+    "L1.statement": "e675ca9f028d889b172213b3502c2e8c84b0b6dd82e3cab83592053f77559801",
+    "L1.tools": "cfaa7e0cf9d2412b64f9ae104beda12fd11372f43ba12669a64a7f4892c9e9be",
+    "L1.transcript": "cebace68002c01323c8aba7dba25da83b056a7c5fd5acf32af2efda8938694af",
+    "L2.statement": "d1ca3834fd961a0f6f0ab37d8e4f2f883cefe4757598d152285e3053bcc68ac1",
+    "L2.tools": "cfaa7e0cf9d2412b64f9ae104beda12fd11372f43ba12669a64a7f4892c9e9be",
+    "L2.transcript": "a4fdbb1d678f3bcb7c35229867dd1b3ae14588dd17da6be23e1633e9c0b6f436",
+    "L3.statement": "4ba26076c6e4fed5e0668d3e204b82fdda048f3a5df4f495a3091ca4a2e3e801",
+    "L3.tools": "cfaa7e0cf9d2412b64f9ae104beda12fd11372f43ba12669a64a7f4892c9e9be",
+    "L3.transcript": "1cc478912b7e4eb6107a39c8ca5407be822ea64851774f8888e8ebf783ca8777",
+    "engine": "a30bb8fa683f09bcfc718b1d4d2869d7368dd5120f1dadb3e85c3919a0d4b21d",
+    "registration": "b49af34a8591b7490a6367425d44d149bb06dec003ab9168c10347cf217efa0e",
+    "rules": "23391ce44e1e30da5b6574e77d0da78cef01f678ec62e66341fd712f1beb97f9",
+    "scoring_source": "b4881544b1f1948fb6eed2bbdb397bca4cdca0ccd916b5de82d01744712bdadb"
+   }
+  },
   "Scanner/Resolve-v0": {
    "engine": "mrgym-engine-0.3.0",
    "fingerprint": "4f28ccfa9f339810e1ac9e038b71dcf26b4d233caf1fbdb875cbf918a0486209",

@@ -17,7 +17,7 @@ folder with three Python files. The example on this page asks for T2 of three vi
 Copy [examples/new_family/](../examples/new_family/) to `src/mrgym/envs/<your_task>/` and leave `play.py` behind. The
 package finds the folder by itself: no other file is edited.
 
-`spec.py` registers the id. A new id starts as `candidate`.
+`spec.py` registers the id. A new id starts as `candidate`. (A task that delivers a designed pulse: [DESIGN.md](DESIGN.md), rule 2.)
 
 ```python
 SPECS = [dict(id="Example/T2Vials-v0", entry_point="mrgym.envs.family:FamilyEnv", card=f"{__package__}.task:card",

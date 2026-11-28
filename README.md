@@ -81,6 +81,7 @@ The agent sees the task text and the results of its own tool calls, nothing else
 | [`Scanner/TransmitAdjust-v0`](envs/scanner-transmitadjust-v0/) | measure the real flip angle against the nominal one | measure | ready |
 | [`Scanner/NoiseSNR-v0`](envs/scanner-noisesnr-v0/) | measure the signal-to-noise ratio the way the standards do | measure | ready |
 | [`Scanner/GradientCal-v0`](envs/scanner-gradientcal-v0/) | measure the gradient scale error with a known phantom | measure | ready |
+| [`Scanner/RFPulse-v0`](envs/scanner-rfpulse-v0/) | design a slice-selective pulse for a scanner with hidden hardware | design | experimental |
 | **D · Image quality and artefacts**: how good the image is, and what went wrong | | | |
 | [`Scanner/SNRSpec-v0`](envs/scanner-snrspec-v0/) | reach a required signal-to-noise ratio in the least scan time | set | ready |
 | [`Scanner/BandFree-v0`](envs/scanner-bandfree-v0/) | keep the dark bands of balanced SSFP off the object | set | ready |
@@ -91,7 +92,7 @@ The agent sees the task text and the results of its own tool calls, nothing else
 A task is ready when it has been checked on 300 fresh objects: a scripted solution passes, and shortcuts that ignore the
 object fail. A task marked not ready does not examine on this engine what it was built for; its card says why. Each task
 has levels of difficulty (`mrgym list`); [envs/](envs/README.md) has the full table. [The map](docs/tasks.md) lists 115
-pieces of MR physics: the scanner forms 64, and 22 have a task of their own.
+pieces of MR physics: the scanner forms 64, and 23 have a task of their own.
 <!-- TASKS:END -->
 
 ## Add a task

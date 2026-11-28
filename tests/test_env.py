@@ -25,7 +25,10 @@ def test_registry_lists_the_ids_with_their_kind():
     assert all(mrgym.spec(i).kind in cards.KINDS for i in mrgym.list_envs())
     assert mrgym.spec(T1).levels == (1, 2, 3) and mrgym.spec(NOWRAP).levels == (0, 1, 2, 3) and mrgym.spec(NOWRAP).version == 1
     assert gate.claim_levels(mrgym.spec(NOWRAP)) == [2, 3] and gate.claim_levels(mrgym.spec(T1)) == [1, 2, 3]
-    assert all(mrgym.spec(i).entry_point == "mrgym.envs.family:FamilyEnv" for i in mrgym.list_envs() if mrgym.spec(i).family)
+    # one class for every family; a design family has the same class with the design tools (``envs/design_tools.py``)
+    assert all(mrgym.spec(i).entry_point in ("mrgym.envs.family:FamilyEnv", "mrgym.envs.design_tools:DesignFamilyEnv")
+               for i in mrgym.list_envs() if mrgym.spec(i).family)
+    assert [i for i in mrgym.list_envs() if mrgym.spec(i).entry_point.endswith("DesignFamilyEnv")] == ["Scanner/RFPulse-v0"]
 
 
 def test_the_two_v0_ids_are_retired_and_name_their_successor():

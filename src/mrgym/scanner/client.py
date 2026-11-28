@@ -105,6 +105,10 @@ class Scanner:
         """Free dry run: realised protocol, timing, scan seconds, limits, accept / reject with reasons."""
         return self._call("POST", "/v1/plan", {"protocol": protocol})
 
+    def design(self, call):
+        """Store a design made from a generator call (a design task): its number, canonical call and facts. Free."""
+        return self._call("POST", "/v1/design", call)
+
     def scan(self, protocol, rois=None, out=None):
         """Run one acquisition. Returns the response dict; with ``out`` the images are written next to it as .npy,
         otherwise they stay in the dict under ``arrays`` as raw .npy bytes."""
